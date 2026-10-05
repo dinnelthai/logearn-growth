@@ -1,0 +1,2480 @@
+<!doctype html>
+<html lang="en" data-visualize-standalone>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src 'unsafe-inline' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>LogEarn 数据分析后台设计</title>
+<style>:root{color-scheme:light dark;background:light-dark(rgb(255 255 255), rgb(24 24 24))}html,body{margin:0}body{box-sizing:border-box;padding:1rem;background:inherit}iframe{display:block;width:100%;height:calc(100vh - 2rem);margin:0 auto;border:0}</style>
+</head>
+<body>
+<iframe id="codex-visualization" sandbox="allow-scripts" referrerpolicy="no-referrer" title="LogEarn 数据分析后台设计" data-srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot; data-visualize-standalone&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;meta name=&quot;referrer&quot; content=&quot;no-referrer&quot;&gt;
+&lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#x27;none&#x27;; script-src &#x27;unsafe-inline&#x27; &#x27;unsafe-eval&#x27; &#x27;wasm-unsafe-eval&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src &#x27;unsafe-inline&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src &#x27;none&#x27;; object-src &#x27;none&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;&quot;&gt;
+&lt;title&gt;LogEarn 数据分析后台设计&lt;/title&gt;
+&lt;style&gt;:root {
+  color-scheme: light dark;
+  background-color: var(
+    --background,
+    var(--color-background-primary, light-dark(rgb(255 255 255), rgb(24 24 24)))
+  ) !important;
+
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: var(
+    --color-background-primary,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --card: color-mix(in oklab, var(--foreground) 5%, var(--background));
+  --card-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --popover: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255), rgb(45 45 45))
+  );
+  --popover-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --primary: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --primary-foreground: var(
+    --color-text-inverse,
+    light-dark(rgb(255 255 255), rgb(13 13 13))
+  );
+  --secondary: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%))
+  );
+  --secondary-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: var(
+    --color-text-secondary,
+    light-dark(rgb(26 28 31 / 49.4%), rgb(255 255 255 / 49.8%))
+  );
+  --accent: var(
+    --color-background-info,
+    light-dark(rgb(229 242 255), rgb(13 39 63))
+  );
+  --accent-foreground: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --destructive: var(
+    --color-text-warning,
+    light-dark(rgb(226 85 7), rgb(255 133 73))
+  );
+  --border: var(
+    --color-border-secondary,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+  --input: var(
+    --color-border-primary,
+    light-dark(
+      rgb(26 28 31 / 11.8%),
+      color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+    )
+  );
+  --ring: var(
+    --color-ring-primary,
+    light-dark(rgb(51 156 255), rgb(131 195 255 / 76%))
+  );
+  --font-size-base: var(--font-text-md-size, 14px);
+  --blue: light-dark(rgb(51 156 255), rgb(51 156 255));
+  --orange: light-dark(rgb(226 85 7), rgb(251 106 34));
+  --green: light-dark(rgb(0 162 64), rgb(64 201 119));
+  --red: light-dark(rgb(224 46 42), rgb(255 103 100));
+  --purple: light-dark(rgb(146 79 247), rgb(173 123 249));
+  --yellow: light-dark(rgb(255 195 0), rgb(255 210 64));
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(rgb(243 136 59), rgb(245 154 86));
+  --viz-series-3: light-dark(rgb(93 201 119), rgb(116 213 139));
+  --viz-series-4: light-dark(rgb(235 119 177), rgb(240 143 192));
+  --viz-series-5: light-dark(rgb(155 121 236), rgb(170 145 239));
+  --viz-series-6: light-dark(rgb(58 185 177), rgb(90 203 194));
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans: -apple-system, system-ui, &quot;Segoe UI&quot;, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;,
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 430;
+  --font-weight-medium: 500;
+  --icon-size: 16px;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --corner-shape: round;
+  --radius: var(--border-radius-lg, 10px);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url(&quot;data:image/svg+xml,%3Csvg xmlns=&#x27;http://www.w3.org/2000/svg&#x27; viewBox=&#x27;0 0 17 17&#x27;%3E%3Cpath d=&#x27;M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z&#x27;/%3E%3C/svg%3E&quot;);
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+}
+
+:root[data-theme=&quot;light&quot;] {
+  color-scheme: light;
+}
+
+:root[data-theme=&quot;dark&quot;] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html &gt; body {
+  /* Preserve MCP aliases for older inline renderers without creating :root cycles. */
+  --color-background-primary: var(
+    --background,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --color-text-primary: var(
+    --foreground,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --color-border-secondary: var(
+    --border,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+
+  margin: 0;
+  padding: var(--visualize-paint-gutter, 0px);
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+:root:not([data-app-block-surface], [data-visualize-standalone]) &gt; body {
+  padding: 12px;
+}
+
+.cursor-interaction {
+  cursor: var(--cursor-interaction, pointer);
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: var(--cursor-interaction, pointer);
+  font-weight: var(--font-weight-medium, 500);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+b,
+strong,
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  corner-shape: var(--corner-shape);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--foreground);
+  font: inherit;
+  text-align: start;
+}
+
+.table :is(th, td) {
+  padding-block: 10px;
+  padding-inline: 0 24px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.table-responsive &gt; .table :is(th, td) {
+  overflow-wrap: break-word;
+}
+
+.table :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+
+.table :is(caption, thead th) {
+  font-weight: 600;
+}
+
+.table thead th {
+  padding-block: 8px;
+  border-bottom-color: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+
+.table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.table.table-sm :is(th, td) {
+  padding-block: 6px;
+}
+
+.table.table-sm :is(th, td):not(:last-child) {
+  padding-inline-end: 16px;
+}
+
+.table :is(.text-end, [align=&quot;right&quot;]) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.table :is(.text-center, [align=&quot;center&quot;]) {
+  text-align: center;
+}
+
+.table .text-nowrap {
+  white-space: nowrap;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  corner-shape: var(--corner-shape);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+.widget {
+  min-width: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-lg);
+  corner-shape: var(--corner-shape);
+  box-shadow: 0 0 0 0.5px var(--border-strong, var(--border));
+  color: var(--foreground);
+  background: var(--background);
+}
+
+#widget &gt; :not(.card, .widget, .progress) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  corner-shape: var(--corner-shape);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: none;
+  font-size: var(--font-size-tooltip);
+  line-height: var(--line-height-tooltip);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* The shared runtime owns data-tooltip; suppress AppBlock&#x27;s pseudo-tooltip. */
+main [data-tooltip]::after {
+  content: none;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+hr {
+  width: 100%;
+  height: 1px;
+  margin-block: 6px;
+  border: 0;
+  background: var(--border);
+}
+
+.nav {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+}
+
+.progress {
+  display: flex;
+  height: 8px;
+  margin-block: calc((var(--line-height-normal, 1.5em) - 8px) / 2);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+}
+
+.progress-bar:only-child {
+  border-radius: var(--radius-full);
+}
+
+.progress-bar {
+  height: 100%;
+  flex-shrink: 0;
+  border: 0;
+  background: var(--viz-series-1);
+}
+
+.viz-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-weight: var(--font-weight-medium);
+}
+
+small,
+.text-small,
+.viz-badge {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls &gt; .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls &gt; .form-label &gt; :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.nav-link,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+.btn,
+.nav-link {
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: var(--corner-shape);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: var(--cursor-interaction, pointer);
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover,
+.nav-link:not(:disabled):not([aria-disabled=&quot;true&quot;]):hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn-primary {
+  border-color: transparent;
+  color: var(--primary-foreground);
+  background: var(--foreground);
+  background-clip: padding-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(in srgb, var(--primary-foreground) 50%, transparent);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: padding-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.nav-pills .nav-link {
+  min-width: 0;
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.nav-justified .nav-link {
+  flex: 1 1 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.nav-pills .nav-link.active {
+  color: var(--foreground);
+  background: var(--muted);
+}
+
+/* Shared preview chrome; product styles stay inside each variant. */
+.viz-dotted-background {
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--foreground) 14%, transparent) 0.8px,
+    transparent 0.8px
+  );
+  background-position: center;
+  background-size: 16px 16px;
+}
+
+.viz-carousel {
+  position: relative;
+  min-width: 0;
+}
+
+.viz-carousel:has(&gt; .viz-carousel-controls) {
+  min-height: calc(60px + var(--viz-carousel-picker-height, 0px));
+  padding-bottom: 60px;
+}
+
+.viz-carousel &gt; [data-variant][hidden] {
+  display: none !important;
+}
+
+.viz-carousel &gt; [data-variant] {
+  isolation: isolate;
+}
+
+.viz-carousel-controls {
+  --viz-carousel-hover: light-dark(
+    color-mix(in srgb, var(--foreground) 5.4%, transparent),
+    color-mix(in srgb, var(--foreground) 7.8%, transparent)
+  );
+  position: absolute;
+  z-index: 2;
+  bottom: 8px;
+  left: 50%;
+  display: flex;
+  width: max-content;
+  /* Leave room for the host&#x27;s design-controls launcher at the trailing edge. */
+  max-width: calc(100% - 96px);
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-sans);
+  /* Match the settings dropdown chrome independently of the content font size. */
+  font-size: 13px;
+  font-weight: var(--font-weight-normal);
+  line-height: 18px;
+  transform: translateX(-50%);
+  user-select: none;
+}
+
+/* Keep authored mockup button styles out of the shared carousel chrome. */
+.viz-carousel-controls button,
+.viz-carousel-picker &gt; summary {
+  display: flex !important;
+  height: auto !important;
+  min-height: 30px;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px;
+  padding: 0 6px !important;
+  -webkit-app-region: no-drag;
+  border: 0 !important;
+  border-radius: 14px !important;
+  color: inherit !important;
+  background: transparent !important;
+  font: inherit !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.viz-carousel-controls &gt; button,
+.viz-carousel-picker &gt; summary {
+  position: relative;
+  isolation: isolate;
+}
+
+.viz-carousel-controls &gt; button {
+  --icon-size: 16px;
+  width: 30px !important;
+  padding: 0 !important;
+}
+
+.viz-carousel-picker &gt; summary {
+  padding-inline: 12px !important;
+}
+
+.viz-carousel-controls .viz-carousel-caret {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  margin: 0;
+  color: inherit;
+  transform: rotate(180deg);
+}
+
+.viz-carousel-controls &gt; button &gt; svg,
+.viz-carousel-controls .viz-carousel-caret,
+.viz-carousel-count {
+  opacity: 0.5;
+}
+
+.viz-carousel-controls &gt; button::before,
+.viz-carousel-picker &gt; summary::before {
+  position: absolute;
+  z-index: -1;
+  inset: 3px;
+  border-radius: 12px;
+  content: &quot;&quot;;
+  pointer-events: none;
+}
+
+.viz-carousel-controls &gt; button:hover::before,
+.viz-carousel-picker &gt; summary:hover::before {
+  background: var(--viz-carousel-hover);
+}
+
+.viz-carousel-controls &gt; button,
+.viz-carousel-controls [data-lucide],
+.viz-carousel-controls .lucide {
+  flex-shrink: 0;
+}
+
+.viz-carousel-picker {
+  min-width: 0;
+}
+
+.viz-carousel-picker &gt; summary {
+  min-width: 0;
+  list-style: none;
+}
+
+.viz-carousel-picker &gt; summary::-webkit-details-marker {
+  display: none;
+}
+
+.viz-carousel-count {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.viz-carousel-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viz-carousel-options {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 4px);
+  left: 0;
+  display: flex;
+  max-height: 240px;
+  flex-direction: column;
+  gap: 2px;
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--background);
+  box-shadow: 0 4px 12px light-dark(rgb(0 0 0 / 6%), rgb(0 0 0 / 25%));
+}
+
+.viz-carousel-options &gt; button {
+  border-radius: max(0px, calc(var(--radius-lg) - 5px)) !important;
+  width: 100% !important;
+  min-height: 28px;
+  justify-content: flex-start !important;
+  padding: 4px 8px !important;
+  font-size: var(--font-size-small) !important;
+  text-align: start;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.viz-carousel-options &gt; [aria-current=&quot;true&quot;],
+.viz-carousel-options &gt; button:hover {
+  background: var(--viz-carousel-hover) !important;
+}
+
+.btn:disabled,
+.nav-link:disabled,
+.nav-link[aria-disabled=&quot;true&quot;] {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: var(--corner-shape);
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type=&quot;file&quot;] {
+  padding: 0;
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control[type=&quot;file&quot;]::file-selector-button {
+  min-height: 26px;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+}
+
+.form-control[type=&quot;file&quot;]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type=&quot;color&quot;] {
+  width: 40px;
+  height: 28px;
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+  corner-shape: var(--corner-shape);
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 32px 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: var(--corner-shape);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-check {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;] {
+  border-color: var(--input);
+  border-radius: var(--radius-sm);
+  corner-shape: var(--corner-shape);
+  background-color: var(--secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type=&quot;checkbox&quot;]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: &quot;&quot;;
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+}
+
+.form-check-input[type=&quot;radio&quot;] {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+}
+
+.form-check-input[type=&quot;radio&quot;]:checked {
+  border: 2px solid var(--primary);
+  background:
+    radial-gradient(circle, var(--primary-foreground) 0 2.5px, transparent 3px),
+    var(--primary);
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+  box-shadow: var(--shadow-sm);
+  content: &quot;&quot;;
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--primary);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  accent-color: var(--primary);
+  background: linear-gradient(
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      color-mix(in srgb, var(--foreground) 7%, transparent)
+    )
+    center / 100% 2px no-repeat;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-webkit-slider-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+  [aria-pressed=&quot;true&quot;],
+  [aria-selected=&quot;true&quot;],
+  .is-selected
+) {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.btn.viz-tile:is([aria-pressed=&quot;true&quot;], [aria-selected=&quot;true&quot;], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible,
+.nav-link:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.viz-carousel-controls :is(button, summary):focus-visible {
+  outline: 2px solid var(--ring) !important;
+  outline-offset: 2px !important;
+}
+
+@media (pointer: coarse) {
+  .viz-carousel:has(&gt; .viz-carousel-controls) {
+    min-height: calc(76px + var(--viz-carousel-picker-height, 0px));
+    padding-bottom: 76px;
+  }
+
+  .btn,
+  .nav-link,
+  .viz-carousel-controls button,
+  .viz-carousel-picker &gt; summary,
+  .form-control,
+  .form-select {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Keep small-screen WebKit from zooming when a text field receives focus. */
+  .form-control,
+  .form-select {
+    font-size: max(16px, var(--font-size-normal));
+  }
+
+  .form-control[type=&quot;file&quot;]::file-selector-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .form-control-color[type=&quot;color&quot;] {
+    width: 44px;
+    height: 44px;
+  }
+
+  .form-control:is(
+    [type=&quot;date&quot;],
+    [type=&quot;datetime-local&quot;],
+    [type=&quot;month&quot;],
+    [type=&quot;time&quot;],
+    [type=&quot;week&quot;]
+  ) {
+    min-width: 0;
+    max-width: 100%;
+    padding-block: 8px;
+  }
+
+  .form-check {
+    min-height: 44px;
+    padding-inline: 15px;
+  }
+
+  .form-check-input {
+    position: relative;
+  }
+
+  .form-check-input::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    content: &quot;&quot;;
+    transform: translate(-50%, -50%);
+  }
+
+  .form-check-label {
+    display: inline-flex;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .form-range {
+    height: 44px;
+    touch-action: pan-y;
+  }
+
+  .form-range::-webkit-slider-runnable-track {
+    height: 44px;
+  }
+
+  .form-range::-moz-range-track {
+    height: 44px;
+  }
+
+  .form-range::-webkit-slider-thumb {
+    margin-top: 12px;
+  }
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget &gt; svg {
+  width: 100%;
+}
+
+/* Model-authored chart rules can otherwise stretch icons after these styles load. */
+svg.lucide {
+  display: block;
+  width: var(--icon-size) !important;
+  height: var(--icon-size) !important;
+  flex: none;
+  margin: 0 !important;
+  stroke-width: 1.6;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+
+html&gt;body{padding:0}&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;script type=&quot;application/json&quot; id=&quot;codex-visualization-widget-state&quot;&gt;__CODEX_VISUALIZATION_WIDGET_STATE__&lt;/script&gt;
+&lt;script&gt;(() =&gt; {
+  const root = document.documentElement;
+  const mediaQuery = globalThis.matchMedia(&quot;(prefers-color-scheme: dark)&quot;);
+  const apply = Reflect.apply;
+  const isArray = Array.isArray;
+  const hasOwn = Object.hasOwn;
+  const parentWindow = globalThis.parent;
+  const stringify = JSON.stringify;
+  const parse = JSON.parse;
+  const encode = TextEncoder.prototype.encode.bind(new TextEncoder());
+  const initialStateElement = document.getElementById(
+    &quot;codex-visualization-widget-state&quot;,
+  );
+  const initialGlobals = parse(initialStateElement?.textContent ?? &quot;{}&quot;);
+  initialStateElement?.remove();
+  /** @type {Record&lt;string, unknown&gt; | null} */
+  let state = initialGlobals.widgetState ?? null;
+  const statePersistence = initialGlobals.statePersistence ?? &quot;none&quot;;
+  let nextStateRequestId = 0;
+  /** @type {Map&lt;number, { resolve: () =&gt; void; reject: (error: Error) =&gt; void; timeout: ReturnType&lt;typeof globalThis.setTimeout&gt;; serializedState: string }&gt;} */
+  const pendingStateWrites = new Map();
+  const persistenceError = () =&gt;
+    Object.assign(
+      new Error(&quot;The host could not persist the widget state update&quot;),
+      {
+        code: -32000,
+        data: { code: &quot;widget_state_persistence_failed&quot;, retryable: false },
+      },
+    );
+  /**
+   * @param {object} prototype
+   * @param {string} property
+   */
+  const getPrototypeGetter = (prototype, property) =&gt; {
+    // oxlint-disable-next-line typescript/unbound-method -- invoked through captured Reflect.apply
+    const getter = Object.getOwnPropertyDescriptor(prototype, property)?.get;
+    if (getter == null) {
+      throw new Error(`Missing ${property} getter`);
+    }
+    return getter;
+  };
+  const getMessageData = getPrototypeGetter(MessageEvent.prototype, &quot;data&quot;);
+  const getMessagePorts = getPrototypeGetter(MessageEvent.prototype, &quot;ports&quot;);
+  const getMessageSource = getPrototypeGetter(MessageEvent.prototype, &quot;source&quot;);
+  // oxlint-disable-next-line typescript/unbound-method -- captured before the untrusted fragment runs
+  const addHostMessageListener = MessagePort.prototype.addEventListener;
+  // oxlint-disable-next-line typescript/unbound-method -- captured before the untrusted fragment runs
+  const postHostMessage = MessagePort.prototype.postMessage;
+  // oxlint-disable-next-line typescript/unbound-method -- captured before the untrusted fragment runs
+  const startHostPort = MessagePort.prototype.start;
+  // oxlint-disable-next-line typescript/unbound-method -- captured before the untrusted fragment runs
+  const stopMessagePropagation = Event.prototype.stopImmediatePropagation;
+  /** @type {MessagePort | null} */
+  let hostPort = null;
+  const postToHost = (type, payload) =&gt; {
+    if (hostPort != null) {
+      apply(postHostMessage, hostPort, [{ type, ...payload }]);
+    }
+  };
+  const openExternal = ({ href }) =&gt; {
+    if (globalThis.navigator.userActivation?.isActive === true) {
+      postToHost(&quot;open-external&quot;, { href });
+    }
+  };
+  const sendFollowUpMessage = ({ context, prompt, title }) =&gt; {
+    if (globalThis.navigator.userActivation?.isActive === true) {
+      postToHost(&quot;follow-up&quot;, { context, prompt, title });
+    }
+    return Promise.resolve();
+  };
+  /**
+   * @param {Record&lt;string, unknown&gt; | ((previous: Record&lt;string, unknown&gt; | null) =&gt; Record&lt;string, unknown&gt;)} next
+   * @returns {Promise&lt;void&gt;}
+   */
+  const setWidgetState = async (next) =&gt; {
+    const nextState = typeof next === &quot;function&quot; ? next(state) : next;
+    if (
+      nextState == null ||
+      typeof nextState !== &quot;object&quot; ||
+      isArray(nextState)
+    ) {
+      throw new TypeError(&quot;Widget state must be a JSON object&quot;);
+    }
+    const inputState = stringify(
+      nextState,
+      (_key, /** @type {unknown} */ value) =&gt; {
+        if (
+          typeof value === &quot;undefined&quot; ||
+          typeof value === &quot;function&quot; ||
+          typeof value === &quot;symbol&quot; ||
+          (typeof value === &quot;number&quot; &amp;&amp; !Number.isFinite(value))
+        ) {
+          throw new TypeError(&quot;Widget state must be a JSON object&quot;);
+        }
+        return value;
+      },
+    );
+    const parsedState = parse(inputState);
+    if (
+      parsedState == null ||
+      typeof parsedState !== &quot;object&quot; ||
+      isArray(parsedState)
+    ) {
+      throw new TypeError(&quot;Widget state must be a JSON object&quot;);
+    }
+    const storedState = {
+      modelContent: null,
+      privateContent: null,
+      ...parsedState,
+    };
+    const serializedState = stringify(storedState);
+    if (encode(serializedState).length &gt; 16 * 1024) {
+      throw new TypeError(
+        &quot;Widget state must be a JSON object of at most 16 KiB&quot;,
+      );
+    }
+    if (
+      hasOwn(storedState, &quot;imageIds&quot;) &amp;&amp;
+      (!isArray(storedState.imageIds) ||
+        storedState.imageIds.some(
+          (/** @type {unknown} */ id) =&gt; typeof id !== &quot;string&quot;,
+        ))
+    ) {
+      throw new TypeError(&quot;Widget state imageIds must be an array of strings&quot;);
+    }
+    if (storedState.imageIds?.length &gt; 0) {
+      throw Object.assign(
+        new TypeError(&quot;Visualization state does not support image attachments&quot;),
+        { code: -32602, data: { code: &quot;images_unsupported&quot; } },
+      );
+    }
+    state = storedState;
+    globalThis.openai.widgetState = state;
+    globalThis.dispatchEvent(
+      new CustomEvent(&quot;openai:set_globals&quot;, {
+        detail: { globals: { widgetState: state } },
+      }),
+    );
+    if (statePersistence === &quot;none&quot;) {
+      throw persistenceError();
+    }
+    const id = ++nextStateRequestId;
+    return new Promise((resolve, reject) =&gt; {
+      const timeout = globalThis.setTimeout(() =&gt; {
+        pendingStateWrites.delete(id);
+        reject(persistenceError());
+      }, 30_000);
+      pendingStateWrites.set(id, { resolve, reject, timeout, serializedState });
+      postToHost(&quot;widget-state-write&quot;, { id, state: serializedState });
+    });
+  };
+  const syncTheme = () =&gt; {
+    const theme = mediaQuery.matches ? &quot;dark&quot; : &quot;light&quot;;
+    root.dataset.theme = theme;
+    globalThis.openai = {
+      ...globalThis.openai,
+      openExternal,
+      sendFollowUpMessage,
+      setWidgetState,
+      theme,
+      visualizationStyleVariables: {},
+      visualizationTheme: theme,
+      widgetState: state,
+      statePersistence,
+      stateModelContext: &quot;none&quot;,
+    };
+    globalThis.dispatchEvent(
+      new CustomEvent(&quot;openai:set_globals&quot;, {
+        detail: { globals: globalThis.openai },
+      }),
+    );
+  };
+  const sendHeight = () =&gt; {
+    postToHost(&quot;height&quot;, {
+      height: Math.ceil(
+        Math.max(
+          document.body.scrollHeight,
+          document.body.getBoundingClientRect().height,
+        ),
+      ),
+    });
+  };
+
+  globalThis.addEventListener(
+    &quot;message&quot;,
+    (event) =&gt; {
+      const data = apply(getMessageData, event, []);
+      const ports = apply(getMessagePorts, event, []);
+      const source = apply(getMessageSource, event, []);
+      if (
+        hostPort != null ||
+        source !== parentWindow ||
+        typeof data !== &quot;object&quot; ||
+        data?.type !== &quot;codex-visualization-initialize&quot; ||
+        !isArray(ports) ||
+        ports.length !== 1
+      ) {
+        return;
+      }
+      apply(stopMessagePropagation, event, []);
+      const nextHostPort = ports[0];
+      try {
+        apply(addHostMessageListener, nextHostPort, [
+          &quot;message&quot;,
+          (event) =&gt; {
+            const data = apply(getMessageData, event, []);
+            if (typeof data === &quot;object&quot; &amp;&amp; data?.type === &quot;measure&quot;) {
+              sendHeight();
+            } else if (
+              typeof data === &quot;object&quot; &amp;&amp;
+              data?.type === &quot;widget-state-result&quot;
+            ) {
+              /** @type {unknown} */
+              const id = data.id;
+              if (typeof id !== &quot;number&quot;) {
+                return;
+              }
+              const pending = pendingStateWrites.get(id);
+              if (pending != null) {
+                pendingStateWrites.delete(id);
+                globalThis.clearTimeout(pending.timeout);
+                if (data.ok === true) {
+                  pending.resolve();
+                } else {
+                  pending.reject(persistenceError());
+                }
+              }
+            }
+          },
+        ]);
+        apply(startHostPort, nextHostPort, []);
+      } catch {
+        return;
+      }
+      hostPort = nextHostPort;
+      for (const [id, { serializedState }] of pendingStateWrites) {
+        postToHost(&quot;widget-state-write&quot;, { id, state: serializedState });
+      }
+      sendHeight();
+    },
+    { capture: true },
+  );
+  document.currentScript?.remove();
+  mediaQuery.addEventListener(&quot;change&quot;, syncTheme);
+  globalThis.addEventListener(&quot;click&quot;, (event) =&gt; {
+    if (event.defaultPrevented) {
+      return;
+    }
+    let element = null;
+    if (event.target instanceof globalThis.Element) {
+      element = event.target;
+    } else if (event.target instanceof globalThis.Node) {
+      element = event.target.parentElement;
+    }
+    const link = element?.closest(&quot;a[href]&quot;);
+    const href = link?.getAttribute(&quot;href&quot;);
+    if (href == null) {
+      return;
+    }
+    if (href.startsWith(&quot;#&quot;)) {
+      let id;
+      try {
+        id = decodeURIComponent(href.slice(1));
+      } catch {
+        return;
+      }
+      const target = id.length === 0 ? root : document.getElementById(id);
+      if (
+        target == null ||
+        globalThis.navigator.userActivation?.isActive !== true
+      ) {
+        return;
+      }
+      event.preventDefault();
+      postToHost(&quot;scroll-to&quot;, {
+        top: target.getBoundingClientRect().top + globalThis.scrollY,
+      });
+      return;
+    }
+    event.preventDefault();
+    openExternal({ href });
+  });
+  new ResizeObserver(sendHeight).observe(document.body);
+  syncTheme();
+})();
+&lt;/script&gt;
+&lt;div id=&quot;la-studio&quot;&gt;
+&lt;style&gt;
+#la-studio{--a-funnel-0:light-dark(#3557b7,#3557b7);--a-funnel-1:light-dark(#466dcc,#466dcc);--a-funnel-2:light-dark(#5279ce,#5279ce);--a-funnel-label:light-dark(#fff,#fff)}
+#la-studio{--a-bg:light-dark(#f4f6f9,#11151d);--a-panel:light-dark(#fff,#1a212c);--a-text:light-dark(#202a3a,#e7edf7);--a-muted:light-dark(#69768a,#9aabc2);--a-border:light-dark(#e3e8ef,#303c4c);--a-accent:light-dark(#4264d0,#96b0ff);--a-tint:light-dark(#eef2ff,#28344d);--a-green:light-dark(#247858,#81d6b0);--a-warn:light-dark(#a56624,#f1bd76);--a-shadow:light-dark(#18294618,#00000033);color:var(--a-text);background:var(--a-bg);font:13px/1.5 Inter,system-ui,-apple-system,&quot;PingFang SC&quot;,sans-serif;border:1px solid var(--a-border);border-radius:12px;overflow:hidden;color-scheme:light dark}#la-studio *{box-sizing:border-box}#la-studio [hidden]{display:none!important}#la-studio button,#la-studio select,#la-studio input{font:inherit}#la-studio button{color:inherit}#la-studio button:focus-visible,#la-studio select:focus-visible{outline:2px solid var(--a-accent);outline-offset:2px}#la-studio .a-top{display:flex;align-items:center;gap:24px;flex-wrap:wrap;padding:18px 105px 18px 20px;background:var(--a-panel);border-bottom:1px solid var(--a-border)}#la-studio .a-brand{display:flex;align-items:center;gap:8px;font-size:21px;font-weight:750;letter-spacing:-.8px;white-space:nowrap}#la-studio .a-brandmark{width:31px;height:27px;display:block;filter:drop-shadow(0 0 5px color-mix(in srgb,var(--a-green) 42%,transparent))}#la-studio .a-brandmark .a-wing{fill:var(--a-green)}#la-studio .a-brandmark .a-e{fill:var(--a-green);font:900 29px/1 Arial,sans-serif}#la-studio .a-brandword span{color:var(--a-green)}#la-studio .a-topnav{display:flex;gap:5px;flex-wrap:wrap}#la-studio .a-nav{border:0;padding:8px 12px;background:transparent;border-radius:6px;color:var(--a-muted)}#la-studio .a-nav[aria-pressed=true]{background:var(--a-tint);color:var(--a-accent)}#la-studio .a-badge{font-size:11px;color:var(--a-muted);background:var(--a-bg);padding:4px 7px;border-radius:4px}#la-studio .a-head{padding:22px 22px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}#la-studio h1{font-size:23px;letter-spacing:-.5px;font-weight:600;margin:0 0 5px}#la-studio h2{font-size:14px;font-weight:600;margin:0}#la-studio p{margin:5px 0}#la-studio .a-muted{font-size:12px;color:var(--a-muted)}#la-studio .a-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}#la-studio .a-button{border:1px solid var(--a-border);background:var(--a-panel);border-radius:6px;padding:7px 12px}#la-studio .a-primary{background:var(--a-accent);color:light-dark(#fff,#152344);border-color:var(--a-accent)}#la-studio .a-layout{display:grid;grid-template-columns:234px minmax(0,1fr);gap:16px;padding:0 22px 22px}#la-studio .a-config{background:var(--a-panel);border:1px solid var(--a-border);border-radius:9px;align-self:start;overflow:hidden}#la-studio .a-section{padding:15px;border-bottom:1px solid var(--a-border)}#la-studio .a-section:last-child{border:0}#la-studio .a-sectionhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}#la-studio .a-step{border:1px solid var(--a-border);border-radius:6px;padding:9px;margin:8px 0;background:var(--a-panel)}#la-studio .a-stephead{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-bottom:6px}#la-studio .a-number{color:var(--a-accent);background:var(--a-tint);border-radius:4px;padding:2px 6px;font-size:11px}#la-studio .a-iconbtn{border:0;background:transparent;padding:2px 5px;color:var(--a-muted)}#la-studio button:disabled{opacity:.35;cursor:not-allowed}#la-studio select,#la-studio input{width:100%;padding:7px 8px;color:var(--a-text);background:var(--a-panel);border:1px solid var(--a-border);border-radius:5px;min-width:0}#la-studio label{display:block;font-size:12px;color:var(--a-muted);margin:9px 0 0}#la-studio label select{margin-top:4px}#la-studio .a-link{background:transparent;border:0;color:var(--a-accent);padding:3px 0;font:inherit}#la-studio .a-wide{width:100%}#la-studio .a-result{min-width:0}#la-studio .a-context{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;color:var(--a-muted);font-size:11px}#la-studio .a-chip{padding:4px 8px;border:1px solid var(--a-border);border-radius:4px;background:var(--a-panel)}#la-studio .a-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:var(--a-panel);border:1px solid var(--a-border);border-radius:9px;margin-bottom:14px}#la-studio .a-summary.a-four{grid-template-columns:repeat(4,minmax(0,1fr))}#la-studio .a-stat{padding:16px 18px;border-right:1px solid var(--a-border)}#la-studio .a-stat:last-child{border:0}#la-studio .a-statvalue{font-size:27px;letter-spacing:-.6px;font-weight:600;font-variant-numeric:tabular-nums;margin:4px 0}#la-studio .a-card{background:var(--a-panel);border:1px solid var(--a-border);border-radius:9px;margin-bottom:14px;overflow:hidden}#la-studio .a-cardhead{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:15px 17px;border-bottom:1px solid var(--a-border)}#la-studio .a-tabs{display:flex;gap:14px}#la-studio .a-tab{border:0;padding:3px 0;background:transparent;color:var(--a-muted)}#la-studio .a-tab[aria-pressed=true]{color:var(--a-accent);box-shadow:0 2px var(--a-accent)}#la-studio .a-chart{padding:18px}#la-studio .a-columns{display:grid;gap:12px;min-height:227px}#la-studio .a-col{display:flex;flex-direction:column;min-width:0}#la-studio .a-col strong{font-weight:600;font-size:18px;font-variant-numeric:tabular-nums}#la-studio .a-coltitle{font-size:12px;min-height:38px}#la-studio .a-barspace{height:135px;display:flex;align-items:flex-end;border-bottom:1px solid var(--a-border);margin-top:10px}#la-studio .a-bar{width:100%;background:var(--a-accent);opacity:.85;border-radius:3px 3px 0 0;border:0;min-height:2px;transition:height .2s}#la-studio .a-barmeta{font-size:11px;color:var(--a-muted);margin-top:8px}#la-studio .a-insight{background:var(--a-tint);padding:11px 16px;font-size:12px;border-top:1px solid var(--a-border)}#la-studio .a-scroll{overflow-x:auto}#la-studio table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}#la-studio th{text-align:left;color:var(--a-muted);font-weight:500;background:var(--a-bg)}#la-studio td,#la-studio th{padding:11px 15px;border-bottom:1px solid var(--a-border)}#la-studio tr:last-child td{border-bottom:0}#la-studio .a-tablelink{border:0;background:transparent;padding:0;color:var(--a-accent);font:inherit}#la-studio .a-footer{padding:0 22px 17px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;color:var(--a-muted);font-size:11px}#la-studio .a-details{padding:12px 16px;font-size:12px;color:var(--a-muted)}#la-studio .a-details p{margin:9px 0}#la-studio .a-status{color:var(--a-warn);font-size:11px}#la-studio .a-drawer{padding:18px;background:var(--a-panel);border-top:2px solid var(--a-accent);margin:0 22px 22px;border-radius:8px;box-shadow:0 6px 22px var(--a-shadow)}#la-studio .a-drawerhead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px}#la-studio .a-timeline{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}#la-studio .a-event{padding:10px 13px;border-left:2px solid var(--a-accent);background:var(--a-bg);font-size:12px}#la-studio .a-retrow{display:grid;grid-template-columns:45px minmax(0,1fr) 90px;gap:12px;align-items:center;margin:12px 0;font-size:12px}#la-studio .a-track{height:17px;background:var(--a-bg);border-radius:3px;overflow:hidden}#la-studio .a-fill{height:100%;background:var(--a-accent)}#la-studio .a-heat{border:0;border-radius:3px;padding:7px;min-width:56px;color:var(--a-text);font:inherit;background:var(--a-tint)}#la-studio .a-heat small{display:block;color:var(--a-muted)}#la-studio .a-trendrow{display:grid;grid-template-columns:43px minmax(0,1fr) 92px;align-items:center;gap:12px;margin:11px 0;font-size:12px}#la-studio .a-toast{color:var(--a-green);font-size:12px}#la-studio .a-loopgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:18px}#la-studio .a-loopnode{position:relative;padding:14px 12px;border:1px solid var(--a-border);border-radius:9px;background:var(--a-panel);font-size:13px}#la-studio .a-loopnode:not(:last-child):after{content:&quot;→&quot;;position:absolute;right:-10px;top:50%;transform:translate(50%,-50%);color:var(--a-muted);z-index:2}#la-studio .a-loopnode strong{display:block;font-size:18px;margin-bottom:5px}#la-studio .a-kbar{display:grid;grid-template-columns:72px minmax(120px,1fr) 92px;align-items:center;gap:10px;padding:8px 18px}#la-studio .a-kbar .a-track{height:9px}#la-studio .a-kbar .a-fill{background:var(--a-green)}#la-studio .a-callout{padding:16px 18px;background:color-mix(in srgb,var(--a-accent) 8%,var(--a-panel));border-top:1px solid var(--a-border);line-height:1.7}@media(max-width:760px){#la-studio .a-layout{grid-template-columns:1fr;padding:0 14px 14px}#la-studio .a-config{display:grid;grid-template-columns:1fr 1fr}#la-studio .a-section{border-bottom:1px solid var(--a-border)}#la-studio .a-head{padding:18px 14px}#la-studio .a-top{padding:14px;gap:10px}#la-studio .a-summary{grid-template-columns:1fr 1fr 1fr}#la-studio .a-summary.a-four{grid-template-columns:1fr 1fr}#la-studio .a-loopgrid{grid-template-columns:1fr 1fr}#la-studio .a-loopnode:not(:last-child):after{display:none}#la-studio .a-stat{padding:12px}#la-studio .a-statvalue{font-size:23px}}@media(max-width:440px){#la-studio .a-config{display:block}#la-studio .a-summary{grid-template-columns:1fr}#la-studio .a-stat{border-right:0;border-bottom:1px solid var(--a-border)}#la-studio .a-columns{gap:6px}#la-studio .a-coltitle{min-height:56px}#la-studio .a-statvalue{font-size:25px}}@media(prefers-reduced-motion:reduce){#la-studio .a-bar{transition:none}}
+&lt;/style&gt;
+&lt;div class=&quot;a-top&quot;&gt;&lt;div class=&quot;a-brand&quot; aria-label=&quot;LogEarn&quot;&gt;&lt;svg class=&quot;a-brandmark&quot; viewBox=&quot;0 0 46 40&quot; aria-hidden=&quot;true&quot;&gt;&lt;path class=&quot;a-wing&quot; d=&quot;M17 2C9 8 3 17 4 27c1 6 6 10 14 11-6-8-7-23-1-36Z&quot;/&gt;&lt;path class=&quot;a-wing&quot; d=&quot;M29 2c8 6 14 15 13 25-1 6-6 10-14 11 6-8 7-23 1-36Z&quot;/&gt;&lt;text class=&quot;a-e&quot; x=&quot;14&quot; y=&quot;31&quot;&gt;e&lt;/text&gt;&lt;/svg&gt;&lt;span class=&quot;a-brandword&quot;&gt;Log&lt;span&gt;Earn&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;&lt;nav class=&quot;a-topnav&quot; aria-label=&quot;分析类型&quot;&gt;&lt;button class=&quot;a-nav cursor-interaction&quot; data-mode=&quot;north&quot; aria-pressed=&quot;true&quot;&gt;北极星指标&lt;/button&gt;&lt;button class=&quot;a-nav cursor-interaction&quot; data-mode=&quot;channels&quot; aria-pressed=&quot;false&quot;&gt;渠道分析&lt;/button&gt;&lt;button class=&quot;a-nav cursor-interaction&quot; data-mode=&quot;funnel&quot; aria-pressed=&quot;false&quot;&gt;漏斗分析&lt;/button&gt;&lt;button class=&quot;a-nav cursor-interaction&quot; data-mode=&quot;retention&quot; aria-pressed=&quot;false&quot;&gt;留存分析&lt;/button&gt;&lt;button class=&quot;a-nav cursor-interaction&quot; data-mode=&quot;referral&quot; aria-pressed=&quot;false&quot;&gt;推荐与增长循环&lt;/button&gt;&lt;button class=&quot;a-nav cursor-interaction&quot; data-mode=&quot;segments&quot; aria-pressed=&quot;false&quot;&gt;用户分群&lt;/button&gt;&lt;/nav&gt;&lt;span class=&quot;a-badge&quot;&gt;交互原型 · 合成演示数据&lt;/span&gt;&lt;/div&gt;
+&lt;div class=&quot;a-head&quot;&gt;&lt;div&gt;&lt;h1 id=&quot;as-title&quot;&gt;北极星指标 · 有效分析用户&lt;/h1&gt;&lt;p class=&quot;a-muted&quot; id=&quot;as-sub&quot;&gt;有多少用户真正获得了筹码分析的价值&lt;/p&gt;&lt;/div&gt;&lt;div class=&quot;a-actions&quot;&gt;&lt;span id=&quot;as-saved&quot; class=&quot;a-toast&quot; aria-live=&quot;polite&quot;&gt;&lt;/span&gt;&lt;button id=&quot;as-restore&quot; class=&quot;a-button cursor-interaction&quot; hidden&gt;载入保存&lt;/button&gt;&lt;button id=&quot;as-save&quot; class=&quot;a-button cursor-interaction&quot;&gt;保存分析&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;a-layout&quot;&gt;&lt;aside class=&quot;a-config&quot; aria-label=&quot;分析配置&quot;&gt;&lt;div class=&quot;a-section&quot;&gt;&lt;div class=&quot;a-sectionhead&quot;&gt;&lt;h2 id=&quot;as-config-title&quot;&gt;漏斗步骤&lt;/h2&gt;&lt;span class=&quot;a-muted&quot; id=&quot;as-stepcount&quot;&gt;3 步&lt;/span&gt;&lt;/div&gt;&lt;div id=&quot;as-steps&quot;&gt;&lt;/div&gt;&lt;button id=&quot;as-add&quot; class=&quot;a-link cursor-interaction&quot;&gt;＋ 添加步骤&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;a-section&quot;&gt;&lt;h2&gt;分析条件&lt;/h2&gt;&lt;label&gt;统计日期&lt;select id=&quot;as-range&quot;&gt;&lt;option value=&quot;7&quot; selected&gt;09/28–10/04 · 7 天&lt;/option&gt;&lt;option value=&quot;14&quot;&gt;09/21–10/04 · 14 天&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;&lt;label id=&quot;as-window-label&quot;&gt;转化窗口&lt;select id=&quot;as-window&quot;&gt;&lt;option value=&quot;24&quot;&gt;24 小时&lt;/option&gt;&lt;option value=&quot;1&quot;&gt;1 小时&lt;/option&gt;&lt;option value=&quot;72&quot;&gt;72 小时&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;&lt;label&gt;&lt;span id=&quot;as-source-caption&quot;&gt;首次行为来源&lt;/span&gt;&lt;select id=&quot;as-source&quot;&gt;&lt;option value=&quot;all&quot;&gt;全部来源&lt;/option&gt;&lt;option&gt;SEO&lt;/option&gt;&lt;option&gt;直接访问&lt;/option&gt;&lt;option&gt;Bot&lt;/option&gt;&lt;option&gt;社群&lt;/option&gt;&lt;option&gt;邀请&lt;/option&gt;&lt;option&gt;KOL/合作&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;&lt;label id=&quot;as-strategy-label&quot;&gt;AI 策略条件&lt;select id=&quot;as-strategy&quot;&gt;&lt;option value=&quot;all&quot;&gt;全部策略&lt;/option&gt;&lt;option&gt;1.5段&lt;/option&gt;&lt;option&gt;日内2段&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;&lt;p id=&quot;as-strategy-note&quot; class=&quot;a-muted&quot;&gt;仅约束 AI 开启步骤&lt;/p&gt;&lt;/div&gt;&lt;div class=&quot;a-section&quot;&gt;&lt;button id=&quot;as-run&quot; class=&quot;a-button a-primary a-wide cursor-interaction&quot;&gt;运行分析&lt;/button&gt;&lt;p id=&quot;as-dirty&quot; class=&quot;a-muted&quot; aria-live=&quot;polite&quot;&gt;已应用当前配置&lt;/p&gt;&lt;/div&gt;&lt;/aside&gt;&lt;section class=&quot;a-result&quot; aria-label=&quot;分析结果&quot;&gt;&lt;div id=&quot;as-output&quot; aria-live=&quot;polite&quot;&gt;&lt;/div&gt;&lt;/section&gt;&lt;/div&gt;
+&lt;div id=&quot;as-drill&quot; class=&quot;a-drawer&quot; hidden&gt;&lt;/div&gt;&lt;div class=&quot;a-footer&quot;&gt;&lt;span&gt;按用户去重 · 业务日 UTC+7 · 登录起点为建议新增采集&lt;/span&gt;&lt;span&gt;演示观测截至 2026/10/05 13:00&lt;/span&gt;&lt;/div&gt;
+&lt;script src=&quot;https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(()=&gt;{
+const root=document.getElementById(&#x27;la-studio&#x27;), $=s=&gt;root.querySelector(s), $$=s=&gt;[...root.querySelectorAll(s)];
+const DATA_CONTRACT={
+version:&#x27;1.0.0&#x27;,
+meta:[&#x27;startAt&#x27;,&#x27;asOf&#x27;,&#x27;timezone&#x27;,&#x27;source&#x27;],
+user:[&#x27;id&#x27;,&#x27;source&#x27;,&#x27;strategy&#x27;,&#x27;events&#x27;],
+event:[&#x27;type&#x27;,&#x27;t&#x27;,&#x27;entry_source&#x27;,&#x27;strategy&#x27;],
+eventTypes:{login:&#x27;登录进入产品&#x27;,ai:&#x27;实际开启 AI 策略&#x27;,chip:&#x27;有效分析（筹码峰）&#x27;,trade:&#x27;交易&#x27;},
+channelProfile:[&#x27;login&#x27;,&#x27;active&#x27;,&#x27;d7&#x27;,&#x27;trade&#x27;,&#x27;pay&#x27;,&#x27;vol&#x27;],
+segmentProfile:[&#x27;ea&#x27;,&#x27;w4&#x27;,&#x27;trade&#x27;,&#x27;pay&#x27;,&#x27;amount&#x27;,&#x27;need&#x27;]
+};
+function createMockData(){
+const day=86400000,base=Date.parse(&#x27;2026-09-21T00:00:00+07:00&#x27;),asof=Date.parse(&#x27;2026-10-05T13:00:00+07:00&#x27;),sources=[&#x27;SEO&#x27;,&#x27;直接访问&#x27;,&#x27;Bot&#x27;,&#x27;社群&#x27;,&#x27;邀请&#x27;,&#x27;KOL/合作&#x27;];let seed=314159;
+const rand=()=&gt;{seed=(seed*1664525+1013904223)&gt;&gt;&gt;0;return seed/4294967296};
+const users=Array.from({length:560},(_,i)=&gt;{const source=sources[i%6],t=base+(i%14)*day+(8+Math.floor(rand()*12))*3600000,events=[{type:&#x27;login&#x27;,t}],strategy=rand()&lt;.55?&#x27;1.5段&#x27;:&#x27;日内2段&#x27;;if(rand()&lt;({SEO:.67,&#x27;直接访问&#x27;:.58,Bot:.79,&#x27;社群&#x27;:.45,&#x27;邀请&#x27;:.72,&#x27;KOL/合作&#x27;:.54}[source])){const at=t+Math.floor(rand()*100)*60000;events.push({type:&#x27;ai&#x27;,t:at,strategy});if(rand()&lt;.68)events.push({type:&#x27;chip&#x27;,t:at+(5+Math.floor(rand()*190))*60000})}else if(rand()&lt;.4)events.push({type:&#x27;chip&#x27;,t:t+15*60000});const first=events.find(e=&gt;e.type===&#x27;chip&#x27;);if(first){for(let d=1;d&lt;=7;d++)if(rand()&lt;[0,.48,.36,.30,.29,.24,.22,.26][d]){const rt=first.t+d*day+60000;if(rt&lt;asof){events.push({type:&#x27;login&#x27;,t:rt-30000},{type:&#x27;chip&#x27;,t:rt});if(rand()&lt;.5)events.push({type:&#x27;ai&#x27;,t:rt-10000,strategy})}}}return{id:&#x27;LE&#x27;+String(10000+i),source,strategy,events:events.filter(e=&gt;e.t&lt;=asof).map((e,j)=&gt;({...e,entry_source:e.type===&#x27;login&#x27;?source:sources[(i+j)%6]})).sort((a,b)=&gt;a.t-b.t)}});
+return{
+meta:{version:&#x27;mock-v1&#x27;,startAt:base,asOf:asof,timezone:&#x27;Asia/Bangkok&#x27;,source:&#x27;mock&#x27;},
+users,
+channelProfiles:{SEO:{login:.46,active:.31,d7:.22,trade:.09,pay:.025,vol:480},&#x27;直接访问&#x27;:{login:.62,active:.44,d7:.31,trade:.14,pay:.041,vol:720},Bot:{login:.74,active:.57,d7:.39,trade:.21,pay:.058,vol:980},&#x27;社群&#x27;:{login:.58,active:.43,d7:.35,trade:.16,pay:.047,vol:810},&#x27;邀请&#x27;:{login:.71,active:.61,d7:.48,trade:.24,pay:.072,vol:1120},&#x27;KOL/合作&#x27;:{login:.51,active:.36,d7:.27,trade:.12,pay:.035,vol:650}},
+segmentProfiles:{&#x27;新手型&#x27;:{ea:24,w4:8,trade:3,pay:1.2,amount:180,need:&#x27;找什么、怎么看懂&#x27;},&#x27;成长型&#x27;:{ea:58,w4:31,trade:18,pay:9.6,amount:1450,need:&#x27;稳定发现机会并形成方法&#x27;},&#x27;专业型&#x27;:{ea:83,w4:62,trade:47,pay:28,amount:8600,need:&#x27;速度、深度与批量能力&#x27;},&#x27;沉默型&#x27;:{ea:9,w4:3,trade:2,pay:.8,amount:120,need:&#x27;重新证明价值并解决体验问题&#x27;}}
+};
+}
+const dataStore=globalThis.LOGEARN_ANALYTICS_DATA||createMockData();
+const names=DATA_CONTRACT.eventTypes,day=86400000,base=dataStore.meta.startAt,asof=dataStore.meta.asOf,users=dataStore.users;
+globalThis.LogEarnAnalyticsData={contract:DATA_CONTRACT,snapshot:dataStore,isMock:dataStore.meta.source===&#x27;mock&#x27;};
+const fmt=n=&gt;n.toLocaleString(&#x27;en-US&#x27;),pct=(a,b)=&gt;b?(a/b*100).toFixed(1)+&#x27;%&#x27;:&#x27;—&#x27;,date=t=&gt;new Date(t+7*3600000).toISOString().slice(5,10).replace(&#x27;-&#x27;,&#x27;/&#x27;),clock=t=&gt;new Date(t+7*3600000).toISOString().slice(5,16).replace(&#x27;T&#x27;,&#x27; &#x27;),daynum=t=&gt;Math.floor((t-base)/day), esc=s=&gt;String(s).replace(/[&amp;&lt;&gt;&quot;&#x27;]/g,c=&gt;({&#x27;&amp;&#x27;:&#x27;&amp;amp;&#x27;,&#x27;&lt;&#x27;:&#x27;&amp;lt;&#x27;,&#x27;&gt;&#x27;:&#x27;&amp;gt;&#x27;,&#x27;&quot;&#x27;:&#x27;&amp;quot;&#x27;,&quot;&#x27;&quot;:&#x27;&amp;#39;&#x27;}[c]));
+const table=(heads,rows)=&gt;`&lt;div class=&quot;a-scroll&quot;&gt;&lt;table&gt;&lt;thead&gt;&lt;tr&gt;${heads.map(h=&gt;`&lt;th&gt;${h}&lt;/th&gt;`).join(&#x27;&#x27;)}&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;${rows.map(r=&gt;`&lt;tr&gt;${r.map(c=&gt;`&lt;td&gt;${c}&lt;/td&gt;`).join(&#x27;&#x27;)}&lt;/tr&gt;`).join(&#x27;&#x27;)}&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;`;
+const stat=(l,v,s)=&gt;`&lt;div class=&quot;a-stat&quot;&gt;&lt;div class=&quot;a-muted&quot;&gt;${l}&lt;/div&gt;&lt;div class=&quot;a-statvalue&quot;&gt;${v}&lt;/div&gt;&lt;div class=&quot;a-muted&quot;&gt;${s}&lt;/div&gt;&lt;/div&gt;`;
+function config(){return {mode,steps:[...steps],range:+$(&#x27;#as-range&#x27;).value,hours:+$(&#x27;#as-window&#x27;).value,source:$(&#x27;#as-source&#x27;).value,strategy:$(&#x27;#as-strategy&#x27;).value,start:base+(14-(+$(&#x27;#as-range&#x27;).value))*day,end:base+14*day,initial:$(&#x27;#as-initial&#x27;)?.value||&#x27;chip&#x27;,returning:$(&#x27;#as-return&#x27;)?.value||&#x27;chip&#x27;}}
+function markDirty(){dirty=true;$(&#x27;#as-dirty&#x27;).textContent=&#x27;配置已修改，点击运行更新结果&#x27;;$(&#x27;#as-saved&#x27;).textContent=&#x27;&#x27;}
+function renderSteps(){ $(&#x27;#as-source-caption&#x27;).textContent=mode===&#x27;funnel&#x27;?&#x27;登录进入来源&#x27;:mode===&#x27;referral&#x27;?&#x27;推荐用户首次来源&#x27;:&#x27;首次行为来源&#x27;; $(&#x27;#as-config-title&#x27;).textContent=mode===&#x27;funnel&#x27;?&#x27;漏斗步骤&#x27;:&#x27;留存行为&#x27;;$(&#x27;#as-stepcount&#x27;).textContent=mode===&#x27;funnel&#x27;?steps.length+&#x27; 步&#x27;:&#x27;D1–D7&#x27;;$(&#x27;#as-add&#x27;).hidden=mode!==&#x27;funnel&#x27;;$(&#x27;#as-add&#x27;).disabled=steps.length&gt;=5;$(&#x27;#as-window-label&#x27;).hidden=mode!==&#x27;funnel&#x27;;$(&#x27;#as-strategy-label&#x27;).hidden=mode!==&#x27;funnel&#x27;;$(&#x27;#as-strategy-note&#x27;).hidden=mode!==&#x27;funnel&#x27;;if(mode===&#x27;channels&#x27;){$(&#x27;#as-config-title&#x27;).textContent=&#x27;渠道归因口径&#x27;;$(&#x27;#as-stepcount&#x27;).textContent=&#x27;首次来源&#x27;;$(&#x27;#as-source-caption&#x27;).textContent=&#x27;查看指定渠道&#x27;;$(&#x27;#as-steps&#x27;).innerHTML=`&lt;p&gt;&lt;strong&gt;首次来源&lt;/strong&gt;&lt;/p&gt;&lt;p class=&quot;a-muted&quot;&gt;用户第一次进入并完成有效分析时绑定，长期保持不变，用于判断渠道用户质量。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;最近来源&lt;/strong&gt;&lt;/p&gt;&lt;p class=&quot;a-muted&quot;&gt;记录用户本次访问来源，用于活动短期效果分析。&lt;/p&gt;&lt;p class=&quot;a-muted&quot;&gt;第一版看首次来源；同时保留 UTM、邀请人和落地页字段。&lt;/p&gt;`;return}if(mode===&#x27;segments&#x27;){$(&#x27;#as-config-title&#x27;).textContent=&#x27;分群规则&#x27;;$(&#x27;#as-stepcount&#x27;).textContent=&#x27;行为成熟度&#x27;;$(&#x27;#as-source-caption&#x27;).textContent=&#x27;用户首次来源&#x27;;$(&#x27;#as-steps&#x27;).innerHTML=`&lt;p&gt;&lt;strong&gt;新手型&lt;/strong&gt; · 低频分析，尚未形成稳定交易行为&lt;/p&gt;&lt;p&gt;&lt;strong&gt;成长型&lt;/strong&gt; · 主动分析并开始使用自选、AI和交易&lt;/p&gt;&lt;p&gt;&lt;strong&gt;专业型&lt;/strong&gt; · 高频分析、多策略、持续交易&lt;/p&gt;&lt;p&gt;&lt;strong&gt;沉默型&lt;/strong&gt; · 历史获得过价值，但连续14天未有效分析&lt;/p&gt;&lt;p class=&quot;a-muted&quot;&gt;第一版使用行为规则分群，阈值需根据真实数据分布校准。&lt;/p&gt;`;return}if(mode===&#x27;referral&#x27;){$(&#x27;#as-config-title&#x27;).textContent=&#x27;增长循环口径&#x27;;$(&#x27;#as-stepcount&#x27;).textContent=&#x27;按推荐关系去重&#x27;;$(&#x27;#as-source-caption&#x27;).textContent=&#x27;推荐用户首次来源&#x27;;$(&#x27;#as-steps&#x27;).innerHTML=`&lt;p&gt;有效推荐系数 K&lt;/p&gt;&lt;p class=&quot;a-muted&quot;&gt;每个有效分析用户带来的新有效分析用户数。&lt;/p&gt;&lt;p class=&quot;a-muted&quot;&gt;邀请链接与分析内容分享分别统计，归因窗口为 7 天。&lt;/p&gt;`;return}if(mode===&#x27;north&#x27;){$(&#x27;#as-config-title&#x27;).textContent=&#x27;指标定义&#x27;;$(&#x27;#as-stepcount&#x27;).textContent=&#x27;按用户去重&#x27;;$(&#x27;#as-source-caption&#x27;).textContent=&#x27;首次分析来源&#x27;;$(&#x27;#as-steps&#x27;).innerHTML=`&lt;p&gt;有效分析用户&lt;/p&gt;&lt;p class=&quot;a-muted&quot;&gt;统计期内，至少成功看到一次筹码峰的用户。&lt;/p&gt;&lt;p class=&quot;a-muted&quot;&gt;包含首次分析及回访用户；同一用户在周期内只计一次。&lt;/p&gt;`;return}if(mode===&#x27;retention&#x27;){$(&#x27;#as-steps&#x27;).innerHTML=`&lt;label&gt;首次行为&lt;select id=&quot;as-initial&quot;&gt;${Object.entries(names).map(([k,n])=&gt;`&lt;option value=&quot;${k}&quot; ${k===&#x27;chip&#x27;?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${n}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;&lt;label&gt;回访行为&lt;select id=&quot;as-return&quot;&gt;${Object.entries(names).map(([k,n])=&gt;`&lt;option value=&quot;${k}&quot; ${k===&#x27;chip&#x27;?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${n}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;&lt;p class=&quot;a-muted&quot;&gt;以首次行为发生日为 D0&lt;/p&gt;`;$(&#x27;#as-initial&#x27;).onchange=markDirty;$(&#x27;#as-return&#x27;).onchange=markDirty;return}
+$(&#x27;#as-steps&#x27;).innerHTML=steps.map((s,i)=&gt;`&lt;div class=&quot;a-step&quot;&gt;&lt;div class=&quot;a-stephead&quot;&gt;&lt;span class=&quot;a-number&quot;&gt;步骤 ${i+1}&lt;/span&gt;&lt;div&gt;&lt;button class=&quot;a-iconbtn cursor-interaction&quot; data-up=&quot;${i}&quot; aria-label=&quot;上移步骤 ${i+1}&quot; ${i===0?&#x27;disabled&#x27;:&#x27;&#x27;}&gt;↑&lt;/button&gt;&lt;button class=&quot;a-iconbtn cursor-interaction&quot; data-down=&quot;${i}&quot; aria-label=&quot;下移步骤 ${i+1}&quot; ${i===steps.length-1?&#x27;disabled&#x27;:&#x27;&#x27;}&gt;↓&lt;/button&gt;&lt;button class=&quot;a-iconbtn cursor-interaction&quot; data-del=&quot;${i}&quot; aria-label=&quot;删除步骤 ${i+1}&quot; ${steps.length&lt;=2?&#x27;disabled&#x27;:&#x27;&#x27;}&gt;×&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;select data-event=&quot;${i}&quot; aria-label=&quot;步骤 ${i+1} 事件&quot;&gt;${Object.entries(names).map(([k,n])=&gt;`&lt;option value=&quot;${k}&quot; ${k===s?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${n}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/div&gt;`).join(&#x27;&#x27;);$$(&#x27;[data-event]&#x27;).forEach(el=&gt;el.onchange=()=&gt;{steps[+el.dataset.event]=el.value;markDirty()});$$(&#x27;[data-up]&#x27;).forEach(el=&gt;el.onclick=()=&gt;{let i=+el.dataset.up;[steps[i-1],steps[i]]=[steps[i],steps[i-1]];renderSteps();markDirty()});$$(&#x27;[data-down]&#x27;).forEach(el=&gt;el.onclick=()=&gt;{let i=+el.dataset.down;[steps[i+1],steps[i]]=[steps[i],steps[i+1]];renderSteps();markDirty()});$$(&#x27;[data-del]&#x27;).forEach(el=&gt;el.onclick=()=&gt;{steps.splice(+el.dataset.del,1);renderSteps();markDirty()});}
+function funnel(c){const rows=[];for(const u of users){if(c.source!==&#x27;all&#x27;&amp;&amp;u.source!==c.source)continue;const match=(e,type)=&gt;e.type===type&amp;&amp;(type!==&#x27;ai&#x27;||c.strategy===&#x27;all&#x27;||e.strategy===c.strategy);const first=u.events.find(e=&gt;match(e,c.steps[0])&amp;&amp;e.t&gt;=c.start&amp;&amp;e.t&lt;c.end);if(!first)continue;const times=[first.t];let last=first.t;for(let i=1;i&lt;c.steps.length;i++){const e=u.events.find(e=&gt;match(e,c.steps[i])&amp;&amp;e.t&gt;last&amp;&amp;e.t&lt;=first.t+c.hours*3600000);if(!e)break;times.push(e.t);last=e.t}rows.push({u,times,pending:first.t+c.hours*3600000&gt;asof})}return rows}
+function median(arr){if(!arr.length)return &#x27;—&#x27;;const a=[...arr].sort((a,b)=&gt;a-b),n=a.length;return Math.round((n%2?a[(n-1)/2]:(a[n/2-1]+a[n/2])/2)/60000)+&#x27; 分钟&#x27;}
+function drill(title,rows,desc){$(&#x27;#as-drill&#x27;).hidden=false;$(&#x27;#as-drill&#x27;).innerHTML=`&lt;div class=&quot;a-drawerhead&quot;&gt;&lt;div&gt;&lt;h2&gt;${esc(title)}&lt;/h2&gt;&lt;p class=&quot;a-muted&quot;&gt;${esc(desc)} · ${rows.length} 位用户&lt;/p&gt;&lt;/div&gt;&lt;button id=&quot;as-close&quot; class=&quot;a-button cursor-interaction&quot;&gt;关闭&lt;/button&gt;&lt;/div&gt;`+table([&#x27;用户&#x27;,&#x27;来源（当前分析口径）&#x27;,&#x27;首次事件&#x27;,&#x27;事件记录&#x27;],rows.slice(0,12).map(r=&gt;{const u=r.u||r;return [`&lt;button class=&quot;a-tablelink cursor-interaction&quot; data-user=&quot;${u.id}&quot;&gt;${u.id}&lt;/button&gt;`,r.displaySource||u.source,clock(u.events[0].t),u.events.length+&#x27; 条&#x27;]}))+`&lt;p class=&quot;a-muted&quot;&gt;展示前 ${Math.min(12,rows.length)} 位合成用户；点击用户查看事件时间线。&lt;/p&gt;&lt;div id=&quot;as-timeline&quot;&gt;&lt;/div&gt;`;$(&#x27;#as-close&#x27;).onclick=()=&gt;$(&#x27;#as-drill&#x27;).hidden=true;$$(&#x27;[data-user]&#x27;).forEach(b=&gt;b.onclick=()=&gt;{const u=users.find(x=&gt;x.id===b.dataset.user);$(&#x27;#as-timeline&#x27;).innerHTML=`&lt;h2&gt;${u.id} · 事件时间线&lt;/h2&gt;&lt;div class=&quot;a-timeline&quot;&gt;${u.events.map(e=&gt;`&lt;div class=&quot;a-event&quot;&gt;&lt;strong&gt;${names[e.type]}&lt;/strong&gt;&lt;div&gt;${clock(e.t)}&lt;/div&gt;${e.strategy?`&lt;span class=&quot;a-muted&quot;&gt;${e.strategy}&lt;/span&gt;`:&#x27;&#x27;}&lt;/div&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`});$(&#x27;#as-drill&#x27;).scrollIntoView({behavior:&#x27;smooth&#x27;,block:&#x27;nearest&#x27;})}
+let nativeChart=null,nativeResize=null,themeHandler=null;const themeMedia=matchMedia(&#x27;(prefers-color-scheme: dark)&#x27;);function clearNative(){clearTrade();if(nativeResize){nativeResize.disconnect();nativeResize=null}if(nativeChart){nativeChart.dispose();nativeChart=null}if(themeHandler){themeMedia.removeEventListener(&#x27;change&#x27;,themeHandler);themeHandler=null}}
+function showFunnel(c,rows,counts){
+const el=$(&#x27;#as-chart&#x27;);el.innerHTML=`&lt;div id=&quot;as-native-funnel&quot; style=&quot;height:${Math.max(300,counts.length*95)}px;width:100%&quot; role=&quot;img&quot; aria-label=&quot;登录、AI 开启及有效分析的顺序转化漏斗。精确人数和转化率见下方明细表。&quot;&gt;&lt;/div&gt;&lt;p class=&quot;a-muted&quot;&gt;点击漏斗层查看到达用户 · 悬停查看转化与流失&lt;/p&gt;`;
+if(!globalThis.echarts){el.innerHTML=&#x27;&lt;p class=&quot;a-status&quot;&gt;漏斗组件未加载，请稍后点击运行分析重试。下方分析明细仍可查看。&lt;/p&gt;&#x27;;return}
+const color=key=&gt;{const probe=document.createElement(&#x27;span&#x27;);probe.style.color=`var(${key})`;root.appendChild(probe);const result=getComputedStyle(probe).color;probe.remove();return result};
+const host=$(&#x27;#as-native-funnel&#x27;);nativeChart=echarts.init(host,null,{renderer:&#x27;svg&#x27;});
+const draw=()=&gt;{if(!nativeChart||!host.isConnected)return;const chart=nativeChart;chart.setOption({animation:false,aria:{enabled:true},tooltip:{trigger:&#x27;item&#x27;,backgroundColor:color(&#x27;--a-panel&#x27;),borderColor:color(&#x27;--a-border&#x27;),textStyle:{color:color(&#x27;--a-text&#x27;)},confine:true,formatter:p=&gt;{const i=p.dataIndex,n=counts[i],lost=i&lt;counts.length-1?rows.filter(r=&gt;r.times.length===i+1&amp;&amp;!r.pending).length:null;return `${esc(names[c.steps[i]])}&lt;br/&gt;到达用户：${fmt(n)} 人&lt;br/&gt;整体占比：${pct(n,counts[0])}&lt;br/&gt;上一步转化：${i?pct(n,counts[i-1]):&#x27;—&#x27;}${lost===null?&#x27;&#x27;:&#x27;&lt;br/&gt;至下一步已确认流失：&#x27;+lost+&#x27; 人&#x27;}`}},series:[{type:&#x27;funnel&#x27;,name:&#x27;用户激活&#x27;,sort:&#x27;none&#x27;,left:&#x27;4%&#x27;,top:8,bottom:12,width:&#x27;92%&#x27;,min:0,max:Math.max(1,counts[0]),minSize:&#x27;0%&#x27;,maxSize:&#x27;100%&#x27;,gap:7,funnelAlign:&#x27;center&#x27;,label:{show:true,position:&#x27;inside&#x27;,color:color(&#x27;--a-funnel-label&#x27;),fontSize:13,lineHeight:22,formatter:p=&gt;`${p.data.name}\n${fmt(p.value)} 人 · ${pct(p.value,counts[0])}`},labelLine:{show:false},itemStyle:{borderWidth:0},emphasis:{itemStyle:{opacity:.85}},data:counts.map((n,i)=&gt;({name:({login:&#x27;登录用户&#x27;,ai:&#x27;跑 AI 的用户&#x27;,chip:&#x27;有效分析用户&#x27;})[c.steps[i]],value:n,itemStyle:{color:color(&#x27;--a-funnel-&#x27;+(i%3))}}))}]},true)};
+draw();nativeChart.on(&#x27;click&#x27;,p=&gt;{const i=p.dataIndex;drill(names[c.steps[i]],rows.filter(r=&gt;r.times.length&gt;i),&#x27;已到达当前步骤&#x27;)});nativeResize=new ResizeObserver(()=&gt;{if(nativeChart)nativeChart.resize()});nativeResize.observe(host);themeHandler=draw;themeMedia.addEventListener(&#x27;change&#x27;,themeHandler);
+}
+function drawFunnel(c){clearNative();const rows=funnel(c),counts=c.steps.map((_,i)=&gt;rows.filter(r=&gt;r.times.length&gt;i).length),complete=rows.filter(r=&gt;r.times.length===c.steps.length),pending=rows.filter(r=&gt;r.pending).length;const losses=c.steps.slice(1).map((_,i)=&gt;rows.filter(r=&gt;r.times.length===i+1&amp;&amp;!r.pending).length);const max=Math.max(...losses),mi=losses.indexOf(max);const context=`${date(c.start)}–${date(c.end-day)} · ${c.hours} 小时内 · ${c.source===&#x27;all&#x27;?&#x27;全部来源&#x27;:c.source}`;
+$(&#x27;#as-output&#x27;).innerHTML=`&lt;div class=&quot;a-context&quot;&gt;&lt;span class=&quot;a-chip&quot;&gt;顺序漏斗 · 按用户去重&lt;/span&gt;&lt;span&gt;${context}&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;a-summary&quot;&gt;${stat(&#x27;整体转化率&#x27;,pct(complete.length,rows.length),`${complete.length} / ${rows.length} 位入组用户`)}${stat(&#x27;完成转化用户&#x27;,fmt(complete.length),&#x27;依次完成全部步骤&#x27;)}${stat(&#x27;转化耗时中位数&#x27;,median(complete.map(r=&gt;r.times.at(-1)-r.times[0])),&#x27;仅统计完成转化的用户&#x27;)}&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;div class=&quot;a-tabs&quot;&gt;&lt;button class=&quot;a-tab cursor-interaction&quot; data-view=&quot;conversion&quot; aria-pressed=&quot;${view===&#x27;conversion&#x27;}&quot;&gt;漏斗转化&lt;/button&gt;&lt;button class=&quot;a-tab cursor-interaction&quot; data-view=&quot;trend&quot; aria-pressed=&quot;${view===&#x27;trend&#x27;}&quot;&gt;转化趋势&lt;/button&gt;&lt;/div&gt;&lt;span class=&quot;a-muted&quot;&gt;${pending?pending+&#x27; 位用户窗口进行中&#x27;:&#x27;全部转化窗口已结束&#x27;}&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;a-chart&quot; id=&quot;as-chart&quot;&gt;&lt;/div&gt;&lt;div class=&quot;a-insight&quot;&gt;最大已确认流失：步骤 ${mi+1} → ${mi+2}，${max} 人。&lt;button class=&quot;a-link cursor-interaction&quot; data-loss=&quot;${mi}&quot;&gt;查看流失用户 ↗&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;h2&gt;步骤转化明细&lt;/h2&gt;&lt;span class=&quot;a-muted&quot;&gt;点击人数下钻&lt;/span&gt;&lt;/div&gt;${table([&#x27;步骤&#x27;,&#x27;到达用户&#x27;,&#x27;上一步转化&#x27;,&#x27;整体占比&#x27;,&#x27;已确认流失&#x27;],c.steps.map((s,i)=&gt;[`${i+1}. ${names[s]}`,`&lt;button class=&quot;a-tablelink cursor-interaction&quot; data-reached=&quot;${i}&quot;&gt;${fmt(counts[i])}&lt;/button&gt;`,i?pct(counts[i],counts[i-1]):&#x27;—&#x27;,pct(counts[i],counts[0]),i&lt;c.steps.length-1?`&lt;button class=&quot;a-tablelink cursor-interaction&quot; data-loss=&quot;${i}&quot;&gt;${losses[i]} 人&lt;/button&gt;`:&#x27;—&#x27;]))}&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;h2&gt;按登录进入来源比较&lt;/h2&gt;&lt;span class=&quot;a-muted&quot;&gt;同一漏斗 · 同一窗口&lt;/span&gt;&lt;/div&gt;${table([&#x27;来源&#x27;,&#x27;入组用户&#x27;,&#x27;完成用户&#x27;,&#x27;整体转化率&#x27;,&#x27;查看人群&#x27;],[&#x27;SEO&#x27;,&#x27;直接访问&#x27;,&#x27;Bot&#x27;,&#x27;社群&#x27;,&#x27;邀请&#x27;,&#x27;KOL/合作&#x27;].filter(s=&gt;c.source===&#x27;all&#x27;||c.source===s).map(s=&gt;{const a=rows.filter(r=&gt;r.u.source===s),b=a.filter(r=&gt;r.times.length===c.steps.length);return[s,a.length,b.length,pct(b.length,a.length),`&lt;button class=&quot;a-tablelink cursor-interaction&quot; data-group=&quot;${s}&quot;&gt;查看用户 ↗&lt;/button&gt;`]}))}&lt;/div&gt;&lt;details class=&quot;a-card a-details&quot;&gt;&lt;summary&gt;计算口径与数据准备&lt;/summary&gt;&lt;p&gt;以统计期内首次匹配第一步的时间入组；后续事件须按配置顺序发生，允许中间穿插其他事件。转化窗口从第一步开始计算，可跨统计期末。&lt;/p&gt;&lt;p&gt;窗口未结束且未完成下一步的用户为进行中，暂不判定流失。转化率包括进行中批次，仍可能变化。&lt;/p&gt;&lt;p&gt;默认第三步只包含先登录、再跑 AI、之后成功看到筹码峰的用户。直接看筹码峰的人可在留存分析中观察。&lt;/p&gt;&lt;p&gt;登录进入需补充统一事件，覆盖登录成功及已有登录态进入；AI 开启、有效分析沿用 V1 定义。这里的用户和事件均为合成数据。&lt;/p&gt;&lt;/details&gt;`;
+const chart=()=&gt;{clearNative();if(view===&#x27;conversion&#x27;)showFunnel(c,rows,counts);else $(&#x27;#as-chart&#x27;).innerHTML=`&lt;p class=&quot;a-muted&quot;&gt;按第一步入组日期 · 整体转化率&lt;/p&gt;`+Array.from({length:c.range},(_,i)=&gt;{const d=daynum(c.start)+i,rr=rows.filter(r=&gt;daynum(r.times[0])===d),nn=rr.filter(r=&gt;r.times.length===c.steps.length).length;return `&lt;div class=&quot;a-trendrow&quot;&gt;&lt;span&gt;${date(c.start+i*day)}&lt;/span&gt;&lt;div class=&quot;a-track&quot;&gt;&lt;div class=&quot;a-fill&quot; style=&quot;width:${rr.length?nn/rr.length*100:0}%&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;span&gt;${pct(nn,rr.length)} · ${nn}/${rr.length}&lt;/span&gt;&lt;/div&gt;`}).join(&#x27;&#x27;);$$(&#x27;[data-bar]&#x27;).forEach(b=&gt;b.onclick=()=&gt;drill(names[c.steps[+b.dataset.bar]],rows.filter(r=&gt;r.times.length&gt;+b.dataset.bar),&#x27;已到达当前步骤&#x27;))};chart();$$(&#x27;[data-view]&#x27;).forEach(b=&gt;b.onclick=()=&gt;{view=b.dataset.view;$$(&#x27;[data-view]&#x27;).forEach(x=&gt;x.setAttribute(&#x27;aria-pressed&#x27;,x===b));chart()});$$(&#x27;[data-reached]&#x27;).forEach(b=&gt;b.onclick=()=&gt;drill(names[c.steps[+b.dataset.reached]],rows.filter(r=&gt;r.times.length&gt;+b.dataset.reached),&#x27;已到达当前步骤&#x27;));$$(&#x27;[data-loss]&#x27;).forEach(b=&gt;b.onclick=()=&gt;drill(`步骤 ${+b.dataset.loss+1} → ${+b.dataset.loss+2} 流失用户`,rows.filter(r=&gt;r.times.length===+b.dataset.loss+1&amp;&amp;!r.pending),&#x27;窗口已结束且未到达下一步&#x27;));$$(&#x27;[data-group]&#x27;).forEach(b=&gt;b.onclick=()=&gt;drill(b.dataset.group+&#x27; 来源用户&#x27;,rows.filter(r=&gt;r.u.source===b.dataset.group),&#x27;按入组用户的登录进入来源分组&#x27;));
+}
+function drawRetention(c){
+clearNative();const cohorts=Array.from({length:c.range},(_,i)=&gt;({d:daynum(c.start)+i,users:[]}));
+for(const u of users){const e=u.events.find(e=&gt;e.type===c.initial);if(e&amp;&amp;e.t&gt;=c.start&amp;&amp;e.t&lt;c.end&amp;&amp;(c.source===&#x27;all&#x27;||e.entry_source===c.source))cohorts[daynum(e.t)-daynum(c.start)].users.push(u)}
+const returned=(co,n,continuous=false)=&gt;co.users.filter(u=&gt;continuous?Array.from({length:n},(_,i)=&gt;i+1).every(d=&gt;u.events.some(e=&gt;e.type===c.returning&amp;&amp;daynum(e.t)===co.d+d)):u.events.some(e=&gt;e.type===c.returning&amp;&amp;daynum(e.t)===co.d+n));
+const mature=(co,n)=&gt;base+(co.d+n+1)*day&lt;=asof,observed=(co,n)=&gt;base+(co.d+n)*day&lt;=asof;
+const candidates=cohorts.filter(co=&gt;co.users.length),chosen=[...candidates].reverse().find(co=&gt;mature(co,7))||candidates[0];let continuous=false;
+const drillRows=arr=&gt;arr.map(u=&gt;({u,displaySource:u.events.find(e=&gt;e.type===c.initial).entry_source}));
+$(&#x27;#as-output&#x27;).innerHTML=`&lt;div class=&quot;a-context&quot;&gt;&lt;span class=&quot;a-chip&quot;&gt;按首次行为来源分组 · 自然日留存&lt;/span&gt;&lt;span&gt;${date(c.start)}–${date(c.end-day)} · ${c.source===&#x27;all&#x27;?&#x27;全部来源&#x27;:c.source}&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;label style=&quot;margin:0&quot;&gt;当前分析批次&lt;select id=&quot;as-cohort-picker&quot;&gt;${candidates.map(co=&gt;`&lt;option value=&quot;${co.d}&quot; ${co===chosen?&#x27;selected&#x27;:&#x27;&#x27;}&gt;${date(base+co.d*day)} · ${co.users.length} 人${mature(co,7)?&#x27; · 已成熟&#x27;:&#x27;&#x27;}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;&lt;div class=&quot;a-tabs&quot;&gt;&lt;button class=&quot;a-tab cursor-interaction&quot; data-retmode=&quot;daily&quot; aria-pressed=&quot;true&quot;&gt;日留存&lt;/button&gt;&lt;button class=&quot;a-tab cursor-interaction&quot; data-retmode=&quot;continuous&quot; aria-pressed=&quot;false&quot;&gt;连续留存&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;a-summary&quot; id=&quot;as-ret-summary&quot;&gt;&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;h2 id=&quot;as-ret-title&quot;&gt;日留存曲线&lt;/h2&gt;&lt;span class=&quot;a-muted&quot;&gt;指标与图形使用同一批次&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;a-chart&quot;&gt;&lt;div id=&quot;as-ret-chart&quot; style=&quot;width:100%;height:300px&quot; role=&quot;img&quot; aria-label=&quot;选中批次的日留存率曲线&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;a-insight&quot; id=&quot;as-ret-note&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;h2 id=&quot;as-cohort-title&quot;&gt;日留存批次表&lt;/h2&gt;&lt;span class=&quot;a-muted&quot;&gt;点击日期联动上方；点击格子查看用户&lt;/span&gt;&lt;/div&gt;&lt;div id=&quot;as-cohort-table&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;details class=&quot;a-card a-details&quot;&gt;&lt;summary&gt;统计口径&lt;/summary&gt;&lt;p&gt;日留存：Dn 当天回来即计入，不要求 D1 至 Dn 连续回来。连续留存：D1 至 Dn 每天都完成回访行为。&lt;/p&gt;&lt;p&gt;所有百分比均以该批次 D0 去重人数为分母。7 日内回访率是 D1–D7 至少回来一次的去重人数占比。&lt;/p&gt;&lt;p&gt;按首次行为的来源分组；默认首次行为为有效分析，因此对应 V1 的 first_entry_source。回访可来自任何来源和币种。&lt;/p&gt;&lt;p&gt;未到观察日显示 —，当前观察日显示进行中；窗口尚未结束时，不显示最终 7 日结果。示例尚未接入生产数据。&lt;/p&gt;&lt;/details&gt;`;
+if(!chosen){$(&#x27;#as-ret-summary&#x27;).innerHTML=stat(&#x27;首次行为人数&#x27;,&#x27;0&#x27;,&#x27;当前筛选没有批次&#x27;);$(&#x27;#as-ret-note&#x27;).textContent=&#x27;当前筛选没有首次行为用户。&#x27;;return}
+const coSelected=()=&gt;candidates.find(x=&gt;x.d===+$(&#x27;#as-cohort-picker&#x27;).value)||chosen;
+function renderTable(){
+$(&#x27;#as-cohort-title&#x27;).textContent=continuous?&#x27;连续留存批次表&#x27;:&#x27;日留存批次表&#x27;;
+$(&#x27;#as-cohort-table&#x27;).innerHTML=table([&#x27;首次日期&#x27;,&#x27;D0 人数&#x27;,...Array.from({length:7},(_,i)=&gt;(continuous?&#x27;连续 &#x27;:&#x27;&#x27;)+&#x27;D&#x27;+(i+1))],cohorts.map((co,i)=&gt;[`&lt;button class=&quot;a-tablelink cursor-interaction&quot; data-select-co=&quot;${co.d}&quot; ${co.users.length?&#x27;&#x27;:&#x27;disabled&#x27;}&gt;${date(base+co.d*day)}${co.d===coSelected().d?&#x27; · 当前&#x27;:&#x27;&#x27;}&lt;/button&gt;`,co.users.length,...Array.from({length:7},(_,j)=&gt;{let d=j+1;if(!co.users.length||!observed(co,d))return &#x27;—&#x27;;let n=returned(co,d,continuous).length;return `&lt;button class=&quot;a-heat cursor-interaction&quot; data-co=&quot;${i}&quot; data-day=&quot;${d}&quot;&gt;${pct(n,co.users.length)}&lt;small&gt;${n} 人${mature(co,d)?&#x27;&#x27;:&#x27; · 进行中&#x27;}&lt;/small&gt;&lt;/button&gt;`})]));
+$$(&#x27;[data-select-co]&#x27;).forEach(b=&gt;b.onclick=()=&gt;{$(&#x27;#as-cohort-picker&#x27;).value=b.dataset.selectCo;render()});$$(&#x27;[data-co]&#x27;).forEach(b=&gt;b.onclick=()=&gt;{const co=cohorts[+b.dataset.co],n=+b.dataset.day;drill(date(base+co.d*day)+&#x27; · &#x27;+(continuous?&#x27;连续 &#x27;:&#x27;&#x27;)+&#x27;D&#x27;+n,drillRows(returned(co,n,continuous)),`${co.users.length} 位 D0 用户 · 按首次行为来源${mature(co,n)?&#x27;&#x27;:&#x27; · 观察进行中&#x27;}`)})}
+function render(){clearNative();$(&#x27;#as-drill&#x27;).hidden=true;const co=coSelected(),n0=co.users.length;
+const d1=returned(co,1).length,seven=co.users.filter(u=&gt;u.events.some(e=&gt;e.type===c.returning&amp;&amp;daynum(e.t)&gt;co.d&amp;&amp;daynum(e.t)&lt;=co.d+7)).length,con7=returned(co,7,true).length;
+$(&#x27;#as-ret-summary&#x27;).innerHTML=stat(&#x27;当前批次 D0 人数&#x27;,fmt(n0),date(base+co.d*day)+&#x27; · 首次行为用户&#x27;)+stat(&#x27;D1 留存率&#x27;,observed(co,1)?pct(d1,n0):&#x27;—&#x27;,observed(co,1)?`${d1} / ${n0}${mature(co,1)?&#x27; · 完整日&#x27;:&#x27; · 进行中&#x27;}`:&#x27;尚未到观察日&#x27;)+stat(continuous?&#x27;连续 7 日留存率&#x27;:&#x27;7 日内回访率&#x27;,mature(co,7)?pct(continuous?con7:seven,n0):&#x27;—&#x27;,mature(co,7)?`${continuous?con7:seven} / ${n0} · 同一批次`:&#x27;观察窗口进行中&#x27;);
+$(&#x27;#as-ret-title&#x27;).textContent=continuous?&#x27;连续留存漏斗&#x27;:&#x27;日留存曲线&#x27;;$(&#x27;#as-ret-note&#x27;).textContent=continuous?&#x27;从 D1 起每天都回来才进入下一层；未到观察日的层暂不显示。点击层查看用户。&#x27;:&#x27;每天独立观察，留存率可以回升。点击数据点查看当天回访用户；进行中数据尚未定稿。&#x27;;
+renderTable();const host=$(&#x27;#as-ret-chart&#x27;);host.style.height=continuous?&#x27;470px&#x27;:&#x27;300px&#x27;;host.setAttribute(&#x27;aria-label&#x27;,continuous?&#x27;同一批次连续留存漏斗&#x27;:&#x27;同一批次 D0 到 D7 日留存率曲线&#x27;);
+if(!globalThis.echarts){host.innerHTML=&#x27;&lt;p class=&quot;a-status&quot;&gt;图表组件未加载，请稍后运行分析重试。可查看下方批次表。&lt;/p&gt;&#x27;;return}
+const color=key=&gt;{const p=document.createElement(&#x27;span&#x27;);p.style.color=`var(${key})`;root.appendChild(p);const v=getComputedStyle(p).color;p.remove();return v};
+const data=Array.from({length:8},(_,d)=&gt;({d,name:d===0?&#x27;D0&#x27;:(continuous?&#x27;连续 &#x27;:&#x27;&#x27;)+&#x27;D&#x27;+d,num:d===0?n0:returned(co,d,continuous).length,ready:d===0||observed(co,d),done:d===0||mature(co,d)}));nativeChart=echarts.init(host,null,{renderer:&#x27;svg&#x27;});
+const paint=()=&gt;{if(!nativeChart||!host.isConnected)return;const tooltip={trigger:&#x27;item&#x27;,confine:true,backgroundColor:color(&#x27;--a-panel&#x27;),borderColor:color(&#x27;--a-border&#x27;),textStyle:{color:color(&#x27;--a-text&#x27;)},formatter:p=&gt;{const x=data[p.dataIndex];return `${x.name}&lt;br/&gt;${x.num} / ${n0} 人&lt;br/&gt;${pct(x.num,n0)}&lt;br/&gt;${x.done?&#x27;观察已完成&#x27;:&#x27;进行中&#x27;}`}};let option;
+if(continuous){const dd=data.filter(x=&gt;x.ready);option={animation:false,aria:{enabled:true},tooltip,series:[{type:&#x27;funnel&#x27;,sort:&#x27;none&#x27;,top:10,bottom:10,left:&#x27;4%&#x27;,width:&#x27;56%&#x27;,min:0,max:n0,minSize:&#x27;0%&#x27;,maxSize:&#x27;100%&#x27;,gap:7,label:{show:true,position:&#x27;right&#x27;,color:color(&#x27;--a-text&#x27;),fontSize:12,lineHeight:18,formatter:p=&gt;`${p.name}${dd[p.dataIndex].done?&#x27;&#x27;:&#x27; · 进行中&#x27;}\n${p.value} 人 · ${pct(p.value,n0)}`},labelLine:{length:12,lineStyle:{color:color(&#x27;--a-muted&#x27;),width:1}},itemStyle:{color:color(&#x27;--a-accent&#x27;),borderWidth:0},data:dd.map(x=&gt;({name:x.name,value:x.num}))}]}}
+else{option={animation:false,aria:{enabled:true},tooltip,grid:{left:48,right:28,top:36,bottom:40},xAxis:{type:&#x27;category&#x27;,name:&#x27;回访日&#x27;,nameLocation:&#x27;middle&#x27;,nameGap:26,data:data.map(x=&gt;&#x27;D&#x27;+x.d),axisLabel:{color:color(&#x27;--a-muted&#x27;),fontSize:12},axisLine:{lineStyle:{color:color(&#x27;--a-border&#x27;)}}},yAxis:{type:&#x27;value&#x27;,min:0,max:100,name:&#x27;留存率（%）&#x27;,nameTextStyle:{color:color(&#x27;--a-muted&#x27;)},axisLabel:{color:color(&#x27;--a-muted&#x27;),formatter:&#x27;{value}%&#x27;},splitLine:{lineStyle:{color:color(&#x27;--a-border&#x27;)}}},series:[{type:&#x27;line&#x27;,connectNulls:false,symbolSize:9,smooth:false,lineStyle:{color:color(&#x27;--a-accent&#x27;),width:2},itemStyle:{color:color(&#x27;--a-accent&#x27;)},data:data.map(x=&gt;({value:x.ready?+(x.num/n0*100).toFixed(1):null,symbol:x.done?&#x27;circle&#x27;:&#x27;emptyCircle&#x27;}))}]}}
+nativeChart.setOption(option,true)};paint();nativeChart.on(&#x27;click&#x27;,p=&gt;{const x=data[p.dataIndex];if(!x.ready)return;drill(date(base+co.d*day)+&#x27; · &#x27;+x.name,drillRows(x.d===0?co.users:returned(co,x.d,continuous)),`D0 ${n0} 人 · 按首次行为来源`)});nativeResize=new ResizeObserver(()=&gt;nativeChart&amp;&amp;nativeChart.resize());nativeResize.observe(host);themeHandler=paint;themeMedia.addEventListener(&#x27;change&#x27;,themeHandler)}
+$(&#x27;#as-cohort-picker&#x27;).onchange=render;$$(&#x27;[data-retmode]&#x27;).forEach(b=&gt;b.onclick=()=&gt;{continuous=b.dataset.retmode===&#x27;continuous&#x27;;$$(&#x27;[data-retmode]&#x27;).forEach(x=&gt;x.setAttribute(&#x27;aria-pressed&#x27;,x===b));render()});render();
+}
+let tradeChart=null,tradeResize=null,tradeTheme=null;
+function clearTrade(){if(tradeResize){tradeResize.disconnect();tradeResize=null}if(tradeChart){tradeChart.dispose();tradeChart=null}if(tradeTheme){themeMedia.removeEventListener(&#x27;change&#x27;,tradeTheme);tradeTheme=null}}
+const dailyTrades=users.flatMap((u,i)=&gt;Array.from({length:14},(_,d)=&gt;{const active=base+(d+1)*day&gt;u.events[0].t,hash=((i+11)*7919+(d+3)*104729)%10007;return {u,date:base+d*day,volume:active&amp;&amp;hash%5!==0?((hash%950)+50)*10:0}}));
+function tradingContribution(c){const analyzed=new Set(users.filter(u=&gt;u.events.some(e=&gt;e.type===&#x27;chip&#x27;&amp;&amp;e.t&lt;c.end)).map(u=&gt;u.id));const records=dailyTrades.filter(r=&gt;r.date&gt;=c.start&amp;&amp;r.date&lt;c.end);const days=Array.from({length:c.range},(_,i)=&gt;{const date=c.start+i*day,rs=records.filter(r=&gt;r.date===date);const a=rs.filter(r=&gt;analyzed.has(r.u.id)).reduce((a,r)=&gt;a+r.volume,0),b=rs.filter(r=&gt;!analyzed.has(r.u.id)).reduce((a,r)=&gt;a+r.volume,0);return{date,a,b,total:a+b}});const a=days.reduce((a,d)=&gt;a+d.a,0),b=days.reduce((a,d)=&gt;a+d.b,0);return{analyzed,records,days,a,b,total:a+b}}
+const money=n=&gt;&#x27;$&#x27;+fmt(n);
+function tradeMarkup(tx,c){return `&lt;section class=&quot;a-card&quot; id=&quot;as-trade-module&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;div&gt;&lt;h2&gt;有效分析用户交易贡献&lt;/h2&gt;&lt;p class=&quot;a-muted&quot;&gt;全平台 · ${date(c.start)}–${date(c.end-day)} · 演示计价单位 USD&lt;/p&gt;&lt;/div&gt;&lt;span class=&quot;a-chip&quot;&gt;平台总交易量 ${money(tx.total)}&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;a-summary&quot; style=&quot;border:0;border-radius:0;margin:0&quot;&gt;${stat(&#x27;截至期末有效分析用户交易量&#x27;,`&lt;button class=&quot;a-tablelink cursor-interaction&quot; data-trade-group=&quot;a&quot; style=&quot;font:inherit&quot;&gt;${money(tx.a)}&lt;/button&gt;`,&#x27;截至期末曾完成有效分析&#x27;)}${stat(&#x27;其他用户交易量&#x27;,`&lt;button class=&quot;a-tablelink cursor-interaction&quot; data-trade-group=&quot;b&quot; style=&quot;font:inherit&quot;&gt;${money(tx.b)}&lt;/button&gt;`,&#x27;截至期末无有效分析记录&#x27;)}${stat(&#x27;有效分析用户交易量占比&#x27;,pct(tx.a,tx.total),&#x27;两类用户交易量之和 = 平台总量&#x27;)}&lt;/div&gt;&lt;div class=&quot;a-chart&quot;&gt;&lt;h2&gt;每日交易量构成&lt;/h2&gt;&lt;div id=&quot;as-trade-chart&quot; style=&quot;width:100%;height:300px&quot; role=&quot;img&quot; aria-label=&quot;每日平台交易量堆叠图，区分有效分析用户和其他用户&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;a-insight&quot;&gt;按统计期末状态固定分组，包含首次分析前的交易。此模块仅随日期变化，始终展示全平台，不受来源筛选影响。&lt;/div&gt;&lt;details class=&quot;a-details&quot;&gt;&lt;summary&gt;每日交易明细与统计口径&lt;/summary&gt;${table([&#x27;日期&#x27;,&#x27;有效分析用户交易量&#x27;,&#x27;其他用户交易量&#x27;,&#x27;平台总量&#x27;,&#x27;贡献占比&#x27;],tx.days.map(d=&gt;[date(d.date),money(d.a),money(d.b),money(d.total),pct(d.a,d.total)]))}&lt;p&gt;北极星人数统计本期完成分析的人；交易贡献统计截至期末曾完成分析的人，包含本期没再分析的历史用户。&lt;/p&gt;&lt;p&gt;用户组在所选周期内固定，两组互斥。该指标表示用户群交易贡献，不证明分析促成交易；正式数据使用后台 user_id + date 日汇总。接口缺失显示待获取，不当作 0。&lt;/p&gt;&lt;/details&gt;&lt;/section&gt;`}
+function tradeDrill(tx,c,group,dateFilter=null){const filtered=tx.records.filter(r=&gt;r.volume&gt;0&amp;&amp;(group===&#x27;a&#x27;?tx.analyzed.has(r.u.id):!tx.analyzed.has(r.u.id))&amp;&amp;(dateFilter===null||r.date===dateFilter));const byUser=new Map();for(const r of filtered)byUser.set(r.u.id,(byUser.get(r.u.id)||0)+r.volume);const arr=[...byUser].sort((a,b)=&gt;b[1]-a[1]);$(&#x27;#as-drill&#x27;).hidden=false;$(&#x27;#as-drill&#x27;).innerHTML=`&lt;div class=&quot;a-drawerhead&quot;&gt;&lt;div&gt;&lt;h2&gt;${group===&#x27;a&#x27;?&#x27;有效分析用户&#x27;:&#x27;其他用户&#x27;}交易贡献&lt;/h2&gt;&lt;p class=&quot;a-muted&quot;&gt;${dateFilter===null?date(c.start)+&#x27;–&#x27;+date(c.end-day):date(dateFilter)} · ${arr.length} 位有交易用户 · ${money(filtered.reduce((a,r)=&gt;a+r.volume,0))}&lt;/p&gt;&lt;/div&gt;&lt;button id=&quot;as-trade-close&quot; class=&quot;a-button cursor-interaction&quot;&gt;关闭&lt;/button&gt;&lt;/div&gt;`+table([&#x27;用户&#x27;,&#x27;交易量&#x27;,&#x27;占当前人群交易量&#x27;],arr.slice(0,12).map(([id,n])=&gt;[id,money(n),pct(n,filtered.reduce((a,r)=&gt;a+r.volume,0))]))+`&lt;p class=&quot;a-muted&quot;&gt;展示交易量最高的 ${Math.min(arr.length,12)} 位合成用户。按后台每日汇总口径，不推断逐笔成交与分析先后。&lt;/p&gt;`;$(&#x27;#as-trade-close&#x27;).onclick=()=&gt;$(&#x27;#as-drill&#x27;).hidden=true;$(&#x27;#as-drill&#x27;).scrollIntoView({behavior:&#x27;smooth&#x27;,block:&#x27;nearest&#x27;})}
+function renderTrade(tx,c){$$(&#x27;[data-trade-group]&#x27;).forEach(b=&gt;b.onclick=()=&gt;tradeDrill(tx,c,b.dataset.tradeGroup));const host=$(&#x27;#as-trade-chart&#x27;);if(!globalThis.echarts){host.innerHTML=&#x27;&lt;p class=&quot;a-muted&quot;&gt;图表暂未加载，可展开每日交易明细查看。&lt;/p&gt;&#x27;;return}const color=key=&gt;{const p=document.createElement(&#x27;span&#x27;);p.style.color=`var(${key})`;root.appendChild(p);const v=getComputedStyle(p).color;p.remove();return v};tradeChart=echarts.init(host,null,{renderer:&#x27;svg&#x27;});
+const paint=()=&gt;{if(!tradeChart||!host.isConnected)return;tradeChart.setOption({animation:false,aria:{enabled:true},legend:{top:12,data:[&#x27;有效分析用户&#x27;,&#x27;其他用户&#x27;],textStyle:{color:color(&#x27;--a-muted&#x27;)}},tooltip:{trigger:&#x27;axis&#x27;,confine:true,backgroundColor:color(&#x27;--a-panel&#x27;),borderColor:color(&#x27;--a-border&#x27;),textStyle:{color:color(&#x27;--a-text&#x27;)},formatter:p=&gt;{const d=tx.days[p[0].dataIndex];return `${date(d.date)}&lt;br/&gt;有效分析用户：${money(d.a)}&lt;br/&gt;其他用户：${money(d.b)}&lt;br/&gt;平台总量：${money(d.total)}&lt;br/&gt;有效分析用户占比：${pct(d.a,d.total)}`}},grid:{top:66,left:64,right:15,bottom:30},xAxis:{type:&#x27;category&#x27;,data:tx.days.map(d=&gt;date(d.date)),axisLabel:{color:color(&#x27;--a-muted&#x27;)},axisLine:{lineStyle:{color:color(&#x27;--a-border&#x27;)}}},yAxis:{type:&#x27;value&#x27;,name:&#x27;交易量（USD）&#x27;,nameTextStyle:{color:color(&#x27;--a-muted&#x27;)},axisLabel:{color:color(&#x27;--a-muted&#x27;),formatter:v=&gt;v&gt;=1000?(v/1000)+&#x27;k&#x27;:v},splitLine:{lineStyle:{color:color(&#x27;--a-border&#x27;)}}},series:[{name:&#x27;有效分析用户&#x27;,type:&#x27;bar&#x27;,stack:&#x27;volume&#x27;,barMaxWidth:34,itemStyle:{color:color(&#x27;--a-accent&#x27;)},data:tx.days.map(d=&gt;d.a)},{name:&#x27;其他用户&#x27;,type:&#x27;bar&#x27;,stack:&#x27;volume&#x27;,barMaxWidth:34,itemStyle:{color:color(&#x27;--a-muted&#x27;)},data:tx.days.map(d=&gt;d.b)}]},true)};paint();tradeChart.on(&#x27;click&#x27;,p=&gt;tradeDrill(tx,c,p.seriesIndex===0?&#x27;a&#x27;:&#x27;b&#x27;,tx.days[p.dataIndex].date));tradeResize=new ResizeObserver(()=&gt;tradeChart&amp;&amp;tradeChart.resize());tradeResize.observe(host);tradeTheme=paint;themeMedia.addEventListener(&#x27;change&#x27;,tradeTheme)
+}
+
+function northPopulation(c,start=c.start,end=c.end){return users.filter(u=&gt;{const first=u.events.find(e=&gt;e.type===&#x27;chip&#x27;);return first&amp;&amp;(c.source===&#x27;all&#x27;||first.entry_source===c.source)&amp;&amp;u.events.some(e=&gt;e.type===&#x27;chip&#x27;&amp;&amp;e.t&gt;=start&amp;&amp;e.t&lt;end)})}
+function drawNorth(c){clearNative();const tx=tradingContribution(c);const first=u=&gt;u.events.find(e=&gt;e.type===&#x27;chip&#x27;),all=northPopulation(c),fresh=all.filter(u=&gt;first(u).t&gt;=c.start),returning=all.filter(u=&gt;first(u).t&lt;c.start),prevStart=c.start-c.range*day,previous=prevStart&gt;=base?northPopulation(c,prevStart,c.start):null;const change=previous&amp;&amp;previous.length?((all.length-previous.length)/previous.length*100):null;const comparison=change===null?&#x27;上期数据不足，暂不比较&#x27;:`${change&gt;=0?&#x27;↑&#x27;:&#x27;↓&#x27;} ${Math.abs(change).toFixed(1)}% · 上期 ${previous.length} 人`;
+const days=Array.from({length:c.range},(_,i)=&gt;{const t=c.start+i*day,uu=northPopulation(c,t,t+day),nn=uu.filter(u=&gt;daynum(first(u).t)===daynum(t));return{t,users:uu,newUsers:nn,returning:uu.filter(u=&gt;daynum(first(u).t)&lt;daynum(t))}});const lastDay=days[days.length-1],prevDay=days.length&gt;1?days[days.length-2]:null,avgDaa=days.length?days.reduce((n,d)=&gt;n+d.users.length,0)/days.length:0,lastChange=prevDay&amp;&amp;prevDay.users.length?((lastDay.users.length-prevDay.users.length)/prevDay.users.length*100):null,lastComparison=lastChange===null?&#x27;前日数据不足&#x27;:`${lastChange&gt;=0?&#x27;↑&#x27;:&#x27;↓&#x27;} ${Math.abs(lastChange).toFixed(1)}% · 前日 ${prevDay.users.length} 人`;
+const rowsFor=arr=&gt;arr.map(u=&gt;({u,displaySource:first(u).entry_source}));
+$(&#x27;#as-output&#x27;).innerHTML=`&lt;div class=&quot;a-context&quot;&gt;&lt;span class=&quot;a-chip&quot;&gt;北极星指标 · 每日有效分析用户数 DAA&lt;/span&gt;&lt;span&gt;${date(c.start)}–${date(c.end-day)} · 周期去重 ${all.length} 人 · ${c.source===&#x27;all&#x27;?&#x27;全部首次分析来源&#x27;:c.source}&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;a-summary a-four&quot;&gt;${stat(&#x27;昨日有效分析用户&#x27;,`&lt;button class=&quot;a-tablelink cursor-interaction&quot; id=&quot;as-north-yesterday&quot; style=&quot;font:inherit&quot;&gt;${fmt(lastDay.users.length)}&lt;/button&gt;`,lastComparison)}${stat(days.length+&#x27;日平均 DAA&#x27;,avgDaa.toFixed(1),`统计期 ${days.length} 天日均`)}${stat(&#x27;昨日首次分析用户&#x27;,`&lt;button class=&quot;a-tablelink cursor-interaction&quot; id=&quot;as-north-new&quot; style=&quot;font:inherit&quot;&gt;${fmt(lastDay.newUsers.length)}&lt;/button&gt;`,&#x27;昨日首次完成有效分析&#x27;)}${stat(&#x27;昨日回访分析用户&#x27;,`&lt;button class=&quot;a-tablelink cursor-interaction&quot; id=&quot;as-north-return&quot; style=&quot;font:inherit&quot;&gt;${fmt(lastDay.returning.length)}&lt;/button&gt;`,&#x27;历史用户昨日再次分析&#x27;)}&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;h2&gt;每日有效分析用户&lt;/h2&gt;&lt;span class=&quot;a-muted&quot;&gt;单位：去重用户 · 点击柱形查看人群&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;a-chart&quot;&gt;&lt;div id=&quot;as-north-chart&quot; role=&quot;img&quot; aria-label=&quot;每日有效分析用户数，按当天首次和当天回访用户分解&quot; style=&quot;height:300px;width:100%&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;a-insight&quot;&gt;本期首次 ${fresh.length} 人 ＋ 历史用户回访 ${returning.length} 人 ＝ 本期有效分析 ${all.length} 人。每日人数不可直接相加作为周期人数。&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;h2&gt;每日明细&lt;/h2&gt;&lt;span class=&quot;a-muted&quot;&gt;同一用户每天最多计 1 人&lt;/span&gt;&lt;/div&gt;${table([&#x27;日期&#x27;,&#x27;有效分析用户&#x27;,&#x27;当天首次&#x27;,&#x27;当天回访&#x27;],days.map((d,i)=&gt;[date(d.t),`&lt;button class=&quot;a-tablelink cursor-interaction&quot; data-north-day=&quot;${i}&quot;&gt;${d.users.length}&lt;/button&gt;`,d.newUsers.length,d.returning.length]))}&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;h2&gt;首次分析来源分布&lt;/h2&gt;&lt;span class=&quot;a-muted&quot;&gt;按本期有效分析用户去重&lt;/span&gt;&lt;/div&gt;${table([&#x27;首次分析来源&#x27;,&#x27;有效分析用户&#x27;,&#x27;占比&#x27;],[&#x27;SEO&#x27;,&#x27;直接访问&#x27;,&#x27;Bot&#x27;,&#x27;社群&#x27;,&#x27;邀请&#x27;,&#x27;KOL/合作&#x27;].filter(s=&gt;c.source===&#x27;all&#x27;||c.source===s).map(s=&gt;{const n=all.filter(u=&gt;first(u).entry_source===s).length;return[s,n,pct(n,all.length)]}))}&lt;/div&gt;${tradeMarkup(tx,c)}&lt;details class=&quot;a-card a-details&quot;&gt;&lt;summary&gt;北极星指标定义&lt;/summary&gt;&lt;p&gt;所选周期内，至少成功展示过一次筹码峰的去重用户数。按 usid 去重，包含首次用户和回访用户；不是分析次数，也不是只有首次分析人数。&lt;/p&gt;&lt;p&gt;缓存内容成功展示可以计入。后台预加载、轮询和自动更新不计入；只查看 AI 策略、信号或榜单不计入。&lt;/p&gt;&lt;p&gt;周期分组互斥：首次分析发生在本期的用户，即使本期多次回来，仍只归入本期首次分析用户。每日明细则按每天分别分类。&lt;/p&gt;&lt;p&gt;首次时间依据演示数据覆盖范围；上线前历史不足时，应标记为上线后首次观测。来源固定为首次有效分析的来源，回访来源不限。所有数据均为合成演示数据。&lt;/p&gt;&lt;/details&gt;`;
+$(&#x27;#as-north-yesterday&#x27;).onclick=()=&gt;drill(date(lastDay.t)+&#x27; 有效分析用户&#x27;,rowsFor(lastDay.users),&#x27;昨日去重用户&#x27;);$(&#x27;#as-north-new&#x27;).onclick=()=&gt;drill(date(lastDay.t)+&#x27; 首次分析用户&#x27;,rowsFor(lastDay.newUsers),&#x27;昨日首次完成有效分析&#x27;);$(&#x27;#as-north-return&#x27;).onclick=()=&gt;drill(date(lastDay.t)+&#x27; 回访分析用户&#x27;,rowsFor(lastDay.returning),&#x27;历史用户昨日再次分析&#x27;);$$(&#x27;[data-north-day]&#x27;).forEach(b=&gt;b.onclick=()=&gt;{const d=days[+b.dataset.northDay];drill(date(d.t)+&#x27; 有效分析用户&#x27;,rowsFor(d.users),&#x27;当日去重用户&#x27;)});
+renderTrade(tx,c);const host=$(&#x27;#as-north-chart&#x27;);if(!globalThis.echarts){host.innerHTML=&#x27;&lt;p class=&quot;a-muted&quot;&gt;图表组件未加载，下方每日明细可查看。&lt;/p&gt;&#x27;;return}
+const color=key=&gt;{const p=document.createElement(&#x27;span&#x27;);p.style.color=`var(${key})`;root.appendChild(p);const v=getComputedStyle(p).color;p.remove();return v};nativeChart=echarts.init(host,null,{renderer:&#x27;svg&#x27;});const paint=()=&gt;{if(!nativeChart||!host.isConnected)return;nativeChart.setOption({animation:false,aria:{enabled:true},legend:{data:[&#x27;当天首次&#x27;,&#x27;当天回访&#x27;],top:0,textStyle:{color:color(&#x27;--a-muted&#x27;)}},tooltip:{trigger:&#x27;axis&#x27;,confine:true,backgroundColor:color(&#x27;--a-panel&#x27;),borderColor:color(&#x27;--a-border&#x27;),textStyle:{color:color(&#x27;--a-text&#x27;)},formatter:p=&gt;{const d=days[p[0].dataIndex];return `${date(d.t)}&lt;br/&gt;有效分析：${d.users.length} 人&lt;br/&gt;当天首次：${d.newUsers.length} 人&lt;br/&gt;当天回访：${d.returning.length} 人`}},grid:{top:48,left:45,right:18,bottom:32},xAxis:{type:&#x27;category&#x27;,data:days.map(d=&gt;date(d.t)),axisLabel:{color:color(&#x27;--a-muted&#x27;)},axisLine:{lineStyle:{color:color(&#x27;--a-border&#x27;)}}},yAxis:{type:&#x27;value&#x27;,name:&#x27;人数&#x27;,minInterval:1,nameTextStyle:{color:color(&#x27;--a-muted&#x27;)},axisLabel:{color:color(&#x27;--a-muted&#x27;)},splitLine:{lineStyle:{color:color(&#x27;--a-border&#x27;)}}},series:[{name:&#x27;当天首次&#x27;,type:&#x27;bar&#x27;,stack:&#x27;users&#x27;,barMaxWidth:34,itemStyle:{color:color(&#x27;--a-accent&#x27;)},data:days.map(d=&gt;d.newUsers.length)},{name:&#x27;当天回访&#x27;,type:&#x27;bar&#x27;,stack:&#x27;users&#x27;,barMaxWidth:34,itemStyle:{color:color(&#x27;--a-green&#x27;)},data:days.map(d=&gt;d.returning.length)}]},true)};paint();nativeChart.on(&#x27;click&#x27;,p=&gt;{const d=days[p.dataIndex],arr=p.seriesIndex===0?d.newUsers:d.returning;drill(date(d.t)+&#x27; · &#x27;+p.seriesName,rowsFor(arr),&#x27;当日去重用户&#x27;)});nativeResize=new ResizeObserver(()=&gt;nativeChart&amp;&amp;nativeChart.resize());nativeResize.observe(host);themeHandler=paint;themeMedia.addEventListener(&#x27;change&#x27;,themeHandler)
+}
+
+function drawReferral(c){
+clearNative();const all=northPopulation(c),baseCount=all.length,advocates=all.filter((_,i)=&gt;i%3===0),shares=advocates.reduce((n,_,i)=&gt;n+1+(i%4),0),visits=Math.round(shares*.72),signups=Math.round(visits*.58),aiUsers=Math.round(signups*.73),newActive=Math.round(aiUsers*.68),participation=baseCount?advocates.length/baseCount:0,perActive=advocates.length?shares/advocates.length:0,clickRate=shares?visits/shares:0,activeConversion=visits?newActive/visits:0,k=advocates.length?newActive/advocates.length:0,overall=baseCount?newActive/baseCount:0,kLevel=k&gt;=1?&#x27;推荐循环可以自行扩张&#x27;:k&gt;=.5?&#x27;推荐能力较强，但仍需外部流量&#x27;:k&gt;=.2?&#x27;已经产生推荐价值，还有较大优化空间&#x27;:&#x27;推荐动机或转化链路较弱&#x27;;
+const stageUsers=n=&gt;all.slice(0,Math.min(n,all.length)).map(u=&gt;({u,displaySource:u.events.find(e=&gt;e.type===&#x27;chip&#x27;)?.entry_source||u.source}));
+const daily=Array.from({length:c.range},(_,i)=&gt;{const active=Math.max(8,Math.round(baseCount/c.range+(i%3-1)*3)),kk=Math.max(.08,k+(i-c.range/2)*.012);return{t:c.start+i*day,active,k:kk,newUsers:Math.round(active*kk)}});
+const channels=[[&#x27;AI分析结果分享&#x27;,Math.round(shares*.31),Math.round(newActive*.34)],[&#x27;金狗复盘&#x27;,Math.round(shares*.25),Math.round(newActive*.31)],[&#x27;筹码图分享&#x27;,Math.round(shares*.19),Math.round(newActive*.18)],[&#x27;邀请链接/邀请码&#x27;,Math.round(shares*.17),Math.round(newActive*.12)],[&#x27;策略信号分享&#x27;,Math.max(1,Math.round(shares*.08)),Math.max(1,Math.round(newActive*.05))]];
+$(&#x27;#as-output&#x27;).innerHTML=`&lt;div class=&quot;a-context&quot;&gt;&lt;span class=&quot;a-chip&quot;&gt;推荐增长 · 7天归因&lt;/span&gt;&lt;span&gt;${date(c.start)}–${date(c.end-day)} · ${c.source===&#x27;all&#x27;?&#x27;全部推荐用户来源&#x27;:c.source}&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;a-summary a-four&quot;&gt;${stat(&#x27;推荐参与率&#x27;,pct(advocates.length,baseCount),`${advocates.length} / ${baseCount} 位有效分析用户`)}${stat(&#x27;人均有效邀请&#x27;,perActive.toFixed(2),`每位参与推荐用户 · 共 ${shares} 次`)}${stat(&#x27;邀请→新活跃转化&#x27;,pct(newActive,visits),`${newActive} / ${visits} 位访问用户`)}${stat(&#x27;有效推荐系数 K&#x27;,k.toFixed(2),`每 100 位活跃用户带来 ${Math.round(k*100)} 位新活跃用户`)}&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;h2&gt;推荐转化漏斗&lt;/h2&gt;&lt;span class=&quot;a-muted&quot;&gt;点击人数查看示例用户&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;a-loopgrid&quot;&gt;${[[&#x27;有效分析用户&#x27;,baseCount],[&#x27;分享/邀请&#x27;,advocates.length],[&#x27;被邀请访问&#x27;,visits],[&#x27;运行 AI&#x27;,aiUsers],[&#x27;新有效分析用户&#x27;,newActive]].map(([name,num],i)=&gt;`&lt;button class=&quot;a-loopnode cursor-interaction&quot; data-ref-stage=&quot;${i}&quot;&gt;&lt;strong&gt;${fmt(num)}&lt;/strong&gt;${name}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;div class=&quot;a-callout&quot;&gt;&lt;strong&gt;本期循环结论：&lt;/strong&gt;每 100 位参与推荐的用户预计带来 &lt;strong&gt;${Math.round(k*100)} 位&lt;/strong&gt;新的有效分析用户，当前处于“&lt;strong&gt;${kLevel}&lt;/strong&gt;”阶段。整体推荐贡献系数为 ${overall.toFixed(2)}。&lt;/div&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;h2&gt;K值阶段判断&lt;/h2&gt;&lt;span class=&quot;a-muted&quot;&gt;当前 K = ${k.toFixed(2)}&lt;/span&gt;&lt;/div&gt;${table([&#x27;K值范围&#x27;,&#x27;阶段判断&#x27;,&#x27;当前状态&#x27;],[[&#x27;K ≥ 1&#x27;,&#x27;推荐循环可以自行扩张&#x27;,k&gt;=1?&#x27;● 当前&#x27;:&#x27;—&#x27;],[&#x27;0.5 ≤ K ＜ 1&#x27;,&#x27;推荐能力较强，但仍需外部流量&#x27;,k&gt;=.5&amp;&amp;k&lt;1?&#x27;● 当前&#x27;:&#x27;—&#x27;],[&#x27;0.2 ≤ K ＜ 0.5&#x27;,&#x27;已经产生推荐价值，还有较大优化空间&#x27;,k&gt;=.2&amp;&amp;k&lt;.5?&#x27;● 当前&#x27;:&#x27;—&#x27;],[&#x27;K ＜ 0.2&#x27;,&#x27;推荐动机或转化链路较弱&#x27;,k&lt;.2?&#x27;● 当前&#x27;:&#x27;—&#x27;]])}&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;h2&gt;K值与推荐新增趋势&lt;/h2&gt;&lt;span class=&quot;a-muted&quot;&gt;K = 新推荐有效用户 ÷ 参与推荐用户&lt;/span&gt;&lt;/div&gt;${daily.map(d=&gt;`&lt;div class=&quot;a-kbar&quot;&gt;&lt;span&gt;${date(d.t)}&lt;/span&gt;&lt;div class=&quot;a-track&quot;&gt;&lt;div class=&quot;a-fill&quot; style=&quot;width:${Math.min(100,d.k*160)}%&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;span&gt;K ${d.k.toFixed(2)} · +${d.newUsers}&lt;/span&gt;&lt;/div&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;h2&gt;分享内容贡献&lt;/h2&gt;&lt;span class=&quot;a-muted&quot;&gt;判断什么内容最能带来新活跃用户&lt;/span&gt;&lt;/div&gt;${table([&#x27;分享类型&#x27;,&#x27;有效分享&#x27;,&#x27;新有效分析用户&#x27;,&#x27;单次分享贡献&#x27;],channels.map(([name,count,newUsers])=&gt;[name,count,newUsers,(newUsers/Math.max(1,count)).toFixed(2)]))}&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;h2&gt;两类增长循环&lt;/h2&gt;&lt;span class=&quot;a-muted&quot;&gt;推荐奖励与产品内容分别验证&lt;/span&gt;&lt;/div&gt;${table([&#x27;增长循环&#x27;,&#x27;触发内容&#x27;,&#x27;关键观察指标&#x27;],[[&#x27;邀请循环&#x27;,&#x27;邀请链接、邀请码&#x27;,&#x27;参与率、邀请转化率、有效推荐系数 K&#x27;],[&#x27;内容循环&#x27;,&#x27;AI分析、筹码图、金狗复盘、策略信号&#x27;,&#x27;分享率、内容访问率、新有效分析用户&#x27;]])}&lt;/div&gt;&lt;details class=&quot;a-card a-details&quot;&gt;&lt;summary&gt;归因与去重规则&lt;/summary&gt;&lt;p&gt;被邀请用户首次点击后 7 天内完成有效分析，计为成功推荐；同一用户仅绑定一个首要推荐人。&lt;/p&gt;&lt;p&gt;自己邀请自己、同设备或同钱包批量操作、Bot 与异常账号不计入。邀请链接、邀请码和内容分享必须携带 invite_id、share_id 与 referrer_user_id。&lt;/p&gt;&lt;p&gt;本页为交互原型，当前数值为合成演示数据。&lt;/p&gt;&lt;/details&gt;`;
+$(&#x27;[data-ref-stage]&#x27;).forEach(b=&gt;b.onclick=()=&gt;{const values=[baseCount,advocates.length,visits,aiUsers,newActive],labels=[&#x27;有效分析用户&#x27;,&#x27;参与分享/邀请用户&#x27;,&#x27;被邀请访问用户&#x27;,&#x27;运行 AI 用户&#x27;,&#x27;新有效分析用户&#x27;];drill(labels[+b.dataset.refStage],stageUsers(values[+b.dataset.refStage]),&#x27;推荐增长循环示例人群&#x27;)});
+}
+
+function drawChannels(c){
+clearNative();const sources=[&#x27;SEO&#x27;,&#x27;直接访问&#x27;,&#x27;Bot&#x27;,&#x27;社群&#x27;,&#x27;邀请&#x27;,&#x27;KOL/合作&#x27;],profile=dataStore.channelProfiles;
+const shown=sources.filter(s=&gt;c.source===&#x27;all&#x27;||c.source===s),data=shown.map((s,i)=&gt;{const users=usersForSource(s),p=profile[s],visits=Math.max(20,Math.round(users.length/Math.max(.08,p.active))),login=Math.round(visits*p.login),active=Math.round(visits*p.active),ret=Math.round(active*p.d7),traders=Math.round(active*p.trade),paid=Math.round(active*p.pay),volume=Math.round(traders*p.vol);return{s,users,visits,login,active,ret,traders,paid,volume,p}}),sum=k=&gt;data.reduce((n,d)=&gt;n+d[k],0),totalVisits=sum(&#x27;visits&#x27;),totalActive=sum(&#x27;active&#x27;),totalTraders=sum(&#x27;traders&#x27;),totalVolume=sum(&#x27;volume&#x27;),bestQuality=[...data].sort((a,b)=&gt;(b.active/b.visits)-(a.active/a.visits))[0],bestValue=[...data].sort((a,b)=&gt;b.volume-a.volume)[0];
+function usersForSource(s){return users.filter(u=&gt;u.source===s)}
+const rows=data.map(d=&gt;[d.s,d.visits,d.login,`&lt;button class=&quot;a-tablelink cursor-interaction&quot; data-channel=&quot;${d.s}&quot;&gt;${d.active}&lt;/button&gt;`,pct(d.active,d.visits),pct(d.ret,d.active),d.traders,money(d.volume),d.paid]);
+$(&#x27;#as-output&#x27;).innerHTML=`&lt;div class=&quot;a-context&quot;&gt;&lt;span class=&quot;a-chip&quot;&gt;首次来源归因 · 渠道质量&lt;/span&gt;&lt;span&gt;${date(c.start)}–${date(c.end-day)} · ${c.source===&#x27;all&#x27;?&#x27;全部渠道&#x27;:c.source}&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;a-summary a-four&quot;&gt;${stat(&#x27;渠道访问用户&#x27;,fmt(totalVisits),&#x27;首次进入的去重访问用户&#x27;)}${stat(&#x27;新有效分析用户&#x27;,fmt(totalActive),pct(totalActive,totalVisits)+&#x27; 渠道有效用户率&#x27;)}${stat(&#x27;质量最佳渠道&#x27;,bestQuality?.s||&#x27;—&#x27;,bestQuality?pct(bestQuality.active,bestQuality.visits)+&#x27; 有效分析转化&#x27;:&#x27;暂无数据&#x27;)}${stat(&#x27;交易贡献最高&#x27;,bestValue?.s||&#x27;—&#x27;,bestValue?money(bestValue.volume)+&#x27; 交易量&#x27;:&#x27;暂无数据&#x27;)}&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;h2&gt;渠道获客与价值转化&lt;/h2&gt;&lt;span class=&quot;a-muted&quot;&gt;从访问一直看到交易和付费&lt;/span&gt;&lt;/div&gt;${table([&#x27;渠道&#x27;,&#x27;访问用户&#x27;,&#x27;登录用户&#x27;,&#x27;有效分析用户&#x27;,&#x27;有效用户率&#x27;,&#x27;D7留存&#x27;,&#x27;交易用户&#x27;,&#x27;交易量&#x27;,&#x27;付费用户&#x27;],rows)}&lt;div class=&quot;a-insight&quot;&gt;渠道不能只按访问或注册量排名，应优先比较有效分析、留存、交易和付费贡献。&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;h2&gt;渠道质量对比&lt;/h2&gt;&lt;span class=&quot;a-muted&quot;&gt;横条为渠道有效用户率&lt;/span&gt;&lt;/div&gt;${data.map(d=&gt;`&lt;div class=&quot;a-kbar&quot;&gt;&lt;span&gt;${d.s}&lt;/span&gt;&lt;div class=&quot;a-track&quot;&gt;&lt;div class=&quot;a-fill&quot; style=&quot;width:${Math.min(100,d.active/d.visits*150)}%&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;span&gt;${pct(d.active,d.visits)} · ${d.active}人&lt;/span&gt;&lt;/div&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;h2&gt;渠道贡献结构&lt;/h2&gt;&lt;span class=&quot;a-muted&quot;&gt;区分规模渠道与高质量渠道&lt;/span&gt;&lt;/div&gt;${table([&#x27;渠道&#x27;,&#x27;有效用户贡献&#x27;,&#x27;交易用户贡献&#x27;,&#x27;交易量贡献&#x27;,&#x27;付费用户贡献&#x27;],data.map(d=&gt;[d.s,pct(d.active,totalActive),pct(d.traders,totalTraders),pct(d.volume,totalVolume),pct(d.paid,Math.max(1,sum(&#x27;paid&#x27;)))]))}&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;h2&gt;建议优先动作&lt;/h2&gt;&lt;span class=&quot;a-muted&quot;&gt;基于第一版合成数据展示&lt;/span&gt;&lt;/div&gt;${table([&#x27;渠道&#x27;,&#x27;当前判断&#x27;,&#x27;建议动作&#x27;],data.map(d=&gt;[d.s,d.active/d.visits&gt;=.5?&#x27;高质量&#x27;:d.visits&gt;=Math.max(...data.map(x=&gt;x.visits))*.85?&#x27;高规模、转化待提升&#x27;:&#x27;中等表现&#x27;,d.s===&#x27;SEO&#x27;?&#x27;建设可索引内容和CA分析落地页&#x27;:d.s===&#x27;Bot&#x27;?&#x27;保持Token直达和身份关联&#x27;:d.s===&#x27;邀请&#x27;?&#x27;优化奖励、反作弊和K系数&#x27;:d.s===&#x27;社群&#x27;?&#x27;活动链接统一UTM并按群归因&#x27;:d.s===&#x27;KOL/合作&#x27;?&#x27;为每个合作方配置独立campaign&#x27;:&#x27;识别品牌回访与未标记流量&#x27;]))}&lt;/div&gt;&lt;details class=&quot;a-card a-details&quot;&gt;&lt;summary&gt;渠道归因与埋点要求&lt;/summary&gt;&lt;p&gt;首次来源用于衡量长期用户质量，用户完成第一次有效分析时固化；最近来源用于衡量本次活动和访问效果，不能覆盖首次来源。&lt;/p&gt;&lt;p&gt;统一保存 first_source、last_source、utm_source、utm_medium、utm_campaign、referrer_user_id、invite_code、landing_page 和 first_effective_analysis_at。&lt;/p&gt;&lt;p&gt;直接访问需要排除参数丢失、跨域跳转和Bot打开造成的错误归因。当前所有数值均为合成演示数据。&lt;/p&gt;&lt;/details&gt;`;
+$(&#x27;[data-channel]&#x27;).forEach(b=&gt;b.onclick=()=&gt;{const d=data.find(x=&gt;x.s===b.dataset.channel),arr=d?.users||[];drill(b.dataset.channel+&#x27; 渠道有效分析用户&#x27;,arr.map(u=&gt;({u,displaySource:b.dataset.channel})),&#x27;按首次有效分析来源归因&#x27;)});
+}
+
+function drawSegments(c){
+clearNative();const pool=users.filter(u=&gt;c.source===&#x27;all&#x27;||u.source===c.source),groups={新手型:[],成长型:[],专业型:[],沉默型:[]};
+pool.forEach((u,i)=&gt;{const chips=u.events.filter(e=&gt;e.type===&#x27;chip&#x27;),ais=u.events.filter(e=&gt;e.type===&#x27;ai&#x27;),trades=u.events.filter(e=&gt;e.type===&#x27;trade&#x27;),last=chips.length?Math.max(...chips.map(e=&gt;e.t)):0;let g;if(chips.length&amp;&amp;asof-last&gt;=14*day)g=&#x27;沉默型&#x27;;else if(chips.length&gt;=5||trades.length&gt;=3||ais.length&gt;=6)g=&#x27;专业型&#x27;;else if(chips.length&gt;=2||ais.length&gt;=2||trades.length&gt;=1)g=&#x27;成长型&#x27;;else g=&#x27;新手型&#x27;;groups[g].push(u)});
+const names=[&#x27;新手型&#x27;,&#x27;成长型&#x27;,&#x27;专业型&#x27;,&#x27;沉默型&#x27;],profiles=dataStore.segmentProfiles;
+const total=Math.max(1,pool.length),payUsers=Object.fromEntries(names.map(n=&gt;[n,Math.round(groups[n].length*profiles[n].pay/100)])),payTotal=Math.max(1,Object.values(payUsers).reduce((a,b)=&gt;a+b,0)),bestRate=names.reduce((a,b)=&gt;profiles[a].pay&gt;profiles[b].pay?a:b),bestCount=names.reduce((a,b)=&gt;payUsers[a]&gt;payUsers[b]?a:b);
+const rows=names.map(n=&gt;[n,`&lt;button class=&quot;a-tablelink cursor-interaction&quot; data-seg=&quot;${n}&quot;&gt;${groups[n].length}&lt;/button&gt;`,pct(groups[n].length,total),profiles[n].ea+&#x27;%&#x27;,profiles[n].w4+&#x27;%&#x27;,profiles[n].trade+&#x27;%&#x27;,profiles[n].pay+&#x27;%&#x27;,money(groups[n].length*profiles[n].amount*profiles[n].pay/100)]);
+$(&#x27;#as-output&#x27;).innerHTML=`&lt;div class=&quot;a-context&quot;&gt;&lt;span class=&quot;a-chip&quot;&gt;行为成熟度分群 · 过去30天&lt;/span&gt;&lt;span&gt;${date(c.start)}–${date(c.end-day)} · ${c.source===&#x27;all&#x27;?&#x27;全部来源&#x27;:c.source}&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;a-summary a-four&quot;&gt;${stat(&#x27;分析用户规模&#x27;,fmt(total),&#x27;当前筛选范围内用户&#x27;)}${stat(&#x27;付费率最高&#x27;,bestRate,profiles[bestRate].pay+&#x27;% 付费转化率&#x27;)}${stat(&#x27;付费人数贡献最高&#x27;,bestCount,payUsers[bestCount]+&#x27; 位付费用户&#x27;)}${stat(&#x27;最值得升级运营&#x27;,&#x27;成长型&#x27;,&#x27;规模与付费潜力相对平衡&#x27;)}&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;h2&gt;分群规模与核心表现&lt;/h2&gt;&lt;span class=&quot;a-muted&quot;&gt;点击用户数查看分群明细&lt;/span&gt;&lt;/div&gt;${table([&#x27;用户分群&#x27;,&#x27;用户数&#x27;,&#x27;用户占比&#x27;,&#x27;有效分析率&#x27;,&#x27;W4留存&#x27;,&#x27;交易转化&#x27;,&#x27;付费转化&#x27;,&#x27;预估付费金额&#x27;],rows)}&lt;div class=&quot;a-insight&quot;&gt;专业用户付费率最高，但不能只看付费率；还要结合分群规模、付费人数和金额贡献。&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;h2&gt;新手、成长与专业用户需求差异&lt;/h2&gt;&lt;span class=&quot;a-muted&quot;&gt;根据功能使用倾向制定不同产品策略&lt;/span&gt;&lt;/div&gt;${table([&#x27;用户分群&#x27;,&#x27;核心需求&#x27;,&#x27;热门/信号榜单&#x27;,&#x27;筹码峰&#x27;,&#x27;Holder/大户&#x27;,&#x27;自选跟踪&#x27;,&#x27;多策略&#x27;],[[&#x27;新手型&#x27;,profiles[&#x27;新手型&#x27;].need,&#x27;高&#x27;,&#x27;中&#x27;,&#x27;低&#x27;,&#x27;低&#x27;,&#x27;低&#x27;],[&#x27;成长型&#x27;,profiles[&#x27;成长型&#x27;].need,&#x27;高&#x27;,&#x27;高&#x27;,&#x27;中&#x27;,&#x27;高&#x27;,&#x27;中&#x27;],[&#x27;专业型&#x27;,profiles[&#x27;专业型&#x27;].need,&#x27;中&#x27;,&#x27;高&#x27;,&#x27;高&#x27;,&#x27;高&#x27;,&#x27;高&#x27;],[&#x27;沉默型&#x27;,profiles[&#x27;沉默型&#x27;].need,&#x27;低&#x27;,&#x27;低&#x27;,&#x27;低&#x27;,&#x27;低&#x27;,&#x27;低&#x27;]])}&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;h2&gt;分群升级与流失路径&lt;/h2&gt;&lt;span class=&quot;a-muted&quot;&gt;重点寻找推动用户升级的关键行为&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;a-loopgrid&quot;&gt;${[[&#x27;新手型&#x27;,groups[&#x27;新手型&#x27;].length],[&#x27;成长型&#x27;,groups[&#x27;成长型&#x27;].length],[&#x27;专业型&#x27;,groups[&#x27;专业型&#x27;].length],[&#x27;沉默/流失&#x27;,groups[&#x27;沉默型&#x27;].length]].map(([n,v])=&gt;`&lt;button class=&quot;a-loopnode cursor-interaction&quot; data-seg=&quot;${n===&#x27;沉默/流失&#x27;?&#x27;沉默型&#x27;:n}&quot;&gt;&lt;strong&gt;${v}&lt;/strong&gt;${n}&lt;/button&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;&lt;div class=&quot;a-callout&quot;&gt;&lt;strong&gt;建议重点验证：&lt;/strong&gt;第一次捕获金狗、连续3天有效分析、第一次添加自选、第一次开启AI策略和第一次交易，哪些行为最能推动新手升级为成长型用户。&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;a-card&quot;&gt;&lt;div class=&quot;a-cardhead&quot;&gt;&lt;h2&gt;付费贡献分析&lt;/h2&gt;&lt;span class=&quot;a-muted&quot;&gt;付费率 × 用户规模，不能只看单一转化率&lt;/span&gt;&lt;/div&gt;${table([&#x27;用户分群&#x27;,&#x27;付费用户&#x27;,&#x27;付费率&#x27;,&#x27;付费用户贡献&#x27;,&#x27;运营动作&#x27;],names.map(n=&gt;[n,payUsers[n],profiles[n].pay+&#x27;%&#x27;,pct(payUsers[n],payTotal),n===&#x27;新手型&#x27;?&#x27;降低理解门槛，推动首次价值&#x27;:n===&#x27;成长型&#x27;?&#x27;引导多策略与高级能力&#x27;:n===&#x27;专业型&#x27;?&#x27;提供深度数据、速度和批量工具&#x27;:&#x27;用优质信号召回并排查体验问题&#x27;]))}&lt;/div&gt;&lt;details class=&quot;a-card a-details&quot;&gt;&lt;summary&gt;分群规则与使用说明&lt;/summary&gt;&lt;p&gt;新手、成长和专业用户根据过去30天的有效分析天数、分析CA数量、AI策略使用和交易行为综合划分；沉默用户定义为历史完成过有效分析，但连续14天没有再次有效分析。&lt;/p&gt;&lt;p&gt;专业程度不能只由交易金额决定。小资金但高频研究、多策略使用的用户也可能属于专业用户。&lt;/p&gt;&lt;p&gt;当前数值为合成演示数据，正式上线后应先观察真实分布，再校准阈值并记录用户的分群迁移历史。&lt;/p&gt;&lt;/details&gt;`;
+$(&#x27;[data-seg]&#x27;).forEach(b=&gt;b.onclick=()=&gt;{const n=b.dataset.seg,arr=groups[n]||[];drill(n+&#x27;用户&#x27;,arr.map(u=&gt;({u,displaySource:u.source})),profiles[n].need)});
+}
+
+function pageTitle(){return mode===&#x27;north&#x27;?&#x27;北极星指标 · 有效分析用户&#x27;:mode===&#x27;channels&#x27;?&#x27;渠道分析&#x27;:mode===&#x27;funnel&#x27;?&#x27;用户激活漏斗&#x27;:mode===&#x27;retention&#x27;?&#x27;有效分析留存&#x27;:mode===&#x27;referral&#x27;?&#x27;推荐与增长循环&#x27;:&#x27;用户分群分析&#x27;}function pageSub(){return mode===&#x27;north&#x27;?&#x27;有多少用户真正获得了筹码分析的价值&#x27;:mode===&#x27;channels&#x27;?&#x27;用户从哪里来，哪些渠道真正带来留存、交易和付费&#x27;:mode===&#x27;funnel&#x27;?&#x27;从登录到有效分析，定位转化损失&#x27;:mode===&#x27;retention&#x27;?&#x27;从首次使用到持续回访，比较各批次表现&#x27;:mode===&#x27;referral&#x27;?&#x27;每个有效分析用户能否持续带来新的有效分析用户&#x27;:&#x27;哪些用户的需求与表现不同，谁更容易交易和付费&#x27;}
+function run(){current=config();dirty=false;$(&#x27;#as-dirty&#x27;).textContent=&#x27;已应用当前配置&#x27;;$(&#x27;#as-drill&#x27;).hidden=true;mode===&#x27;north&#x27;?drawNorth(current):mode===&#x27;channels&#x27;?drawChannels(current):mode===&#x27;funnel&#x27;?drawFunnel(current):mode===&#x27;retention&#x27;?drawRetention(current):mode===&#x27;referral&#x27;?drawReferral(current):drawSegments(current)}
+$$(&#x27;[data-mode]&#x27;).forEach(b=&gt;b.onclick=()=&gt;{mode=b.dataset.mode;$$(&#x27;[data-mode]&#x27;).forEach(x=&gt;x.setAttribute(&#x27;aria-pressed&#x27;,x===b));$(&#x27;#as-title&#x27;).textContent=pageTitle();$(&#x27;#as-sub&#x27;).textContent=pageSub();renderSteps();run()});$(&#x27;#as-add&#x27;).onclick=()=&gt;{if(steps.length&lt;5){steps.push(&#x27;chip&#x27;);renderSteps();markDirty()}};[&#x27;#as-range&#x27;,&#x27;#as-window&#x27;,&#x27;#as-source&#x27;,&#x27;#as-strategy&#x27;].forEach(s=&gt;$(s).onchange=markDirty);$(&#x27;#as-run&#x27;).onclick=run;$(&#x27;#as-save&#x27;).onclick=()=&gt;{saved=config();$(&#x27;#as-saved&#x27;).textContent=&#x27;已保存本次预览配置&#x27;;$(&#x27;#as-restore&#x27;).hidden=false};$(&#x27;#as-restore&#x27;).onclick=()=&gt;{if(!saved)return;mode=saved.mode;steps=[...saved.steps];$$(&#x27;[data-mode]&#x27;).forEach(b=&gt;b.setAttribute(&#x27;aria-pressed&#x27;,b.dataset.mode===mode));$(&#x27;#as-title&#x27;).textContent=pageTitle();$(&#x27;#as-sub&#x27;).textContent=pageSub();renderSteps();$(&#x27;#as-range&#x27;).value=saved.range;$(&#x27;#as-window&#x27;).value=saved.hours;$(&#x27;#as-source&#x27;).value=saved.source;$(&#x27;#as-strategy&#x27;).value=saved.strategy;if(mode===&#x27;retention&#x27;){$(&#x27;#as-initial&#x27;).value=saved.initial;$(&#x27;#as-return&#x27;).value=saved.returning}run();$(&#x27;#as-saved&#x27;).textContent=&#x27;已载入保存的配置&#x27;};renderSteps();run();
+})();
+&lt;/script&gt;
+&lt;/div&gt;
+
+&lt;script src=&quot;https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set([&quot;top&quot;, &quot;right&quot;, &quot;bottom&quot;, &quot;left&quot;]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+  let lastPointerWasTouch = false;
+  let pinnedByTouch = false;
+
+  const getTrigger = (event) =&gt; {
+    for (const target of event.composedPath()) {
+      if (target?.nodeType === Node.ELEMENT_NODE) {
+        const trigger = target.closest(&quot;[data-tooltip]&quot;);
+        if (trigger) return trigger;
+      }
+    }
+    return null;
+  };
+  const containsTarget = (trigger, target) =&gt;
+    target?.nodeType != null &amp;&amp; trigger.contains(target);
+  const getContent = (trigger) =&gt;
+    trigger.getAttribute(&quot;data-tooltip&quot;)?.trim() ?? &quot;&quot;;
+  const getPlacement = (trigger) =&gt; {
+    const placement = trigger.getAttribute(&quot;data-tooltip-placement&quot;);
+    return tooltipPlacements.has(placement) ? placement : &quot;top&quot;;
+  };
+  const getTooltip = () =&gt; {
+    if (tooltip == null) {
+      tooltip = document.createElement(&quot;div&quot;);
+      tooltip.id = tooltipId;
+      tooltip.className = &quot;tooltip&quot;;
+      tooltip.setAttribute(&quot;role&quot;, &quot;tooltip&quot;);
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) =&gt; {
+    const ids = new Set(
+      (trigger.getAttribute(&quot;aria-describedby&quot;) ?? &quot;&quot;)
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute(&quot;aria-describedby&quot;);
+    } else {
+      trigger.setAttribute(&quot;aria-describedby&quot;, [...ids].join(&quot; &quot;));
+    }
+  };
+  const clearOpenTimeout = () =&gt; {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) =&gt; {
+    clearOpenTimeout();
+    pinnedByTouch = false;
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) =&gt; {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-width&quot;,
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-height&quot;,
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: &quot;fixed&quot;,
+    })
+      .then(({ x, y }) =&gt; {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = &quot;visible&quot;;
+      })
+      .catch(() =&gt; {
+        if (activeTrigger === trigger &amp;&amp; request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) =&gt; {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = &quot;hidden&quot;;
+    floating.style.transform = &quot;translate(0, 0)&quot;;
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () =&gt; {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) =&gt; {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() &lt; skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() =&gt; {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) =&gt; {
+    if (event.pointerType === &quot;touch&quot;) {
+      return;
+    }
+    const trigger = getTrigger(event);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handlePointer = (event) =&gt; {
+    lastPointerWasTouch =
+      event.type === &quot;pointerdown&quot; &amp;&amp; event.pointerType === &quot;touch&quot;;
+  };
+  const handleTouchClick = (event) =&gt; {
+    const isTouch = event.pointerType === &quot;touch&quot; || lastPointerWasTouch;
+    lastPointerWasTouch = false;
+    if (!isTouch || event.detail === 0) {
+      return;
+    }
+    const trigger = getTrigger(event);
+    if (
+      trigger == null ||
+      !trigger.isConnected ||
+      getContent(trigger).length === 0 ||
+      (pinnedByTouch &amp;&amp; activeTrigger === trigger)
+    ) {
+      if (pinnedByTouch) {
+        closeTooltip();
+      }
+      return;
+    }
+    openTooltip(trigger);
+    pinnedByTouch = activeTrigger === trigger;
+    window.setTimeout(() =&gt; {
+      if (activeTrigger === trigger &amp;&amp; !trigger.isConnected) {
+        closeTooltip(false);
+      }
+    }, 0);
+  };
+  const handleLeave = (event) =&gt; {
+    if (pinnedByTouch) {
+      return;
+    }
+    const trigger = getTrigger(event);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) =&gt; {
+    const trigger = getTrigger(event);
+    if (trigger?.matches(&quot;:focus-visible&quot;)) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) =&gt; {
+    if (event.key === &quot;Escape&quot;) {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) =&gt; {
+    lastPointerWasTouch = false;
+    const trigger = getTrigger(event);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handlers = {
+    pointerover: handlePointerOpen,
+    pointerdown: handlePointer,
+    pointercancel: handlePointer,
+    click: handleTouchClick,
+    pointerout: handleLeave,
+    focusin: handleFocusIn,
+    focusout: handleLeave,
+    keydown: handleKeyDown,
+    contextmenu: handleContextMenu,
+  };
+  const roots = new Map();
+  const handledEvents = new WeakSet();
+  const handleEvent = (event) =&gt; {
+    if (handledEvents.has(event)) return;
+    handledEvents.add(event);
+    handlers[event.type](event);
+  };
+  const discoverRoots = (node) =&gt; {
+    if (node.shadowRoot) listen(node.shadowRoot);
+    for (const element of node.querySelectorAll(&quot;*&quot;)) {
+      if (element.shadowRoot) listen(element.shadowRoot);
+    }
+  };
+  const listen = (root) =&gt; {
+    if (roots.has(root)) return;
+    for (const type of Object.keys(handlers)) root.addEventListener(type, handleEvent);
+    const observer = new window.MutationObserver((records) =&gt; {
+      for (const { addedNodes } of records) {
+        for (const node of addedNodes) {
+          if (node.nodeType === Node.ELEMENT_NODE) discoverRoots(node);
+        }
+      }
+      for (const [root, cleanup] of roots) {
+        if (root.host &amp;&amp; !root.host.isConnected) {
+          cleanup();
+          roots.delete(root);
+        }
+      }
+      if (activeTrigger &amp;&amp; !activeTrigger.isConnected) closeTooltip(false);
+    });
+    observer.observe(root, { childList: true, subtree: true });
+    roots.set(root, () =&gt; {
+      observer.disconnect();
+      for (const type of Object.keys(handlers)) root.removeEventListener(type, handleEvent);
+    });
+    discoverRoots(root);
+  };
+  const destroy = () =&gt; {
+    closeTooltip(false);
+    lastPointerWasTouch = false;
+    for (const cleanup of roots.values()) cleanup();
+    roots.clear();
+    tooltip = null;
+  };
+
+  // Events between children of one shadow root never reach the document.
+  listen(document);
+  window.addEventListener(&quot;pagehide&quot;, destroy, { once: true });
+})();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-tabs&quot;&gt;
+(() =&gt; {
+  const selector = &#x27;.nav[role=&quot;tablist&quot;] [role=&quot;tab&quot;]&#x27;;
+  const disabled = &#x27;:disabled,[aria-disabled=&quot;true&quot;]&#x27;;
+  const selectTab = (selected) =&gt; {
+    const panelId = selected.getAttribute(&quot;aria-controls&quot;);
+    for (const tab of selected.closest(&#x27;[role=&quot;tablist&quot;]&#x27;).querySelectorAll(&#x27;[role=&quot;tab&quot;]&#x27;)) {
+      const active = tab === selected;
+      tab.classList.toggle(&quot;active&quot;, active);
+      tab.setAttribute(&quot;aria-selected&quot;, String(active));
+      const id = tab.getAttribute(&quot;aria-controls&quot;);
+      const panel = id &amp;&amp; document.getElementById(id);
+      if (panel != null) {
+        panel.hidden = id !== panelId;
+        if (!panel.hidden &amp;&amp; selected.id) {
+          panel.setAttribute(&quot;aria-labelledby&quot;, selected.id);
+        }
+      }
+    }
+  };
+  const interact = (event) =&gt; {
+    const tab = event.target?.closest?.(selector);
+    if (event.defaultPrevented || tab == null || tab.matches(disabled)) {
+      return;
+    }
+    if (event.type === &quot;click&quot;) {
+      selectTab(tab);
+      return;
+    }
+    const tabs = Array.from(
+      tab.closest(&#x27;[role=&quot;tablist&quot;]&#x27;).querySelectorAll(&#x27;[role=&quot;tab&quot;]&#x27;),
+    ).filter((candidate) =&gt; !candidate.matches(disabled));
+    const current = tabs.indexOf(tab);
+    let next;
+    if (event.key === &quot;ArrowRight&quot; || event.key === &quot;ArrowDown&quot;) {
+      next = (current + 1) % tabs.length;
+    } else if (event.key === &quot;ArrowLeft&quot; || event.key === &quot;ArrowUp&quot;) {
+      next = (current + tabs.length - 1) % tabs.length;
+    } else if (event.key === &quot;Home&quot;) {
+      next = 0;
+    } else if (event.key === &quot;End&quot;) {
+      next = tabs.length - 1;
+    } else {
+      return;
+    }
+    event.preventDefault();
+    tabs[next].focus();
+    selectTab(tabs[next]);
+  };
+
+  for (const list of document.querySelectorAll(&#x27;.nav[role=&quot;tablist&quot;]&#x27;)) {
+    const selected =
+      list.querySelector(&#x27;[role=&quot;tab&quot;][aria-selected=&quot;true&quot;]&#x27;) ??
+      list.querySelector(&#x27;[role=&quot;tab&quot;].active&#x27;) ??
+      list.querySelector(&#x27;[role=&quot;tab&quot;]&#x27;);
+    if (selected != null) {
+      selectTab(selected);
+    }
+  }
+  document.addEventListener(&quot;click&quot;, interact);
+  document.addEventListener(&quot;keydown&quot;, interact);
+  window.addEventListener(&quot;pagehide&quot;, () =&gt; {
+    document.removeEventListener(&quot;click&quot;, interact);
+    document.removeEventListener(&quot;keydown&quot;, interact);
+  }, { once: true });
+})();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-carousel&quot;&gt;
+  (() =&gt; {
+    for (const root of document.querySelectorAll(&quot;.viz-carousel&quot;)) {
+      const panels = Array.from(
+        root.querySelectorAll(&quot;:scope &gt; [data-variant]&quot;),
+      );
+      if (panels.length === 0) {
+        continue;
+      }
+      root.setAttribute(&quot;role&quot;, &quot;group&quot;);
+      panels.forEach((panel, index) =&gt; {
+        panel.hidden = index !== 0;
+        panel.setAttribute(&quot;role&quot;, &quot;group&quot;);
+        if (!panel.hasAttribute(&quot;aria-label&quot;)) {
+          panel.setAttribute(&quot;aria-label&quot;, panel.dataset.variant);
+        }
+      });
+      root.dataset.activeVariant = panels[0].dataset.variant;
+      if (panels.length === 1) {
+        continue;
+      }
+
+      const controls = document.createElement(&quot;div&quot;);
+      controls.className = &quot;viz-carousel-controls&quot;;
+      // Portable copy of the settings dropdown&#x27;s legacy glyph; no 14px icon-package preset matches it.
+      // https://github.com/openai/openai/blob/master/codex/codex-apps/webview/src/icons/chevron.svg
+      controls.innerHTML = `
+      &lt;button type=&quot;button&quot; class=&quot;viz-carousel-previous cursor-interaction&quot;&gt;&lt;i data-lucide=&quot;chevron-left&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;
+      &lt;details class=&quot;viz-carousel-picker&quot;&gt;
+        &lt;summary class=&quot;cursor-interaction&quot;&gt;
+          &lt;span class=&quot;viz-carousel-count tabular-nums&quot;&gt;&lt;/span&gt;
+          &lt;span class=&quot;viz-carousel-name&quot;&gt;&lt;/span&gt;
+          &lt;svg class=&quot;viz-carousel-caret&quot; width=&quot;14&quot; height=&quot;14&quot; viewBox=&quot;0 0 20 21&quot; fill=&quot;none&quot; aria-hidden=&quot;true&quot; focusable=&quot;false&quot;&gt;
+            &lt;path d=&quot;M15.2793 7.71101C15.539 7.45131 15.961 7.45131 16.2207 7.71101C16.4804 7.97071 16.4804 8.39272 16.2207 8.65242L10.4707 14.4024C10.211 14.6621 9.78902 14.6621 9.52932 14.4024L3.77932 8.65242L3.69436 8.54792C3.52385 8.28979 3.55205 7.93828 3.77932 7.71101C4.00659 7.48374 4.3581 7.45554 4.61623 7.62605L4.72073 7.71101L10 12.9903L15.2793 7.71101Z&quot; fill=&quot;currentColor&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;0.6&quot; /&gt;
+          &lt;/svg&gt;
+        &lt;/summary&gt;
+        &lt;div class=&quot;viz-carousel-options&quot;&gt;&lt;/div&gt;
+      &lt;/details&gt;
+      &lt;button type=&quot;button&quot; class=&quot;viz-carousel-next cursor-interaction&quot;&gt;&lt;i data-lucide=&quot;chevron-right&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;`;
+      const previous = controls.querySelector(&quot;.viz-carousel-previous&quot;);
+      const next = controls.querySelector(&quot;.viz-carousel-next&quot;);
+      const picker = controls.querySelector(&quot;.viz-carousel-picker&quot;);
+      const summary = picker.querySelector(&quot;summary&quot;);
+      const count = controls.querySelector(&quot;.viz-carousel-count&quot;);
+      const name = controls.querySelector(&quot;.viz-carousel-name&quot;);
+      const options = controls.querySelector(&quot;.viz-carousel-options&quot;);
+      const status = document.createElement(&quot;span&quot;);
+      status.className = &quot;sr-only&quot;;
+      status.setAttribute(&quot;role&quot;, &quot;status&quot;);
+      status.setAttribute(&quot;aria-live&quot;, &quot;polite&quot;);
+      status.setAttribute(&quot;aria-atomic&quot;, &quot;true&quot;);
+      previous.setAttribute(
+        &quot;aria-label&quot;,
+        root.dataset.previousLabel ?? &quot;Previous variant&quot;,
+      );
+      next.setAttribute(&quot;aria-label&quot;, root.dataset.nextLabel ?? &quot;Next variant&quot;);
+
+      let active = 0;
+      let mousePointerId = null;
+      let summaryPointerHandled = false;
+      summary.addEventListener(&quot;pointerdown&quot;, (event) =&gt; {
+        summaryPointerHandled =
+          event.pointerType === &quot;mouse&quot; &amp;&amp; event.button === 0 &amp;&amp; !event.ctrlKey;
+        if (!summaryPointerHandled) {
+          return;
+        }
+        event.preventDefault();
+        summary.focus({ preventScroll: true });
+        picker.open = !picker.open;
+        mousePointerId = picker.open ? event.pointerId : null;
+      });
+      summary.addEventListener(&quot;click&quot;, (event) =&gt; {
+        if (summaryPointerHandled &amp;&amp; event.detail &gt; 0) {
+          event.preventDefault();
+        }
+      });
+      const choices = panels.map((panel, index) =&gt; {
+        const choice = document.createElement(&quot;button&quot;);
+        choice.type = &quot;button&quot;;
+        choice.className = &quot;cursor-interaction&quot;;
+        choice.textContent = panel.dataset.variant;
+        choice.addEventListener(&quot;click&quot;, () =&gt; {
+          select(index);
+          summary.focus();
+        });
+        choice.addEventListener(&quot;pointerup&quot;, (event) =&gt; {
+          if (
+            picker.open &amp;&amp;
+            event.pointerType === &quot;mouse&quot; &amp;&amp;
+            event.button === 0 &amp;&amp;
+            event.pointerId === mousePointerId
+          ) {
+            choice.click();
+          }
+        });
+        options.appendChild(choice);
+        return choice;
+      });
+      const select = (index) =&gt; {
+        const changed = active !== index;
+        active = index;
+        panels.forEach((panel, position) =&gt; {
+          panel.hidden = position !== active;
+          choices[position].setAttribute(
+            &quot;aria-current&quot;,
+            String(position === active),
+          );
+        });
+        root.dataset.activeVariant = panels[active].dataset.variant;
+        count.textContent = `${active + 1} / ${panels.length}`;
+        name.textContent = panels[active].dataset.variant;
+        picker.open = false;
+        mousePointerId = null;
+        if (changed) {
+          status.textContent = `${count.textContent}: ${name.textContent}`;
+        }
+      };
+      previous.addEventListener(&quot;click&quot;, () =&gt;
+        select((active + panels.length - 1) % panels.length),
+      );
+      next.addEventListener(&quot;click&quot;, () =&gt;
+        select((active + 1) % panels.length),
+      );
+      picker.addEventListener(&quot;keydown&quot;, (event) =&gt; {
+        if (event.key === &quot;Escape&quot; &amp;&amp; picker.open) {
+          event.preventDefault();
+          picker.open = false;
+          mousePointerId = null;
+          summary.focus();
+          return;
+        }
+        if (event.altKey || event.ctrlKey || event.metaKey) {
+          return;
+        }
+        const index = choices.indexOf(document.activeElement);
+        let nextIndex;
+        if (event.key === &quot;ArrowDown&quot;) {
+          nextIndex = index &lt; 0 ? active : (index + 1) % choices.length;
+        } else if (event.key === &quot;ArrowUp&quot;) {
+          nextIndex = index &lt; 0 ? active : (index + choices.length - 1) % choices.length;
+        } else if (picker.open &amp;&amp; event.key === &quot;Home&quot;) {
+          nextIndex = 0;
+        } else if (picker.open &amp;&amp; event.key === &quot;End&quot;) {
+          nextIndex = choices.length - 1;
+        } else {
+          return;
+        }
+        event.preventDefault();
+        picker.open = true;
+        choices[nextIndex].focus();
+      });
+      picker.addEventListener(&quot;focusout&quot;, (event) =&gt; {
+        if (!picker.contains(event.relatedTarget)) {
+          picker.open = false;
+          mousePointerId = null;
+        }
+      });
+      const dismiss = (event) =&gt; {
+        if (!summary.contains(event.target)) {
+          mousePointerId = null;
+        }
+        if (!picker.contains(event.target)) {
+          picker.open = false;
+        }
+      };
+      const endPointerSelection = () =&gt; {
+        mousePointerId = null;
+      };
+      const sizePicker = () =&gt; {
+        root.style.setProperty(
+          &quot;--viz-carousel-picker-height&quot;,
+          `${picker.open ? options.offsetHeight : 0}px`,
+        );
+      };
+      picker.addEventListener(&quot;toggle&quot;, sizePicker);
+      window.addEventListener(&quot;resize&quot;, sizePicker);
+      document.addEventListener(&quot;pointerdown&quot;, dismiss);
+      document.addEventListener(&quot;pointerup&quot;, endPointerSelection);
+      document.addEventListener(&quot;pointercancel&quot;, endPointerSelection);
+      window.addEventListener(&quot;blur&quot;, endPointerSelection);
+      window.addEventListener(
+        &quot;pagehide&quot;,
+        () =&gt; {
+          document.removeEventListener(&quot;pointerdown&quot;, dismiss);
+          document.removeEventListener(&quot;pointerup&quot;, endPointerSelection);
+          document.removeEventListener(&quot;pointercancel&quot;, endPointerSelection);
+          window.removeEventListener(&quot;blur&quot;, endPointerSelection);
+          window.removeEventListener(&quot;resize&quot;, sizePicker);
+        },
+        { once: true },
+      );
+      root.append(controls, status);
+      select(0);
+    }
+  })();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-lucide&quot; async src=&quot;https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  const initialize = () =&gt; {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById(&quot;codex-visualization-lucide&quot;)
+    ?.addEventListener(&quot;load&quot;, initialize, { once: true });
+})();
+&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe>
+<script>(() => {
+  const frame = document.getElementById("codex-visualization");
+  if (!(frame instanceof HTMLIFrameElement)) {
+    return;
+  }
+  let viewportHeight = globalThis.innerHeight;
+  const storageKey = `codex:visualization-widget-state-v2:${JSON.stringify([
+    globalThis.location.pathname,
+    globalThis.location.search,
+  ])}`;
+  const parseState = (serializedState) => {
+    if (
+      typeof serializedState !== "string" ||
+      new TextEncoder().encode(serializedState).length > 16 * 1024
+    ) {
+      throw new TypeError(
+        "Widget state must be a JSON object of at most 16 KiB",
+      );
+    }
+    /** @type {unknown} */
+    const state = JSON.parse(serializedState);
+    if (
+      state == null ||
+      typeof state !== "object" ||
+      Array.isArray(state) ||
+      ("imageIds" in state &&
+        (!Array.isArray(state.imageIds) || state.imageIds.length > 0))
+    ) {
+      throw new TypeError("Widget state must be a JSON object");
+    }
+    const storedState = { modelContent: null, privateContent: null, ...state };
+    const canonicalState = JSON.stringify(
+      storedState,
+      (_key, /** @type {unknown} */ value) => {
+        if (typeof value === "number" && !Number.isFinite(value)) {
+          throw new TypeError("Widget state must contain finite numbers");
+        }
+        return value;
+      },
+    );
+    if (new TextEncoder().encode(canonicalState).length > 16 * 1024) {
+      throw new TypeError(
+        "Widget state must be a JSON object of at most 16 KiB",
+      );
+    }
+    return storedState;
+  };
+  let storage = null;
+  let state = null;
+  try {
+    const localStorage = globalThis.localStorage;
+    const probeKey = `${storageKey}:probe`;
+    localStorage.setItem(probeKey, "1");
+    localStorage.removeItem(probeKey);
+    storage = localStorage;
+    const savedState = storage.getItem(storageKey);
+    if (savedState != null) {
+      try {
+        state = parseState(savedState);
+      } catch {
+        // Invalid saved state does not disable future writes.
+      }
+    }
+  } catch {
+    storage = null;
+  }
+  const initialGlobals = {
+    widgetState: state,
+    statePersistence: storage == null ? "none" : "local",
+  };
+
+  const channel = new MessageChannel();
+  channel.port1.addEventListener("message", (event) => {
+    const data = event.data;
+    if (typeof data !== "object" || data == null) {
+      return;
+    }
+    if (data.type === "widget-state-write") {
+      if (!Number.isSafeInteger(data.id) || data.id <= 0) {
+        return;
+      }
+      let ok = false;
+      try {
+        if (storage != null) {
+          const state = parseState(data.state);
+          storage.setItem(storageKey, JSON.stringify(state));
+          ok = true;
+        }
+      } catch {
+        // Storage denial, quota limits, and invalid state return a failed receipt.
+      }
+      channel.port1.postMessage({
+        type: "widget-state-result",
+        id: data.id,
+        ok,
+      });
+      return;
+    }
+    if (data.type === "height") {
+      const height = data.height;
+      if (
+        typeof height === "number" &&
+        Number.isFinite(height) &&
+        height >= 0 &&
+        height <= 10_000
+      ) {
+        frame.style.height = Math.ceil(height) + "px";
+      }
+      return;
+    }
+    if (data.type === "scroll-to") {
+      const top = data.top;
+      if (
+        typeof top === "number" &&
+        Number.isFinite(top) &&
+        top >= 0 &&
+        globalThis.navigator.userActivation?.isActive === true
+      ) {
+        globalThis.scrollTo({
+          top: Math.ceil(
+            globalThis.scrollY + frame.getBoundingClientRect().top + top,
+          ),
+        });
+      }
+      return;
+    }
+    if (data.type === "open-external") {
+      const rawHref = data.href;
+      if (typeof rawHref !== "string") {
+        return;
+      }
+      let href;
+      try {
+        const url = new URL(rawHref, document.baseURI);
+        if (url.protocol !== "https:") {
+          return;
+        }
+        href = url.href;
+      } catch {
+        return;
+      }
+      if (globalThis.navigator.userActivation?.isActive === true) {
+        const anchor = document.createElement("a");
+        anchor.href = href;
+        anchor.rel = "noopener noreferrer";
+        anchor.target = "_blank";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+      }
+      return;
+    }
+    if (data.type === "follow-up") {
+      const prompt = data.prompt;
+      if (
+        typeof prompt !== "string" ||
+        globalThis.navigator.userActivation?.isActive !== true
+      ) {
+        return;
+      }
+      const title = data.title;
+      globalThis.prompt(typeof title === "string" ? title : prompt, prompt);
+    }
+  });
+  channel.port1.start();
+  const srcdoc = frame.dataset.srcdoc;
+  if (srcdoc == null) {
+    return;
+  }
+  globalThis.addEventListener("resize", () => {
+    const height = Number.parseFloat(frame.style.height);
+    if (!Number.isFinite(height) || height <= viewportHeight) {
+      frame.style.removeProperty("height");
+    }
+    viewportHeight = globalThis.innerHeight;
+    channel.port1.postMessage({ type: "measure" });
+  });
+  frame.addEventListener(
+    "load",
+    () => {
+      frame.contentWindow?.postMessage(
+        { type: "codex-visualization-initialize" },
+        "*",
+        [channel.port2],
+      );
+    },
+    { once: true },
+  );
+  // Match the trusted bootstrap element, not the same text in an authored title.
+  frame.srcdoc = srcdoc.replace(
+    '<script type="application/json" id="codex-visualization-widget-state">__CODEX_VISUALIZATION_WIDGET_STATE__<\/script>',
+    () =>
+      '<script type="application/json" id="codex-visualization-widget-state">' +
+      JSON.stringify(initialGlobals).replaceAll("<", "\\u003c") +
+      "<\/script>",
+  );
+  delete frame.dataset.srcdoc;
+})();
+</script>
+</body>
+</html>
