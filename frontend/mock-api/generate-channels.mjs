@@ -1,0 +1,7 @@
+import {readFile,writeFile} from 'node:fs/promises';
+const read=async name=>JSON.parse(await readFile(new URL('./data/'+name+'.json',import.meta.url),'utf8'));
+const {users}=await read('users'),{events}=await read('events'),{trades}=await read('trades');
+const placements=[['x_official','x','owned_social','official_x'],['community','telegram','community','group_001'],['binance_official','binance_square','owned_social','official_square'],['kol','x','kol','kol_001_x'],['referral','telegram','referral','user_invite'],['unknown',null,null,null]];
+const records=users.map((u,i)=>{const es=events.filter(e=>e.user_id===u.user_id),first=es[0];if(!first)return null;const [channel_id,utm_source,utm_medium,placement_id]=placements[i%6],first_visit_at=new Date(Date.parse(first.occurred_at)-60000).toISOString();return {user_id:u.user_id,channel_id,channel_version:1,first_visit_at,source_fields:{utm_source,utm_medium,utm_campaign:i%2?'case_class':'ai_trial',utm_content:'post_'+(i%12+1),partner_id:channel_id==='kol'?'kol_001':null,placement_id},payments:i%9===0?[{order_id:'order-'+u.user_id,paid_at:es.find(e=>e.event_name==='chip_analysis_viewed')?.occurred_at??first.occurred_at,amount_usd:29,status:'paid'}]:[]};}).filter(Boolean);
+await writeFile(new URL('./data/channel-facts.json',import.meta.url),JSON.stringify({attribution:'first_acquisition_source',records},null,2)+'\n');
+console.log('渠道获客事实',records.length);

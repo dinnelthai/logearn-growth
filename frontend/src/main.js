@@ -36,7 +36,9 @@ async function start() {
       const {normalizeApiResponse}=await import('./analytics/normalize.js')
       const asOf=Date.now(),startAt=asOf-90*86400000
       const raw=await fetchAllAnalyticsData(startAt,asOf)
-      globalThis.LOGEARN_ANALYTICS_DATA=normalizeApiResponse({...raw,startAt,asOf,timezone:'Asia/Bangkok'})
+      const data=normalizeApiResponse({...raw,startAt,asOf,timezone:'Asia/Bangkok'})
+      data.userReferrals=raw.userReferrals??null
+      globalThis.LOGEARN_ANALYTICS_DATA=data
     } catch {
       badge.textContent='真实数据 · 请求失败'
       status.textContent='数据请求失败，请检查接口配置后重试。'
@@ -48,6 +50,10 @@ async function start() {
       return
     }
     document.querySelectorAll('#la-studio button, #la-studio select').forEach(b=>b.disabled=false)
+  }
+  if(!globalThis.LOGEARN_ANALYTICS_DATA){
+    const {datasetFromJson}=await import('./analytics/jsonDataset.js')
+    globalThis.LOGEARN_ANALYTICS_DATA=datasetFromJson()
   }
   await import('./dashboard.js')
   await import('./tooltips.js')

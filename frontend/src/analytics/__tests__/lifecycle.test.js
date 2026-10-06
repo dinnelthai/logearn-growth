@@ -10,12 +10,12 @@ describe('lifecycle outreach',()=>{
   expect(new Set(r.filter(c=>c.eligible).map(c=>c.rule_id)).size).toBe(6)
   expect(r.filter(c=>c.eligible)).toHaveLength(6)
  })
- it('requires binding and consent, honors frequency and disabled rules',()=>{
+ it('requires binding, honors frequency and disabled rules',()=>{
   const users=lifecycleDemoUsers(now)
-  users[0].notification_preferences={telegram:false,email:false}
+  users[0].telegram_bound=false;users[0].email_bound=false
   const deliveries=[{user_id:users[1].id,rule_id:'core',sent_at:now-1000,status:'sent'},{user_id:users[3].id,rule_id:'inactive_3d',sent_at:now-2*DAY,status:'sent'}]
   const r=evaluateLifecycle(users,{asOf:now,rules:rules.map(r=>({...r,enabled:r.id!=='churned'})),deliveries})
-  expect(r.find(c=>c.u.id===users[0].id).reason).toContain('未订阅')
+  expect(r.find(c=>c.u.id===users[0].id).reason).toContain('未绑定')
   expect(r.find(c=>c.u.id===users[1].id).reason).toBe('24小时频控')
   expect(r.find(c=>c.u.id===users[3].id&&c.rule_id==='inactive_3d').reason).toBe('同场景7天冷却')
   expect(r.some(c=>c.rule_id==='churned')).toBe(false)

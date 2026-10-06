@@ -1,0 +1,64 @@
+{
+  "rules": [
+    {
+      "id": "first_analysis",
+      "name": "登录但未分析",
+      "condition": "首次登录30分钟后仍未有效分析",
+      "action": "引导查看第一个筹码峰",
+      "goal": "chip",
+      "priority": 2,
+      "enabled": true,
+      "channel": "auto"
+    },
+    {
+      "id": "first_strategy",
+      "name": "完成分析但未开策略",
+      "condition": "首次分析满24小时、近3天仍分析且未启动策略",
+      "action": "推荐适合的AI策略",
+      "goal": "ai",
+      "priority": 3,
+      "enabled": true,
+      "channel": "auto"
+    },
+    {
+      "id": "view_signal",
+      "name": "策略已启动但未查看信号",
+      "condition": "策略结果生成30分钟后仍未查看该结果",
+      "action": "提醒查看策略结果",
+      "goal": "signal_view",
+      "priority": 1,
+      "enabled": true,
+      "channel": "auto"
+    },
+    {
+      "id": "inactive_3d",
+      "name": "连续3天未分析",
+      "condition": "最近分析距今3至28天",
+      "action": "推送热门金狗或市场机会",
+      "goal": "chip",
+      "priority": 4,
+      "enabled": true,
+      "channel": "auto"
+    },
+    {
+      "id": "core",
+      "name": "核心用户",
+      "condition": "近28天至少6个业务日有效分析",
+      "action": "邀请参与高级策略或推荐活动",
+      "goal": "share_complete",
+      "priority": 5,
+      "enabled": true,
+      "channel": "auto"
+    },
+    {
+      "id": "churned",
+      "name": "流失用户",
+      "condition": "最近有效分析距今超过28天",
+      "action": "用新功能、金狗复盘召回",
+      "goal": "chip",
+      "priority": 6,
+      "enabled": true,
+      "channel": "auto"
+    }
+  ]
+}

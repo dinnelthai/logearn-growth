@@ -58,7 +58,7 @@ function buildIdentityMap(rawEvents) {
  * @param {number} params.asOf     - ms timestamp
  * @returns {object}  dataStore compatible with dashboard.js
  */
-export function normalizeApiResponse({ events, users, referrals, trades, timezone, startAt, asOf, availability }) {
+export function normalizeApiResponse({ events, users, logearnUsers, referrals, trades, timezone, startAt, asOf, availability }) {
   // 1. Deduplicate events by event_id
   const seen = new Set()
   const dedupedEvents = []
@@ -109,6 +109,17 @@ export function normalizeApiResponse({ events, users, referrals, trades, timezon
       token_address: raw.token_address ?? raw.properties?.token_address ?? null,
       chain: raw.chain ?? raw.properties?.chain ?? null,
       token_visit_id: raw.token_visit_id ?? raw.properties?.token_visit_id ?? null,
+      referrer: raw.referrer ?? raw.properties?.first_referrer_url ?? null,
+      first_landing_url: raw.properties?.first_landing_url ?? null,
+      // first_visit_captured specific fields
+      channel_id: raw.properties?.channel_id ?? null,
+      channel_version: raw.properties?.channel_version ?? null,
+      source_fields: raw.properties?.source_fields ?? null,
+      payments: raw.properties?.payments ?? null,
+      // trade event fields
+      reason: raw.properties?.reason ?? raw.properties?.error ?? null,
+      trade_type: raw.properties?.trade_type ?? null,
+      op_type: raw.properties?.op_type ?? null,
       _raw_event_id: raw.event_id,
     })
   }
@@ -120,10 +131,38 @@ export function normalizeApiResponse({ events, users, referrals, trades, timezon
       source: u.first_source ?? '未知',
       created_at: u.created_at,
       preferred_language: normalizeLanguage(u.preferred_language),
-      notification_preferences: { telegram: u.notification_preferences?.telegram === true, email: u.notification_preferences?.email === true },
+      first_analysis_entry_module: u.first_analysis_entry_module ?? null,
+
       telegram_bound: typeof u.telegram_bound === 'boolean' ? u.telegram_bound : null,
       email_bound: typeof u.email_bound === 'boolean' ? u.email_bound : null,
+      is_partner: false,
     })
+  }
+
+  // Merge logearn_user fields (telegram_bound, email_bound, is_partner) —
+  // logearnUsers is the authoritative source for these binding and partner flags.
+  for (const lu of (logearnUsers ?? [])) {
+    const key = `user:${lu.user_id}`
+    const existing = userMeta.get(key)
+    if (existing) {
+      if (typeof lu.telegram_bound === 'boolean') existing.telegram_bound = lu.telegram_bound
+      if (typeof lu.email_bound === 'boolean') existing.email_bound = lu.email_bound
+      if (typeof lu.is_partner === 'boolean') existing.is_partner = lu.is_partner
+      if (lu.first_source != null) existing.source = lu.first_source
+      if (lu.preferred_language != null) existing.preferred_language = normalizeLanguage(lu.preferred_language)
+      if (lu.first_analysis_entry_module != null) existing.first_analysis_entry_module = lu.first_analysis_entry_module
+    } else {
+      // User exists in logearn_user but not in users list — register a stub.
+      userMeta.set(key, {
+        source: lu.first_source ?? '未知',
+        created_at: lu.created_at ?? null,
+        preferred_language: normalizeLanguage(lu.preferred_language ?? null),
+        first_analysis_entry_module: lu.first_analysis_entry_module ?? null,
+        telegram_bound: typeof lu.telegram_bound === 'boolean' ? lu.telegram_bound : null,
+        email_bound: typeof lu.email_bound === 'boolean' ? lu.email_bound : null,
+        is_partner: lu.is_partner === true,
+      })
+    }
   }
 
   // 5. Assemble user objects
@@ -140,14 +179,31 @@ export function normalizeApiResponse({ events, users, referrals, trades, timezon
     const aiEvts = sorted.filter(e => e.type === 'ai' && e.strategy)
     const strategy = aiEvts.length ? aiEvts[aiEvts.length - 1].strategy : null
 
+    // Extract channel attribution from first_visit event (first_visit_captured)
+    // channel_id and related fields are stored as top-level event fields after normalization
+    const firstVisit = sorted.find(e => e.type === 'first_visit')
+    const channelFact = firstVisit?.channel_id ? {
+      user_id: key.replace(/^user:|^anonymous:/, ''),
+      channel_id: firstVisit.channel_id,
+      channel_version: firstVisit.channel_version ?? 1,
+      first_visit_at: new Date(firstVisit.t).toISOString(),
+      source_fields: firstVisit.source_fields ?? {},
+      payments: firstVisit.payments ?? [],
+      referrer: firstVisit.referrer ?? null,
+    } : null
+
     normalizedUsers.push({
       id: key,
       source,
       strategy,
+      created_at: meta?.created_at ?? null,
+      first_analysis_entry_module: meta?.first_analysis_entry_module ?? null,
       preferred_language: meta?.preferred_language ?? null,
-      notification_preferences: meta?.notification_preferences ?? {},
+
       telegram_bound: meta?.telegram_bound ?? null,
       email_bound: meta?.email_bound ?? null,
+      is_partner: meta?.is_partner ?? false,
+      channelFact,
       events: sorted,
     })
   }
@@ -155,7 +211,7 @@ export function normalizeApiResponse({ events, users, referrals, trades, timezon
   // Include registered accounts without observed events.
   const present = new Set(normalizedUsers.map(u => u.id))
   for (const [id, meta] of userMeta) if (!present.has(id)) {
-    normalizedUsers.push({ id, source: meta.source, strategy: null, events: [], preferred_language: meta.preferred_language, notification_preferences: meta.notification_preferences, telegram_bound: meta.telegram_bound, email_bound: meta.email_bound })
+    normalizedUsers.push({ id, source: meta.source, strategy: null, events: [], created_at: meta.created_at, first_analysis_entry_module: meta.first_analysis_entry_module, preferred_language: meta.preferred_language, telegram_bound: meta.telegram_bound, email_bound: meta.email_bound, is_partner: meta.is_partner ?? false })
   }
 
   // 6. Assemble trade records if available

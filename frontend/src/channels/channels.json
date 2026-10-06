@@ -1,0 +1,142 @@
+{
+  "scheme": {
+    "description": "本文件字段说明；scheme 仅作注释元数据，业务数据从下方原字段读取。[] 表示数组元素，类型为实际样例中出现的类型。",
+    "fields": {
+      "rules": {
+        "type": [
+          "array"
+        ],
+        "description": "渠道规则数组，包含 unknown 系统兜底渠道"
+      },
+      "rules[].id": {
+        "type": [
+          "string"
+        ],
+        "description": "渠道稳定 ID；改名不改变 ID，系统未知渠道为 unknown"
+      },
+      "rules[].name": {
+        "type": [
+          "string"
+        ],
+        "description": "渠道显示名称，不作为稳定关联键"
+      },
+      "rules[].conditions": {
+        "type": [
+          "object"
+        ],
+        "description": "六字段精确匹配条件；多个条件为 AND，未填字段不限制"
+      },
+      "rules[].conditions.utm_source": {
+        "type": [
+          "string"
+        ],
+        "description": "发布平台：x / telegram / partner_site / binance_square（币安广场）"
+      },
+      "rules[].conditions.utm_medium": {
+        "type": [
+          "string"
+        ],
+        "description": "推广方式：owned_social / kol / community / referral"
+      },
+      "rules[].priority": {
+        "type": [
+          "number"
+        ],
+        "description": "渠道匹配优先级，非负整数，数字越小越优先；相同值按 ID 排序，最多归一个渠道"
+      },
+      "rules[].enabled": {
+        "type": [
+          "boolean"
+        ],
+        "description": "渠道是否参与新访问匹配；停用保留历史，unknown 始终启用"
+      },
+      "rules[].version": {
+        "type": [
+          "number"
+        ],
+        "description": "渠道配置版本，新增从1开始，编辑/启停递增；历史归因保存原版本"
+      },
+      "rules[].updated_at": {
+        "type": [
+          "null"
+        ],
+        "description": "配置更新时间，UTC ISO；null 表示未修改的默认规则"
+      },
+      "rules[].system": {
+        "type": [
+          "boolean"
+        ],
+        "description": "是否系统固定渠道；unknown 为 true，不能编辑或停用"
+      }
+    }
+  },
+  "rules": [
+    {
+      "id": "x_official",
+      "name": "X 官方",
+      "conditions": {
+        "utm_source": "x",
+        "utm_medium": "owned_social"
+      },
+      "priority": 10,
+      "enabled": true,
+      "version": 1,
+      "updated_at": null
+    },
+    {
+      "id": "community",
+      "name": "社群推荐",
+      "conditions": {
+        "utm_medium": "community"
+      },
+      "priority": 20,
+      "enabled": true,
+      "version": 1,
+      "updated_at": null
+    },
+    {
+      "id": "binance_official",
+      "name": "币安广场官方",
+      "conditions": {
+        "utm_source": "binance_square",
+        "utm_medium": "owned_social"
+      },
+      "priority": 30,
+      "enabled": true,
+      "version": 1,
+      "updated_at": null
+    },
+    {
+      "id": "kol",
+      "name": "KOL 推荐",
+      "conditions": {
+        "utm_medium": "kol"
+      },
+      "priority": 40,
+      "enabled": true,
+      "version": 1,
+      "updated_at": null
+    },
+    {
+      "id": "referral",
+      "name": "用户邀请",
+      "conditions": {
+        "utm_medium": "referral"
+      },
+      "priority": 50,
+      "enabled": true,
+      "version": 1,
+      "updated_at": null
+    },
+    {
+      "id": "unknown",
+      "name": "未知渠道",
+      "conditions": {},
+      "priority": 2147483647,
+      "enabled": true,
+      "version": 1,
+      "updated_at": null,
+      "system": true
+    }
+  ]
+}

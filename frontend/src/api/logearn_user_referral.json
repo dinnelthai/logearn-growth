@@ -1,0 +1,839 @@
+{
+  "logearn_user_referrals": [
+    {
+      "user_id": "DEMO-LC-5",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10364",
+          "bound_at": "2026-09-22T01:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 9,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10002",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10130",
+          "bound_at": "2026-09-26T03:59:00.000Z"
+        },
+        {
+          "user_id": "LE10202",
+          "bound_at": "2026-09-28T01:59:00.000Z"
+        },
+        {
+          "user_id": "LE10274",
+          "bound_at": "2026-09-30T06:59:00.000Z"
+        },
+        {
+          "user_id": "LE10346",
+          "bound_at": "2026-10-02T03:59:00.000Z"
+        },
+        {
+          "user_id": "LE10418",
+          "bound_at": "2026-10-04T08:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 60.3,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10004",
+      "invited_by": "LE10073",
+      "invited_at": "2026-09-26T03:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10009",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10040",
+          "bound_at": "2026-10-04T06:59:00.000Z"
+        },
+        {
+          "user_id": "LE10472",
+          "bound_at": "2026-10-02T11:59:00.000Z"
+        },
+        {
+          "user_id": "LE10544",
+          "bound_at": "2026-10-04T07:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 24.1,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10014",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10058",
+          "bound_at": "2026-09-24T02:59:00.000Z"
+        },
+        {
+          "user_id": "LE10400",
+          "bound_at": "2026-09-30T04:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 17.3,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10017",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10328",
+          "bound_at": "2026-09-28T09:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 4.5,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10018",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10166",
+          "bound_at": "2026-10-04T03:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 13.6,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10020",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10094",
+          "bound_at": "2026-10-02T08:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 5.5,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10021",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10022",
+          "bound_at": "2026-09-30T11:59:00.000Z"
+        },
+        {
+          "user_id": "LE10526",
+          "bound_at": "2026-09-30T10:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 28.1,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10022",
+      "invited_by": "LE10021",
+      "invited_at": "2026-09-30T11:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10025",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10292",
+          "bound_at": "2026-10-04T07:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 5.8,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10029",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10256",
+          "bound_at": "2026-09-26T11:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 13.4,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10032",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10220",
+          "bound_at": "2026-10-02T08:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 15.3,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10033",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10454",
+          "bound_at": "2026-09-28T00:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 19.9,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10035",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10148",
+          "bound_at": "2026-09-30T05:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 13.5,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10040",
+      "invited_by": "LE10009",
+      "invited_at": "2026-10-04T06:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10045",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10076",
+          "bound_at": "2026-09-28T07:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 4.8,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10056",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10382",
+          "bound_at": "2026-09-26T00:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 3,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10057",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10184",
+          "bound_at": "2026-09-24T01:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 7.1,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10058",
+      "invited_by": "LE10014",
+      "invited_at": "2026-09-24T02:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10073",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10004",
+          "bound_at": "2026-09-26T03:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 16.2,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10076",
+      "invited_by": "LE10045",
+      "invited_at": "2026-09-28T07:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10084",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10508",
+          "bound_at": "2026-09-26T02:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 4.3,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10094",
+      "invited_by": "LE10020",
+      "invited_at": "2026-10-02T08:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10098",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10310",
+          "bound_at": "2026-09-24T08:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 12.5,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10112",
+      "invited_by": "LE10462",
+      "invited_at": "2026-09-22T06:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10130",
+      "invited_by": "LE10002",
+      "invited_at": "2026-09-26T03:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10148",
+      "invited_by": "LE10035",
+      "invited_at": "2026-09-30T05:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10155",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10436",
+          "bound_at": "2026-09-24T06:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 2,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10166",
+      "invited_by": "LE10018",
+      "invited_at": "2026-10-04T03:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10184",
+      "invited_by": "LE10057",
+      "invited_at": "2026-09-24T01:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10202",
+      "invited_by": "LE10002",
+      "invited_at": "2026-09-28T01:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10220",
+      "invited_by": "LE10032",
+      "invited_at": "2026-10-02T08:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10238",
+      "invited_by": "LE10308",
+      "invited_at": "2026-09-22T02:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10256",
+      "invited_by": "LE10029",
+      "invited_at": "2026-09-26T11:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10274",
+      "invited_by": "LE10002",
+      "invited_at": "2026-09-30T06:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10292",
+      "invited_by": "LE10025",
+      "invited_at": "2026-10-04T07:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10308",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10238",
+          "bound_at": "2026-09-22T02:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 10.2,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10310",
+      "invited_by": "LE10098",
+      "invited_at": "2026-09-24T08:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10328",
+      "invited_by": "LE10017",
+      "invited_at": "2026-09-28T09:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10346",
+      "invited_by": "LE10002",
+      "invited_at": "2026-10-02T03:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10364",
+      "invited_by": "DEMO-LC-5",
+      "invited_at": "2026-09-22T01:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10382",
+      "invited_by": "LE10056",
+      "invited_at": "2026-09-26T00:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10400",
+      "invited_by": "LE10014",
+      "invited_at": "2026-09-30T04:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10418",
+      "invited_by": "LE10002",
+      "invited_at": "2026-10-04T08:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10436",
+      "invited_by": "LE10155",
+      "invited_at": "2026-09-24T06:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10454",
+      "invited_by": "LE10033",
+      "invited_at": "2026-09-28T00:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10462",
+      "invited_by": null,
+      "invited_at": null,
+      "invitees_l1": [
+        {
+          "user_id": "LE10112",
+          "bound_at": "2026-09-22T06:59:00.000Z"
+        },
+        {
+          "user_id": "LE10490",
+          "bound_at": "2026-09-22T09:59:00.000Z"
+        }
+      ],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 24.9,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10472",
+      "invited_by": "LE10009",
+      "invited_at": "2026-10-02T11:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10490",
+      "invited_by": "LE10462",
+      "invited_at": "2026-09-22T09:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10508",
+      "invited_by": "LE10084",
+      "invited_at": "2026-09-26T02:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10526",
+      "invited_by": "LE10021",
+      "invited_at": "2026-09-30T10:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    },
+    {
+      "user_id": "LE10544",
+      "invited_by": "LE10009",
+      "invited_at": "2026-10-04T07:59:00.000Z",
+      "invitees_l1": [],
+      "invitees_l2": [],
+      "invitees_l3": [],
+      "commission": {
+        "l1": 0,
+        "l2": 0,
+        "l3": 0
+      }
+    }
+  ]
+}

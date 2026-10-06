@@ -3,13 +3,13 @@ export const RULES=[
  {id:'first_analysis',name:'登录但未分析',condition:'首次登录30分钟后仍未有效分析',action:'引导查看第一个筹码峰',goal:'chip',priority:2},
  {id:'first_strategy',name:'完成分析但未开策略',condition:'首次分析满24小时、近3天仍分析且未启动策略',action:'推荐适合的AI策略',goal:'ai',priority:3},
  {id:'view_signal',name:'策略已启动但未查看信号',condition:'策略结果生成30分钟后仍未查看该结果',action:'提醒查看策略结果',goal:'signal_view',priority:1},
- {id:'inactive_3d',name:'连续3天未分析',condition:'最近分析距今3至28天',action:'推送热门金狗或市场机会',goal:'chip',priority:4},
- {id:'core',name:'核心用户',condition:'近28天至少6个业务日有效分析',action:'邀请参与高级策略或推荐活动',goal:'share_complete',priority:5},
- {id:'churned',name:'流失用户',condition:'最近有效分析距今超过28天',action:'用新功能、金狗复盘召回',goal:'chip',priority:6},
+ {id:'inactive_3d',name:'连续3天未分析',condition:'最近分析距今3至7天',action:'推送热门金狗或市场机会',goal:'chip',priority:4},
+ {id:'core',name:'核心用户',condition:'近7天至少4天有效分析',action:'邀请参与高级策略或推荐活动',goal:'share_complete',priority:5},
+ {id:'churned',name:'流失用户',condition:'最近有效分析距今超过7天',action:'用新功能、金狗复盘召回',goal:'chip',priority:6},
 ]
 export const defaultRules=()=>RULES.map(r=>({...r,enabled:true,channel:'auto'}))
 export function selectChannel(user,preference='auto') {
- const available=['telegram','email'].filter(c=>user[c+'_bound']===true&&user.notification_preferences?.[c]===true)
+ const available=['telegram','email'].filter(c=>user[c+'_bound']===true)
  return preference==='auto'?available[0]??null:available.includes(preference)?preference:null
 }
 function match(user,rule,asOf) {
@@ -32,7 +32,7 @@ export function evaluateLifecycle(users,{asOf,rules=defaultRules(),deliveries=[]
   let chosen=false
   for(const {rule,context} of matches) {
    const channel=selectChannel(user,rule.channel),history=deliveries.filter(d=>d.user_id===user.id&&['queued','sent','delivered','unknown'].includes(d.status)&&Number.isFinite(d.sent_at)&&d.sent_at<=asOf)
-   let reason=!user.id.startsWith('user:')?'匿名用户':!channel?'未绑定或未订阅渠道':history.some(d=>asOf-d.sent_at<DAY)?'24小时频控':history.some(d=>d.rule_id===rule.id&&asOf-d.sent_at<7*DAY)?'同场景7天冷却':chosen?'其他场景优先':null
+   let reason=!user.id.startsWith('user:')?'匿名用户':!channel?'未绑定渠道':history.some(d=>asOf-d.sent_at<DAY)?'24小时频控':history.some(d=>d.rule_id===rule.id&&asOf-d.sent_at<7*DAY)?'同场景7天冷却':chosen?'其他场景优先':null
    if(!reason)chosen=true
    candidates.push({u:user,rule_id:rule.id,rule,channel,...context,eligible:!reason,reason})
   }
