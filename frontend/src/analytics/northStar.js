@@ -61,6 +61,11 @@ export function computeNorthStar(users, startAt, endAt, timezone = 'Asia/Bangkok
   for (const [dateStr, bucket] of buckets) {
     let newCount = 0
     let returningCount = 0
+    let loggedInCount = 0
+    let anonymousCount = 0
+    for (const uid of bucket.active) {
+      uid.startsWith('user:') ? loggedInCount++ : anonymousCount++
+    }
     for (const [uid, isNew] of bucket.allTimeFirst) {
       if (bucket.active.has(uid)) {
         isNew ? newCount++ : returningCount++
@@ -69,9 +74,14 @@ export function computeNorthStar(users, startAt, endAt, timezone = 'Asia/Bangkok
     results.push({
       date: dateStr,
       active_users: bucket.active.size,
+      active_user_ids: [...bucket.active],
+      new_user_ids: [...bucket.active].filter(id=>bucket.allTimeFirst.get(id)),
+      returning_user_ids: [...bucket.active].filter(id=>!bucket.allTimeFirst.get(id)),
       analysis_events: bucket.events,
       new_active_users: newCount,
       returning_active_users: returningCount,
+      logged_in_users: loggedInCount,
+      anonymous_users: anonymousCount,
     })
   }
 

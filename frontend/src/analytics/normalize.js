@@ -1,3 +1,4 @@
+import { normalizeLanguage } from './language.js'
 /**
  * normalize.js
  * Converts raw API events/users into the internal dataStore format:
@@ -11,11 +12,7 @@
  *   user_id / anonymous_id          → resolved via resolveKey()
  */
 
-const EVENT_NAME_MAP = {
-  login_succeeded: 'login',
-  strategy_started: 'ai',
-  chip_analysis_viewed: 'chip',
-}
+import { RAW_EVENT_TYPES, MODULES } from './events.js'
 
 /**
  * Builds a stable user key from an event.
@@ -61,7 +58,7 @@ function buildIdentityMap(rawEvents) {
  * @param {number} params.asOf     - ms timestamp
  * @returns {object}  dataStore compatible with dashboard.js
  */
-export function normalizeApiResponse({ events, users, referrals, trades, timezone, startAt, asOf }) {
+export function normalizeApiResponse({ events, users, referrals, trades, timezone, startAt, asOf, availability }) {
   // 1. Deduplicate events by event_id
   const seen = new Set()
   const dedupedEvents = []
@@ -78,7 +75,9 @@ export function normalizeApiResponse({ events, users, referrals, trades, timezon
   // 3. Resolve each event to a canonical key, filter unknown event types
   const byKey = new Map()
   for (const raw of dedupedEvents) {
-    const internalType = EVENT_NAME_MAP[raw.event_name]
+    const internalType = raw.event_name === 'module_viewed'
+      ? (Object.hasOwn(MODULES, raw.properties?.module) ? raw.properties.module : null)
+      : RAW_EVENT_TYPES[raw.event_name]
     if (!internalType) continue
 
     const rawKey = resolveKey(raw.user_id, raw.anonymous_id)
@@ -95,6 +94,21 @@ export function normalizeApiResponse({ events, users, referrals, trades, timezon
       // first_entry_source may be top-level or inside properties
       entry_source: raw.first_entry_source ?? raw.properties?.first_entry_source ?? null,
       strategy: raw.properties?.strategy_type ?? null,
+      strategy_run_id: raw.properties?.strategy_run_id ?? null,
+      result_id: raw.properties?.result_id ?? null,
+      referral_link_id: raw.properties?.referral_link_id ?? null,
+      inviter_user_id: raw.properties?.inviter_user_id ?? null,
+      share_type: raw.properties?.share_type ?? null,
+      share_method: raw.properties?.share_method ?? null,
+      content_id: raw.properties?.content_id ?? null,
+      entry_module: raw.properties?.entry_module ?? null,
+      module: raw.properties?.module ?? null,
+      item_id: raw.properties?.item_id ?? null,
+      position: raw.properties?.position ?? null,
+      session_id: raw.session_id ?? raw.properties?.session_id ?? null,
+      token_address: raw.token_address ?? raw.properties?.token_address ?? null,
+      chain: raw.chain ?? raw.properties?.chain ?? null,
+      token_visit_id: raw.token_visit_id ?? raw.properties?.token_visit_id ?? null,
       _raw_event_id: raw.event_id,
     })
   }
@@ -105,6 +119,10 @@ export function normalizeApiResponse({ events, users, referrals, trades, timezon
     userMeta.set(`user:${u.user_id}`, {
       source: u.first_source ?? '未知',
       created_at: u.created_at,
+      preferred_language: normalizeLanguage(u.preferred_language),
+      notification_preferences: { telegram: u.notification_preferences?.telegram === true, email: u.notification_preferences?.email === true },
+      telegram_bound: typeof u.telegram_bound === 'boolean' ? u.telegram_bound : null,
+      email_bound: typeof u.email_bound === 'boolean' ? u.email_bound : null,
     })
   }
 
@@ -126,8 +144,18 @@ export function normalizeApiResponse({ events, users, referrals, trades, timezon
       id: key,
       source,
       strategy,
+      preferred_language: meta?.preferred_language ?? null,
+      notification_preferences: meta?.notification_preferences ?? {},
+      telegram_bound: meta?.telegram_bound ?? null,
+      email_bound: meta?.email_bound ?? null,
       events: sorted,
     })
+  }
+
+  // Include registered accounts without observed events.
+  const present = new Set(normalizedUsers.map(u => u.id))
+  for (const [id, meta] of userMeta) if (!present.has(id)) {
+    normalizedUsers.push({ id, source: meta.source, strategy: null, events: [], preferred_language: meta.preferred_language, notification_preferences: meta.notification_preferences, telegram_bound: meta.telegram_bound, email_bound: meta.email_bound })
   }
 
   // 6. Assemble trade records if available
@@ -140,6 +168,18 @@ export function normalizeApiResponse({ events, users, referrals, trades, timezon
         status: t.status,
       }))
     : null
+
+  // Confirmed trades can also be selected as funnel/retention events.
+  for (const trade of normalizedTrades ?? []) {
+    if (trade.status !== 'confirmed' || !Number.isFinite(trade.confirmed_at)) continue
+    let user=normalizedUsers.find(u=>u.id===trade.user_id)
+    if (!user) {
+      user={id:trade.user_id,source:userMeta.get(trade.user_id)?.source??'未知',strategy:null,events:[]}
+      normalizedUsers.push(user)
+    }
+    user.events.push({type:'trade',t:trade.confirmed_at,entry_source:user.source})
+    user.events.sort((a,b)=>a.t-b.t)
+  }
 
   return {
     meta: {
@@ -155,7 +195,8 @@ export function normalizeApiResponse({ events, users, referrals, trades, timezon
       // both user_id and anonymous_id on login events to enable merging.
     },
     users: normalizedUsers,
-    referrals: referrals ?? [],
+    referrals: referrals ?? null,
+    availability: availability ?? {},
     trades: normalizedTrades,
     // channelProfiles and segmentProfiles are not available from API —
     // computed stats in those modules replace hardcoded profile values.

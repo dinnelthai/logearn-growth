@@ -11,7 +11,8 @@
  * Periods that have not yet arrived return null, not 0.
  */
 
-import { toDateStr, dayNum, weekNum } from './utils.js'
+import { toDateStr, dayNum } from './utils.js'
+import { buildCohorts, retainedUsers, periodObserved, periodComplete } from './cohorts.js'
 
 const DAY_MS = 86400000
 
@@ -45,13 +46,13 @@ export function computeRetention(users, {
   const weeklyCohortMap = new Map()
 
   for (const u of users) {
-    if (sourceFilter !== 'all' && u.source !== sourceFilter) continue
+
 
     // Find first qualifying initial event in range
     const initEvt = u.events.find(
-      e => e.type === initialEvent && e.t >= startAt && e.t < endAt
+      e => e.type === initialEvent && e.t <= asOf
     )
-    if (!initEvt) continue
+    if (!initEvt || initEvt.t < startAt || initEvt.t >= endAt || (sourceFilter !== 'all' && initEvt.entry_source !== sourceFilter)) continue
 
     const d0DateStr = toDateStr(initEvt.t, timezone)
     const d0Num = dayNum(initEvt.t, startAt)
@@ -61,7 +62,7 @@ export function computeRetention(users, {
     const returningDays = new Set()
     const returningWeeks = new Set()
     for (const e of u.events) {
-      if (e.type !== returningEvent) continue
+      if (e.type !== returningEvent || e.t > asOf) continue
       if (e.t <= initEvt.t) continue // must be strictly after D0 event
       const offset = dayNum(e.t, d0MidnightTs)
       if (offset > 0) returningDays.add(offset)
@@ -84,22 +85,6 @@ export function computeRetention(users, {
     weeklyCohortMap.get(wkKey).users.push({ returningWeeks })
   }
 
-  const buildDailyCohort = ({ cohort_date, d0Ts, users }) => {
-    const n = users.length
-    const periods = []
-    for (let p = 1; p <= maxDailyPeriods; p++) {
-      const observationTs = d0Ts + p * DAY_MS
-      if (observationTs > asOf) {
-        // Period hasn't arrived yet — return null
-        periods.push({ period: p, retained_users: null, retention_rate: null })
-      } else {
-        const retained = users.filter(u => u.returningDays.has(p)).length
-        periods.push({ period: p, retained_users: retained, retention_rate: n > 0 ? retained / n : 0 })
-      }
-    }
-    return { cohort_date, cohort_size: n, periods }
-  }
-
   const buildWeeklyCohort = ({ cohort_date, d0Ts, users }) => {
     const n = users.length
     const periods = []
@@ -115,9 +100,15 @@ export function computeRetention(users, {
     return { cohort_date, cohort_size: n, periods }
   }
 
-  const daily = [...dailyCohortMap.values()]
-    .sort((a, b) => a.cohort_date.localeCompare(b.cohort_date))
-    .map(buildDailyCohort)
+  const daily = buildCohorts(users,{startAt,endAt,asOf,initialEvent,returningEvent,sourceFilter})
+    .filter(co=>co.users.length).map(co=>({
+      cohort_date:toDateStr(co.start,timezone),cohort_size:co.users.length,
+      periods:Array.from({length:maxDailyPeriods},(_,i)=>{
+        const p=i+1,observed=periodObserved(co,p),complete=periodComplete(co,p)
+        const n=observed?retainedUsers(co,p).length:null
+        return {period:p,retained_users:n,retention_rate:n===null?null:n/co.users.length,complete}
+      })
+    }))
 
   const weekly = [...weeklyCohortMap.values()]
     .sort((a, b) => a.cohort_date.localeCompare(b.cohort_date))

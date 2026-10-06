@@ -1,14 +1,36 @@
+import { bindingGroups } from './bindings.js'
 /**
  * segmentation.js
  * Computes mutually exclusive user segments based on chip event behavior.
  *
  * Priority order (highest wins):
- *   回流 → 流失 → 流失风险 → 核心 → 成长 → 新激活 → 未激活
+ *   回流 → 已流失 → 流失风险 → 高频核心 → 策略型 → 新激活 → 分析型 → 未激活
  *
  * Non-exclusive tags: used_strategy, multi_strategy_user, referred_user, inviter
  */
 
+import { toDateStr } from './utils.js'
+
 const DAY_MS = 86400000
+const DEFAULT_TIMEZONE = 'Asia/Bangkok'
+
+/** Shared classification using only events observed by asOf. */
+export function classifyUser(user, asOf) {
+  const chips = user.events.filter(e => e.type === 'chip' && e.t <= asOf).sort((a,b) => a.t-b.t)
+  if (!chips.length) return '未激活'
+  const recent28 = asOf - 28 * DAY_MS
+  const last = chips.at(-1).t
+  const returned = chips.some((e,i) => i > 0 && e.t >= recent28 && e.t - chips[i-1].t >= 28 * DAY_MS)
+  if (returned) return '回流'
+  if (last < recent28) return '已流失'
+  if (last < asOf - 7 * DAY_MS) return '流失风险'
+  const days = new Set(chips.filter(e => e.t >= recent28).map(e => toDateStr(e.t)))
+  if (days.size >= 6) return '高频核心'
+  const strategies = new Set(user.events.filter(e => e.type === 'ai' && e.t <= asOf && e.t <= asOf && e.strategy).map(e => e.strategy))
+  if (strategies.size >= 2) return '策略型'
+  if (asOf - chips[0].t <= 7 * DAY_MS) return '新激活'
+  return '分析型'
+}
 
 /**
  * @param {object[]} users
@@ -22,68 +44,12 @@ export function computeSegmentation(users, { asOf, inviterIds = [], referredIds 
   const inviterSet = new Set(inviterIds)
   const referredSet = new Set(referredIds)
 
-  const segmentCounts = {
-    回流: 0,
-    流失: 0,
-    流失风险: 0,
-    核心: 0,
-    成长: 0,
-    新激活: 0,
-    未激活: 0,
-  }
-  const segmentUsers = Object.fromEntries(Object.keys(segmentCounts).map(k => [k, []]))
-
-  for (const u of users) {
-    const chips = u.events.filter(e => e.type === 'chip').sort((a, b) => a.t - b.t)
-    const hasEverAnalyzed = chips.length > 0
-
-    let segment
-
-    if (!hasEverAnalyzed) {
-      segment = '未激活'
-    } else {
-      const firstChipTs = chips[0].t
-      const lastChipTs = chips[chips.length - 1].t
-
-      // Unique active days with chip events in last 28 days
-      const window28Start = asOf - 28 * DAY_MS
-      const window7Start = asOf - 7 * DAY_MS
-
-      const activeDaysSet28 = new Set(
-        chips
-          .filter(e => e.t >= window28Start)
-          .map(e => Math.floor(e.t / DAY_MS))
-      )
-      const activeDays28 = activeDaysSet28.size
-
-      // Has analyzed in last 28 days
-      const analyzedInLast28 = chips.some(e => e.t >= window28Start)
-      // Has analyzed in last 7 days
-      const analyzedInLast7 = chips.some(e => e.t >= window7Start)
-      // Had a 28+ day gap ending in last 28 days (churned then came back)
-      const gapBeforeLast28 = !chips.some(e => e.t >= asOf - 56 * DAY_MS && e.t < window28Start)
-      const isReturning = hasEverAnalyzed && analyzedInLast28 && gapBeforeLast28 && asOf - firstChipTs >= 28 * DAY_MS
-
-      if (isReturning) {
-        segment = '回流'
-      } else if (hasEverAnalyzed && !analyzedInLast28) {
-        segment = '流失'
-      } else if (hasEverAnalyzed && analyzedInLast28 && !analyzedInLast7) {
-        segment = '流失风险'
-      } else if (activeDays28 >= 6) {
-        segment = '核心'
-      } else if (activeDays28 >= 2) {
-        segment = '成长'
-      } else if (asOf - firstChipTs <= 7 * DAY_MS) {
-        segment = '新激活'
-      } else {
-        // Analyzed before, low recent activity but within windows — treat as 成长 floor
-        segment = '成长'
-      }
-    }
-
+  const segmentCounts = Object.fromEntries(['回流','已流失','流失风险','高频核心','策略型','新激活','分析型','未激活'].map(k=>[k,0]))
+  const segmentUsers = Object.fromEntries(Object.keys(segmentCounts).map(k=>[k,[]]))
+  for (const user of users) {
+    const segment=classifyUser(user,asOf)
     segmentCounts[segment]++
-    segmentUsers[segment].push(u.id)
+    segmentUsers[segment].push(user.id)
   }
 
   const total = users.length
@@ -95,10 +61,15 @@ export function computeSegmentation(users, { asOf, inviterIds = [], referredIds 
   }))
 
   // Non-exclusive tags
+  const bindings = bindingGroups(users)
   const tags = {
-    used_strategy: users.filter(u => u.events.some(e => e.type === 'ai')).length,
+    telegram_bound: bindings.telegram_bound.users.length,
+    email_bound: bindings.email_bound.users.length,
+    telegram_binding_unknown: bindings.telegram_bound.unknown,
+    email_binding_unknown: bindings.email_bound.unknown,
+    used_strategy: users.filter(u => u.events.some(e => e.type === 'ai' && e.t <= asOf)).length,
     multi_strategy_user: users.filter(u => {
-      const strategies = new Set(u.events.filter(e => e.type === 'ai' && e.strategy).map(e => e.strategy))
+      const strategies = new Set(u.events.filter(e => e.type === 'ai' && e.t <= asOf && e.strategy).map(e => e.strategy))
       return strategies.size >= 2
     }).length,
     referred_user: referredSet.size,

@@ -53,24 +53,19 @@ export async function fetchTrades(startAt, endAt) {
  * Returns null for trades if the endpoint is not available.
  */
 export async function fetchAllAnalyticsData(startAt, endAt) {
-  const [eventsRes, usersRes, referralsRes] = await Promise.all([
-    fetchEvents(startAt, endAt),
-    fetchUsers(),
-    fetchReferrals(),
+  const [eventsRes, usersRes, referralsResult, tradesResult] = await Promise.all([
+    fetchEvents(startAt,endAt),fetchUsers(),
+    fetchReferrals().then(value=>({value}),error=>({error})),
+    fetchTrades(startAt,endAt).then(value=>({value}),error=>({error})),
   ])
-
-  // Trades are optional — don't fail the whole request if missing
-  let tradesRes = null
-  try {
-    tradesRes = await fetchTrades(startAt, endAt)
-  } catch (err) {
-    console.warn('[analytics] Trades endpoint unavailable:', err.message)
-  }
-
+  if (!Array.isArray(eventsRes.events) || !Array.isArray(usersRes.users)) throw new Error('用户或事件接口返回格式无效')
   return {
-    events: eventsRes.events ?? [],
-    users: usersRes.users ?? [],
-    referrals: referralsRes.referrals ?? [],
-    trades: tradesRes?.trades ?? null,
+    events:eventsRes.events,users:usersRes.users,
+    referrals:Array.isArray(referralsResult.value?.referrals)?referralsResult.value.referrals:null,
+    trades:Array.isArray(tradesResult.value?.trades)?tradesResult.value.trades:null,
+    availability:{
+      referrals:referralsResult.error?'error':Array.isArray(referralsResult.value?.referrals)?'available':'missing',
+      trades:tradesResult.error?'error':Array.isArray(tradesResult.value?.trades)?'available':'missing',
+    },
   }
 }

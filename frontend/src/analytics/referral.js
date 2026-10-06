@@ -21,7 +21,7 @@ const ACTIVATION_WINDOW_MS = 7 * DAY_MS
  * @param {number}   endAt             - range end ms
  * @returns {ReferralResult}
  */
-export function computeReferral(users, referrals, { startAt, endAt }) {
+export function computeReferral(users, referrals, { startAt, endAt, asOf = endAt, sourceFilter = 'all' }) {
   if (!referrals || referrals.length === 0) {
     return {
       advocates: 0,
@@ -44,7 +44,7 @@ export function computeReferral(users, referrals, { startAt, endAt }) {
     bound_at_ms: typeof r.bound_at === 'number' ? r.bound_at : Date.parse(r.bound_at),
     inviter_key: `user:${r.inviter_user_id}`,
     invitee_key: `user:${r.invitee_user_id}`,
-  }))
+  })).filter(r=>Number.isFinite(r.bound_at_ms) && r.inviter_key !== r.invitee_key).sort((a,b)=>a.bound_at_ms-b.bound_at_ms)
 
   // One invitee can only have one valid inviter (first bound relationship wins)
   const inviteeBound = new Map()
@@ -54,6 +54,11 @@ export function computeReferral(users, referrals, { startAt, endAt }) {
     }
   }
 
+  for (const [key,r] of inviteeBound) {
+    const invitee=userById.get(key)
+    if (r.bound_at_ms < startAt || r.bound_at_ms >= endAt || r.bound_at_ms > asOf || (sourceFilter !== 'all' && invitee?.source !== sourceFilter)) inviteeBound.delete(key)
+  }
+  let pendingInvitees=0
   const boundInvitees = inviteeBound.size
 
   // Find advocates (inviters with at least one bound invitee)
@@ -69,12 +74,13 @@ export function computeReferral(users, referrals, { startAt, endAt }) {
 
   for (const [inviteeKey, r] of inviteeBound) {
     const invitee = userById.get(inviteeKey)
-    if (!invitee) continue
+    if (!invitee) { if(r.bound_at_ms+ACTIVATION_WINDOW_MS>asOf)pendingInvitees++; continue }
     const windowStart = r.bound_at_ms
     const windowEnd = r.bound_at_ms + ACTIVATION_WINDOW_MS
     const activated = invitee.events.some(
-      e => e.type === 'chip' && e.t > windowStart && e.t <= windowEnd
+      e => e.type === 'chip' && e.t > windowStart && e.t <= windowEnd && e.t <= asOf
     )
+    if (!activated && windowEnd>asOf) pendingInvitees++
     if (activated) {
       activatedCount++
       activatedInviteeIds.add(inviteeKey)
@@ -97,6 +103,7 @@ export function computeReferral(users, referrals, { startAt, endAt }) {
 
   return {
     advocates,
+    pending_invitees: pendingInvitees,
     bound_invitees: boundInvitees,
     activated_invitees: activatedCount,
     average_invitees_per_advocate: avgInviteesPerAdvocate,

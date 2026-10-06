@@ -8,6 +8,7 @@ import { computeNorthStar } from './northStar.js'
 import { computeFunnel } from './funnel.js'
 import { computeRetention } from './retention.js'
 import { computeSegmentation } from './segmentation.js'
+import { computePaths } from './paths.js'
 import { computeReferral } from './referral.js'
 
 /**
@@ -25,7 +26,7 @@ export function buildSnapshot(dataStore, {
   startAt,
   endAt,
   timezone = 'Asia/Bangkok',
-  funnelSteps = ['login', 'ai', 'chip'],
+  funnelSteps = ['login', 'token', 'ai', 'chip'],
   funnelWindowMs = 24 * 3600000,
   sourceFilter = 'all',
 } = {}) {
@@ -45,7 +46,8 @@ export function buildSnapshot(dataStore, {
     asOf,
   })
   const STEP_LABELS = {
-    login: '登录进入',
+    login: '登录成功',
+    token: 'Token详情页',
     ai: '开启 AI 策略',
     chip: '有效分析（筹码峰）',
   }
@@ -76,7 +78,7 @@ export function buildSnapshot(dataStore, {
   }))
 
   // Referral
-  const referralResult = computeReferral(users, referrals ?? [], { startAt, endAt })
+  const referralResult = computeReferral(users, referrals ?? [], { startAt, endAt, asOf, sourceFilter })
 
   return {
     meta: {
@@ -92,5 +94,6 @@ export function buildSnapshot(dataStore, {
     retention,
     segments,
     referral: referralResult,
+    paths: computePaths(users,{startAt,endAt,asOf,sourceFilter}),
   }
 }

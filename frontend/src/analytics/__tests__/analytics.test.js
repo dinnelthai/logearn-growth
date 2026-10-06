@@ -199,11 +199,10 @@ describe('computeRetention', () => {
     const r = computeRetention(users, {
       startAt: BASE,
       endAt: BASE + DAY,
-      asOf: BASE + DAY,  // only D0 observed, D1+ not yet
+      asOf: BASE + DAY - 1,  // only D0 observed, D1+ not yet
     })
     const cohort = r.daily[0]
-    // D1 observation: observation ts = chip.t + 1*DAY = BASE+1000+DAY
-    // asOf = BASE+DAY, which is before BASE+1000+DAY → null
+    // D1 has not reached its calendar-day boundary yet.
     expect(cohort.periods[0].retained_users).toBeNull()
     expect(cohort.periods[0].retention_rate).toBeNull()
   })
@@ -238,7 +237,7 @@ describe('computeSegmentation', () => {
     const r = computeSegmentation(users, { asOf })
     // Should be 回流 since there was a 28-day gap
     const returned = r.segments.find(s => s.segment === '回流').users
-    expect(returned).toBeGreaterThanOrEqual(0) // present in schema
+    expect(returned).toBe(1)
   })
 })
 
