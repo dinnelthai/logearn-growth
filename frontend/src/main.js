@@ -93,7 +93,8 @@ async function start() {
   await import('./dashboard.js')
   await import('./tooltips.js')
 }
-start().catch(()=>{
-  document.getElementById('as-data-status').textContent='页面初始化失败，请刷新重试。'
+start().catch((err)=>{
+  console.error('[main] start() failed:', err)
+  document.getElementById('as-data-status').textContent='页面初始化失败：' + (err?.message ?? err) + ' — 请刷新重试。'
 })
 

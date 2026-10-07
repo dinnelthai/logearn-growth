@@ -153,7 +153,7 @@ export function mountUserMenu(root, { user: initialUser, onLogout, getCurrentCon
     panel.querySelectorAll('[data-apply]').forEach(el => {
       el.addEventListener('click', () => {
         const cfg = configs.find(c => c.id === el.dataset.apply)
-        if (cfg?.config) { close(); getCurrentConfig?.._apply?.(cfg.config) }
+        if (cfg?.config) { close(); onLogout?.(); }
       })
     })
     panel.querySelectorAll('[data-delete]').forEach(el => {
