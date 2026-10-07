@@ -1,89 +1,46 @@
-/**
- * tradeMonitor.js
- * Computes trade success-rate metrics from logearn_events.
- * Source events: trade_submitted → type 'trade_submitted'
- *               trade_succeeded → type 'trade'
- *               trade_failed    → type 'trade_failed'
+/** Submission cohorts joined to terminal outcomes by attempt ID / trade ID.
+ * Outcomes may arrive after the selected period, but never after asOf.
+ * Missing correlation IDs are reported explicitly rather than guessed.
  */
-
 const DAY = 86400000
-
-/**
- * @param {object} params
- * @param {object[]} params.users       - normalised user array from dataStore
- * @param {number}   params.startAt     - ms timestamp, range start (inclusive)
- * @param {number}   params.endAt       - ms timestamp, range end (exclusive)
- * @param {number}   params.asOf        - ms timestamp, observation ceiling
- * @param {string}   [params.source]    - 'all' or a specific entry_source
- */
-export function computeTradeMonitor({ users, startAt, endAt, asOf, source = 'all' }) {
-  const inRange = e => e.t >= startAt && e.t < endAt && e.t <= asOf
-  const matchSource = u => source === 'all' || u.source === source
-
-  // Collect all raw trade events in range
-  const submitted = [], succeeded = [], failed = []
-  for (const u of users) {
-    if (!matchSource(u)) continue
-    for (const e of u.events) {
-      if (!inRange(e)) continue
-      if (e.type === 'trade_submitted') submitted.push({ ...e, userId: u.id })
-      else if (e.type === 'trade')       succeeded.push({ ...e, userId: u.id })
-      else if (e.type === 'trade_failed') failed.push({ ...e, userId: u.id })
-    }
+export function computeTradeMonitor({users,startAt,endAt,asOf,source='all'}) {
+ const submissions=[],outcomes=[],seen=new Set()
+ const keys=(u,e)=>[e.trade_attempt_id&&`${u}:attempt:${e.trade_attempt_id}`,e.trade_id&&`${u}:trade:${e.trade_id}`].filter(Boolean)
+ for(const u of users){
+  if(source!=='all'&&u.source!==source)continue
+  for(const e of u.events){
+   if(!Number.isFinite(e.t)||e.t>asOf||!['trade_submitted','trade','trade_failed'].includes(e.type))continue
+   const eventKey=e._raw_event_id&&`${u.id}:${e._raw_event_id}`
+   if(eventKey&&seen.has(eventKey))continue
+   if(eventKey)seen.add(eventKey)
+   const row={...e,userId:u.id,keys:keys(u.id,e)}
+   if(e.type==='trade_submitted'){if(e.t>=startAt&&e.t<endAt)submissions.push(row)}
+   else outcomes.push(row)
   }
-
-  const totalSubmitted = submitted.length
-  const totalSucceeded = succeeded.length
-  const totalFailed    = failed.length
-  const successRate    = totalSubmitted ? totalSucceeded / totalSubmitted : null
-  const failureRate    = totalSubmitted ? totalFailed / totalSubmitted : null
-
-  // Failure reason breakdown (from event properties.reason or properties.error)
-  const reasonMap = new Map()
-  for (const e of failed) {
-    const reason = e.reason ?? '未知原因'
-    reasonMap.set(reason, (reasonMap.get(reason) ?? 0) + 1)
-  }
-  const failureReasons = [...reasonMap.entries()]
-    .map(([reason, count]) => ({ reason, count, pct: totalFailed ? count / totalFailed : 0 }))
-    .sort((a, b) => b.count - a.count)
-
-  // Daily breakdown
-  const dayCount = Math.ceil((endAt - startAt) / DAY)
-  const days = Array.from({ length: dayCount }, (_, i) => {
-    const t = startAt + i * DAY
-    const dayEnd = t + DAY
-    const s  = submitted.filter(e => e.t >= t && e.t < dayEnd).length
-    const ok = succeeded.filter(e => e.t >= t && e.t < dayEnd).length
-    const ko = failed.filter(e => e.t >= t && e.t < dayEnd).length
-    return { t, submitted: s, succeeded: ok, failed: ko, rate: s ? ok / s : null }
-  })
-
-  // Unique users per bucket
-  const uniqueSubmitters = new Set(submitted.map(e => e.userId)).size
-  const uniqueTraders    = new Set(succeeded.map(e => e.userId)).size
-
-  // Chain breakdown
-  const chainIds = [...new Set([...submitted, ...succeeded, ...failed].map(e => e.chain ?? '未知'))]
-  const byChain = chainIds.map(chain => {
-    const s  = submitted.filter(e => (e.chain ?? '未知') === chain)
-    const ok = succeeded.filter(e => (e.chain ?? '未知') === chain)
-    const ko = failed.filter(e => (e.chain ?? '未知') === chain)
-    return {
-      chain,
-      submitted: s.length,
-      succeeded: ok.length,
-      failed: ko.length,
-      successRate: s.length ? ok.length / s.length : null,
-    }
-  }).sort((a, b) => b.submitted - a.submitted)
-
-  return {
-    totalSubmitted, totalSucceeded, totalFailed,
-    successRate, failureRate,
-    uniqueSubmitters, uniqueTraders,
-    failureReasons,
-    byChain,
-    days,
-  }
+ }
+ submissions.sort((a,b)=>a.t-b.t)
+ const rows=[],lookup=new Map()
+ for(const s of submissions){
+  let row=s.keys.map(k=>lookup.get(k)).find(Boolean)
+  if(!row){row={...s,outcome:null};rows.push(row)}
+  for(const k of s.keys)lookup.set(k,row)
+ }
+ const unmatched=[]
+ for(const o of outcomes.sort((a,b)=>a.t-b.t)){
+  const row=o.keys.map(k=>lookup.get(k)).find(Boolean)
+  if(!row||o.t<row.t){if(o.t>=startAt&&o.t<endAt)unmatched.push(o);continue}
+  for(const key of o.keys)lookup.set(key,row)
+  if(!row.outcome||o.t>=row.outcome.t)row.outcome=o
+ }
+ const aggregate=rs=>{
+  const succeeded=rs.filter(r=>r.outcome?.type==='trade'),failed=rs.filter(r=>r.outcome?.type==='trade_failed')
+  const missing=rs.filter(r=>!r.keys.length).length
+  return {submitted:rs.length,succeeded:succeeded.length,failed:failed.length,pending:rs.filter(r=>r.keys.length&&!r.outcome).length,missingCorrelation:missing,successRate:rs.length&&!missing?succeeded.length/rs.length:null,failureRate:rs.length&&!missing?failed.length/rs.length:null}
+ }
+ const total=aggregate(rows),success=rows.filter(r=>r.outcome?.type==='trade'),failure=rows.filter(r=>r.outcome?.type==='trade_failed'),reasonMap=new Map()
+ for(const r of failure){const reason=String(r.outcome.reason??'未知原因');reasonMap.set(reason,(reasonMap.get(reason)??0)+1)}
+ const failureReasons=[...reasonMap].map(([reason,count])=>({reason,count,pct:total.failed?count/total.failed:0})).sort((a,b)=>b.count-a.count)
+ const days=Array.from({length:Math.ceil((endAt-startAt)/DAY)},(_,i)=>{const t=startAt+i*DAY,r=aggregate(rows.filter(s=>s.t>=t&&s.t<t+DAY));return {t,...r,rate:r.successRate}})
+ const byChain=[...new Set(rows.map(r=>String(r.chain??'未知')))].map(chain=>({chain,...aggregate(rows.filter(r=>String(r.chain??'未知')===chain))})).sort((a,b)=>b.submitted-a.submitted)
+ return {totalSubmitted:total.submitted,totalSucceeded:total.succeeded,totalFailed:total.failed,successRate:total.successRate,failureRate:total.failureRate,pending:total.pending,missingCorrelation:total.missingCorrelation,unmatchedOutcomes:unmatched.length,uniqueSubmitters:new Set(rows.map(r=>r.userId)).size,uniqueTraders:new Set(success.map(r=>r.userId)).size,failureReasons,byChain,days}
 }

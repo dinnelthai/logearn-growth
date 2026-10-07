@@ -67,6 +67,12 @@
           "boolean"
         ],
         "description": "是否系统固定渠道；unknown 为 true，不能编辑或停用"
+      },
+      "rules[].conditions.referrer_domain": {
+        "type": [
+          "string"
+        ],
+        "description": "首次外部入口 URL 的域名精确匹配，小写，不含协议和路径；不推断具体账号、群或 KOL"
       }
     }
   },
@@ -124,6 +130,72 @@
         "utm_medium": "referral"
       },
       "priority": 50,
+      "enabled": true,
+      "version": 1,
+      "updated_at": null
+    },
+    {
+      "id": "x_external",
+      "name": "X 外部入口",
+      "conditions": {
+        "referrer_domain": "x.com"
+      },
+      "priority": 100,
+      "enabled": true,
+      "version": 1,
+      "updated_at": null
+    },
+    {
+      "id": "x_short",
+      "name": "X 短链接入口",
+      "conditions": {
+        "referrer_domain": "t.co"
+      },
+      "priority": 100,
+      "enabled": true,
+      "version": 1,
+      "updated_at": null
+    },
+    {
+      "id": "twitter_external",
+      "name": "Twitter 外部入口",
+      "conditions": {
+        "referrer_domain": "twitter.com"
+      },
+      "priority": 100,
+      "enabled": true,
+      "version": 1,
+      "updated_at": null
+    },
+    {
+      "id": "telegram_external",
+      "name": "Telegram 外部入口",
+      "conditions": {
+        "referrer_domain": "t.me"
+      },
+      "priority": 100,
+      "enabled": true,
+      "version": 1,
+      "updated_at": null
+    },
+    {
+      "id": "telegram_web",
+      "name": "Telegram Web 入口",
+      "conditions": {
+        "referrer_domain": "telegram.org"
+      },
+      "priority": 100,
+      "enabled": true,
+      "version": 1,
+      "updated_at": null
+    },
+    {
+      "id": "binance_external",
+      "name": "币安外部入口",
+      "conditions": {
+        "referrer_domain": "binance.com"
+      },
+      "priority": 100,
       "enabled": true,
       "version": 1,
       "updated_at": null

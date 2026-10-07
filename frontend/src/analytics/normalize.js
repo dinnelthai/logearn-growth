@@ -1,3 +1,7 @@
+import {validateEvents,resolveIdentities,validateUsers,validateReferrals,validIdentity,eventTimestamp} from './inputQuality.js'
+import {attributeVisit,referrerDomain} from '../channels/rules.js'
+import {sourceCoverage} from './coverage.js'
+import {validateTradeFacts} from './tradeFacts.js'
 import { normalizeLanguage } from './language.js'
 /**
  * normalize.js
@@ -20,29 +24,9 @@ import { RAW_EVENT_TYPES, MODULES } from './events.js'
  * Returns null if neither is present (event is unusable).
  */
 export function resolveKey(userId, anonymousId) {
-  if (userId) return `user:${userId}`
-  if (anonymousId) return `anonymous:${anonymousId}`
+  if (validIdentity(userId)) return `user:${userId}`
+  if (validIdentity(anonymousId)) return `anonymous:${anonymousId}`
   return null
-}
-
-/**
- * Merges anonymous keys into user keys when a login event provides
- * both user_id and anonymous_id on the same raw event.
- *
- * Returns a Map<anonymousKey, userKey> for identity stitching.
- * If no mapping is available, anonymous and logged-in events stay separate.
- * NOTE: comment this limitation in the snapshot meta.
- */
-function buildIdentityMap(rawEvents) {
-  const map = new Map()
-  for (const e of rawEvents) {
-    if (e.user_id && e.anonymous_id) {
-      const anonKey = `anonymous:${e.anonymous_id}`
-      const userKey = `user:${e.user_id}`
-      if (!map.has(anonKey)) map.set(anonKey, userKey)
-    }
-  }
-  return map
 }
 
 /**
@@ -58,19 +42,12 @@ function buildIdentityMap(rawEvents) {
  * @param {number} params.asOf     - ms timestamp
  * @returns {object}  dataStore compatible with dashboard.js
  */
-export function normalizeApiResponse({ events, users, logearnUsers, referrals, trades, timezone, startAt, asOf, availability }) {
-  // 1. Deduplicate events by event_id
-  const seen = new Set()
-  const dedupedEvents = []
-  for (const e of events) {
-    if (e.event_id && seen.has(e.event_id)) continue
-    if (e.event_id) seen.add(e.event_id)
-    dedupedEvents.push(e)
-  }
-
-  // 2. Build identity map (anonymous_id → user_id)
-  const identityMap = buildIdentityMap(dedupedEvents)
-  let identityMappingAvailable = identityMap.size > 0
+export function normalizeApiResponse({ events, users, logearnUsers, referrals, trades, timezone, startAt, asOf, availability, channelRules = [], coverage = {}, tradesCoverage = {} }) {
+  if(!Number.isFinite(startAt)||!Number.isFinite(asOf)||startAt>asOf)throw new TypeError('Invalid snapshot range')
+  const eventInput=validateEvents(events,asOf),dedupedEvents=eventInput.events
+  const identities=resolveIdentities(dedupedEvents),identityMap=identities.map
+  const identityMappingAvailable=identityMap.size>0
+  const userInput=validateUsers(users,asOf),logearnInput=validateUsers(logearnUsers,asOf),referralInput=validateReferrals(referrals,asOf)
 
   // 3. Resolve each event to a canonical key, filter unknown event types
   const byKey = new Map()
@@ -78,7 +55,8 @@ export function normalizeApiResponse({ events, users, logearnUsers, referrals, t
     const internalType = raw.event_name === 'module_viewed'
       ? (Object.hasOwn(MODULES, raw.properties?.module) ? raw.properties.module : null)
       : RAW_EVENT_TYPES[raw.event_name]
-    if (!internalType) continue
+    const eventTime=eventTimestamp(raw)
+    if (!internalType || !Number.isFinite(eventTime) || eventTime > asOf) continue
 
     const rawKey = resolveKey(raw.user_id, raw.anonymous_id)
     if (!rawKey) continue
@@ -90,7 +68,9 @@ export function normalizeApiResponse({ events, users, logearnUsers, referrals, t
     byKey.get(key).push({
       type: internalType,
       // Support both client_ts (ms number) and occurred_at (ISO string)
-      t: raw.client_ts ?? Date.parse(raw.occurred_at),
+      t: eventTime,
+      trade_id: raw.trade_id ?? raw.properties?.trade_id ?? null,
+      trade_attempt_id: raw.trade_attempt_id ?? raw.properties?.trade_attempt_id ?? null,
       // first_entry_source may be top-level or inside properties
       entry_source: raw.first_entry_source ?? raw.properties?.first_entry_source ?? null,
       strategy: raw.properties?.strategy_type ?? null,
@@ -109,7 +89,7 @@ export function normalizeApiResponse({ events, users, logearnUsers, referrals, t
       token_address: raw.token_address ?? raw.properties?.token_address ?? null,
       chain: raw.chain ?? raw.properties?.chain ?? null,
       token_visit_id: raw.token_visit_id ?? raw.properties?.token_visit_id ?? null,
-      referrer: raw.referrer ?? raw.properties?.first_referrer_url ?? null,
+      referrer: raw.properties?.first_referrer_url ?? raw.referrer ?? null,
       first_landing_url: raw.properties?.first_landing_url ?? null,
       // first_visit_captured specific fields
       channel_id: raw.properties?.channel_id ?? null,
@@ -126,10 +106,11 @@ export function normalizeApiResponse({ events, users, logearnUsers, referrals, t
 
   // 4. Build user metadata lookup
   const userMeta = new Map()
-  for (const u of (users ?? [])) {
+  for (const u of userInput.users) {
     userMeta.set(`user:${u.user_id}`, {
       source: u.first_source ?? '未知',
       created_at: u.created_at,
+      first_analysis_at: u.first_analysis_at ?? null,
       preferred_language: normalizeLanguage(u.preferred_language),
       first_analysis_entry_module: u.first_analysis_entry_module ?? null,
 
@@ -141,13 +122,14 @@ export function normalizeApiResponse({ events, users, logearnUsers, referrals, t
 
   // Merge logearn_user fields (telegram_bound, email_bound, is_partner) —
   // logearnUsers is the authoritative source for these binding and partner flags.
-  for (const lu of (logearnUsers ?? [])) {
+  for (const lu of logearnInput.users) {
     const key = `user:${lu.user_id}`
     const existing = userMeta.get(key)
     if (existing) {
       if (typeof lu.telegram_bound === 'boolean') existing.telegram_bound = lu.telegram_bound
       if (typeof lu.email_bound === 'boolean') existing.email_bound = lu.email_bound
       if (typeof lu.is_partner === 'boolean') existing.is_partner = lu.is_partner
+      if (lu.first_analysis_at != null) existing.first_analysis_at=lu.first_analysis_at
       if (lu.first_source != null) existing.source = lu.first_source
       if (lu.preferred_language != null) existing.preferred_language = normalizeLanguage(lu.preferred_language)
       if (lu.first_analysis_entry_module != null) existing.first_analysis_entry_module = lu.first_analysis_entry_module
@@ -156,6 +138,7 @@ export function normalizeApiResponse({ events, users, logearnUsers, referrals, t
       userMeta.set(key, {
         source: lu.first_source ?? '未知',
         created_at: lu.created_at ?? null,
+        first_analysis_at: lu.first_analysis_at ?? null,
         preferred_language: normalizeLanguage(lu.preferred_language ?? null),
         first_analysis_entry_module: lu.first_analysis_entry_module ?? null,
         telegram_bound: typeof lu.telegram_bound === 'boolean' ? lu.telegram_bound : null,
@@ -173,7 +156,7 @@ export function normalizeApiResponse({ events, users, logearnUsers, referrals, t
 
     // Determine source: prefer user metadata, fall back to first login entry_source
     const loginEvt = sorted.find(e => e.type === 'login')
-    const source = meta?.source ?? loginEvt?.entry_source ?? '未知'
+    let source = meta?.source ?? loginEvt?.entry_source ?? '未知'
 
     // Determine strategy: most recent ai event's strategy
     const aiEvts = sorted.filter(e => e.type === 'ai' && e.strategy)
@@ -182,21 +165,28 @@ export function normalizeApiResponse({ events, users, logearnUsers, referrals, t
     // Extract channel attribution from first_visit event (first_visit_captured)
     // channel_id and related fields are stored as top-level event fields after normalization
     const firstVisit = sorted.find(e => e.type === 'first_visit')
-    const channelFact = firstVisit?.channel_id ? {
+    const attribution = firstVisit ? (firstVisit.channel_id ? {channel_id:firstVisit.channel_id,channel_version:firstVisit.channel_version??1} : attributeVisit({...(firstVisit.source_fields??{}),referrer_url:firstVisit.referrer},channelRules)) : null
+    const channelFact = firstVisit ? {
       user_id: key.replace(/^user:|^anonymous:/, ''),
-      channel_id: firstVisit.channel_id,
-      channel_version: firstVisit.channel_version ?? 1,
+      channel_id: attribution.channel_id,
+      channel_version: attribution.channel_version,
+      referrer_domain: referrerDomain(firstVisit.referrer),
       first_visit_at: new Date(firstVisit.t).toISOString(),
       source_fields: firstVisit.source_fields ?? {},
-      payments: firstVisit.payments ?? [],
+      payments: firstVisit.payments ?? null,
       referrer: firstVisit.referrer ?? null,
     } : null
 
+    if(channelFact){
+      source=channelRules.find(r=>r.id===channelFact.channel_id)?.name??(channelFact.channel_id==='unknown'?'未知渠道':channelFact.channel_id)
+      for(const event of sorted){event.behavior_entry_source=event.entry_source;event.entry_source=source}
+    }
     normalizedUsers.push({
       id: key,
       source,
       strategy,
       created_at: meta?.created_at ?? null,
+      first_analysis_at: meta?.first_analysis_at ?? null,
       first_analysis_entry_module: meta?.first_analysis_entry_module ?? null,
       preferred_language: meta?.preferred_language ?? null,
 
@@ -211,35 +201,48 @@ export function normalizeApiResponse({ events, users, logearnUsers, referrals, t
   // Include registered accounts without observed events.
   const present = new Set(normalizedUsers.map(u => u.id))
   for (const [id, meta] of userMeta) if (!present.has(id)) {
-    normalizedUsers.push({ id, source: meta.source, strategy: null, events: [], created_at: meta.created_at, first_analysis_entry_module: meta.first_analysis_entry_module, preferred_language: meta.preferred_language, telegram_bound: meta.telegram_bound, email_bound: meta.email_bound, is_partner: meta.is_partner ?? false })
+    normalizedUsers.push({ id, source: meta.source, strategy: null, events: [], created_at: meta.created_at, first_analysis_at:meta.first_analysis_at, first_analysis_entry_module: meta.first_analysis_entry_module, preferred_language: meta.preferred_language, telegram_bound: meta.telegram_bound, email_bound: meta.email_bound, is_partner: meta.is_partner ?? false })
   }
 
   // 6. Assemble trade records if available
-  const normalizedTrades = trades
-    ? trades.map(t => ({
-        trade_id: t.trade_id,
-        user_id: identityMap.get(`user:${t.user_id}`) ?? `user:${t.user_id}`,
-        confirmed_at: Date.parse(t.confirmed_at),
-        volume_usd: t.volume_usd,
-        status: t.status,
-      }))
-    : null
+  const validatedTrades = validateTradeFacts(trades, asOf)
+  const normalizedTrades = validatedTrades.trades?.map(t => ({
+    ...t, user_id: identityMap.get(`user:${t.user_id}`) ?? `user:${t.user_id}`,
+  })) ?? null
+
+  const normalizedUserById=new Map(normalizedUsers.map(u=>[u.id,u]))
 
   // Confirmed trades can also be selected as funnel/retention events.
   for (const trade of normalizedTrades ?? []) {
-    if (trade.status !== 'confirmed' || !Number.isFinite(trade.confirmed_at)) continue
-    let user=normalizedUsers.find(u=>u.id===trade.user_id)
+    if (trade.status !== 'confirmed' || !Number.isFinite(trade.confirmed_at) || trade.confirmed_at > asOf) continue
+    let user=normalizedUserById.get(trade.user_id)
     if (!user) {
       user={id:trade.user_id,source:userMeta.get(trade.user_id)?.source??'未知',strategy:null,events:[]}
       normalizedUsers.push(user)
+      normalizedUserById.set(user.id,user)
     }
-    user.events.push({type:'trade',t:trade.confirmed_at,entry_source:user.source})
+    const existing=user.events.find(e=>e.type==='trade'&&(e.trade_id===trade.trade_id||(trade.trade_attempt_id&&e.trade_attempt_id===trade.trade_attempt_id)))
+    if(existing){existing.trade_id=trade.trade_id;existing.t=trade.confirmed_at;existing.trade_attempt_id??=trade.trade_attempt_id;existing.chain??=trade.chain}
+    else user.events.push({type:'trade',t:trade.confirmed_at,entry_source:user.source,trade_id:trade.trade_id,trade_attempt_id:trade.trade_attempt_id,chain:trade.chain,_origin:'trade_fact'})
     user.events.sort((a,b)=>a.t-b.t)
+  }
+
+  for(const user of normalizedUsers){
+    const seenTrades=new Set();
+    user.events=user.events.filter(e=>{
+      if(e.type!=='trade'||(!e.trade_id&&!e.trade_attempt_id))return true;
+      const key=e.trade_id?`trade:${e.trade_id}`:`attempt:${e.trade_attempt_id}`;
+      if(seenTrades.has(key))return false;
+      seenTrades.add(key);return true;
+    });
   }
 
   return {
     meta: {
       version: 'api-v1',
+      coverage:{events:sourceCoverage(coverage,'events',asOf,startAt),trades:sourceCoverage(tradesCoverage,'trades',asOf,startAt)},
+      historyComplete: coverage.history_complete===true,
+      eventsCompleteThrough: coverage.events_complete_through??null,
       startAt,
       asOf,
       timezone,
@@ -251,9 +254,11 @@ export function normalizeApiResponse({ events, users, logearnUsers, referrals, t
       // both user_id and anonymous_id on login events to enable merging.
     },
     users: normalizedUsers,
-    referrals: referrals ?? null,
+    referrals: referralInput.referrals,
     availability: availability ?? {},
     trades: normalizedTrades,
+    tradeQuality: validatedTrades.quality,
+    inputQuality:{events:eventInput.quality,users:userInput.quality,logearnUsers:logearnInput.quality,referrals:referralInput.quality,identity:identities.quality},
     // channelProfiles and segmentProfiles are not available from API —
     // computed stats in those modules replace hardcoded profile values.
     channelProfiles: null,

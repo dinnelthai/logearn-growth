@@ -1,4 +1,4 @@
-export const FIELDS=['utm_source','utm_medium','utm_campaign','utm_content','partner_id','placement_id'];
+export const FIELDS=['referrer_domain','utm_source','utm_medium','utm_campaign','utm_content','partner_id','placement_id'];
 export const UNKNOWN_CHANNEL=Object.freeze({id:'unknown',name:'未知渠道',conditions:{},priority:2147483647,enabled:true,version:1,updated_at:null,system:true});
 export const defaultChannels=()=>[
  ['x_official','X 官方',{utm_source:'x',utm_medium:'owned_social'}],
@@ -15,7 +15,8 @@ export function validateChannel(rule,others=[]){
  if(others.some(r=>r.id!==rule.id&&r.name===rule.name.trim()))return '渠道名称已存在';
  return null;
 }
-export function matchChannel(fields,rules){return [...rules].filter(r=>r.enabled&&r.id!==UNKNOWN_CHANNEL.id).sort((a,b)=>a.priority-b.priority||a.id.localeCompare(b.id)).find(r=>FIELDS.every(k=>!r.conditions[k]||fields[k]===r.conditions[k]))??UNKNOWN_CHANNEL;}
+export function referrerDomain(url){if(!url)return null;try{const parsed=new URL(url);return ['http:','https:'].includes(parsed.protocol)?parsed.hostname.toLowerCase().replace(/^www\./,''):null}catch{return null}}
+export function matchChannel(fields,rules){return [...rules].filter(r=>r.enabled&&r.id!==UNKNOWN_CHANNEL.id).sort((a,b)=>a.priority-b.priority||a.id.localeCompare(b.id)).find(r=>FIELDS.every(k=>!r.conditions[k]||(k==='referrer_domain'?(fields.referrer_domain??referrerDomain(fields.referrer_url))===r.conditions[k].toLowerCase():fields[k]===r.conditions[k])))??UNKNOWN_CHANNEL;}
 export function overlaps(a,b){return FIELDS.every(k=>!a.conditions[k]||!b.conditions[k]||a.conditions[k]===b.conditions[k]);}
 // 已归因访问直接读取保存的渠道快照，不随当前规则变化。
 export function attributeVisit(fields,rules,previous=null){if(previous)return previous;const r=matchChannel(fields,rules);return {channel_id:r.id,channel_version:r.version,channel_name:r.name,source_fields:{...fields}};}

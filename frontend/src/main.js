@@ -36,7 +36,11 @@ async function start() {
       const {normalizeApiResponse}=await import('./analytics/normalize.js')
       const asOf=Date.now(),startAt=asOf-90*86400000
       const raw=await fetchAllAnalyticsData(startAt,asOf)
-      const data=normalizeApiResponse({...raw,startAt,asOf,timezone:'Asia/Bangkok'})
+      const {default:channels}=await import('./channels/channels.json')
+      const {observationCeiling}=await import('./analytics/coverage.js')
+      const observedAsOf=observationCeiling({events:raw.coverage,trades:raw.tradesCoverage,asOf})
+      const data=normalizeApiResponse({...raw,startAt,asOf:observedAsOf,timezone:'Asia/Bangkok',channelRules:channels.rules})
+      data.channelRules=channels.rules
       data.userReferrals=raw.userReferrals??null
       globalThis.LOGEARN_ANALYTICS_DATA=data
     } catch {

@@ -6459,6 +6459,51 @@
       "first_source": "直接访问",
       "preferred_language": "en",
       "first_analysis_entry_module": "fomo"
+    },
+    {
+      "user_id": "MOCK-TRADE-01",
+      "created_at": "2026-10-04T00:00:00.000Z",
+      "first_source": "未知渠道",
+      "preferred_language": null,
+      "telegram_bound": false,
+      "email_bound": false,
+      "first_analysis_entry_module": null
+    },
+    {
+      "user_id": "MOCK-FUNNEL-01",
+      "created_at": "2026-10-04T00:00:00.000Z",
+      "first_source": "未知渠道",
+      "preferred_language": "zh",
+      "telegram_bound": false,
+      "email_bound": false,
+      "first_analysis_entry_module": "signals"
+    },
+    {
+      "user_id": "MOCK-FUNNEL-02",
+      "created_at": "2026-10-04T00:00:00.000Z",
+      "first_source": "未知渠道",
+      "preferred_language": "en",
+      "telegram_bound": false,
+      "email_bound": false,
+      "first_analysis_entry_module": "signals"
+    },
+    {
+      "user_id": "MOCK-FUNNEL-03",
+      "created_at": "2026-10-04T00:00:00.000Z",
+      "first_source": "未知渠道",
+      "preferred_language": "zh",
+      "telegram_bound": false,
+      "email_bound": false,
+      "first_analysis_entry_module": "signals"
+    },
+    {
+      "user_id": "MOCK-FUNNEL-04",
+      "created_at": "2026-10-04T00:00:00.000Z",
+      "first_source": "未知渠道",
+      "preferred_language": "en",
+      "telegram_bound": false,
+      "email_bound": false,
+      "first_analysis_entry_module": "signals"
     }
   ]
 }

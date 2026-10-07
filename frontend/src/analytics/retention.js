@@ -12,7 +12,7 @@
  */
 
 import { toDateStr, dayNum } from './utils.js'
-import { buildCohorts, retainedUsers, periodObserved, periodComplete } from './cohorts.js'
+import { buildCohorts, retainedUsers, periodObserved, periodComplete, firstEvent } from './cohorts.js'
 
 const DAY_MS = 86400000
 
@@ -49,9 +49,7 @@ export function computeRetention(users, {
 
 
     // Find first qualifying initial event in range
-    const initEvt = u.events.find(
-      e => e.type === initialEvent && e.t <= asOf
-    )
+    const initEvt = firstEvent(u,initialEvent,asOf)
     if (!initEvt || initEvt.t < startAt || initEvt.t >= endAt || (sourceFilter !== 'all' && initEvt.entry_source !== sourceFilter)) continue
 
     const d0DateStr = toDateStr(initEvt.t, timezone)

@@ -20,9 +20,9 @@ function match(user,rule,asOf) {
   const result=es.filter(e=>e.type==='strategy_result'&&e.strategy_run_id&&e.result_id&&ais.some(a=>a.strategy_run_id===e.strategy_run_id&&a.t<=e.t)).reverse().find(e=>asOf-e.t>=HOUR/2&&!es.some(v=>v.type==='signal_view'&&v.result_id===e.result_id&&v.strategy_run_id===e.strategy_run_id&&v.t>=e.t))
   return result?{since:result.t,strategy_run_id:result.strategy_run_id,result_id:result.result_id}:null
  }
- if(rule.id==='inactive_3d')return last!==undefined&&asOf-last>=3*DAY&&asOf-last<=28*DAY?{since:last}:null
- if(rule.id==='churned')return last!==undefined&&asOf-last>28*DAY?{since:last}:null
- if(rule.id==='core'){const days=new Set(chips.filter(e=>e.t>=asOf-28*DAY).map(e=>Math.floor((e.t+7*HOUR)/DAY)));return days.size>=6&&asOf-last<3*DAY?{since:last}:null}
+ if(rule.id==='inactive_3d')return last!==undefined&&asOf-last>=3*DAY&&asOf-last<=7*DAY?{since:last}:null
+ if(rule.id==='churned')return last!==undefined&&asOf-last>7*DAY?{since:last}:null
+ if(rule.id==='core'){const days=new Set(chips.filter(e=>e.t>=asOf-7*DAY).map(e=>Math.floor((e.t+7*HOUR)/DAY)));return days.size>=4&&asOf-last<DAY?{since:last}:null}
  return null
 }
 export function evaluateLifecycle(users,{asOf,rules=defaultRules(),deliveries=[]}) {

@@ -72,17 +72,22 @@ export async function fetchAllAnalyticsData(startAt, endAt) {
         inviter_user_id: r.user_id,
         invitee_user_id: inv.user_id,
         bound_at: inv.bound_at,
+        referral_link_id: inv.referral_link_id ?? null,
+        share_type: inv.share_type ?? null,
       })))
     : null
 
   return {
     events: eventsRes.logearn_events,
+    coverage: eventsRes.meta??{},
+    tradesCoverage:tradesResult.value?.meta??{},
     users: usersRes.users,
-    logearnUsers: logearnUserRes.value?.logearn_users ?? null,
+    logearnUsers: Array.isArray(logearnUserRes.value?.logearn_users)?logearnUserRes.value.logearn_users:null,
     referrals,
     userReferrals: rawReferrals ?? null,
     trades: Array.isArray(tradesResult.value?.trades) ? tradesResult.value.trades : null,
     availability: {
+      logearnUsers:logearnUserRes.error?'error':Array.isArray(logearnUserRes.value?.logearn_users)?'available':'missing',
       referrals: referralResult.error ? 'error' : Array.isArray(rawReferrals) ? 'available' : 'missing',
       trades: tradesResult.error ? 'error' : Array.isArray(tradesResult.value?.trades) ? 'available' : 'missing',
     },

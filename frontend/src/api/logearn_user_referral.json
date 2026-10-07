@@ -1,4 +1,23 @@
 {
+  "scheme": {
+    "description": "新增字段说明元数据，不参与业务统计",
+    "fields": {
+      "logearn_user_referrals[].invitees_l1[].referral_link_id": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "后端确认的邀请链接稳定 ID；缺失保留未归因，不能从行为猜测"
+      },
+      "logearn_user_referrals[].invitees_l1[].share_type": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "分享功能类型 invite / signal / multiplier；缺失保留未知"
+      }
+    }
+  },
   "logearn_user_referrals": [
     {
       "user_id": "DEMO-LC-5",
@@ -7,7 +26,9 @@
       "invitees_l1": [
         {
           "user_id": "LE10364",
-          "bound_at": "2026-09-22T01:59:00.000Z"
+          "bound_at": "2026-09-22T01:59:00.000Z",
+          "referral_link_id": "link-DEMO-LC-5-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -25,23 +46,33 @@
       "invitees_l1": [
         {
           "user_id": "LE10130",
-          "bound_at": "2026-09-26T03:59:00.000Z"
+          "bound_at": "2026-09-26T03:59:00.000Z",
+          "referral_link_id": "link-LE10002-invite",
+          "share_type": "invite"
         },
         {
           "user_id": "LE10202",
-          "bound_at": "2026-09-28T01:59:00.000Z"
+          "bound_at": "2026-09-28T01:59:00.000Z",
+          "referral_link_id": "link-LE10002-invite",
+          "share_type": "invite"
         },
         {
           "user_id": "LE10274",
-          "bound_at": "2026-09-30T06:59:00.000Z"
+          "bound_at": "2026-09-30T06:59:00.000Z",
+          "referral_link_id": "link-LE10002-invite",
+          "share_type": "invite"
         },
         {
           "user_id": "LE10346",
-          "bound_at": "2026-10-02T03:59:00.000Z"
+          "bound_at": "2026-10-02T03:59:00.000Z",
+          "referral_link_id": "link-LE10002-invite",
+          "share_type": "invite"
         },
         {
           "user_id": "LE10418",
-          "bound_at": "2026-10-04T08:59:00.000Z"
+          "bound_at": "2026-10-04T08:59:00.000Z",
+          "referral_link_id": "link-LE10002-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -72,15 +103,21 @@
       "invitees_l1": [
         {
           "user_id": "LE10040",
-          "bound_at": "2026-10-04T06:59:00.000Z"
+          "bound_at": "2026-10-04T06:59:00.000Z",
+          "referral_link_id": "link-LE10009-invite",
+          "share_type": "invite"
         },
         {
           "user_id": "LE10472",
-          "bound_at": "2026-10-02T11:59:00.000Z"
+          "bound_at": "2026-10-02T11:59:00.000Z",
+          "referral_link_id": "link-LE10009-invite",
+          "share_type": "invite"
         },
         {
           "user_id": "LE10544",
-          "bound_at": "2026-10-04T07:59:00.000Z"
+          "bound_at": "2026-10-04T07:59:00.000Z",
+          "referral_link_id": "link-LE10009-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -98,11 +135,15 @@
       "invitees_l1": [
         {
           "user_id": "LE10058",
-          "bound_at": "2026-09-24T02:59:00.000Z"
+          "bound_at": "2026-09-24T02:59:00.000Z",
+          "referral_link_id": "link-LE10014-invite",
+          "share_type": "invite"
         },
         {
           "user_id": "LE10400",
-          "bound_at": "2026-09-30T04:59:00.000Z"
+          "bound_at": "2026-09-30T04:59:00.000Z",
+          "referral_link_id": "link-LE10014-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -120,7 +161,9 @@
       "invitees_l1": [
         {
           "user_id": "LE10328",
-          "bound_at": "2026-09-28T09:59:00.000Z"
+          "bound_at": "2026-09-28T09:59:00.000Z",
+          "referral_link_id": "link-LE10017-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -138,7 +181,9 @@
       "invitees_l1": [
         {
           "user_id": "LE10166",
-          "bound_at": "2026-10-04T03:59:00.000Z"
+          "bound_at": "2026-10-04T03:59:00.000Z",
+          "referral_link_id": "link-LE10018-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -156,7 +201,9 @@
       "invitees_l1": [
         {
           "user_id": "LE10094",
-          "bound_at": "2026-10-02T08:59:00.000Z"
+          "bound_at": "2026-10-02T08:59:00.000Z",
+          "referral_link_id": "link-LE10020-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -174,11 +221,15 @@
       "invitees_l1": [
         {
           "user_id": "LE10022",
-          "bound_at": "2026-09-30T11:59:00.000Z"
+          "bound_at": "2026-09-30T11:59:00.000Z",
+          "referral_link_id": "link-LE10021-invite",
+          "share_type": "invite"
         },
         {
           "user_id": "LE10526",
-          "bound_at": "2026-09-30T10:59:00.000Z"
+          "bound_at": "2026-09-30T10:59:00.000Z",
+          "referral_link_id": "link-LE10021-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -209,7 +260,9 @@
       "invitees_l1": [
         {
           "user_id": "LE10292",
-          "bound_at": "2026-10-04T07:59:00.000Z"
+          "bound_at": "2026-10-04T07:59:00.000Z",
+          "referral_link_id": "link-LE10025-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -227,7 +280,9 @@
       "invitees_l1": [
         {
           "user_id": "LE10256",
-          "bound_at": "2026-09-26T11:59:00.000Z"
+          "bound_at": "2026-09-26T11:59:00.000Z",
+          "referral_link_id": "link-LE10029-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -245,7 +300,9 @@
       "invitees_l1": [
         {
           "user_id": "LE10220",
-          "bound_at": "2026-10-02T08:59:00.000Z"
+          "bound_at": "2026-10-02T08:59:00.000Z",
+          "referral_link_id": "link-LE10032-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -263,7 +320,9 @@
       "invitees_l1": [
         {
           "user_id": "LE10454",
-          "bound_at": "2026-09-28T00:59:00.000Z"
+          "bound_at": "2026-09-28T00:59:00.000Z",
+          "referral_link_id": "link-LE10033-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -281,7 +340,9 @@
       "invitees_l1": [
         {
           "user_id": "LE10148",
-          "bound_at": "2026-09-30T05:59:00.000Z"
+          "bound_at": "2026-09-30T05:59:00.000Z",
+          "referral_link_id": "link-LE10035-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -312,7 +373,9 @@
       "invitees_l1": [
         {
           "user_id": "LE10076",
-          "bound_at": "2026-09-28T07:59:00.000Z"
+          "bound_at": "2026-09-28T07:59:00.000Z",
+          "referral_link_id": "link-LE10045-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -330,7 +393,9 @@
       "invitees_l1": [
         {
           "user_id": "LE10382",
-          "bound_at": "2026-09-26T00:59:00.000Z"
+          "bound_at": "2026-09-26T00:59:00.000Z",
+          "referral_link_id": "link-LE10056-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -348,7 +413,9 @@
       "invitees_l1": [
         {
           "user_id": "LE10184",
-          "bound_at": "2026-09-24T01:59:00.000Z"
+          "bound_at": "2026-09-24T01:59:00.000Z",
+          "referral_link_id": "link-LE10057-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -379,7 +446,9 @@
       "invitees_l1": [
         {
           "user_id": "LE10004",
-          "bound_at": "2026-09-26T03:59:00.000Z"
+          "bound_at": "2026-09-26T03:59:00.000Z",
+          "referral_link_id": "link-LE10073-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -410,7 +479,9 @@
       "invitees_l1": [
         {
           "user_id": "LE10508",
-          "bound_at": "2026-09-26T02:59:00.000Z"
+          "bound_at": "2026-09-26T02:59:00.000Z",
+          "referral_link_id": "link-LE10084-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -441,7 +512,9 @@
       "invitees_l1": [
         {
           "user_id": "LE10310",
-          "bound_at": "2026-09-24T08:59:00.000Z"
+          "bound_at": "2026-09-24T08:59:00.000Z",
+          "referral_link_id": "link-LE10098-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -498,7 +571,9 @@
       "invitees_l1": [
         {
           "user_id": "LE10436",
-          "bound_at": "2026-09-24T06:59:00.000Z"
+          "bound_at": "2026-09-24T06:59:00.000Z",
+          "referral_link_id": "link-LE10155-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -620,7 +695,9 @@
       "invitees_l1": [
         {
           "user_id": "LE10238",
-          "bound_at": "2026-09-22T02:59:00.000Z"
+          "bound_at": "2026-09-22T02:59:00.000Z",
+          "referral_link_id": "link-LE10308-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],
@@ -755,11 +832,15 @@
       "invitees_l1": [
         {
           "user_id": "LE10112",
-          "bound_at": "2026-09-22T06:59:00.000Z"
+          "bound_at": "2026-09-22T06:59:00.000Z",
+          "referral_link_id": "link-LE10462-invite",
+          "share_type": "invite"
         },
         {
           "user_id": "LE10490",
-          "bound_at": "2026-09-22T09:59:00.000Z"
+          "bound_at": "2026-09-22T09:59:00.000Z",
+          "referral_link_id": "link-LE10462-invite",
+          "share_type": "invite"
         }
       ],
       "invitees_l2": [],

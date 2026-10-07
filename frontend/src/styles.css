@@ -1254,6 +1254,8 @@ html>body{padding:0}
 #la-studio .a-nav-parent.is-active{background:var(--a-tint);color:var(--a-accent)}
 
 #la-studio .a-data-status{margin:0 22px 14px;padding:9px 12px;background:var(--a-panel);border:1px solid var(--a-border);border-radius:6px;color:var(--a-muted);font-size:12px}
+#la-studio #as-coverage{margin:0 22px 14px;padding:9px 12px;border-radius:6px;font-size:12px;background:color-mix(in srgb,var(--a-warn) 8%,var(--a-panel));border:1px solid color-mix(in srgb,var(--a-warn) 30%,var(--a-border))}
+#la-studio #as-input-quality{margin:0 22px 14px}
 
 /* Keep drill-down context visible behind the native modal side drawer. */
 #la-studio dialog.a-drawer{position:fixed;inset:0 0 0 auto;width:min(700px,94vw);height:100dvh;max-width:none;max-height:none;margin:0;padding:20px;border:0;border-left:1px solid var(--a-border);border-radius:0;overflow-y:auto;color:var(--a-text);box-shadow:-8px 0 30px var(--a-shadow)}
@@ -1321,3 +1323,12 @@ html>body{padding:0}
 #la-studio .a-north-compare-row{display:grid;grid-template-columns:32px 1fr 90px;align-items:center;gap:12px;margin:12px 0;font-size:12px}
 #la-studio .a-north-compare-row strong{text-align:right;font-weight:500}
 #la-studio .a-north-daily summary{display:flex;justify-content:space-between;cursor:pointer;font-weight:600}
+
+/* A fixed audience can be followed through multiple analysis pages. */
+#la-studio .a-audience { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:16px; margin:0 0 16px; border:1px solid var(--a-accent); border-radius:8px; background:var(--a-panel); }
+#la-studio .a-audience[hidden] { display:none; }
+#la-studio .a-audience p { margin:6px 0 0; color:var(--a-muted); font-size:12px; }
+#la-studio .a-audience-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+#la-studio .a-drawer .a-audience-actions { margin:12px 0; }
+#la-studio .a-audience-actions span { color:var(--a-muted); font-size:12px; }
+@media(max-width:800px) { #la-studio .a-audience { flex-direction:column; align-items:flex-start; } }

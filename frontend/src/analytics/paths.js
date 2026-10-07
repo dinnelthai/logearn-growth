@@ -6,7 +6,7 @@ export function computePaths(users,{startAt,endAt,asOf,startEvent='all',maxSteps
   const sessions=[]
   for(const user of users) {
     if(sourceFilter!=='all'&&user.source!==sourceFilter)continue
-    const events=user.events.filter(e=>TYPES.has(e.type)&&Number.isFinite(e.t)&&e.t<=asOf).slice().sort((a,b)=>a.t-b.t)
+    const events=user.events.filter(e=>TYPES.has(e.type)&&e.type!=='strategy_heartbeat'&&Number.isFinite(e.t)&&e.t<=asOf).slice().sort((a,b)=>a.t-b.t)
     const groups=new Map();let fallback=null,lastFallback=-Infinity,index=0
     for(const event of events) {
       let key

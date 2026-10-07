@@ -1,3 +1,4 @@
+import {firstEvent} from './cohorts.js'
 /**
  * northStar.js
  * Computes daily active analysis users (DAA) — the north star metric.
@@ -32,7 +33,7 @@ export function computeNorthStar(users, startAt, endAt, timezone = 'Asia/Bangkok
   // First pass: find each user's all-time first chip timestamp
   const firstChipTs = new Map()
   for (const u of users) {
-    const first = u.events.find(e => e.type === 'chip')
+    const first = firstEvent(u,'chip')
     if (first) firstChipTs.set(u.id, first.t)
   }
 

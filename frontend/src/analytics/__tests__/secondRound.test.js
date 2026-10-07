@@ -42,7 +42,7 @@ describe('referral cohorts',()=>{
 })
 describe('API availability',()=>{
  it('keeps successful core data when optional endpoints fail',async()=>{
-  vi.stubGlobal('fetch',vi.fn(async url=>({ok:!url.includes('/trades')&&!url.includes('/referrals'),status:404,statusText:'Not Found',json:async()=>url.includes('/events')?{events:[]}:{users:[]}})))
+  vi.stubGlobal('fetch',vi.fn(async url=>({ok:!url.includes('/trades')&&!url.includes('/logearn_user_referral'),status:404,statusText:'Not Found',json:async()=>url.includes('/logearn_events')?{logearn_events:[]}:{users:[]}})))
   const result=await fetchAllAnalyticsData(BASE,BASE+DAY)
   expect(result.trades).toBeNull();expect(result.referrals).toBeNull();expect(result.availability.trades).toBe('error')
  })

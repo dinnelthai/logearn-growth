@@ -1,4 +1,94 @@
 {
+  "scheme": {
+    "description": "字段说明元数据，不参与业务统计",
+    "fields": {
+      "meta": {
+        "type": [
+          "object"
+        ],
+        "description": "JSON 数据观测范围与完整性声明，不由页面硬编码"
+      },
+      "meta.start_at": {
+        "type": [
+          "string"
+        ],
+        "description": "已加载事件历史起点，UTC ISO"
+      },
+      "meta.as_of": {
+        "type": [
+          "string"
+        ],
+        "description": "观测截止时间，UTC ISO，之后的事件不计数"
+      },
+      "meta.timezone": {
+        "type": [
+          "string"
+        ],
+        "description": "业务日统计时区，目前 Asia/Bangkok"
+      },
+      "meta.history_complete": {
+        "type": [
+          "boolean"
+        ],
+        "description": "是否包含完整历史；仅明确 true 才认为历史首次可信"
+      },
+      "meta.events_complete_through": {
+        "type": [
+          "string"
+        ],
+        "description": "已确认完整的事件采集截止时间，UTC ISO"
+      },
+      "logearn_events[].properties.trade_attempt_id": {
+        "type": [
+          "string"
+        ],
+        "description": "同次提交/结果稳定关联 ID，Mock 场景不代表真实交易"
+      },
+      "logearn_events[].properties.trade_id": {
+        "type": [
+          "string"
+        ],
+        "description": "全局成交 ID，可与 trades 事实去重关联"
+      },
+      "logearn_events[].properties.mock_scenario": {
+        "type": [
+          "string"
+        ],
+        "description": "仅显式 Mock 场景说明，不参与指标计算"
+      },
+      "logearn_events[].properties.token_visit_id": {
+        "type": [
+          "string"
+        ],
+        "description": "一次Token访问稳定ID；点击/详情/分析共享，业务关联漏斗不可缺失"
+      },
+      "logearn_events[].properties.strategy_run_id": {
+        "type": [
+          "string"
+        ],
+        "description": "同次策略运行稳定ID；启动/生成/查看共享，用于策略关联漏斗"
+      },
+      "logearn_events[].properties.result_id": {
+        "type": [
+          "string"
+        ],
+        "description": "策略结果稳定ID；生成和查看事件携带，生命周期同结果判断"
+      },
+      "logearn_events[].properties.strategy_type": {
+        "type": [
+          "string"
+        ],
+        "description": "策略类型，支持已有策略条件筛选"
+      }
+    }
+  },
+  "meta": {
+    "as_of": "2026-10-06T06:00:00.000Z",
+    "start_at": "2026-08-18T06:00:00.000Z",
+    "timezone": "Asia/Bangkok",
+    "history_complete": true,
+    "events_complete_through": "2026-10-06T06:00:00.000Z"
+  },
   "logearn_events": [
     {
       "event_id": "scenario-SCENARIO-07-0",
@@ -234486,6 +234576,342 @@
       "lang": "zh",
       "properties": {
         "page": "/cn/"
+      }
+    },
+    {
+      "event_id": "mock-trade-demo-submit-success",
+      "event_name": "trade_submitted",
+      "user_id": "MOCK-TRADE-01",
+      "anonymous_id": "anon-MOCK-TRADE-01",
+      "session_id": "mock-trade-session",
+      "occurred_at": "2026-10-04T01:00:00.000Z",
+      "chain": "mock_demo",
+      "properties": {
+        "trade_attempt_id": "demo-attempt-success",
+        "mock_scenario": "交易关联演示：成功/失败/待确认/跨日/重试"
+      }
+    },
+    {
+      "event_id": "mock-trade-demo-success",
+      "event_name": "trade_succeeded",
+      "user_id": "MOCK-TRADE-01",
+      "anonymous_id": "anon-MOCK-TRADE-01",
+      "session_id": "mock-trade-session",
+      "occurred_at": "2026-10-04T01:01:00.000Z",
+      "chain": "mock_demo",
+      "properties": {
+        "trade_attempt_id": "demo-attempt-success",
+        "mock_scenario": "交易关联演示：成功/失败/待确认/跨日/重试",
+        "trade_id": "demo-trade-success"
+      }
+    },
+    {
+      "event_id": "mock-trade-demo-retry-success",
+      "event_name": "trade_submitted",
+      "user_id": "MOCK-TRADE-01",
+      "anonymous_id": "anon-MOCK-TRADE-01",
+      "session_id": "mock-trade-session",
+      "occurred_at": "2026-10-04T01:00:10.000Z",
+      "chain": "mock_demo",
+      "properties": {
+        "trade_attempt_id": "demo-attempt-success",
+        "mock_scenario": "交易关联演示：成功/失败/待确认/跨日/重试"
+      }
+    },
+    {
+      "event_id": "mock-trade-demo-submit-failed",
+      "event_name": "trade_submitted",
+      "user_id": "MOCK-TRADE-01",
+      "anonymous_id": "anon-MOCK-TRADE-01",
+      "session_id": "mock-trade-session",
+      "occurred_at": "2026-10-04T02:00:00.000Z",
+      "chain": "mock_demo",
+      "properties": {
+        "trade_attempt_id": "demo-attempt-failed",
+        "mock_scenario": "交易关联演示：成功/失败/待确认/跨日/重试"
+      }
+    },
+    {
+      "event_id": "mock-trade-demo-failed",
+      "event_name": "trade_failed",
+      "user_id": "MOCK-TRADE-01",
+      "anonymous_id": "anon-MOCK-TRADE-01",
+      "session_id": "mock-trade-session",
+      "occurred_at": "2026-10-04T02:01:00.000Z",
+      "chain": "mock_demo",
+      "properties": {
+        "trade_attempt_id": "demo-attempt-failed",
+        "mock_scenario": "交易关联演示：成功/失败/待确认/跨日/重试",
+        "reason": "Mock：模拟余额不足"
+      }
+    },
+    {
+      "event_id": "mock-trade-demo-submit-pending",
+      "event_name": "trade_submitted",
+      "user_id": "MOCK-TRADE-01",
+      "anonymous_id": "anon-MOCK-TRADE-01",
+      "session_id": "mock-trade-session",
+      "occurred_at": "2026-10-04T03:00:00.000Z",
+      "chain": "mock_demo",
+      "properties": {
+        "trade_attempt_id": "demo-attempt-pending",
+        "mock_scenario": "交易关联演示：成功/失败/待确认/跨日/重试"
+      }
+    },
+    {
+      "event_id": "mock-trade-demo-submit-crossday",
+      "event_name": "trade_submitted",
+      "user_id": "MOCK-TRADE-01",
+      "anonymous_id": "anon-MOCK-TRADE-01",
+      "session_id": "mock-trade-session",
+      "occurred_at": "2026-10-05T16:30:00.000Z",
+      "chain": "mock_demo",
+      "properties": {
+        "trade_attempt_id": "demo-attempt-crossday",
+        "mock_scenario": "交易关联演示：成功/失败/待确认/跨日/重试"
+      }
+    },
+    {
+      "event_id": "mock-trade-demo-crossday",
+      "event_name": "trade_succeeded",
+      "user_id": "MOCK-TRADE-01",
+      "anonymous_id": "anon-MOCK-TRADE-01",
+      "session_id": "mock-trade-session",
+      "occurred_at": "2026-10-05T17:30:00.000Z",
+      "chain": "mock_demo",
+      "properties": {
+        "trade_attempt_id": "demo-attempt-crossday",
+        "mock_scenario": "交易关联演示：成功/失败/待确认/跨日/重试",
+        "trade_id": "demo-trade-crossday"
+      }
+    },
+    {
+      "event_id": "mock-funnel-demo-1-click",
+      "event_name": "ranking_token_clicked",
+      "occurred_at": "2026-10-04T04:00:01.000Z",
+      "user_id": "MOCK-FUNNEL-01",
+      "anonymous_id": "anon-MOCK-FUNNEL-01",
+      "session_id": "mock-funnel-session-1",
+      "chain": "1",
+      "properties": {
+        "mock_scenario": "同次业务漏斗演示，非真实用户",
+        "entry_module": "signals",
+        "token_address": "mock-token-A",
+        "chain": "1",
+        "token_visit_id": "mock-visit-1"
+      }
+    },
+    {
+      "event_id": "mock-funnel-demo-1-detail",
+      "event_name": "token_detail_viewed",
+      "occurred_at": "2026-10-04T04:00:02.000Z",
+      "user_id": "MOCK-FUNNEL-01",
+      "anonymous_id": "anon-MOCK-FUNNEL-01",
+      "session_id": "mock-funnel-session-1",
+      "chain": "1",
+      "properties": {
+        "mock_scenario": "同次业务漏斗演示，非真实用户",
+        "entry_module": "signals",
+        "token_address": "mock-token-A",
+        "chain": "1",
+        "token_visit_id": "mock-visit-1"
+      }
+    },
+    {
+      "event_id": "mock-funnel-demo-1-chip",
+      "event_name": "chip_analysis_viewed",
+      "occurred_at": "2026-10-04T04:00:03.000Z",
+      "user_id": "MOCK-FUNNEL-01",
+      "anonymous_id": "anon-MOCK-FUNNEL-01",
+      "session_id": "mock-funnel-session-1",
+      "chain": "1",
+      "properties": {
+        "mock_scenario": "同次业务漏斗演示，非真实用户",
+        "entry_module": "signals",
+        "token_address": "mock-token-A",
+        "chain": "1",
+        "token_visit_id": "mock-visit-1"
+      }
+    },
+    {
+      "event_id": "mock-funnel-demo-1-start",
+      "event_name": "strategy_started",
+      "occurred_at": "2026-10-04T04:00:04.000Z",
+      "user_id": "MOCK-FUNNEL-01",
+      "anonymous_id": "anon-MOCK-FUNNEL-01",
+      "session_id": "mock-funnel-session-1",
+      "chain": "1",
+      "properties": {
+        "mock_scenario": "同次业务漏斗演示，非真实用户",
+        "strategy_run_id": "mock-run-1",
+        "result_id": "mock-result-1",
+        "strategy_type": "1.5段"
+      }
+    },
+    {
+      "event_id": "mock-funnel-demo-1-result",
+      "event_name": "strategy_result_generated",
+      "occurred_at": "2026-10-04T04:00:05.000Z",
+      "user_id": "MOCK-FUNNEL-01",
+      "anonymous_id": "anon-MOCK-FUNNEL-01",
+      "session_id": "mock-funnel-session-1",
+      "chain": "1",
+      "properties": {
+        "mock_scenario": "同次业务漏斗演示，非真实用户",
+        "strategy_run_id": "mock-run-1",
+        "result_id": "mock-result-1",
+        "strategy_type": "1.5段"
+      }
+    },
+    {
+      "event_id": "mock-funnel-demo-1-signal",
+      "event_name": "signal_viewed",
+      "occurred_at": "2026-10-04T04:00:06.000Z",
+      "user_id": "MOCK-FUNNEL-01",
+      "anonymous_id": "anon-MOCK-FUNNEL-01",
+      "session_id": "mock-funnel-session-1",
+      "chain": "1",
+      "properties": {
+        "mock_scenario": "同次业务漏斗演示，非真实用户",
+        "strategy_run_id": "mock-run-1",
+        "result_id": "mock-result-1",
+        "strategy_type": "1.5段"
+      }
+    },
+    {
+      "event_id": "mock-funnel-demo-2-click",
+      "event_name": "ranking_token_clicked",
+      "occurred_at": "2026-10-04T04:00:01.000Z",
+      "user_id": "MOCK-FUNNEL-02",
+      "anonymous_id": "anon-MOCK-FUNNEL-02",
+      "session_id": "mock-funnel-session-2",
+      "chain": "1",
+      "properties": {
+        "mock_scenario": "同次业务漏斗演示，非真实用户",
+        "entry_module": "signals",
+        "token_address": "mock-token-A",
+        "chain": "1",
+        "token_visit_id": "mock-visit-2"
+      }
+    },
+    {
+      "event_id": "mock-funnel-demo-2-detail",
+      "event_name": "token_detail_viewed",
+      "occurred_at": "2026-10-04T04:00:02.000Z",
+      "user_id": "MOCK-FUNNEL-02",
+      "anonymous_id": "anon-MOCK-FUNNEL-02",
+      "session_id": "mock-funnel-session-2",
+      "chain": "1",
+      "properties": {
+        "mock_scenario": "同次业务漏斗演示，非真实用户",
+        "entry_module": "signals",
+        "token_address": "mock-token-A",
+        "chain": "1",
+        "token_visit_id": "mock-other-visit"
+      }
+    },
+    {
+      "event_id": "mock-funnel-demo-2-chip",
+      "event_name": "chip_analysis_viewed",
+      "occurred_at": "2026-10-04T04:00:03.000Z",
+      "user_id": "MOCK-FUNNEL-02",
+      "anonymous_id": "anon-MOCK-FUNNEL-02",
+      "session_id": "mock-funnel-session-2",
+      "chain": "1",
+      "properties": {
+        "mock_scenario": "同次业务漏斗演示，非真实用户",
+        "entry_module": "signals",
+        "token_address": "mock-token-A",
+        "chain": "1",
+        "token_visit_id": "mock-other-visit"
+      }
+    },
+    {
+      "event_id": "mock-funnel-demo-2-start",
+      "event_name": "strategy_started",
+      "occurred_at": "2026-10-04T04:00:04.000Z",
+      "user_id": "MOCK-FUNNEL-02",
+      "anonymous_id": "anon-MOCK-FUNNEL-02",
+      "session_id": "mock-funnel-session-2",
+      "chain": "1",
+      "properties": {
+        "mock_scenario": "同次业务漏斗演示，非真实用户",
+        "strategy_run_id": "mock-run-2",
+        "strategy_type": "1.5段"
+      }
+    },
+    {
+      "event_id": "mock-funnel-demo-2-result",
+      "event_name": "strategy_result_generated",
+      "occurred_at": "2026-10-04T04:00:05.000Z",
+      "user_id": "MOCK-FUNNEL-02",
+      "anonymous_id": "anon-MOCK-FUNNEL-02",
+      "session_id": "mock-funnel-session-2",
+      "chain": "1",
+      "properties": {
+        "mock_scenario": "同次业务漏斗演示，非真实用户",
+        "strategy_run_id": "mock-other-run",
+        "result_id": "mock-result-other"
+      }
+    },
+    {
+      "event_id": "mock-funnel-demo-2-signal",
+      "event_name": "signal_viewed",
+      "occurred_at": "2026-10-04T04:00:06.000Z",
+      "user_id": "MOCK-FUNNEL-02",
+      "anonymous_id": "anon-MOCK-FUNNEL-02",
+      "session_id": "mock-funnel-session-2",
+      "chain": "1",
+      "properties": {
+        "mock_scenario": "同次业务漏斗演示，非真实用户",
+        "strategy_run_id": "mock-other-run",
+        "result_id": "mock-result-other"
+      }
+    },
+    {
+      "event_id": "mock-funnel-demo-3-missing-start",
+      "event_name": "ranking_token_clicked",
+      "occurred_at": "2026-10-04T04:00:01.000Z",
+      "user_id": "MOCK-FUNNEL-03",
+      "anonymous_id": "anon-MOCK-FUNNEL-03",
+      "session_id": "mock-funnel-session-3",
+      "chain": "1",
+      "properties": {
+        "mock_scenario": "同次业务漏斗演示，非真实用户",
+        "entry_module": "signals",
+        "token_address": "mock-token-A",
+        "chain": "1"
+      }
+    },
+    {
+      "event_id": "mock-funnel-demo-4-click",
+      "event_name": "ranking_token_clicked",
+      "occurred_at": "2026-10-04T04:00:01.000Z",
+      "user_id": "MOCK-FUNNEL-04",
+      "anonymous_id": "anon-MOCK-FUNNEL-04",
+      "session_id": "mock-funnel-session-4",
+      "chain": "1",
+      "properties": {
+        "mock_scenario": "同次业务漏斗演示，非真实用户",
+        "entry_module": "signals",
+        "token_address": "mock-token-A",
+        "chain": "1",
+        "token_visit_id": "mock-visit-4"
+      }
+    },
+    {
+      "event_id": "mock-funnel-demo-4-missing-next",
+      "event_name": "token_detail_viewed",
+      "occurred_at": "2026-10-04T04:00:02.000Z",
+      "user_id": "MOCK-FUNNEL-04",
+      "anonymous_id": "anon-MOCK-FUNNEL-04",
+      "session_id": "mock-funnel-session-4",
+      "chain": "1",
+      "properties": {
+        "mock_scenario": "同次业务漏斗演示，非真实用户",
+        "entry_module": "signals",
+        "token_address": "mock-token-A",
+        "chain": "1"
       }
     }
   ]

@@ -14,6 +14,7 @@
 
 /** @type {EventDef[]} */
 export const EVENT_CONFIG = [
+  { rawName: 'module_viewed', type: 'module', label: '浏览功能模块', source: 'navigation.ts', description: 'properties.module 为 callouts/signals/popular/fomo，由标准化层转换为具体模块' },
   // ─── Identity / Auth ─── auth.ts ───────────────────────────────────────────
   {
     rawName: 'app_opened_unauthenticated',
@@ -336,7 +337,7 @@ export const EVENT_CONFIG = [
     type: 'first_visit',
     label: '首次访问',
     source: 'growth.ts',
-    description: '首次访问捕获，每个 anonymous_id 终生一次；properties 含 first_referrer_url、first_landing_url、first_visit_at',
+    description: '首次入口捕获；SDK 在持久化状态内去重，服务端冻结首次事实；properties 含 first_referrer_url、first_landing_url、first_visit_at',
   },
 
   // ─── Legacy aliases (kept for historical data compatibility) ────────────────

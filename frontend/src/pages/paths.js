@@ -1,0 +1,22 @@
+import {computePaths} from '../analytics/paths.js'
+import {createChartLifecycle} from './chartLifecycle.js'
+export function createPathsPage(ctx) {
+ const {root,$,$$,names,day,base,asof,date,clock,daynum,esc,fmt,pct,table,stat,drill,closeDrill,themeMedia}=ctx
+ const clearNative=ctx.clear
+ let users=[],nativeChart=null
+ const chartLifecycle=createChartLifecycle(themeMedia)
+function drawPaths(c){
+clearNative();users=ctx.getUsers();const result=computePaths(users,{startAt:c.start,endAt:c.end,asOf:asof,startEvent:c.pathStart,maxSteps:c.pathDepth,sourceFilter:c.source});
+const labels={...names,end:'观测结束',more:'后续行为（折叠）',boundary:'统计窗口截止',pending:'仍在观察'};
+const uniqueRows=rows=>[...new Map(rows.map(r=>[r.u.id,{u:r.u,displaySource:r.u.source}])).values()];
+$('#as-output').innerHTML=`<div class="a-context"><span class="a-chip">实际行为路径 · 会话数</span><span>${date(c.start)}–${date(c.end-day)} · ${esc(labels[c.pathStart]||'会话首次行为')}</span></div><div class="a-summary a-four">${stat('分析会话数',fmt(result.sessions),'同一用户可有多个会话')}${stat('去重用户数',fmt(result.users),'所选起点与来源下的用户')}${stat('最常见路径占比',result.paths.length?pct(result.paths[0].sessions,result.sessions):'—','按完整展示路径分组')}${stat('平均展示行为数',result.sessions?result.average_steps.toFixed(1):'—','连续重复事件合并后，最多'+c.pathDepth+'步')}</div><div class="a-card"><div class="a-cardhead"><h2>行为流向</h2><span class="a-muted">线宽代表会话数 · 点击连线查看用户</span></div><div class="a-chart a-path-chart-scroll"><div id="as-path-chart" style="height:480px;width:100%" role="img" aria-label="用户实际行为流向桑基图"></div></div><div class="a-insight">${result.inferred_sessions?result.inferred_sessions+' 个会话缺少 session_id，按30分钟无操作推断。':'会话由 session_id 关联。'}观测结束仅表示未记录到后续行为，不直接判定流失。</div></div><div class="a-card"><div class="a-cardhead"><h2>常见行为路径</h2><span class="a-muted">展示前10条，共 ${result.paths.length} 种</span></div>${table(['行为顺序','会话数','去重用户','会话占比'],result.paths.slice(0,10).map((p,i)=>[esc([...p.types,p.terminal].map(t=>labels[t]).join(' → ')),fmt(p.sessions),`<button class="a-tablelink" data-path="${i}">${p.users}</button>`,pct(p.sessions,result.sessions)]))}<p class="a-details">用户可能出现在多条路径中，各行去重用户不可相加。图中同一事件出现在不同步骤时独立展示。</p></div><details class="a-card a-details"><summary>路径统计口径</summary><p>选择会话首次行为时，按会话第一条事件时间入组；选择具体起点时，按该会话首次出现该事件的时间入组。只展示统计期内、观测截至时间之前的后续行为。</p><p>优先使用 session_id；缺失时，同一用户相邻事件间隔达到30分钟即拆为新会话。展示上限外的行为标为折叠，统计窗口外标为窗口截止；最近30分钟内结束的记录标为仍在观察。</p><p>支持喊单、信号榜单、热门、FOMO热门浏览、点击Token，以及登录、Token详情、AI策略、有效分析和交易。站内模块与获客渠道分别记录；未采集的页面和事件不会显示。</p></details>`;
+$$('[data-path]').forEach(b=>b.onclick=()=>{const p=result.paths[+b.dataset.path];drill('行为路径用户',uniqueRows(p.rows),p.types.map(t=>labels[t]).join(' → '))});
+const host=$('#as-path-chart');if(!result.sessions){host.innerHTML='<p class="a-empty">当前筛选没有可分析的行为路径。</p>';return}
+if(!globalThis.echarts){host.innerHTML='<p class="a-empty">图表暂不可用，可查看下方路径表。</p>';return}
+const color=key=>{const p=document.createElement('span');p.style.color=`var(${key})`;root.appendChild(p);const value=getComputedStyle(p).color;p.remove();return value};
+nativeChart=echarts.init(host,null,{renderer:'svg'});
+const paint=()=>{if(!nativeChart||!host.isConnected)return;nativeChart.setOption({animation:false,aria:{enabled:true,description:'行为路径桑基图，共'+result.sessions+'个会话、'+result.users+'位用户。线宽代表会话数，精确路径见下方常见路径表。'},tooltip:{trigger:'item',confine:true,backgroundColor:color('--a-panel'),borderColor:color('--a-border'),textStyle:{color:color('--a-text')},formatter:p=>p.dataType==='edge'?`${esc(labels[p.data.source.split(':')[1]])} → ${esc(labels[p.data.target.split(':')[1]])}<br/>${p.data.value} 个会话`:`第 ${p.data.stage+1} 步 · ${esc(labels[p.data.type])}`},series:[{type:'sankey',left:8,right:145,top:16,bottom:16,nodeWidth:14,nodeGap:20,draggable:false,layoutIterations:32,emphasis:{focus:'adjacency'},label:{color:color('--a-text'),fontSize:11,formatter:p=>labels[p.data.type]},lineStyle:{color:'source',opacity:.3,curveness:.5},data:result.nodes.map(n=>({...n,depth:n.stage,itemStyle:{color:['end','more','boundary','pending'].includes(n.type)?color('--a-muted'):color('--a-accent')}})),links:result.links.map(({rows,...link})=>link)}]},true)};
+paint();nativeChart.on('click',p=>{if(p.dataType!=='edge')return;const link=result.links.find(l=>l.source===p.data.source&&l.target===p.data.target);if(link)drill('路径流向用户',uniqueRows(link.rows),labels[link.source.split(':')[1]]+' → '+labels[link.target.split(':')[1]]+' · '+link.value+' 个会话')});chartLifecycle.attach(nativeChart,host,paint);
+}
+ return {draw:drawPaths,dispose(){chartLifecycle.dispose();nativeChart=null}}
+}

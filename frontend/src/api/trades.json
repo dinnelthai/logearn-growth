@@ -12,7 +12,7 @@
         "type": [
           "string"
         ],
-        "description": "交易唯一 ID，后端应去重；当前交易适配器尚未按此 ID 去重"
+        "description": "稳定全局唯一交易 ID；适配器去重，内容冲突的同 ID 整组隔离。显式质量 Mock 可缺失以验证排除"
       },
       "trades[].user_id": {
         "type": [
@@ -37,6 +37,42 @@
           "string"
         ],
         "description": "交易状态，本版 confirmed；只有 confirmed 才计入当前成交统计"
+      },
+      "trades[].trade_attempt_id": {
+        "type": [
+          "string"
+        ],
+        "description": "交易提交与终态关联 ID，缺失不猜填"
+      },
+      "trades[].chain": {
+        "type": [
+          "string"
+        ],
+        "description": "链标识；mock_demo 为模拟演示链"
+      },
+      "trades[].mock_scenario": {
+        "type": [
+          "string"
+        ],
+        "description": "显式质量测试样例标记，不参与指标"
+      },
+      "meta": {
+        "type": [
+          "object"
+        ],
+        "description": "交易事实完整覆盖范围，不根据首笔成交推断"
+      },
+      "meta.trades_start_at": {
+        "type": [
+          "string"
+        ],
+        "description": "已加载完整交易查询范围起点（含），UTC ISO"
+      },
+      "meta.trades_complete_through": {
+        "type": [
+          "string"
+        ],
+        "description": "交易查询确认完整截至（不含），UTC ISO"
       }
     }
   },
@@ -3330,6 +3366,75 @@
       "confirmed_at": "2026-10-01T05:00:00.000Z",
       "volume_usd": 1267,
       "status": "confirmed"
+    },
+    {
+      "user_id": "MOCK-TRADE-01",
+      "status": "confirmed",
+      "chain": "mock_demo",
+      "mock_scenario": "trade_quality_demo",
+      "trade_id": "demo-trade-success",
+      "trade_attempt_id": "demo-attempt-success",
+      "confirmed_at": "2026-10-04T01:01:00.000Z",
+      "volume_usd": 125
+    },
+    {
+      "user_id": "MOCK-TRADE-01",
+      "status": "confirmed",
+      "chain": "mock_demo",
+      "mock_scenario": "trade_quality_demo",
+      "trade_id": "demo-trade-success",
+      "trade_attempt_id": "demo-attempt-success",
+      "confirmed_at": "2026-10-04T01:01:00.000Z",
+      "volume_usd": 125
+    },
+    {
+      "user_id": "MOCK-TRADE-01",
+      "status": "confirmed",
+      "chain": "mock_demo",
+      "mock_scenario": "trade_quality_demo",
+      "trade_id": "demo-trade-crossday",
+      "trade_attempt_id": "demo-attempt-crossday",
+      "confirmed_at": "2026-10-05T17:30:00.000Z",
+      "volume_usd": 75
+    },
+    {
+      "user_id": "MOCK-TRADE-01",
+      "status": "confirmed",
+      "chain": "mock_demo",
+      "mock_scenario": "trade_quality_demo",
+      "confirmed_at": "2026-10-04T04:00:00.000Z",
+      "volume_usd": 10
+    },
+    {
+      "user_id": "MOCK-TRADE-01",
+      "status": "confirmed",
+      "chain": "mock_demo",
+      "mock_scenario": "trade_quality_demo",
+      "trade_id": "demo-invalid-time",
+      "confirmed_at": "invalid",
+      "volume_usd": 10
+    },
+    {
+      "user_id": "MOCK-TRADE-01",
+      "status": "confirmed",
+      "chain": "mock_demo",
+      "mock_scenario": "trade_quality_demo",
+      "trade_id": "demo-invalid-amount",
+      "confirmed_at": "2026-10-04T04:00:00.000Z",
+      "volume_usd": -10
+    },
+    {
+      "user_id": "MOCK-TRADE-01",
+      "status": "confirmed",
+      "chain": "mock_demo",
+      "mock_scenario": "trade_quality_demo",
+      "trade_id": "demo-future",
+      "confirmed_at": "2026-10-07T01:00:00.000Z",
+      "volume_usd": 10
     }
-  ]
+  ],
+  "meta": {
+    "trades_start_at": "2026-09-28T17:00:00.000Z",
+    "trades_complete_through": "2026-10-06T06:00:00.000Z"
+  }
 }

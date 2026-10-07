@@ -1,3 +1,4 @@
+import {firstEvent} from './cohorts.js'
 import { bindingGroups } from './bindings.js'
 /**
  * segmentation.js
@@ -28,7 +29,7 @@ export function classifyUser(user, asOf) {
   if (days.size >= 6) return '高频核心'
   const strategies = new Set(user.events.filter(e => e.type === 'ai' && e.t <= asOf && e.t <= asOf && e.strategy).map(e => e.strategy))
   if (strategies.size >= 2) return '策略型'
-  if (asOf - chips[0].t <= 7 * DAY_MS) return '新激活'
+  if (asOf - firstEvent(user,'chip',asOf).t <= 7 * DAY_MS) return '新激活'
   return '分析型'
 }
 
