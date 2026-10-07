@@ -1256,6 +1256,18 @@ html>body{padding:0}
 #la-studio .a-data-status{margin:0 22px 14px;padding:9px 12px;background:var(--a-panel);border:1px solid var(--a-border);border-radius:6px;color:var(--a-muted);font-size:12px}
 #la-studio #as-coverage{margin:0 22px 14px;padding:9px 12px;border-radius:6px;font-size:12px;background:color-mix(in srgb,var(--a-warn) 8%,var(--a-panel));border:1px solid color-mix(in srgb,var(--a-warn) 30%,var(--a-border))}
 #la-studio #as-input-quality{margin:0 22px 14px}
+#la-studio .a-cohort-list{display:flex;flex-direction:column;gap:6px}
+#la-studio .a-cohort-item{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--a-border);border-radius:6px;background:var(--a-bg)}
+#la-studio .a-cohort-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+#la-studio .a-cohort-info{flex:1;min-width:0}
+#la-studio .a-cohort-info strong{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#la-studio .a-cohort-info span{font-size:11px}
+#la-studio .a-cohort-actions{display:flex;align-items:center;gap:4px;flex-shrink:0}
+#la-studio .a-cohort-form{display:flex;flex-direction:column;gap:2px;padding:10px;background:var(--a-bg);border:1px solid var(--a-border);border-radius:7px;margin-bottom:10px}
+#la-studio .a-swatch-row{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px}
+#la-studio .a-swatch{width:20px;height:20px;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer;transition:transform .12s}
+#la-studio .a-swatch:hover{transform:scale(1.15)}
+#la-studio .a-swatch.is-selected{border-color:var(--a-text);box-shadow:0 0 0 2px var(--a-panel)}
 
 /* Keep drill-down context visible behind the native modal side drawer. */
 #la-studio dialog.a-drawer{position:fixed;inset:0 0 0 auto;width:min(700px,94vw);height:100dvh;max-width:none;max-height:none;margin:0;padding:20px;border:0;border-left:1px solid var(--a-border);border-radius:0;overflow-y:auto;color:var(--a-text);box-shadow:-8px 0 30px var(--a-shadow)}

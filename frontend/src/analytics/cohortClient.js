@@ -1,0 +1,109 @@
+/**
+ * cohortClient.js
+ * Thin client for the /api/cohorts backend.
+ * Falls back to localStorage when the backend is unreachable.
+ */
+
+const BASE = (import.meta.env.VITE_BACKEND_BASE_URL ?? 'http://localhost:3001') + '/api/cohorts'
+const LS_KEY = 'logearn.custom.cohorts.v1'
+
+// ── localStorage fallback ─────────────────────────────────────────────────────
+
+function lsLoad() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) ?? 'null') ?? [] } catch { return [] }
+}
+function lsSave(cohorts) {
+  localStorage.setItem(LS_KEY, JSON.stringify(cohorts))
+}
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+async function apiFetch(path, options = {}) {
+  const res = await fetch(BASE + path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options,
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw Object.assign(new Error(body.error ?? `HTTP ${res.status}`), { status: res.status, errors: body.errors })
+  }
+  return res.json()
+}
+
+// ── public API ────────────────────────────────────────────────────────────────
+
+export async function listCohorts() {
+  try {
+    const data = await apiFetch('/')
+    return { cohorts: data.cohorts, source: 'api' }
+  } catch {
+    return { cohorts: lsLoad(), source: 'local' }
+  }
+}
+
+export async function getCohort(id) {
+  try {
+    return await apiFetch(`/${id}`)
+  } catch {
+    const cohort = lsLoad().find(c => c.id === id)
+    if (!cohort) throw new Error('群组不存在')
+    return cohort
+  }
+}
+
+export async function createCohort({ name, description = '', color = '#6366f1', user_ids = [] }) {
+  try {
+    const data = await apiFetch('/', {
+      method: 'POST',
+      body: JSON.stringify({ name, description, color, user_ids }),
+    })
+    return { cohort: data.cohort, source: 'api' }
+  } catch (e) {
+    // Rethrow validation errors from the backend
+    if (e.errors) throw e
+    // Backend unreachable — save locally
+    const id = `cohort_local_${Date.now().toString(36)}`
+    const now = Date.now()
+    const cohort = {
+      id, name, description, color,
+      user_ids: [...new Set(user_ids.map(s => String(s).trim()).filter(Boolean))].slice(0, 50000),
+      member_count: 0,
+      created_at: now,
+      updated_at: now,
+      source: 'local',
+    }
+    cohort.member_count = cohort.user_ids.length
+    const all = lsLoad()
+    all.unshift(cohort)
+    lsSave(all)
+    return { cohort, source: 'local' }
+  }
+}
+
+export async function deleteCohort(id) {
+  try {
+    return await apiFetch(`/${id}`, { method: 'DELETE' })
+  } catch {
+    const all = lsLoad().filter(c => c.id !== id)
+    lsSave(all)
+    return { deleted: true, source: 'local' }
+  }
+}
+
+export async function updateCohort(id, { name, description, color }) {
+  try {
+    const data = await apiFetch(`/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name, description, color }),
+    })
+    return { cohort: data.cohort, source: 'api' }
+  } catch (e) {
+    if (e.errors) throw e
+    const all = lsLoad()
+    const idx = all.findIndex(c => c.id === id)
+    if (idx === -1) throw new Error('群组不存在')
+    all[idx] = { ...all[idx], name: name ?? all[idx].name, description: description ?? all[idx].description, color: color ?? all[idx].color, updated_at: Date.now() }
+    lsSave(all)
+    return { cohort: all[idx], source: 'local' }
+  }
+}
