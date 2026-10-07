@@ -1269,6 +1269,53 @@ html>body{padding:0}
 #la-studio .a-swatch:hover{transform:scale(1.15)}
 #la-studio .a-swatch.is-selected{border-color:var(--a-text);box-shadow:0 0 0 2px var(--a-panel)}
 
+/* ── Login overlay ─────────────────────────────────────────────────────────── */
+#la-login-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:light-dark(#f4f6f9,#0d1117);z-index:9999;font-family:Inter,system-ui,-apple-system,"PingFang SC",sans-serif}
+.la-login-card{width:100%;max-width:380px;background:light-dark(#fff,#1a212c);border:1px solid light-dark(#e3e8ef,#303c4c);border-radius:12px;padding:36px 32px;box-shadow:0 8px 32px light-dark(#1829461a,#00000040)}
+.la-login-brand{display:flex;align-items:center;gap:10px;margin-bottom:28px}
+.la-login-brand .a-wing{fill:light-dark(#247858,#81d6b0)}
+.la-login-brand .a-e{fill:light-dark(#247858,#81d6b0);font:900 29px/1 Arial,sans-serif}
+.la-login-title{font-size:20px;font-weight:700;letter-spacing:-.5px;color:light-dark(#202a3a,#e7edf7)}
+.la-login-title span{color:light-dark(#247858,#81d6b0)}
+.la-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.la-field label{font-size:12px;font-weight:500;color:light-dark(#69768a,#9aabc2)}
+.la-field input{padding:9px 11px;border:1px solid light-dark(#e3e8ef,#303c4c);border-radius:6px;font:13px/1.5 inherit;background:light-dark(#f4f6f9,#11151d);color:light-dark(#202a3a,#e7edf7);outline:none;transition:border-color .15s}
+.la-field input:focus{border-color:light-dark(#4264d0,#96b0ff)}
+.la-error{font-size:12px;color:light-dark(#c0392b,#ff7b7b);margin:0 0 12px;padding:8px 10px;border-radius:5px;background:light-dark(#fdf2f2,#2d1515)}
+.la-login-btn{width:100%;padding:10px;background:light-dark(#4264d0,#96b0ff);color:light-dark(#fff,#152344);border:none;border-radius:6px;font:600 13px/1.5 inherit;cursor:pointer;margin-top:4px;transition:opacity .15s}
+.la-login-btn:hover:not(:disabled){opacity:.88}
+.la-login-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── User menu button ──────────────────────────────────────────────────────── */
+.la-user-btn{width:30px;height:30px;border-radius:50%;border:0;background:light-dark(#4264d0,#96b0ff);color:light-dark(#fff,#152344);font:600 12px/30px inherit;cursor:pointer;flex-shrink:0;transition:opacity .15s}
+.la-user-btn:hover{opacity:.85}
+
+/* ── User panel dropdown ───────────────────────────────────────────────────── */
+.la-user-panel{position:absolute;top:calc(100% - 4px);right:22px;width:260px;background:light-dark(#fff,#1a212c);border:1px solid light-dark(#e3e8ef,#303c4c);border-radius:9px;box-shadow:0 8px 24px light-dark(#18294618,#00000033);z-index:200;padding:6px 0;font:13px/1.5 inherit;color:light-dark(#202a3a,#e7edf7)}
+.la-user-info{display:flex;align-items:center;gap:10px;padding:12px 14px}
+.la-user-avatar{width:34px;height:34px;border-radius:50%;background:light-dark(#4264d0,#96b0ff);color:light-dark(#fff,#152344);font:600 14px/34px inherit;text-align:center;flex-shrink:0}
+.la-user-info strong{display:block;font-weight:600}
+.la-user-info p{margin:0;font-size:11px;color:light-dark(#69768a,#9aabc2)}
+.la-menu-divider{border:0;border-top:1px solid light-dark(#e3e8ef,#303c4c);margin:4px 0}
+.la-menu-item{display:block;width:100%;text-align:left;border:0;background:transparent;padding:9px 14px;font:inherit;cursor:pointer;color:light-dark(#202a3a,#e7edf7)}
+.la-menu-item:hover{background:light-dark(#f4f6f9,#28344d)}
+.la-menu-danger{color:light-dark(#c0392b,#ff7b7b)}
+.la-panel-header{display:flex;align-items:center;gap:8px;padding:10px 14px 6px}
+.la-back-btn{border:0;background:transparent;color:light-dark(#4264d0,#96b0ff);font:inherit;cursor:pointer;padding:0}
+.la-panel-error{font-size:12px;color:light-dark(#c0392b,#ff7b7b);margin:0 14px 8px;padding:6px 8px;border-radius:4px;background:light-dark(#fdf2f2,#2d1515)}
+.la-panel-success{font-size:12px;color:light-dark(#247858,#81d6b0);margin:0 14px 8px;padding:6px 8px;border-radius:4px;background:light-dark(#f0fdf7,#0f2d20)}
+.la-panel-muted{font-size:12px;color:light-dark(#69768a,#9aabc2);padding:4px 14px;margin:0}
+.la-pwd-form{display:flex;flex-direction:column;gap:6px;padding:0 14px 12px}
+.la-pwd-form label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:light-dark(#69768a,#9aabc2)}
+.la-pwd-form input{padding:7px 9px;border:1px solid light-dark(#e3e8ef,#303c4c);border-radius:5px;font:inherit;background:light-dark(#f4f6f9,#11151d);color:inherit}
+.la-menu-btn-primary{padding:8px 12px;background:light-dark(#4264d0,#96b0ff);color:light-dark(#fff,#152344);border:0;border-radius:5px;font:600 12px/1.5 inherit;cursor:pointer;margin-top:4px}
+.la-config-list{padding:4px 8px}
+.la-config-item{display:flex;align-items:center;gap:4px;padding:3px 0}
+.la-config-name{flex:1;text-align:left;border:0;background:transparent;font:inherit;cursor:pointer;color:light-dark(#4264d0,#96b0ff);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.la-config-del{border:0;background:transparent;color:light-dark(#69768a,#9aabc2);cursor:pointer;font-size:14px;padding:0 4px;flex-shrink:0}
+.la-save-form{display:flex;flex-direction:column;gap:6px;padding:0 14px 10px}
+.la-save-form input{padding:7px 9px;border:1px solid light-dark(#e3e8ef,#303c4c);border-radius:5px;font:inherit;background:light-dark(#f4f6f9,#11151d);color:inherit}
+
 /* Keep drill-down context visible behind the native modal side drawer. */
 #la-studio dialog.a-drawer{position:fixed;inset:0 0 0 auto;width:min(700px,94vw);height:100dvh;max-width:none;max-height:none;margin:0;padding:20px;border:0;border-left:1px solid var(--a-border);border-radius:0;overflow-y:auto;color:var(--a-text);box-shadow:-8px 0 30px var(--a-shadow)}
 #la-studio dialog.a-drawer::backdrop{background:rgb(15 23 42 / 28%)}

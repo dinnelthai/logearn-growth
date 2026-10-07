@@ -1,27 +1,39 @@
 const express = require('express')
 const cors = require('cors')
-const db = require('./db/connection')
-const cohortsRouter = require('./routes/cohorts')
-
-// Run migrations on startup
 const fs = require('fs')
 const path = require('path')
+const db = require('./db/connection')
+const seedAdmin = require('./db/seed')
+const authRouter = require('./routes/auth')
+const cohortsRouter = require('./routes/cohorts')
+const savedConfigsRouter = require('./routes/savedConfigs')
+const requireAuth = require('./middleware/requireAuth')
+
+// Run migrations on startup
 const schema = fs.readFileSync(path.join(__dirname, 'db/schema.sql'), 'utf8')
 schema.split(';').map(s => s.trim()).filter(Boolean).forEach(stmt => db.exec(stmt))
+
+// Seed default admin if no users exist
+seedAdmin().catch(console.error)
 
 const app = express()
 
 app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }))
 app.use(express.json({ limit: '2mb' }))
 
-// Health check
+// Health check (public)
 app.get('/health', (req, res) => res.json({ ok: true, ts: Date.now() }))
 
-// Routes
-app.use('/api/cohorts', cohortsRouter)
+// Auth routes (login is public, rest require auth internally)
+app.use('/api/auth', authRouter)
+
+// Protected routes
+app.use('/api/cohorts', requireAuth, cohortsRouter)
+app.use('/api/saved-configs', savedConfigsRouter)
 
 // 404
 app.use((req, res) => res.status(404).json({ error: '接口不存在' }))

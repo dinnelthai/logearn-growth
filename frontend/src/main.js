@@ -28,6 +28,37 @@ globalThis.echarts = echarts;
 async function start() {
   const status=document.getElementById('as-data-status')
   const badge=document.getElementById('as-data-badge')
+  const root=document.getElementById('la-studio')
+
+  // ── Auth gate ───────────────────────────────────────────────────────────────
+  // Only active when backend URL is configured; skipped in JSON-only mode.
+  const backendBase = import.meta.env.VITE_BACKEND_BASE_URL
+  let currentUser = null
+  if (backendBase) {
+    const { getMe } = await import('./auth/authClient.js')
+    try {
+      const data = await getMe()
+      currentUser = data.user
+    } catch {
+      // Not logged in — show login page and wait
+      const { mountLoginPage } = await import('./auth/loginPage.js')
+      currentUser = await new Promise(resolve => {
+        mountLoginPage(document.body, { onSuccess: resolve })
+      })
+    }
+    // Mount user menu after login
+    const { mountUserMenu } = await import('./auth/userMenu.js')
+    mountUserMenu(root, {
+      user: currentUser,
+      onLogout: () => {
+        globalThis.LOGEARN_ANALYTICS_DATA = null
+        location.reload()
+      },
+      getCurrentConfig: () => globalThis.__CURRENT_ANALYTICS_CONFIG ?? null,
+    })
+  }
+
+  // ── Data loading ────────────────────────────────────────────────────────────
   if (!globalThis.LOGEARN_ANALYTICS_DATA && import.meta.env.VITE_ANALYTICS_DATA_SOURCE === 'api') {
     badge.textContent='真实数据 · 加载中'
     document.querySelectorAll('#la-studio button, #la-studio select').forEach(b=>b.disabled=true)
@@ -65,3 +96,4 @@ async function start() {
 start().catch(()=>{
   document.getElementById('as-data-status').textContent='页面初始化失败，请刷新重试。'
 })
+
