@@ -316,7 +316,7 @@ const { computeFunnel, ASSOCIATIONS } = require('../analytics/funnel')
 const { computeSegmentationFromFeatures, SEGMENTS } = require('../analytics/segmentation')
 const { computeReferralMetrics } = require('../analytics/referral')
 const { loadNormalizedUsers } = require('../analytics/loadUsers')
-const { cachePut } = require('../analytics/resultCache')
+const { cachePut, memoKey, memoGet, memoPut } = require('../analytics/resultCache')
 
 function readAsOf(fallbackEnd) {
   const meta = readKeyedMeta('events_meta')
@@ -357,6 +357,9 @@ router.post('/funnel', (req, res) => {
   const asOf = readAsOf(end)
   const conversionWindowMs = Math.max(1, Number(hours) || 24) * 3600000
   const types = [...new Set(steps)]
+  const key = memoKey(['funnel', start, end, asOf, steps, hours, association, source, strategy, audience_ids, cohort_id])
+  const hit = memoGet(key)
+  if (hit) return res.json(hit)
 
   const loaded = loadNormalizedUsers({
     types,
@@ -405,7 +408,7 @@ router.post('/funnel', (req, res) => {
 
   const cache_id = cachePut({ kind: 'funnel', lists, meta: { steps, start, end, association } })
 
-  res.json({
+  const payload = {
     association,
     steps: result.steps,
     total_entered: result.total_entered,
@@ -424,7 +427,9 @@ router.post('/funnel', (req, res) => {
     candidate_count: loaded.candidate_count,
     coverage: coverageFor(start, end),
     drill: { cache_id },
-  })
+  }
+  memoPut(key, payload)
+  res.json(payload)
 })
 
 /** POST /api/metrics/retention */
@@ -563,6 +568,9 @@ router.get('/referral', (req, res) => {
   const { start, end } = range
   const asOf = readAsOf(end)
   const source = req.query.source || 'all'
+  const key = memoKey(['referral', start, end, asOf, source])
+  const hit = memoGet(key)
+  if (hit) return res.json(hit)
   const result = computeReferralMetrics({ startAt: start, endAt: end, asOf, source })
   const lists = {
     advocates: result._ids.advocates,
@@ -571,11 +579,13 @@ router.get('/referral', (req, res) => {
   }
   const cache_id = cachePut({ kind: 'referral', lists, meta: { start, end, source } })
   const { _ids, ...publicResult } = result
-  res.json({
+  const payload = {
     ...publicResult,
     coverage: coverageFor(start, end),
     drill: { cache_id },
-  })
+  }
+  memoPut(key, payload)
+  res.json(payload)
 })
 
 /** POST /api/metrics/paths — Phase C behavior paths / Sankey */
@@ -602,10 +612,12 @@ router.post('/paths', (req, res) => {
   }
   const asOf = readAsOf(end)
   const maxSteps = Math.min(7, Math.max(3, Number(pathDepth) || 5))
+  const key = memoKey(['paths', start, end, asOf, pathStart, maxSteps, source, audience_ids, cohort_id])
+  const hit = memoGet(key)
+  if (hit) return res.json(hit)
   const { PATH_TYPES } = require('../analytics/eventMap')
-  const { computePaths } = require('../analytics/paths')
+  const { computePaths, IDLE_MS } = require('../analytics/paths')
 
-  const { IDLE_MS } = require('../analytics/paths')
   const loaded = loadNormalizedUsers({
     types: PATH_TYPES,
     start,
@@ -641,7 +653,7 @@ router.post('/paths', (req, res) => {
   })
 
   // Strip user_ids from public payload — drill via cache
-  res.json({
+  const payload = {
     sessions: result.sessions,
     users: result.users,
     inferred_sessions: result.inferred_sessions,
@@ -653,7 +665,9 @@ router.post('/paths', (req, res) => {
     candidate_count: loaded.candidate_count,
     coverage: coverageFor(start, end),
     drill: { cache_id },
-  })
+  }
+  memoPut(key, payload)
+  res.json(payload)
 })
 
 /** POST /api/metrics/comparison — overview crowd comparison (counts + drill lists) */

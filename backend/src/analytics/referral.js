@@ -4,7 +4,7 @@ const DAY_MS = 86400000
 const ACTIVATION_WINDOW_MS = 7 * DAY_MS
 
 function computeReferralMetrics({ startAt, endAt, asOf, source = 'all' }) {
-  let invitees = db.prepare(`
+  const invitees = db.prepare(`
     SELECT inviter_user_id, invitee_user_id, bound_at, referral_link_id, share_type
     FROM referral_invitees
     WHERE level = 1
@@ -23,11 +23,20 @@ function computeReferralMetrics({ startAt, endAt, asOf, source = 'all' }) {
     if (!inviteeBound.has(r.invitee_key)) inviteeBound.set(r.invitee_key, r)
   }
 
-  // Optional source filter on invitee first_source
+  // Batch source filter
   if (source && source !== 'all') {
+    const ids = [...inviteeBound.values()].map(r => r.invitee_user_id)
+    const allowed = new Set()
+    const CHUNK = 800
+    for (let i = 0; i < ids.length; i += CHUNK) {
+      const slice = ids.slice(i, i + CHUNK)
+      const ph = slice.map(() => '?').join(',')
+      for (const row of db.prepare(`
+        SELECT user_id FROM user_facts WHERE first_source = ? AND user_id IN (${ph})
+      `).all(source, ...slice)) allowed.add(row.user_id)
+    }
     for (const [key, r] of [...inviteeBound.entries()]) {
-      const fact = db.prepare(`SELECT first_source FROM user_facts WHERE user_id = ?`).get(r.invitee_user_id)
-      if (!fact || fact.first_source !== source) inviteeBound.delete(key)
+      if (!allowed.has(r.invitee_user_id)) inviteeBound.delete(key)
     }
   }
 
@@ -44,24 +53,36 @@ function computeReferralMetrics({ startAt, endAt, asOf, source = 'all' }) {
   const boundIds = []
 
   const inviteeIds = [...inviteeBound.values()].map(r => r.invitee_user_id)
+  const inviteeSet = new Set(inviteeIds)
   const firstChipByUser = new Map()
   const chipsByUser = new Map()
+
   if (inviteeIds.length) {
-    const CHUNK = 500
+    const CHUNK = 800
     for (let i = 0; i < inviteeIds.length; i += CHUNK) {
       const slice = inviteeIds.slice(i, i + CHUNK)
       const ph = slice.map(() => '?').join(',')
-      for (const row of db.prepare(`SELECT user_id, first_chip_at FROM user_facts WHERE user_id IN (${ph})`).all(...slice)) {
+      for (const row of db.prepare(`
+        SELECT user_id, first_chip_at FROM user_facts WHERE user_id IN (${ph})
+      `).all(...slice)) {
         firstChipByUser.set(row.user_id, row.first_chip_at)
       }
-      for (const row of db.prepare(`
-        SELECT user_id, client_ts FROM events
-        WHERE event_name = 'chip_analysis_viewed' AND user_id IN (${ph}) AND client_ts <= ?
-        ORDER BY client_ts ASC
-      `).all(...slice, asOf)) {
-        if (!chipsByUser.has(row.user_id)) chipsByUser.set(row.user_id, [])
-        chipsByUser.get(row.user_id).push(row.client_ts)
-      }
+    }
+
+    // Only chips that could activate someone bound in this period:
+    // [startAt, min(endAt + 7d, asOf)]
+    const chipStart = startAt
+    const chipEnd = Math.min(endAt + ACTIVATION_WINDOW_MS, asOf) + 1
+    const chipRows = db.prepare(`
+      SELECT user_id, client_ts FROM events
+      WHERE event_name = 'chip_analysis_viewed'
+        AND client_ts >= ? AND client_ts < ?
+        AND user_id IS NOT NULL
+    `).all(chipStart, chipEnd)
+    for (const row of chipRows) {
+      if (!inviteeSet.has(row.user_id)) continue
+      if (!chipsByUser.has(row.user_id)) chipsByUser.set(row.user_id, [])
+      chipsByUser.get(row.user_id).push(row.client_ts)
     }
   }
 
