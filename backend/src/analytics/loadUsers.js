@@ -89,48 +89,50 @@ function loadFactsByUserIds(userIds) {
 }
 
 /**
- * Load events for userIds, optionally limited to raw names and/or time range.
- * If endExtraMs is set, load events until end+endExtraMs (funnel conversion window).
+ * Load events for userIds.
+ * Strategy: scan by (event_name, client_ts) using idx_events_name_ts, filter by user set in JS.
+ * This beats huge `user_id IN (...)` plans on multi-million event tables.
  */
 function loadEventsForUsers(userIds, { types, start = null, end = null, endExtraMs = 0, asOf = Infinity } = {}) {
   if (!userIds.length) return new Map()
   const byUser = new Map(userIds.map(id => [id, []]))
+  const userSet = new Set(userIds)
   const raws = types ? rawNamesForTypes(types) : null
-  const CHUNK = 400
-  for (let i = 0; i < userIds.length; i += CHUNK) {
-    const slice = userIds.slice(i, i + CHUNK)
-    const ph = slice.map(() => '?').join(',')
-    const where = [`user_id IN (${ph})`]
-    const params = [...slice]
-    if (raws) {
-      where.push(`event_name IN (${raws.map(() => '?').join(',')})`)
-      params.push(...raws)
-    }
-    if (Number.isFinite(start)) { where.push('client_ts >= ?'); params.push(start) }
-    if (Number.isFinite(end)) {
-      const until = end + (Number(endExtraMs) || 0)
-      where.push('client_ts < ?'); params.push(until)
-    }
-    if (Number.isFinite(asOf) && asOf !== Infinity) { where.push('client_ts <= ?'); params.push(asOf) }
+  const typeSet = types ? new Set(types) : null
+  if (!raws?.length) return byUser
 
-    const rows = db.prepare(`
-      SELECT event_id, event_name, user_id, client_ts, session_id, first_entry_source, chain, properties
-      FROM events
-      WHERE ${where.join(' AND ')}
-      ORDER BY client_ts ASC
-    `).all(...params)
+  const rangeStart = Number.isFinite(start) ? start : 0
+  let rangeEnd = Number.isFinite(end) ? end + (Number(endExtraMs) || 0) : Number.MAX_SAFE_INTEGER
+  if (Number.isFinite(asOf) && asOf !== Infinity) rangeEnd = Math.min(rangeEnd, asOf + 1)
 
+  // Only pull JSON fields when the event type needs them.
+  const needsProps = new Set([
+    'module_viewed', 'strategy_started', 'strategy_result_generated',
+    'signal_viewed', 'strategy_signal_viewed',
+    'ranking_token_clicked', 'token_opened', 'token_detail_viewed',
+    'chip_analysis_viewed', 'trade_submitted', 'trade_succeeded', 'trade_failed',
+  ])
+
+  const stmtPlain = db.prepare(`
+    SELECT event_id, event_name, user_id, client_ts, session_id, first_entry_source, chain
+    FROM events
+    WHERE event_name = ? AND client_ts >= ? AND client_ts < ?
+  `)
+  const stmtProps = db.prepare(`
+    SELECT event_id, event_name, user_id, client_ts, session_id, first_entry_source, chain, properties
+    FROM events
+    WHERE event_name = ? AND client_ts >= ? AND client_ts < ?
+  `)
+
+  for (const raw of raws) {
+    const rows = (needsProps.has(raw) ? stmtProps : stmtPlain).all(raw, rangeStart, rangeEnd)
     for (const row of rows) {
-      const props = parseProps(row.properties)
+      if (!userSet.has(row.user_id)) continue
+      const props = row.properties != null ? parseProps(row.properties) : {}
       const type = internalType(row.event_name, props)
       if (!type) continue
-      if (types && !types.includes(type) && !(MODULES.has(type) && types.includes(type))) {
-        // module types may be requested explicitly
-        if (!types.includes(type)) continue
-      }
-      const list = byUser.get(row.user_id)
-      if (!list) continue
-      list.push({
+      if (typeSet && !typeSet.has(type)) continue
+      byUser.get(row.user_id).push({
         type,
         t: row.client_ts,
         entry_source: row.first_entry_source ?? props.first_entry_source ?? null,
@@ -149,6 +151,7 @@ function loadEventsForUsers(userIds, { types, start = null, end = null, endExtra
       })
     }
   }
+  for (const list of byUser.values()) list.sort((a, b) => a.t - b.t)
   return byUser
 }
 

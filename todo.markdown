@@ -99,7 +99,11 @@
 - [x] P2-04 大数据量（Phase 0/A/B 仓库部分完成）：`user_facts` + `user_features` + `daily_*` rollup；`GET /api/analytics/meta`；全量事件 >100k 返回 413；`/api/metrics/{north-star,channels,trades,funnel,retention,segments,referral}` + `/api/drill/{users,timeline}`（含 cached_list 同口径下钻）；frontend `backend-agg` 启动只拉 meta。造数支持流式 `npm run generate:data:2m` + `npm run rebuild:rollups`。剩余见下方 P2-04 续项。
 - [x] P2-04a 行为路径（Phase C）：`POST /api/metrics/paths`（≤14 天）；nodes/links/path_key；cached_list 下钻；`pathsAgg` 接入。25 万库冒烟：15264 会话 / 4867 用户 / ~4.2s；>14 天返回 400。
 - [x] P2-04b 人群对比交叉下钻（Phase C 部分）：`POST /api/metrics/comparison` 概览计数 + cached_list 下钻；`POST /api/metrics/comparison/funnel` 分组漏斗；`panelAgg` 挂到 `segmentsAgg`。留存/趋势视图仍待补。
-- [ ] P2-04c 2M 压测验收：`USERS=50000 TARGET_EVENTS=2000000 npm run generate:data:2m`；记录耗时、DB 体积、rollup 行数；北极星/渠道/交易 <1s，漏斗/留存 14 天 <3s；Chrome 堆不随事件数线性涨；误调无窗 raw → 413。
+- [ ] P2-04c 2M 压测验收：造数/413/内存已通过；rollup 页与留存已达标；漏斗/路径/推荐仍超 3s（见记录）。
+  - 造数：`generate:data:2m` → 2,000,004 事件 / 50k 用户 / DB 1003.7MB / 381s + rollup 38.5s。
+  - 防护：meta `aggregated`；无窗 raw → 413；浏览器 `usersLen=0`、JS heap ~14.5MB。
+  - 已达标（优化后）：north 14d 153ms、channels 15ms、trades 3ms、segments 363ms、comparison 923ms、retention 14d **2.5s**。
+  - 仍超：funnel 14d **6.8s**（原 87s）、paths 14d **10.2s**（原 157s）、referral **5.2s**。`loadEventsForUsers` 已改为按 `event_name+client_ts` 索引扫描。后续可对 paths 默认 7 天或加路径日聚合。
 - [ ] P2-04d 口径金样：同一中小数据集（现有 JSON 或 ≤20 万库）对照 frontend `compute*` oracle 与 `/api/metrics`；覆盖 north/funnel/retention/channels/trades/segments/referral；允许排序无关差异，数字与名单同口径。
 - [ ] P2-04e 契约与降级补齐：更新 `frontend/docs/API_DATA_CONTRACT.md` 写明聚合/分页/413；推荐页分享点击漏斗、交易监控 failure-reason 明细、agg 模式从远程名单冻 audience 再分析等降级项按需补。
 - [ ] P2-05 保存人群：可复用固定快照或动态规则，明确刷新、版本、权限和删除；不混淆两种人群。
@@ -136,5 +140,7 @@
 | 2026-10-08 | P2-04 Phase 0/A/B | SQLite 事实表+rollup；meta/413；metrics 北极星/渠道/交易/漏斗/留存/分群/推荐；drill 分页与 cached_list；frontend backend-agg 与 *Agg 页面；流式造数与 rebuild:rollups。25 万库冒烟：漏斗~2.8s、留存~1.1s、分群~80ms；vitest 121、build 通过 | 下一仓库任务 P2-04a 行为路径；并行可做 P2-04c 2M 压测或 P2-04d 口径金样 |
 | 2026-10-08 | P2-04a 行为路径 | paths 服务端聚合 + pathsAgg；≤14 天硬限制；Sankey/常见路径/边下钻。浏览器冒烟通过 | 下一：P2-04b 对比交叉，或 P2-04c 2M 压测 |
 | 2026-10-08 | P2-04b 对比交叉 | comparison overview/funnel API + panelAgg；下钻不分发 people[]。浏览器分群页可见对比控件 | 下一：P2-04c 2M 压测，或补对比留存/趋势 |
+| 2026-10-08 | P2-04c 部分 | 2M 造数成功；413/聚合启动/堆内存通过；north/channels/trades/segments/comparison <1s。funnel 87s、retention 27s、paths 157s 未达 <3s | 优化 loadNormalizedUsers 事件拉取；达标后勾选 P2-04c |
+| 2026-10-08 | P2-04c 加载优化 | `loadEventsForUsers` 改 name+ts 索引扫描；retention 2.5s 达标；funnel 6.8s、paths 10.2s | 路径默认短窗或日聚合；漏斗继续减载；然后勾选 |
 
 每完成一个编号：修改对应复选框，在此表记录改动文件、验证结果和剩余依赖。中断时写下最后完成步骤及下一条具体命令；不要把本文件所有未勾选项当作一次已完成交付。
