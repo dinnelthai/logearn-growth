@@ -92,8 +92,18 @@ function loadFactsByUserIds(userIds) {
  * Load events for userIds.
  * Strategy: scan by (event_name, client_ts) using idx_events_name_ts, filter by user set in JS.
  * This beats huge `user_id IN (...)` plans on multi-million event tables.
+ *
+ * @param {'full'|'light'} [opts.detail='full']
+ *   light = skip properties JSON except module_viewed / strategy_started (enough for user-order funnel)
  */
-function loadEventsForUsers(userIds, { types, start = null, end = null, endExtraMs = 0, asOf = Infinity } = {}) {
+function loadEventsForUsers(userIds, {
+  types,
+  start = null,
+  end = null,
+  endExtraMs = 0,
+  asOf = Infinity,
+  detail = 'full',
+} = {}) {
   if (!userIds.length) return new Map()
   const byUser = new Map(userIds.map(id => [id, []]))
   const userSet = new Set(userIds)
@@ -105,13 +115,15 @@ function loadEventsForUsers(userIds, { types, start = null, end = null, endExtra
   let rangeEnd = Number.isFinite(end) ? end + (Number(endExtraMs) || 0) : Number.MAX_SAFE_INTEGER
   if (Number.isFinite(asOf) && asOf !== Infinity) rangeEnd = Math.min(rangeEnd, asOf + 1)
 
-  // Only pull JSON fields when the event type needs them.
-  const needsProps = new Set([
-    'module_viewed', 'strategy_started', 'strategy_result_generated',
-    'signal_viewed', 'strategy_signal_viewed',
-    'ranking_token_clicked', 'token_opened', 'token_detail_viewed',
-    'chip_analysis_viewed', 'trade_submitted', 'trade_succeeded', 'trade_failed',
-  ])
+  const needsProps = detail === 'light'
+    ? new Set(['module_viewed', 'strategy_started'])
+    : new Set([
+      'module_viewed', 'strategy_started', 'strategy_result_generated',
+      'signal_viewed', 'strategy_signal_viewed',
+      'ranking_token_clicked', 'token_opened', 'token_detail_viewed',
+      'chip_analysis_viewed', 'chip_analysis_drilldown',
+      'trade_submitted', 'trade_succeeded', 'trade_failed',
+    ])
 
   const stmtPlain = db.prepare(`
     SELECT event_id, event_name, user_id, client_ts, session_id, first_entry_source, chain
@@ -169,6 +181,7 @@ function loadNormalizedUsers({
   endExtraMs = 0,
   /** Pull events this many ms before `start` (session continuity); candidates still use `start`. */
   eventStartPadMs = 0,
+  detail = 'full',
   /** If true, candidates = all logearn_users (optionally audience), not event-window based */
   allUsers = false,
 }) {
@@ -203,6 +216,7 @@ function loadNormalizedUsers({
     end,
     endExtraMs,
     asOf,
+    detail,
   })
 
   // For retention/funnel, also need history before start for firstEvent — load first_chip from facts

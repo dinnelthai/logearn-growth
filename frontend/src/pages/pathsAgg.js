@@ -50,8 +50,8 @@ export function createPathsAggPage(ctx) {
     const reqId = ++inflight
     clearNative()
     const rangeDays = Math.ceil((c.end - c.start) / day)
-    if (rangeDays > 14) {
-      $('#as-output').innerHTML = `<div class="a-card a-details"><h2>行为路径 · 请缩小窗口</h2><p>聚合模式仅支持 ≤14 天统计期（当前 ${rangeDays} 天）。请改用近 7 / 14 天后再运行。</p></div>`
+    if (rangeDays > 7) {
+      $('#as-output').innerHTML = `<div class="a-card a-details"><h2>行为路径 · 请缩小窗口</h2><p>聚合模式默认仅支持 ≤7 天统计期（当前 ${rangeDays} 天），以避免大规模会话展开过慢。请改用近 7 天后再运行。</p></div>`
       return
     }
 
@@ -105,7 +105,7 @@ export function createPathsAggPage(ctx) {
         )}
       </div>
       <details class="a-card a-details"><summary>路径统计口径</summary>
-        <p>聚合模式强制 ≤14 天。优先 session_id；缺失时 30 分钟无操作拆分。展示上限外折叠，窗口外为截止，近 30 分钟结束为仍在观察。</p>
+        <p>聚合模式默认强制 ≤7 天。优先 session_id；缺失时 30 分钟无操作拆分。展示上限外折叠，窗口外为截止，近 30 分钟结束为仍在观察。</p>
       </details>`
 
     $$('[data-path-key]').forEach(b => {

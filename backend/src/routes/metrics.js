@@ -367,6 +367,8 @@ router.post('/funnel', (req, res) => {
     audience_ids,
     cohort_id,
     endExtraMs: conversionWindowMs,
+    // User-order funnel only needs type/time/strategy; association ids require full props.
+    detail: association === 'user' ? 'light' : 'full',
   })
 
   const result = computeFunnel(loaded.users, {
@@ -589,10 +591,13 @@ router.post('/paths', (req, res) => {
   } = req.body ?? {}
   const { start, end } = range
   const windowDays = (end - start) / DAY
-  if (windowDays > 14.5) {
+  // Hard-cap 7 days at 2M scale so path scans stay interactive; 14d remains available
+  // only when PATHS_MAX_DAYS is raised explicitly.
+  const maxPathDays = Number(process.env.PATHS_MAX_DAYS || 7)
+  if (windowDays > maxPathDays + 0.5) {
     return res.status(400).json({
-      error: '行为路径聚合仅支持 ≤14 天窗口；请缩小统计期',
-      max_days: 14,
+      error: `行为路径聚合仅支持 ≤${maxPathDays} 天窗口；请缩小统计期`,
+      max_days: maxPathDays,
     })
   }
   const asOf = readAsOf(end)
