@@ -57,3 +57,15 @@ export function fetchReferralMetrics({ start, end, source = 'all' }) {
   if (source && source !== 'all') qs.set('source', source)
   return metricsFetch(`/api/metrics/referral?${qs}`)
 }
+
+export function fetchPathsMetrics(body) {
+  return metricsFetch('/api/metrics/paths', { method: 'POST', body: JSON.stringify(body) })
+}
+
+export function fetchComparisonMetrics(body) {
+  return metricsFetch('/api/metrics/comparison', { method: 'POST', body: JSON.stringify(body) })
+}
+
+export function fetchComparisonFunnelMetrics(body) {
+  return metricsFetch('/api/metrics/comparison/funnel', { method: 'POST', body: JSON.stringify(body) })
+}

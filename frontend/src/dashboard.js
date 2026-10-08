@@ -9,6 +9,7 @@ import {createRetentionPage} from './pages/retention.js';
 import {createTradeMonitorPage} from './pages/tradeMonitor.js';
 import {createTradeMonitorAggPage} from './pages/tradeMonitorAgg.js';
 import {createPathsPage} from './pages/paths.js';
+import {createPathsAggPage} from './pages/pathsAgg.js';
 import {createChannelsAggPage} from './pages/channelsAgg.js';
 import {createFunnelAggPage} from './pages/funnelAgg.js';
 import {createRetentionAggPage} from './pages/retentionAgg.js';
@@ -43,12 +44,6 @@ $('[data-mode="value"]').hidden=true;
 if(!Array.isArray(dataStore.channelRules))$('[data-mode="channels"]').hidden=true;
 if(!isAgg){
   if(!Array.isArray(dataStore.referrals)&&!(dataStore.users||[]).some(u=>u.events.some(e=>['share_click','share_complete','invite_visit'].includes(e.type))))$('[data-mode="referral"]').hidden=true;
-} else {
-  // Phase C still pending: paths.
-  ;['paths'].forEach(m=>{
-    const btn=root.querySelector(`[data-mode="${m}"]`);
-    if(btn){btn.title='聚合模式下本页尚未迁移到 /api/metrics';}
-  });
 }
 const eventCount=isAgg
   ?(dataStore.meta.eventCount||0)
@@ -61,7 +56,7 @@ $('#as-data-badge').textContent=dataStore.meta.source==='json'
     ?`后端数据 · ${Number(eventCount).toLocaleString('en-US')} 事件`
     :'接口数据';
 $('#as-data-status').textContent=dataStore.meta.source==='backend-agg'
-  ?`服务端聚合模式：浏览器不加载明细事件。北极星 / 渠道 / 交易 / 漏斗 / 留存 / 分群 / 推荐走 /api/metrics；下钻走 /api/drill。行为路径待 Phase C。`
+  ?`服务端聚合模式：浏览器不加载明细事件。北极星 / 渠道 / 交易 / 漏斗 / 留存 / 分群 / 推荐 / 行为路径 / 人群对比走 /api/metrics；下钻走 /api/drill。对比留存/趋势视图仍待补齐。`
   :dataStore.meta.source==='backend'
   ?`数据来自本地 SQLite（/api/analytics），共 ${Number(eventCount).toLocaleString('en-US')} 条已归一化事件；未提供的数据模块不展示。`
   :'所有展示指标仅由已加载的事实数据计算；未提供的数据模块不展示。';
@@ -136,8 +131,8 @@ function drawPaths(c){pages.paths.draw(c)}
 
 function pageTitle(){return mode==='north'?'北极星指标 · 有效分析用户':mode==='channels'?'渠道分析':mode==='paths'?'行为路径分析':mode==='funnel'?'用户激活漏斗':mode==='retention'?'有效分析留存':mode==='referral'?'推荐与增长循环':mode==='value'?'价值闭环':mode==='trade-monitor'?'交易成功率监控':'用户分群分析'}
 function pageSub(){return mode==='north'?'有多少用户真正获得了筹码分析的价值':mode==='channels'?'用户从哪里来，哪些渠道真正带来留存、交易和付费':mode==='paths'?'用户先做什么、接着去哪，以及在哪里结束观察':mode==='funnel'?'从登录、Token详情、AI策略到有效分析，定位转化损失':mode==='retention'?'从首次使用到持续回访，比较各批次表现':mode==='referral'?'每个有效分析用户能否持续带来新的有效分析用户':mode==='value'?'看完筹码分析后，是否真的发生了交易和价值':mode==='trade-monitor'?'基于 trade_submitted / trade_succeeded / trade_failed 事件，实时监控交易成功率':'哪些用户的需求与表现不同，谁更容易交易和付费'}
-function unsupportedAgg(label){clearNative();$('#as-output').innerHTML=`<div class="a-card a-details"><h2>${esc(label)} · 聚合模式待迁移</h2><p>当前数据量已启用服务端聚合。本页将在后续 Phase 接入 <code>/api/metrics</code>；在此之前不加载明细、也不显示假零。</p><p class="a-muted">已支持：北极星、渠道、交易、漏斗、留存、分群、推荐。</p></div>`}
-function run(){users=audienceUsers(allUsers,audience,mode);renderAudience();northDefinition();current=config();renderCoverage(current);dirty=false;$('#as-run').textContent='运行分析';$('#as-stale').hidden=true;$('#as-dirty').textContent='已应用当前配置';closeDrill();if(isAgg&&!['north','channels','trade-monitor','funnel','retention','segments','referral'].includes(mode)){unsupportedAgg(pageTitle());return}if(!isMock&&!isAgg&&!Array.isArray(dataStore.trades)&&((mode==='funnel'&&current.steps.includes('trade'))||(mode==='retention'&&[current.initial,current.returning].includes('trade')))){clearNative();$('#as-output').innerHTML='<div class="a-card a-details"><h2>交易数据待获取</h2><p>当前分析包含交易步骤，需先取得交易数据。</p></div>';return}mode==='north'?drawNorth(current):mode==='channels'?drawChannels(current):mode==='paths'?drawPaths(current):mode==='funnel'?drawFunnel(current):mode==='retention'?drawRetention(current):mode==='referral'?drawReferral(current):mode==='value'?drawValueLoop(current):mode==='trade-monitor'?drawTradeMonitor(current):drawSegments(current)}
+function unsupportedAgg(label){clearNative();$('#as-output').innerHTML=`<div class="a-card a-details"><h2>${esc(label)} · 聚合模式待迁移</h2><p>当前数据量已启用服务端聚合。本页将在后续 Phase 接入 <code>/api/metrics</code>；在此之前不加载明细、也不显示假零。</p><p class="a-muted">已支持：北极星、渠道、交易、漏斗、留存、分群、推荐、行为路径。</p></div>`}
+function run(){users=audienceUsers(allUsers,audience,mode);renderAudience();northDefinition();current=config();renderCoverage(current);dirty=false;$('#as-run').textContent='运行分析';$('#as-stale').hidden=true;$('#as-dirty').textContent='已应用当前配置';closeDrill();if(isAgg&&!['north','channels','trade-monitor','funnel','retention','segments','referral','paths'].includes(mode)){unsupportedAgg(pageTitle());return}if(!isMock&&!isAgg&&!Array.isArray(dataStore.trades)&&((mode==='funnel'&&current.steps.includes('trade'))||(mode==='retention'&&[current.initial,current.returning].includes('trade')))){clearNative();$('#as-output').innerHTML='<div class="a-card a-details"><h2>交易数据待获取</h2><p>当前分析包含交易步骤，需先取得交易数据。</p></div>';return}mode==='north'?drawNorth(current):mode==='channels'?drawChannels(current):mode==='paths'?drawPaths(current):mode==='funnel'?drawFunnel(current):mode==='retention'?drawRetention(current):mode==='referral'?drawReferral(current):mode==='value'?drawValueLoop(current):mode==='trade-monitor'?drawTradeMonitor(current):drawSegments(current)}
 function navigate(nextMode){mode=nextMode;$$('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.mode===mode));$$('.a-nav-parent').forEach(p=>{const active=p.nextElementSibling?.querySelector(`[data-mode="${mode}"]`);p.classList.toggle('is-active',!!active);if(active)active.classList.add('is-active');});$('#as-title').textContent=pageTitle();$('#as-sub').textContent=pageSub();renderSteps();run()}
 const pageContext={dataStore,usersById,drawer,userButton,userTimeline,isMock,isAgg,setPeriod:value=>{$('#as-range').value=value;run()},getAudiencePeriod:()=>audience&&AUDIENCE_MODES.has(mode)?{startAt:audience.start,endAt:audience.end}:null,root,$,$$,names,day,base,asof,date,clock,daynum,esc,fmt,pct,table,stat,drill,closeDrill,themeMedia,getUsers:()=>users,getTradeQuality:()=>dataStore.tradeQuality,getCoverage:()=>coverage,historyComplete:dataStore.meta.historyComplete,clear:clearNative};
 const pages={
@@ -146,7 +141,7 @@ const pages={
   funnel:isAgg?createFunnelAggPage(pageContext):createFunnelPage(pageContext),
   referral:isAgg?createReferralAggPage(pageContext):createReferralPage(pageContext),
   segments:isAgg?createSegmentsAggPage(pageContext):createSegmentsPage(pageContext),
-  paths:createPathsPage(pageContext),
+  paths:isAgg?createPathsAggPage(pageContext):createPathsPage(pageContext),
   tradeMonitor:isAgg?createTradeMonitorAggPage(pageContext):createTradeMonitorPage(pageContext),
   retention:isAgg?createRetentionAggPage(pageContext):createRetentionPage(pageContext),
 };

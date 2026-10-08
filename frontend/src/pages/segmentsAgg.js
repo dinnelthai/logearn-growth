@@ -1,10 +1,12 @@
 import { fetchSegmentsMetrics } from '../api/metrics.js'
 import { fetchDrillUsers, fetchUserTimeline } from '../api/drill.js'
+import { mountComparisonAgg } from '../comparison/panelAgg.js'
 
 export function createSegmentsAggPage(ctx) {
-  const { $, esc, fmt, pct, table, stat, drawer, asof, clock } = ctx
+  const { $, esc, fmt, pct, table, stat, drawer, asof, clock, date, names } = ctx
   const clearNative = ctx.clear
   let inflight = 0
+  let comparisonCleanup = null
 
   function openCached(title, cacheId, listKey) {
     if (!cacheId) return
@@ -30,6 +32,10 @@ export function createSegmentsAggPage(ctx) {
 
   async function draw(c) {
     const reqId = ++inflight
+    if (comparisonCleanup) {
+      comparisonCleanup()
+      comparisonCleanup = null
+    }
     clearNative()
     $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted">正在从 /api/metrics/segments 加载…</p></div>'
     let metrics
@@ -69,12 +75,32 @@ export function createSegmentsAggPage(ctx) {
           ]),
         )}
       </div>
-      <p class="a-muted">分类基于 rollup 的 user_features（近 28 天 chip 天数、回流间隔、策略数等），与明细 classifyUser 口径对齐。</p>`
+      <div id="as-compare-agg-mount"></div>
+      <p class="a-muted">分类基于 rollup 的 user_features；下方人群对比走 /api/metrics/comparison，下钻分页。</p>`
 
     $('#as-output').querySelectorAll('[data-seg]').forEach(b => {
       b.onclick = () => openCached(b.dataset.seg, cacheId, b.dataset.seg)
     })
+
+    const compareHost = $('#as-compare-agg-mount')
+    comparisonCleanup = mountComparisonAgg(compareHost, {
+      asOf: asof,
+      drawer,
+      names,
+      date,
+      audienceIds: c.audienceIds || null,
+      cohortId: c.cohortId || null,
+      lockedPeriod: ctx.getAudiencePeriod?.() || null,
+    })
   }
 
-  return { draw, dispose() {} }
+  return {
+    draw,
+    dispose() {
+      if (comparisonCleanup) {
+        comparisonCleanup()
+        comparisonCleanup = null
+      }
+    },
+  }
 }

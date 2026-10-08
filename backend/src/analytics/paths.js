@@ -1,0 +1,117 @@
+/** Port of frontend/src/analytics/paths.js — returns aggregates without embedding user objects. */
+const IDLE_MS = 30 * 60000
+
+function computePaths(users, { startAt, endAt, asOf, startEvent = 'all', maxSteps = 5, sourceFilter = 'all', typeSet }) {
+  const TYPES = typeSet || new Set(users.flatMap(u => u.events.map(e => e.type)))
+  const sessions = []
+  for (const user of users) {
+    if (sourceFilter !== 'all' && user.source !== sourceFilter) continue
+    const events = user.events
+      .filter(e => TYPES.has(e.type) && e.type !== 'strategy_heartbeat' && Number.isFinite(e.t) && e.t <= asOf)
+      .slice()
+      .sort((a, b) => a.t - b.t)
+    const groups = new Map()
+    let fallback = null
+    let lastFallback = -Infinity
+    let index = 0
+    for (const event of events) {
+      let key
+      if (event.session_id) key = 'session:' + event.session_id
+      else {
+        if (!fallback || event.t - lastFallback >= IDLE_MS) fallback = 'inferred:' + index++
+        key = fallback
+        lastFallback = event.t
+      }
+      if (!groups.has(key)) groups.set(key, [])
+      groups.get(key).push(event)
+    }
+    for (const [key, group] of groups) {
+      const start = startEvent === 'all' ? 0 : group.findIndex(e => e.type === startEvent)
+      if (start < 0 || group[start].t < startAt || group[start].t >= endAt) continue
+      const available = group.slice(start).filter(e => e.t < endAt)
+      const compact = []
+      for (const event of available) if (compact.at(-1)?.type !== event.type) compact.push(event)
+      if (!compact.length) continue
+      const visible = compact.slice(0, maxSteps)
+      const terminal = compact.length > maxSteps
+        ? 'more'
+        : group.some(e => e.t >= endAt)
+          ? 'boundary'
+          : asOf - available.at(-1).t < IDLE_MS
+            ? 'pending'
+            : 'end'
+      sessions.push({
+        userId: user.id,
+        key: user.id + ':' + key,
+        types: visible.map(e => e.type),
+        terminal,
+        inferred: key.startsWith('inferred:'),
+      })
+    }
+  }
+
+  const paths = new Map()
+  const links = new Map()
+  const nodes = new Map()
+  for (const session of sessions) {
+    const pathKey = JSON.stringify([session.types, session.terminal])
+    if (!paths.has(pathKey)) paths.set(pathKey, { path_key: pathKey, types: session.types, terminal: session.terminal, userIds: [], sessionKeys: [] })
+    const p = paths.get(pathKey)
+    p.userIds.push(session.userId)
+    p.sessionKeys.push(session.key)
+
+    const sequence = [...session.types, session.terminal].map((type, stage) => ({ name: stage + ':' + type, type, stage }))
+    for (const node of sequence) if (!nodes.has(node.name)) nodes.set(node.name, node)
+    for (let i = 0; i < sequence.length - 1; i++) {
+      const source = sequence[i].name
+      const target = sequence[i + 1].name
+      const k = source + '>' + target
+      if (!links.has(k)) links.set(k, { link_key: k, source, target, value: 0, userIds: [], sessionKeys: [] })
+      const link = links.get(k)
+      link.value++
+      link.userIds.push(session.userId)
+      link.sessionKeys.push(session.key)
+    }
+  }
+
+  const ranked = [...paths.values()]
+    .map(p => ({
+      path_key: p.path_key,
+      types: p.types,
+      terminal: p.terminal,
+      sessions: p.sessionKeys.length,
+      users: new Set(p.userIds).size,
+      user_ids: [...new Set(p.userIds)],
+    }))
+    .sort((a, b) => b.sessions - a.sessions)
+
+  const linkList = [...links.values()].map(l => ({
+    link_key: l.link_key,
+    source: l.source,
+    target: l.target,
+    value: l.value,
+    user_ids: [...new Set(l.userIds)],
+  }))
+
+  const nodeList = [...nodes.values()].map(node => ({
+    ...node,
+    value: Math.max(
+      linkList.filter(l => l.source === node.name).reduce((n, l) => n + l.value, 0),
+      linkList.filter(l => l.target === node.name).reduce((n, l) => n + l.value, 0),
+    ),
+  }))
+
+  return {
+    sessions: sessions.length,
+    users: new Set(sessions.map(r => r.userId)).size,
+    inferred_sessions: sessions.filter(r => r.inferred).length,
+    average_steps: sessions.length
+      ? sessions.reduce((n, r) => n + r.types.length, 0) / sessions.length
+      : 0,
+    paths: ranked,
+    nodes: nodeList,
+    links: linkList,
+  }
+}
+
+module.exports = { computePaths, IDLE_MS }

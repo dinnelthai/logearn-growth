@@ -164,6 +164,8 @@ function loadNormalizedUsers({
   audience_ids = null,
   cohort_id = null,
   endExtraMs = 0,
+  /** Pull events this many ms before `start` (session continuity); candidates still use `start`. */
+  eventStartPadMs = 0,
   /** If true, candidates = all logearn_users (optionally audience), not event-window based */
   allUsers = false,
 }) {
@@ -189,9 +191,12 @@ function loadNormalizedUsers({
   if (truncated) userIds = userIds.slice(0, MAX_CANDIDATES)
 
   const facts = loadFactsByUserIds(userIds)
+  const eventStart = allUsers
+    ? null
+    : (Number.isFinite(start) ? start - Math.max(0, Number(eventStartPadMs) || 0) : start)
   const eventsByUser = loadEventsForUsers(userIds, {
     types,
-    start: allUsers ? null : start,
+    start: eventStart,
     end,
     endExtraMs,
     asOf,

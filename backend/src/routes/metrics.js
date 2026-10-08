@@ -576,4 +576,172 @@ router.get('/referral', (req, res) => {
   })
 })
 
+/** POST /api/metrics/paths — Phase C behavior paths / Sankey */
+router.post('/paths', (req, res) => {
+  const range = parseBodyRange(req.body)
+  if (range.error) return res.status(400).json({ error: range.error })
+  const {
+    path_start: pathStart = 'all',
+    path_depth: pathDepth = 5,
+    source = 'all',
+    audience_ids = null,
+    cohort_id = null,
+  } = req.body ?? {}
+  const { start, end } = range
+  const windowDays = (end - start) / DAY
+  if (windowDays > 14.5) {
+    return res.status(400).json({
+      error: '行为路径聚合仅支持 ≤14 天窗口；请缩小统计期',
+      max_days: 14,
+    })
+  }
+  const asOf = readAsOf(end)
+  const maxSteps = Math.min(7, Math.max(3, Number(pathDepth) || 5))
+  const { PATH_TYPES } = require('../analytics/eventMap')
+  const { computePaths } = require('../analytics/paths')
+
+  const { IDLE_MS } = require('../analytics/paths')
+  const loaded = loadNormalizedUsers({
+    types: PATH_TYPES,
+    start,
+    end,
+    asOf,
+    source,
+    audience_ids,
+    cohort_id,
+    eventStartPadMs: IDLE_MS,
+  })
+
+  const result = computePaths(loaded.users, {
+    startAt: start,
+    endAt: end,
+    asOf,
+    startEvent: pathStart || 'all',
+    maxSteps,
+    sourceFilter: source || 'all',
+    typeSet: new Set(PATH_TYPES),
+  })
+
+  const lists = {}
+  for (const p of result.paths) {
+    lists[`path:${p.path_key}`] = p.user_ids
+  }
+  for (const l of result.links) {
+    lists[`link:${l.link_key}`] = l.user_ids
+  }
+  const cache_id = cachePut({
+    kind: 'paths',
+    lists,
+    meta: { start, end, pathStart, maxSteps, source },
+  })
+
+  // Strip user_ids from public payload — drill via cache
+  res.json({
+    sessions: result.sessions,
+    users: result.users,
+    inferred_sessions: result.inferred_sessions,
+    average_steps: result.average_steps,
+    paths: result.paths.slice(0, 50).map(({ user_ids, ...rest }) => rest),
+    nodes: result.nodes,
+    links: result.links.map(({ user_ids, ...rest }) => rest),
+    truncated: loaded.truncated,
+    candidate_count: loaded.candidate_count,
+    coverage: coverageFor(start, end),
+    drill: { cache_id },
+  })
+})
+
+/** POST /api/metrics/comparison — overview crowd comparison (counts + drill lists) */
+router.post('/comparison', (req, res) => {
+  const range = parseBodyRange(req.body)
+  if (range.error) return res.status(400).json({ error: range.error })
+  const {
+    dimension = 'language',
+    filters = {},
+    audience_ids = null,
+    cohort_id = null,
+  } = req.body ?? {}
+  const { start, end } = range
+  const asOf = readAsOf(end)
+  try {
+    const { computeComparisonOverview, DIMENSIONS } = require('../analytics/comparison')
+    if (!Object.hasOwn(DIMENSIONS, dimension)) {
+      return res.status(400).json({ error: '未知对比维度' })
+    }
+    const result = computeComparisonOverview({
+      startAt: start,
+      endAt: end,
+      asOf,
+      dimension,
+      filters,
+      audience_ids,
+      cohort_id,
+    })
+    const cache_id = cachePut({
+      kind: 'comparison',
+      lists: result.lists,
+      meta: { start, end, dimension, filters },
+    })
+    res.json({
+      dimension,
+      filters,
+      pool_size: result.pool_size,
+      retention_allowed: result.retentionAllowed,
+      rows: result.rows,
+      coverage: coverageFor(start, end),
+      drill: { cache_id },
+    })
+  } catch (err) {
+    res.status(400).json({ error: err.message || String(err) })
+  }
+})
+
+/** POST /api/metrics/comparison/funnel — per-group funnel counts */
+router.post('/comparison/funnel', (req, res) => {
+  const range = parseBodyRange(req.body)
+  if (range.error) return res.status(400).json({ error: range.error })
+  const {
+    dimension = 'language',
+    filters = {},
+    preset = 'analysis',
+    hours = 24,
+    association,
+    audience_ids = null,
+    cohort_id = null,
+  } = req.body ?? {}
+  const { start, end } = range
+  const asOf = readAsOf(end)
+  try {
+    const { computeComparisonFunnels, FUNNELS } = require('../analytics/comparison')
+    if (!Object.hasOwn(FUNNELS, preset)) {
+      return res.status(400).json({ error: '未知漏斗预设' })
+    }
+    const result = computeComparisonFunnels({
+      startAt: start,
+      endAt: end,
+      asOf,
+      dimension,
+      filters,
+      preset,
+      hours,
+      association,
+      audience_ids,
+      cohort_id,
+    })
+    const cache_id = cachePut({
+      kind: 'comparison_funnel',
+      lists: result.lists,
+      meta: { start, end, dimension, preset },
+    })
+    const { lists, ...publicResult } = result
+    res.json({
+      ...publicResult,
+      coverage: coverageFor(start, end),
+      drill: { cache_id },
+    })
+  } catch (err) {
+    res.status(400).json({ error: err.message || String(err) })
+  }
+})
+
 module.exports = router
