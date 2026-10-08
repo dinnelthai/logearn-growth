@@ -7,7 +7,10 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
-    "migrate": "node src/db/migrate.js"
+    "migrate": "node src/db/migrate.js",
+    "generate:data": "node src/db/generateBusinessData.js",
+    "generate:data:2m": "USERS=50000 TARGET_EVENTS=2000000 BATCH=200 node src/db/generateBusinessData.js",
+    "rebuild:rollups": "node src/db/rebuildRollups.js"
   },
   "dependencies": {
     "cors": "2.8.5",

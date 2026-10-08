@@ -4,9 +4,13 @@ const fs = require('fs')
 const path = require('path')
 const db = require('./db/connection')
 const seedAdmin = require('./db/seed')
+const seedMock = require('./db/seedMock')
 const authRouter = require('./routes/auth')
 const cohortsRouter = require('./routes/cohorts')
 const savedConfigsRouter = require('./routes/savedConfigs')
+const analyticsRouter = require('./routes/analytics')
+const metricsRouter = require('./routes/metrics')
+const drillRouter = require('./routes/drill')
 const requireAuth = require('./middleware/requireAuth')
 
 // Run migrations on startup
@@ -15,6 +19,8 @@ schema.split(';').map(s => s.trim()).filter(Boolean).forEach(stmt => db.exec(stm
 
 // Seed default admin if no users exist
 seedAdmin().catch(console.error)
+// Seed analytics mock facts (events / users / referrals / trades)
+try { seedMock() } catch (err) { console.error('seedMock failed:', err) }
 
 const app = express()
 
@@ -38,6 +44,10 @@ app.use('/api/auth', authRouter)
 // Protected routes
 app.use('/api/cohorts', requireAuth, cohortsRouter)
 app.use('/api/saved-configs', savedConfigsRouter)
+app.use('/api/events', requireAuth, analyticsRouter)
+app.use('/api/analytics', requireAuth, analyticsRouter)
+app.use('/api/metrics', requireAuth, metricsRouter)
+app.use('/api/drill', requireAuth, drillRouter)
 
 // 404
 app.use((req, res) => res.status(404).json({ error: '接口不存在' }))

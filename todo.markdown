@@ -96,7 +96,12 @@
 - [ ] P2-01 渠道精细归因：UTM 发布规范、平台与推广方式分离、KOL/社群/账号稳定 ID、币安广场专属证据、Bot/邀请链接验证。详见 todo.mkdown。
 - [ ] P2-02 渠道管理后端持久化：版本冲突、历史快照、权限和审计；JSON 模式继续只读；历史重算独立设计。
 - [ ] P2-03 渠道多维下钻：活动/素材/推广方式、未知来源排查、成熟留存对比。
-- [ ] P2-04 大数据量：评估数据规模后引入聚合 API、分页下钻、按需加载和性能基准；聚合数字与名单同口径。
+- [x] P2-04 大数据量（Phase 0/A/B 仓库部分完成）：`user_facts` + `user_features` + `daily_*` rollup；`GET /api/analytics/meta`；全量事件 >100k 返回 413；`/api/metrics/{north-star,channels,trades,funnel,retention,segments,referral}` + `/api/drill/{users,timeline}`（含 cached_list 同口径下钻）；frontend `backend-agg` 启动只拉 meta。造数支持流式 `npm run generate:data:2m` + `npm run rebuild:rollups`。剩余见下方 P2-04 续项。
+- [ ] P2-04a 行为路径（Phase C）：服务端路径/Sankey 聚合 API；默认短窗（7/14），全周期拒绝或明确降级；响应只含 nodes/links + path_key，不返回 session 用户对象；边/路径点击走 `/api/drill` 分页；frontend `pathsAgg` 接入 `backend-agg`。
+- [ ] P2-04b 人群对比交叉下钻（Phase C）：comparison 各 cell 指标服务端计算；每格下钻为独立 drill query；禁止响应挂全量 `people[]`；与主分群聚合页并存。
+- [ ] P2-04c 2M 压测验收：`USERS=50000 TARGET_EVENTS=2000000 npm run generate:data:2m`；记录耗时、DB 体积、rollup 行数；北极星/渠道/交易 <1s，漏斗/留存 14 天 <3s；Chrome 堆不随事件数线性涨；误调无窗 raw → 413。
+- [ ] P2-04d 口径金样：同一中小数据集（现有 JSON 或 ≤20 万库）对照 frontend `compute*` oracle 与 `/api/metrics`；覆盖 north/funnel/retention/channels/trades/segments/referral；允许排序无关差异，数字与名单同口径。
+- [ ] P2-04e 契约与降级补齐：更新 `frontend/docs/API_DATA_CONTRACT.md` 写明聚合/分页/413；推荐页分享点击漏斗、交易监控 failure-reason 明细、agg 模式从远程名单冻 audience 再分析等降级项按需补。
 - [ ] P2-05 保存人群：可复用固定快照或动态规则，明确刷新、版本、权限和删除；不混淆两种人群。
 - [ ] P2-06 按需加载 ECharts/页面/Mock，减少构建资源体积；先测量再优化。
 
@@ -128,5 +133,6 @@
 | 2026-10-06 | P1-04 完成 | inputQuality.js在身份映射前校验事件；冲突匿名保持独立、明确用户保留；事件/同源用户冲突隔离，推荐统一首次绑定及同时间冲突隔离；页面输入质量面板和状态提示。8条专项测试，全量24文件121测试、构建与浏览器通过；现有Mock 10233事件=9804接受+429超截止，北极星386不变；截图 /tmp/logearn-input-identity-quality.png | P1全部完成；进入P2-01渠道第二版可在仓库内做的字段/规则/下钻，链接验证与真实服务仍依赖后端。P0-03后端联调仍未完成；产品埋点接入已移出 Dashboard 范围 |
 
 | 2026-10-06 | 范围调整 | 按用户要求移除实际产品 SDK 接入、部署域名配置和采集 transport 联调待办；产品侧正在推进。保留仓库 SDK 实现记录与 Dashboard 数据接口联调 | 后续仅跟进 Dashboard 范围 |
+| 2026-10-08 | P2-04 Phase 0/A/B | SQLite 事实表+rollup；meta/413；metrics 北极星/渠道/交易/漏斗/留存/分群/推荐；drill 分页与 cached_list；frontend backend-agg 与 *Agg 页面；流式造数与 rebuild:rollups。25 万库冒烟：漏斗~2.8s、留存~1.1s、分群~80ms；vitest 121、build 通过 | 下一仓库任务 P2-04a 行为路径；并行可做 P2-04c 2M 压测或 P2-04d 口径金样 |
 
 每完成一个编号：修改对应复选框，在此表记录改动文件、验证结果和剩余依赖。中断时写下最后完成步骤及下一条具体命令；不要把本文件所有未勾选项当作一次已完成交付。

@@ -59,7 +59,88 @@ async function start() {
   }
 
   // ── Data loading ────────────────────────────────────────────────────────────
-  if (!globalThis.LOGEARN_ANALYTICS_DATA && import.meta.env.VITE_ANALYTICS_DATA_SOURCE === 'api') {
+  // Prefer backend SQLite facts when the auth backend is configured.
+  // Large datasets use aggregated metrics APIs (meta-only bootstrap).
+  if (!globalThis.LOGEARN_ANALYTICS_DATA && backendBase) {
+    badge.textContent='后端数据 · 加载中'
+    document.querySelectorAll('#la-studio button, #la-studio select').forEach(b=>b.disabled=true)
+    try {
+      const {fetchBackendMeta,fetchAllBackendAnalytics}=await import('./api/backendAnalytics.js')
+      const {default:channels}=await import('./channels/channels.json')
+      const {default:lifecycleRulesJson}=await import('./lifecycle/lifecycle-rules.json')
+      const meta=await fetchBackendMeta()
+      const startAt=Date.parse(meta.start_at)
+      const asOf=Date.parse(meta.as_of)
+      if(!Number.isFinite(startAt)||!Number.isFinite(asOf))throw new Error('事件覆盖时间无效')
+
+      const useAggregated=meta.mode==='aggregated' || Number(meta.event_count)>Number(meta.max_events_raw||100000)
+      if(useAggregated){
+        const {sourceCoverage}=await import('./analytics/coverage.js')
+        const eventsCov=sourceCoverage(meta.coverage?.events??meta,'events',asOf,startAt)
+        const tradesCov=sourceCoverage(meta.coverage?.trades??{},'trades',asOf,startAt)
+        // Scale path: do NOT download raw events into the browser.
+        globalThis.LOGEARN_ANALYTICS_DATA={
+          meta:{
+            startAt,
+            asOf,
+            timezone:meta.timezone??'Asia/Bangkok',
+            source:'backend-agg',
+            historyComplete:!!meta.history_complete,
+            coverage:{events:eventsCov,trades:tradesCov},
+            eventCount:meta.event_count,
+            userCount:meta.user_count,
+            rollupsBuiltAt:meta.rollups_built_at??null,
+          },
+          users:[],
+          trades:null,
+          referrals:null,
+          channelRules:channels.rules??null,
+          lifecycleRules:lifecycleRulesJson?.rules??null,
+          availability:{events:'aggregated',users:'aggregated',trades:'aggregated',referrals:'aggregated'},
+          inputQuality:null,
+          tradeQuality:null,
+        }
+        badge.textContent=`聚合模式 · ${(meta.event_count??0).toLocaleString('en-US')} 事件`
+        status.textContent=`数据量较大，已启用服务端聚合（/api/metrics）。观测截至 ${meta.as_of ?? ''}；rollup ${meta.rollups_built_at ? '已构建' : '未构建'}。未迁移页面会提示暂不可用，不会回退成假零。`
+      } else {
+        const {normalizeApiResponse}=await import('./analytics/normalize.js')
+        const {observationCeiling}=await import('./analytics/coverage.js')
+        const raw=await fetchAllBackendAnalytics()
+        const cov=raw.coverage??{}
+        const asOfCeiling=observationCeiling({events:cov,trades:raw.tradesCoverage,asOf})
+        const data=normalizeApiResponse({
+          users:[],
+          events:raw.events,
+          logearnUsers:raw.logearnUsers,
+          referrals:raw.referrals,
+          trades:raw.trades,
+          startAt,
+          asOf:asOfCeiling,
+          timezone:meta.timezone??'Asia/Bangkok',
+          channelRules:channels.rules,
+          coverage:cov,
+          tradesCoverage:raw.tradesCoverage,
+        })
+        data.meta.source='backend'
+        data.channelRules=channels.rules??null
+        data.lifecycleRules=lifecycleRulesJson?.rules??null
+        data.userReferrals=raw.userReferrals??null
+        globalThis.LOGEARN_ANALYTICS_DATA=data
+        badge.textContent=`后端数据 · ${raw.events.length} 事件`
+      }
+    } catch (err) {
+      console.error('[main] backend analytics load failed:', err)
+      badge.textContent='后端数据 · 请求失败'
+      status.textContent='分析数据接口请求失败，请确认后端已启动并已登录后重试。'
+      const retry=document.createElement('button')
+      retry.className='a-button';retry.textContent='重新加载';retry.onclick=()=>location.reload()
+      status.append(' ',retry)
+      document.getElementById('as-output').textContent='分析结果暂不可用。'
+      document.getElementById('as-dirty').textContent='数据尚未加载'
+      return
+    }
+    document.querySelectorAll('#la-studio button, #la-studio select').forEach(b=>b.disabled=false)
+  } else if (!globalThis.LOGEARN_ANALYTICS_DATA && import.meta.env.VITE_ANALYTICS_DATA_SOURCE === 'api') {
     badge.textContent='真实数据 · 加载中'
     document.querySelectorAll('#la-studio button, #la-studio select').forEach(b=>b.disabled=true)
     try {

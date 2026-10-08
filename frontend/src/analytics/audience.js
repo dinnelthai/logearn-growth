@@ -13,5 +13,13 @@ export function audienceUsers(users,audience,mode){
 }
 export function audiencePeriod(config,audience){
  if(!audience||!AUDIENCE_MODES.has(config.mode))return config
- return {...config,start:audience.start,end:audience.end,range:Math.ceil((audience.end-audience.start)/86400000),period:'audience'}
+ return {
+  ...config,
+  start:audience.start,
+  end:audience.end,
+  range:Math.ceil((audience.end-audience.start)/86400000),
+  period:'audience',
+  audienceIds:audience.ids?[...audience.ids]:config.audienceIds??null,
+  cohortId:audience.cohortId??config.cohortId??null,
+ }
 }

@@ -1,12 +1,19 @@
 import {renderInputQuality} from './pages/inputQuality.js';
 import {createNorthStarPage} from './pages/northStar.js';
+import {createNorthStarAggPage} from './pages/northStarAgg.js';
 import {createFunnelPage} from './pages/funnel.js';
 import {createReferralPage} from './pages/referral.js';
 import {createSegmentsPage} from './pages/segments.js';
 import {periodCoverage,coverageLabel} from './analytics/coverage.js';
 import {createRetentionPage} from './pages/retention.js';
 import {createTradeMonitorPage} from './pages/tradeMonitor.js';
+import {createTradeMonitorAggPage} from './pages/tradeMonitorAgg.js';
 import {createPathsPage} from './pages/paths.js';
+import {createChannelsAggPage} from './pages/channelsAgg.js';
+import {createFunnelAggPage} from './pages/funnelAgg.js';
+import {createRetentionAggPage} from './pages/retentionAgg.js';
+import {createSegmentsAggPage} from './pages/segmentsAgg.js';
+import {createReferralAggPage} from './pages/referralAgg.js';
 import {createAudience,audienceUsers,audiencePeriod,AUDIENCE_MODES} from './analytics/audience.js';
 import {mountCohortManager} from './pages/cohortManager.js';
 import { mountChannelAnalytics } from './channels/analyticsPanel.js';
@@ -31,26 +38,48 @@ segmentProfile:['ea','w4','trade','pay','amount','need']
 };
 const dataStore=globalThis.LOGEARN_ANALYTICS_DATA;
 const isMock=false;
+const isAgg=dataStore.meta.source==='backend-agg';
 $('[data-mode="value"]').hidden=true;
 if(!Array.isArray(dataStore.channelRules))$('[data-mode="channels"]').hidden=true;
-if(!Array.isArray(dataStore.referrals)&&!dataStore.users.some(u=>u.events.some(e=>['share_click','share_complete','invite_visit'].includes(e.type))))$('[data-mode="referral"]').hidden=true;
-$('#as-data-badge').textContent=dataStore.meta.source==='json'?'JSON 数据':'接口数据';
-$('#as-data-status').textContent='所有展示指标仅由已加载的事实数据计算；未提供的数据模块不展示。';
+if(!isAgg){
+  if(!Array.isArray(dataStore.referrals)&&!(dataStore.users||[]).some(u=>u.events.some(e=>['share_click','share_complete','invite_visit'].includes(e.type))))$('[data-mode="referral"]').hidden=true;
+} else {
+  // Phase C still pending: paths.
+  ;['paths'].forEach(m=>{
+    const btn=root.querySelector(`[data-mode="${m}"]`);
+    if(btn){btn.title='聚合模式下本页尚未迁移到 /api/metrics';}
+  });
+}
+const eventCount=isAgg
+  ?(dataStore.meta.eventCount||0)
+  :dataStore.users.reduce((n,u)=>n+u.events.length,0)
+$('#as-data-badge').textContent=dataStore.meta.source==='json'
+  ?'JSON 数据'
+  :dataStore.meta.source==='backend-agg'
+    ?`聚合模式 · ${Number(eventCount).toLocaleString('en-US')} 事件`
+  :dataStore.meta.source==='backend'
+    ?`后端数据 · ${Number(eventCount).toLocaleString('en-US')} 事件`
+    :'接口数据';
+$('#as-data-status').textContent=dataStore.meta.source==='backend-agg'
+  ?`服务端聚合模式：浏览器不加载明细事件。北极星 / 渠道 / 交易 / 漏斗 / 留存 / 分群 / 推荐走 /api/metrics；下钻走 /api/drill。行为路径待 Phase C。`
+  :dataStore.meta.source==='backend'
+  ?`数据来自本地 SQLite（/api/analytics），共 ${Number(eventCount).toLocaleString('en-US')} 条已归一化事件；未提供的数据模块不展示。`
+  :'所有展示指标仅由已加载的事实数据计算；未提供的数据模块不展示。';
 if(!dataStore.meta.historyComplete)$('#as-data-status').textContent+=' 历史覆盖未确认：缺少历史首次事实的用户按首次观测行为判断，首次用户、留存和生命周期结果可能不完整。';
 if(dataStore.availability && Object.values(dataStore.availability).includes('error'))$('#as-data-status').textContent+=' 部分接口请求失败，对应指标暂不可用。';
-renderInputQuality({root,quality:dataStore.inputQuality});
+if(!isAgg)renderInputQuality({root,quality:dataStore.inputQuality});
 $('#as-data-time').textContent='观测截至 '+new Date(dataStore.meta.asOf+7*3600000).toISOString().slice(0,16).replace('T',' ')+' · UTC+7';
-const names=DATA_CONTRACT.eventTypes,day=86400000,base=dataStore.meta.startAt,asof=dataStore.meta.asOf,allUsers=dataStore.users;
+const names=DATA_CONTRACT.eventTypes,day=86400000,base=dataStore.meta.startAt,asof=dataStore.meta.asOf,allUsers=dataStore.users||[];
 const usersById=new Map(allUsers.map(u=>[u.id,u]));
 let users=allUsers;
-globalThis.LogEarnAnalyticsData={contract:DATA_CONTRACT,snapshot:dataStore,isMock:dataStore.meta.source==='mock'};
+globalThis.LogEarnAnalyticsData={contract:DATA_CONTRACT,snapshot:dataStore,isMock:dataStore.meta.source==='mock',isAgg};
 const fmt=n=>n.toLocaleString('en-US'),pct=(a,b)=>b?(a/b*100).toFixed(1)+'%':'—',date=t=>new Date(t+7*3600000).toISOString().slice(5,10).replace('-','/'),clock=t=>new Date(t+7*3600000).toISOString().slice(5,16).replace('T',' '),daynum=t=>Math.floor((t-base)/day), esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const table=(heads,rows)=>`<div class="a-scroll"><table><thead><tr>${heads.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 const stat=(l,v,s)=>`<div class="a-stat"><div class="a-muted">${l}</div><div class="a-statvalue">${v}</div><div class="a-muted">${s}</div></div>`;
 $('#as-source').innerHTML='<option value="all">全部来源</option>'+[...new Set(users.flatMap(u=>[u.source,...u.events.map(e=>e.entry_source)].filter(Boolean)))].map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
 $('#as-strategy').innerHTML='<option value="all">全部策略</option>'+[...new Set(users.flatMap(u=>u.events.map(e=>e.strategy).filter(Boolean)))].map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
 let mode='north',steps=['login','token','ai','chip'],dirty=false,saved=null,current=null;
-function config(){const period=$('#as-range').value,end=Math.floor((asof+7*3600000)/day)*day-7*3600000,start=period==='all'?Math.floor((base+7*3600000)/day)*day-7*3600000:end-Number(period)*day,range=Math.ceil((end-start)/day);return audiencePeriod({mode,association:$('#as-association').value,steps:[...steps],range,period,hours:+$('#as-window').value,source:mode==='north'?'all':$('#as-source').value,strategy:$('#as-strategy').value,start,end,initial:$('#as-initial')?.value||'chip',returning:$('#as-return')?.value||'chip',pathStart:$('#as-path-start')?.value||'all',pathDepth:+($('#as-path-depth')?.value||5)},audience)}
+function config(){const period=$('#as-range').value,end=Math.floor((asof+7*3600000)/day)*day-7*3600000,start=period==='all'?Math.floor((base+7*3600000)/day)*day-7*3600000:end-Number(period)*day,range=Math.ceil((end-start)/day);return audiencePeriod({mode,association:$('#as-association').value,steps:[...steps],range,period,hours:+$('#as-window').value,source:mode==='north'?'all':$('#as-source').value,strategy:$('#as-strategy').value,start,end,initial:$('#as-initial')?.value||'chip',returning:$('#as-return')?.value||'chip',pathStart:$('#as-path-start')?.value||'all',pathDepth:+($('#as-path-depth')?.value||5),audienceIds:audience?.ids? [...audience.ids]:null,cohortId:audience?.cohortId||null},audience)}
 function renderAudience(){
  let host=$('#as-audience');
  if(!host){host=document.createElement('div');host.id='as-audience';host.className='a-audience';$('#as-data-status').insertAdjacentElement('afterend',host)}
@@ -91,6 +120,7 @@ function drawNorth(c){pages.north.draw(c)}
 function drawReferral(c){pages.referral.draw(c)}
 
 function drawChannels(c){
+if(isAgg){pages.channelsAgg.draw(c);return}
 clearNative();$('#as-output').innerHTML='';
 if(dataStore.channelRules){const report=document.createElement('div');$('#as-output').append(report);channelChartsCleanup=mountChannelAnalytics(report,{rules:dataStore.channelRules??[],users,trades:dataStore.trades,startAt:c.start,endAt:c.end,asOf:asof,channel:c.source,coverage,onDrill:drill});}
 if(Array.isArray(dataStore.channelRules)){const details=document.createElement('details');details.className='a-card a-details';details.innerHTML='<summary>渠道管理 · 查看匹配规则</summary>';const manager=document.createElement('div');details.append(manager);$('#as-output').append(details);channelCleanup=mountChannels(manager,{isMock:false,initialRules:dataStore.channelRules,jsonMode:dataStore.meta.source==='json'});}
@@ -106,9 +136,19 @@ function drawPaths(c){pages.paths.draw(c)}
 
 function pageTitle(){return mode==='north'?'北极星指标 · 有效分析用户':mode==='channels'?'渠道分析':mode==='paths'?'行为路径分析':mode==='funnel'?'用户激活漏斗':mode==='retention'?'有效分析留存':mode==='referral'?'推荐与增长循环':mode==='value'?'价值闭环':mode==='trade-monitor'?'交易成功率监控':'用户分群分析'}
 function pageSub(){return mode==='north'?'有多少用户真正获得了筹码分析的价值':mode==='channels'?'用户从哪里来，哪些渠道真正带来留存、交易和付费':mode==='paths'?'用户先做什么、接着去哪，以及在哪里结束观察':mode==='funnel'?'从登录、Token详情、AI策略到有效分析，定位转化损失':mode==='retention'?'从首次使用到持续回访，比较各批次表现':mode==='referral'?'每个有效分析用户能否持续带来新的有效分析用户':mode==='value'?'看完筹码分析后，是否真的发生了交易和价值':mode==='trade-monitor'?'基于 trade_submitted / trade_succeeded / trade_failed 事件，实时监控交易成功率':'哪些用户的需求与表现不同，谁更容易交易和付费'}
-function run(){users=audienceUsers(allUsers,audience,mode);renderAudience();northDefinition();current=config();renderCoverage(current);dirty=false;$('#as-run').textContent='运行分析';$('#as-stale').hidden=true;$('#as-dirty').textContent='已应用当前配置';closeDrill();if(!isMock&&!Array.isArray(dataStore.trades)&&((mode==='funnel'&&current.steps.includes('trade'))||(mode==='retention'&&[current.initial,current.returning].includes('trade')))){clearNative();$('#as-output').innerHTML='<div class="a-card a-details"><h2>交易数据待获取</h2><p>当前分析包含交易步骤，需先取得交易数据。</p></div>';return}mode==='north'?drawNorth(current):mode==='channels'?drawChannels(current):mode==='paths'?drawPaths(current):mode==='funnel'?drawFunnel(current):mode==='retention'?drawRetention(current):mode==='referral'?drawReferral(current):mode==='value'?drawValueLoop(current):mode==='trade-monitor'?drawTradeMonitor(current):drawSegments(current)}
+function unsupportedAgg(label){clearNative();$('#as-output').innerHTML=`<div class="a-card a-details"><h2>${esc(label)} · 聚合模式待迁移</h2><p>当前数据量已启用服务端聚合。本页将在后续 Phase 接入 <code>/api/metrics</code>；在此之前不加载明细、也不显示假零。</p><p class="a-muted">已支持：北极星、渠道、交易、漏斗、留存、分群、推荐。</p></div>`}
+function run(){users=audienceUsers(allUsers,audience,mode);renderAudience();northDefinition();current=config();renderCoverage(current);dirty=false;$('#as-run').textContent='运行分析';$('#as-stale').hidden=true;$('#as-dirty').textContent='已应用当前配置';closeDrill();if(isAgg&&!['north','channels','trade-monitor','funnel','retention','segments','referral'].includes(mode)){unsupportedAgg(pageTitle());return}if(!isMock&&!isAgg&&!Array.isArray(dataStore.trades)&&((mode==='funnel'&&current.steps.includes('trade'))||(mode==='retention'&&[current.initial,current.returning].includes('trade')))){clearNative();$('#as-output').innerHTML='<div class="a-card a-details"><h2>交易数据待获取</h2><p>当前分析包含交易步骤，需先取得交易数据。</p></div>';return}mode==='north'?drawNorth(current):mode==='channels'?drawChannels(current):mode==='paths'?drawPaths(current):mode==='funnel'?drawFunnel(current):mode==='retention'?drawRetention(current):mode==='referral'?drawReferral(current):mode==='value'?drawValueLoop(current):mode==='trade-monitor'?drawTradeMonitor(current):drawSegments(current)}
 function navigate(nextMode){mode=nextMode;$$('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.mode===mode));$$('.a-nav-parent').forEach(p=>{const active=p.nextElementSibling?.querySelector(`[data-mode="${mode}"]`);p.classList.toggle('is-active',!!active);if(active)active.classList.add('is-active');});$('#as-title').textContent=pageTitle();$('#as-sub').textContent=pageSub();renderSteps();run()}
-const pageContext={dataStore,usersById,drawer,userButton,userTimeline,isMock,setPeriod:value=>{$('#as-range').value=value;run()},getAudiencePeriod:()=>audience&&AUDIENCE_MODES.has(mode)?{startAt:audience.start,endAt:audience.end}:null,root,$,$$,names,day,base,asof,date,clock,daynum,esc,fmt,pct,table,stat,drill,closeDrill,themeMedia,getUsers:()=>users,getTradeQuality:()=>dataStore.tradeQuality,getCoverage:()=>coverage,historyComplete:dataStore.meta.historyComplete,clear:clearNative};
-const pages={north:createNorthStarPage(pageContext),funnel:createFunnelPage(pageContext),referral:createReferralPage(pageContext),segments:createSegmentsPage(pageContext),paths:createPathsPage(pageContext),tradeMonitor:createTradeMonitorPage(pageContext),retention:createRetentionPage(pageContext)};
+const pageContext={dataStore,usersById,drawer,userButton,userTimeline,isMock,isAgg,setPeriod:value=>{$('#as-range').value=value;run()},getAudiencePeriod:()=>audience&&AUDIENCE_MODES.has(mode)?{startAt:audience.start,endAt:audience.end}:null,root,$,$$,names,day,base,asof,date,clock,daynum,esc,fmt,pct,table,stat,drill,closeDrill,themeMedia,getUsers:()=>users,getTradeQuality:()=>dataStore.tradeQuality,getCoverage:()=>coverage,historyComplete:dataStore.meta.historyComplete,clear:clearNative};
+const pages={
+  north:isAgg?createNorthStarAggPage(pageContext):createNorthStarPage(pageContext),
+  channelsAgg:createChannelsAggPage(pageContext),
+  funnel:isAgg?createFunnelAggPage(pageContext):createFunnelPage(pageContext),
+  referral:isAgg?createReferralAggPage(pageContext):createReferralPage(pageContext),
+  segments:isAgg?createSegmentsAggPage(pageContext):createSegmentsPage(pageContext),
+  paths:createPathsPage(pageContext),
+  tradeMonitor:isAgg?createTradeMonitorAggPage(pageContext):createTradeMonitorPage(pageContext),
+  retention:isAgg?createRetentionAggPage(pageContext):createRetentionPage(pageContext),
+};
 $$('[data-mode]').forEach(b=>b.onclick=()=>navigate(b.dataset.mode));$('#as-add').onclick=()=>{if(steps.length<5){steps.push('chip');renderSteps();markDirty()}};['#as-range','#as-window','#as-source','#as-strategy','#as-association'].forEach(s=>$(s).onchange=()=>{northDefinition();markDirty()});$('#as-run').onclick=run;$('#as-preset').onchange=()=>{const v=$('#as-preset').value;if(v==='custom')return;steps=v==='token_visit'?['token_click','token','chip']:v==='strategy_run'?['ai','strategy_result','signal_view']:v==='ai'?['login','token','ai','chip']:['login','token','chip'];$('#as-association').value=['token_visit','strategy_run'].includes(v)?v:'user';renderSteps();markDirty()};$('#as-save').onclick=()=>{const next=config();try{saveConfig(localStorage,next);saved=next;$('#as-saved').textContent='配置已保存，可在刷新后载入';$('#as-restore').hidden=false}catch{$('#as-saved').textContent='保存失败，浏览器存储不可用'}};$('#as-restore').onclick=()=>{if(!saved)return;mode=saved.mode;steps=[...saved.steps];$$('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===mode));$('#as-title').textContent=pageTitle();$('#as-sub').textContent=pageSub();renderSteps();$('#as-range').value=saved.period||saved.range;$('#as-window').value=saved.hours;$('#as-association').value=saved.association||'user';$('#as-source').value=saved.source;$('#as-strategy').value=saved.strategy;if(mode==='retention'){$('#as-initial').value=saved.initial;$('#as-return').value=saved.returning}if(mode==='paths'){$('#as-path-start').value=saved.pathStart||'all';$('#as-path-depth').value=saved.pathDepth||5}run();$('#as-saved').textContent='已载入保存的配置'};$('#as-range').querySelectorAll('option').forEach(o=>{const end=Math.floor((asof+7*3600000)/day)*day-7*3600000;o.textContent=date(end-(+o.value)*day)+'–'+date(end-day)+' · '+o.value+' 天'});try{saved=loadConfig(localStorage)}catch{}$('#as-restore').hidden=!saved;renderSteps();run();
 })();

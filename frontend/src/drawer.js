@@ -34,5 +34,58 @@ export function createDrawer(dialog, {onAnalyze,getContext} = {}) {
       select('[data-next]').onclick=()=>{page++;render()}
       render();if(!dialog.open)dialog.showModal();select('input').focus()
     },
+    /**
+     * Server-paginated drill for aggregated backend mode.
+     * fetchPage({offset,limit,q}) → {total,rows:[{id,source,...}]}
+     * fetchTimeline(userId, hostEl) optional.
+     */
+    openRemote({title,description,note='',columns=['用户','来源','首次事件'],fetchPage,fetchTimeline,pageSize=12}) {
+      origin=document.activeElement
+      let page=0,query='',total=0,rows=[],loading=false
+      dialog.innerHTML=`<div class="a-drawerhead"><div><h2 id="as-drawer-title">${escapeHtml(title)}</h2><p class="a-muted" data-desc>${escapeHtml(description)}</p></div><button class="a-button" data-close>关闭</button></div><label class="a-drawer-search">搜索用户或来源<input type="search" placeholder="输入用户ID或来源" aria-label="搜索下钻用户"></label><div data-list></div><div class="a-drawer-pagination"><span data-count role="status"></span><div><button class="a-button" data-prev>上一页</button><button class="a-button" data-next>下一页</button></div></div><p class="a-muted">${escapeHtml(note||'名单由服务端分页返回，与汇总指标同口径。')}</p><div id="as-timeline" aria-live="polite"></div>`
+      const select=s=>dialog.querySelector(s)
+      const renderRows=()=>{
+        const pages=Math.max(1,Math.ceil(total/pageSize))
+        select('[data-desc]').textContent=`${description} · ${total} 位用户`
+        select('[data-list]').innerHTML=loading?'<p class="a-muted">加载中…</p>':rows.length?`<div class="a-scroll"><table><thead><tr>${columns.map(c=>`<th>${escapeHtml(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>{
+          const id=r.id||r.user_id
+          const src=r.source||'未知'
+          const first=r.first_event_at?new Date(r.first_event_at+7*3600000).toISOString().slice(5,16).replace('T',' '):'—'
+          return `<tr><td><button class="a-tablelink cursor-interaction" data-user="${escapeHtml(id)}">${escapeHtml(id)}</button></td><td>${escapeHtml(src)}</td><td>${escapeHtml(first)}</td></tr>`
+        }).join('')}</tbody></table></div>`:'<p class="a-empty">没有匹配的用户。</p>'
+        select('[data-count]').textContent=loading?`加载中…`:`共 ${total} 人 · 第 ${page+1} / ${pages} 页`
+        select('[data-prev]').disabled=loading||page===0
+        select('[data-next]').disabled=loading||page>=pages-1
+        select('#as-timeline').innerHTML=''
+        dialog.querySelectorAll('[data-user]').forEach(button=>button.onclick=()=>{
+          if(fetchTimeline) fetchTimeline(button.dataset.user,select('#as-timeline'))
+        })
+      }
+      const load=async()=>{
+        loading=true;renderRows()
+        try{
+          const result=await fetchPage({offset:page*pageSize,limit:pageSize,q:query})
+          total=result.total??0
+          rows=result.rows??[]
+        }catch(err){
+          total=0;rows=[]
+          select('[data-list]').innerHTML=`<p class="a-empty">加载失败：${escapeHtml(err.message||err)}</p>`
+        }finally{
+          loading=false;renderRows()
+        }
+      }
+      select('[data-close]').onclick=close
+      let searchTimer=null
+      select('input').oninput=event=>{
+        query=event.target.value;page=0
+        clearTimeout(searchTimer)
+        searchTimer=setTimeout(load,200)
+      }
+      select('[data-prev]').onclick=()=>{if(page>0){page--;load()}}
+      select('[data-next]').onclick=()=>{page++;load()}
+      if(!dialog.open)dialog.showModal()
+      select('input').focus()
+      load()
+    },
   }
 }
