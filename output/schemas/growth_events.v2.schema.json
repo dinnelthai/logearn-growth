@@ -1,0 +1,2271 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://logearn.com/schemas/growth_events.v2.schema.json",
+  "title": "LogEarn Growth Event v2 — 四项分析事件契约",
+  "description": "在原事件契约上补齐北极星、漏斗、留存、用户分群依赖。事件描述真实已发生行为；event_id重试复用；用户事实及覆盖信息见analytics_facts.v2.schema.json。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_name",
+    "user_id",
+    "anonymous_id",
+    "first_entry_source",
+    "session_id",
+    "client_ts",
+    "page",
+    "referrer",
+    "chain",
+    "device",
+    "ua",
+    "lang",
+    "properties"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "一次真实事件的UUID幂等键。网络重试复用，新行为生成新ID；后端按此去重。",
+      "minLength": 1
+    },
+    "event_name": {
+      "type": "string",
+      "enum": [
+        "wallet_connect_submitted",
+        "wallet_connect_succeeded",
+        "wallet_connect_failed",
+        "login_succeeded",
+        "logout",
+        "app_opened_unauthenticated",
+        "login_button_clicked",
+        "page_viewed",
+        "token_detail_viewed",
+        "token_detail_tab_switched",
+        "search_performed",
+        "ranking_token_clicked",
+        "language_changed",
+        "chip_analysis_viewed",
+        "chip_analysis_drilldown",
+        "holders_analysis_viewed",
+        "cluster_explorer_opened",
+        "signal_viewed",
+        "signal_clicked",
+        "callout_card_clicked",
+        "trade_submitted",
+        "trade_succeeded",
+        "trade_failed",
+        "limit_order_created",
+        "dca_order_created",
+        "token_followed",
+        "token_unfollowed",
+        "address_followed",
+        "address_unfollowed",
+        "strategy_started",
+        "strategy_stopped",
+        "strategy_heartbeat",
+        "strategy_created",
+        "strategy_edited",
+        "strategy_deleted",
+        "strategy_backtesting_run",
+        "first_visit_captured",
+        "mint_submitted",
+        "mint_succeeded",
+        "reward_claimed",
+        "invite_link_copied",
+        "invite_page_entered",
+        "notification_clicked",
+        "strategy_result_generated",
+        "strategy_signal_viewed"
+      ],
+      "description": "事件名称，必须使用枚举中的名字。strategy_signal_viewed为signal_viewed的兼容别名，同一次查看二选一上报。"
+    },
+    "user_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "真实产品用户ID；未登录为null，不能用钱包地址或后台操作员ID冒充。login_succeeded必须非空。"
+    },
+    "anonymous_id": {
+      "type": "string",
+      "description": "设备/浏览器稳定匿名标识，登录前后保持一致，用于合并匿名历史；不要每个事件重新生成。",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "first_entry_source": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "用户首次获客来源，首次确定后固化，不被回访渠道覆盖；未知为null。不是站内入口模块。"
+    },
+    "session_entry_source": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "可选。本次tab打开/会话入口来源；未知时可省略或填null，不影响北极星指标计算。与首次来源分别保存，不能互相覆盖。"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "description": "当前会话标识，同会话保持稳定。会话不是UV去重键，也不能替代Token访问ID或策略运行ID。"
+    },
+    "client_ts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "真实事件发生时间的Unix毫秒整数。业务后端结果事件用真实生成时间；不要用发送或收到响应的时间替代。"
+    },
+    "page": {
+      "type": "string",
+      "description": "发生行为时的页面路径或URL；采用统一格式，避免携带敏感查询参数。"
+    },
+    "referrer": {
+      "type": "string",
+      "description": "当前页面来源URL；无来源用空字符串。不能用站内跳转覆盖历史首次来源。"
+    },
+    "chain": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "顶层链上下文，可为null。与properties.chain同时存在时必须一致；接入层建议统一字符串链标识。"
+    },
+    "app_version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "产品发布版本；暂允许空字符串、null或省略表示未知。"
+    },
+    "device": {
+      "type": "string",
+      "enum": [
+        "mobile",
+        "desktop"
+      ],
+      "description": "设备类别：mobile或desktop。"
+    },
+    "ua": {
+      "type": "string",
+      "description": "用户代理信息，用于设备和问题排查；按产品隐私与采集约定提供。"
+    },
+    "lang": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "description": "事件发生时界面语言；原有cn/en值可保留。不会自动更新用户事实preferred_language，需要同步用户系统。"
+    },
+    "properties": {
+      "type": "object",
+      "description": "本事件业务字段，按event_name对应分支校验。分支additionalProperties=false，新增字段必须先加入Schema。"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "可选带时区ISO事件时间。与client_ts同时提供时必须表示同一时刻；当前分析优先client_ts。"
+    },
+    "schema_version": {
+      "const": "2.0",
+      "description": "可选契约版本标识，提供时固定为2.0。"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "wallet_connect_submitted"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "wallet_type"
+            ],
+            "properties": {
+              "wallet_type": {
+                "type": "string",
+                "description": "钱包类型的稳定标识，例如phantom/metamask/okx。"
+              }
+            },
+            "description": "用户实际发起钱包连接时上报；不表示连接成功。"
+          }
+        }
+      },
+      "$comment": "用户实际发起钱包连接时上报；不表示连接成功。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "wallet_connect_succeeded"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "wallet_type"
+            ],
+            "properties": {
+              "wallet_type": {
+                "type": "string",
+                "description": "钱包类型的稳定标识，例如phantom/metamask/okx。"
+              }
+            },
+            "description": "钱包连接明确成功时上报；连接成功与产品登录成功是不同事实。"
+          }
+        }
+      },
+      "$comment": "钱包连接明确成功时上报；连接成功与产品登录成功是不同事实。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "wallet_connect_failed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "wallet_type"
+            ],
+            "properties": {
+              "wallet_type": {
+                "type": "string",
+                "description": "钱包类型的稳定标识，例如phantom/metamask/okx。"
+              },
+              "reason": {
+                "type": "string",
+                "description": "明确、可解释的失败或停止原因；建议稳定原因码，避免记录敏感错误内容。"
+              }
+            },
+            "description": "钱包连接明确失败时上报，记录可解释的失败原因。"
+          }
+        }
+      },
+      "$comment": "钱包连接明确失败时上报，记录可解释的失败原因。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "login_succeeded"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "login_method",
+              "is_new_user"
+            ],
+            "properties": {
+              "login_method": {
+                "type": "string",
+                "enum": [
+                  "wallet",
+                  "email",
+                  "telegram",
+                  "google",
+                  "other"
+                ],
+                "description": "本次实际认证方式，按枚举值上报。"
+              },
+              "wallet_address": {
+                "type": "string",
+                "description": "本次钱包认证使用的地址；它不是产品user_id。"
+              },
+              "is_new_user": {
+                "type": "boolean",
+                "description": "本次认证是否创建新账户，由真实业务结果判定，不等于首次分析用户。"
+              }
+            },
+            "description": "产品身份认证成功时上报；携带真实user_id及原anonymous_id。自动恢复已有登录态不重复当作新登录。"
+          }
+        }
+      },
+      "$comment": "产品身份认证成功时上报；携带真实user_id及原anonymous_id。自动恢复已有登录态不重复当作新登录。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "logout"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {},
+            "description": "用户完成退出登录时上报；properties为空对象。"
+          }
+        }
+      },
+      "$comment": "用户完成退出登录时上报；properties为空对象。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "app_opened_unauthenticated"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "page"
+            ],
+            "properties": {
+              "page": {
+                "type": "string",
+                "description": "打开应用时的页面路径或URL，需与公共页面上下文一致。"
+              },
+              "session_entry_source": {
+                "type": "string",
+                "description": "本次入口来源；与公共同名字段同时提供时保持一致。"
+              }
+            },
+            "description": "用户在未登录状态打开应用时上报；不是每次路由变化都重复上报。"
+          }
+        }
+      },
+      "$comment": "用户在未登录状态打开应用时上报；不是每次路由变化都重复上报。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "login_button_clicked"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source"
+            ],
+            "properties": {
+              "source": {
+                "type": "string",
+                "enum": [
+                  "header",
+                  "mobile_header",
+                  "prompt",
+                  "other"
+                ],
+                "description": "登录按钮所在入口：header/mobile_header/prompt/other。"
+              }
+            },
+            "description": "用户实际点击登录入口时上报；点击不代表认证成功。"
+          }
+        }
+      },
+      "$comment": "用户实际点击登录入口时上报；点击不代表认证成功。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "page_viewed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "实际展示的页面路径。"
+              },
+              "name": {
+                "type": "string",
+                "description": "页面稳定业务名称，避免使用会变化的展示文案。"
+              }
+            },
+            "description": "页面真实呈现时上报；按约定处理SPA路由及重复展示。"
+          }
+        }
+      },
+      "$comment": "页面真实呈现时上报；按约定处理SPA路由及重复展示。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "token_detail_viewed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "token_address",
+              "chain",
+              "token_visit_id",
+              "entry_module"
+            ],
+            "properties": {
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "symbol": {
+                "type": "string",
+                "description": "Token展示符号，辅助说明；不能替代唯一币地址。"
+              },
+              "entry_source": {
+                "type": "string",
+                "description": "原有Token详情入口字段。保留其原语义，不会自动映射为entry_module或首次获客来源。"
+              },
+              "token_visit_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "一次真实Token访问的稳定ID。同次点击→详情→分析共享，新访问使用新ID；直达详情也要生成访问ID。"
+              },
+              "entry_module": {
+                "type": "string",
+                "enum": [
+                  "callouts",
+                  "signals",
+                  "popular",
+                  "fomo",
+                  "unknown"
+                ],
+                "description": "站内入口模块：callouts/signals/popular/fomo，无法确定填unknown；不是外部获客来源。"
+              }
+            },
+            "description": "Token详情加载成功并呈现时上报，与同次点击/分析共用token_visit_id；加载失败不计。"
+          }
+        }
+      },
+      "$comment": "Token详情加载成功并呈现时上报，与同次点击/分析共用token_visit_id；加载失败不计。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "token_detail_tab_switched"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "tab",
+              "token_address",
+              "chain"
+            ],
+            "properties": {
+              "tab": {
+                "type": "string",
+                "description": "切换后的详情标签稳定名称。"
+              },
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              }
+            },
+            "description": "用户实际切换Token详情标签时上报；tab为切换后的标签。"
+          }
+        }
+      },
+      "$comment": "用户实际切换Token详情标签时上报；tab为切换后的标签。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "search_performed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "query_type"
+            ],
+            "properties": {
+              "query_type": {
+                "type": "string",
+                "description": "搜索类别，例如token_address或symbol；不是原始搜索文本。"
+              },
+              "result_count": {
+                "type": "number",
+                "description": "本次搜索返回的结果数量。"
+              }
+            },
+            "description": "用户实际执行搜索时上报；query_type为搜索类别，避免上传原始敏感搜索内容。"
+          }
+        }
+      },
+      "$comment": "用户实际执行搜索时上报；query_type为搜索类别，避免上传原始敏感搜索内容。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "ranking_token_clicked"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "list_type",
+              "token_address",
+              "chain",
+              "token_visit_id",
+              "entry_module"
+            ],
+            "properties": {
+              "list_type": {
+                "type": "string",
+                "description": "原有榜单类型字段；需按真实榜单映射entry_module，分析端不会自动映射。"
+              },
+              "rank": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "被点击条目在榜单中的位置，从1开始。"
+              },
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "token_visit_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "一次真实Token访问的稳定ID。同次点击→详情→分析共享，新访问使用新ID；直达详情也要生成访问ID。"
+              },
+              "entry_module": {
+                "type": "string",
+                "enum": [
+                  "callouts",
+                  "signals",
+                  "popular",
+                  "fomo",
+                  "unknown"
+                ],
+                "description": "站内入口模块：callouts/signals/popular/fomo，无法确定填unknown；不是外部获客来源。"
+              }
+            },
+            "description": "用户实际点击Token榜单项时上报；新访问分配token_visit_id，并向详情和分析传递。"
+          }
+        }
+      },
+      "$comment": "用户实际点击Token榜单项时上报；新访问分配token_visit_id，并向详情和分析传递。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "language_changed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "lang",
+              "from_lang"
+            ],
+            "properties": {
+              "lang": {
+                "type": "string",
+                "enum": [
+                  "cn",
+                  "en"
+                ],
+                "description": "修改后的界面语言，原约定cn/en。用户事实需标准化为zh/en/unknown。"
+              },
+              "from_lang": {
+                "type": "string",
+                "enum": [
+                  "cn",
+                  "en"
+                ],
+                "description": "修改前的界面语言。"
+              }
+            },
+            "description": "用户实际修改界面语言时上报；同时更新用户语言事实，分析分群读取preferred_language。"
+          }
+        }
+      },
+      "$comment": "用户实际修改界面语言时上报；同时更新用户语言事实，分析分群读取preferred_language。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "chip_analysis_viewed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "token_address",
+              "chain"
+            ],
+            "properties": {
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "chain": {
+                "type": "string",
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "cache_hit": {
+                "type": "boolean",
+                "description": "本次成功展示的分析结果是否来自缓存；命中缓存不影响真实展示计数。"
+              },
+              "analysis_source": {
+                "type": "string",
+                "enum": [
+                  "token_detail",
+                  "ai_signal",
+                  "ranking",
+                  "search",
+                  "watchlist",
+                  "other"
+                ],
+                "description": "原有分析触发场景枚举，不等于entry_module，不能直接用于站内模块分组。"
+              },
+              "token_visit_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "一次真实Token访问的稳定ID。同次点击→详情→分析共享，新访问使用新ID；直达详情也要生成访问ID。"
+              },
+              "entry_module": {
+                "type": "string",
+                "enum": [
+                  "callouts",
+                  "signals",
+                  "popular",
+                  "fomo",
+                  "unknown"
+                ],
+                "description": "站内入口模块：callouts/signals/popular/fomo，无法确定填unknown；不是外部获客来源。"
+              },
+              "is_cache": {
+                "type": "boolean",
+                "description": "现有缓存标记；保留原值，不自动改写cache_hit。"
+              },
+              "source_tab": {
+                "type": "string",
+                "description": "现有分析标签页，不自动映射analysis_source或entry_module。"
+              },
+              "time_range_type": {
+                "type": "string",
+                "description": "现有分析时间范围类型。"
+              }
+            },
+            "description": "筹码峰成功展示给用户才上报，缓存成功展示可以计。请求发出、加载失败、不可见预加载不计；同日多次真实行为由分析端去重计算UV。"
+          }
+        }
+      },
+      "$comment": "筹码峰成功展示给用户才上报，缓存成功展示可以计。请求发出、加载失败、不可见预加载不计；同日多次真实行为由分析端去重计算UV。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "chip_analysis_drilldown"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "token_address",
+              "chain",
+              "drilldown_type"
+            ],
+            "properties": {
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "drilldown_type": {
+                "type": "string",
+                "description": "实际打开的筹码峰细分视图类型。"
+              }
+            },
+            "description": "用户实际打开筹码峰分析细分内容时上报；不能代替chip_analysis_viewed。"
+          }
+        }
+      },
+      "$comment": "用户实际打开筹码峰分析细分内容时上报；不能代替chip_analysis_viewed。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "holders_analysis_viewed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "token_address",
+              "chain"
+            ],
+            "properties": {
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "view_type": {
+                "type": "string",
+                "description": "实际展示的持币者分析视图类型。"
+              }
+            },
+            "description": "持币者分析内容成功呈现时上报；不作为当前默认北极星或默认分析留存行为。"
+          }
+        }
+      },
+      "$comment": "持币者分析内容成功呈现时上报；不作为当前默认北极星或默认分析留存行为。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "cluster_explorer_opened"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "token_address",
+              "chain"
+            ],
+            "properties": {
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              }
+            },
+            "description": "用户实际打开地址集群探索工具时上报。"
+          }
+        }
+      },
+      "$comment": "用户实际打开地址集群探索工具时上报。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "signal_viewed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "signal_type",
+              "result_id"
+            ],
+            "properties": {
+              "signal_type": {
+                "type": "string",
+                "description": "信号稳定业务类型；策略结果场景需真实运行和结果ID。"
+              },
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "source": {
+                "type": "string",
+                "description": "本次行为的实际业务入口或来源，按产品统一定义；不自动替代首次来源或entry_module。"
+              },
+              "strategy_run_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "暂为可选。用于关联真实策略运行；缺失时不用于策略运行关联，不得伪造补值。"
+              },
+              "result_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "一次真实生成结果的稳定ID。同一结果查看保持不变；生命周期候选同时匹配run_id和result_id。"
+              },
+              "strategy_type": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "稳定的策略种类，同种类重复启动不增加种类数；策略型/多策略分群依赖此字段。"
+              },
+              "token_visit_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "一次真实Token访问的稳定ID。同次点击→详情→分析共享，新访问使用新ID；直达详情也要生成访问ID。"
+              },
+              "entry_module": {
+                "type": "string",
+                "enum": [
+                  "callouts",
+                  "signals",
+                  "popular",
+                  "fomo",
+                  "unknown"
+                ],
+                "description": "站内入口模块：callouts/signals/popular/fomo，无法确定填unknown；不是外部获客来源。"
+              }
+            },
+            "description": "策略结果/信号真实展示时上报，携带真实run_id/result_id。若旧事件还包括普通榜单信号，需区分语义，不能伪造运行或结果ID。"
+          }
+        }
+      },
+      "$comment": "策略结果/信号真实展示时上报，携带真实run_id/result_id。若旧事件还包括普通榜单信号，需区分语义，不能伪造运行或结果ID。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "signal_clicked"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "signal_type",
+              "token_address",
+              "chain"
+            ],
+            "properties": {
+              "signal_type": {
+                "type": "string",
+                "description": "信号稳定业务类型；策略结果场景需真实运行和结果ID。"
+              },
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "source": {
+                "type": "string",
+                "description": "本次行为的实际业务入口或来源，按产品统一定义；不自动替代首次来源或entry_module。"
+              }
+            },
+            "description": "用户实际点击信号时上报；点击与成功查看是不同事实，不能代替signal_viewed。"
+          }
+        }
+      },
+      "$comment": "用户实际点击信号时上报；点击与成功查看是不同事实，不能代替signal_viewed。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "callout_card_clicked"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "token_address",
+              "chain"
+            ],
+            "properties": {
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "chain": {
+                "type": "string",
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "token_symbol": {
+                "type": "string",
+                "description": "Token展示符号，不能替代token_address。"
+              },
+              "platform": {
+                "type": "string",
+                "description": "喊单内容所属平台，例如X。"
+              },
+              "caller_handle": {
+                "type": "string",
+                "description": "喊单者公开平台标识，按业务采集约定提供。"
+              },
+              "kind": {
+                "type": "string",
+                "description": "喊单卡片业务类型。"
+              },
+              "token_visit_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "一次真实Token访问的稳定ID。同次点击→详情→分析共享，新访问使用新ID；直达详情也要生成访问ID。"
+              },
+              "entry_module": {
+                "type": "string",
+                "enum": [
+                  "callouts",
+                  "signals",
+                  "popular",
+                  "fomo",
+                  "unknown"
+                ],
+                "description": "站内入口模块：callouts/signals/popular/fomo，无法确定填unknown；不是外部获客来源。"
+              }
+            },
+            "description": "用户实际点击喊单卡片时上报；如果引发Token访问，还需传递该访问的真实上下文。"
+          }
+        }
+      },
+      "$comment": "用户实际点击喊单卡片时上报；如果引发Token访问，还需传递该访问的真实上下文。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "trade_submitted"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "op_type",
+              "chain",
+              "token_address"
+            ],
+            "properties": {
+              "op_type": {
+                "type": "string",
+                "description": "实际操作方向或类型，使用产品统一定义，例如buy/sell。"
+              },
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "trade_type": {
+                "type": "string",
+                "description": "实际交易方式，例如market；保持稳定定义。"
+              },
+              "source": {
+                "type": "string",
+                "description": "本次行为的实际业务入口或来源，按产品统一定义；不自动替代首次来源或entry_module。"
+              },
+              "amount": {
+                "type": "number",
+                "description": "原有交易数量字段，单位由业务定义；不是volume_usd，不能直接作为USD成交量。"
+              },
+              "wallet_count": {
+                "type": "number",
+                "description": "本次操作涉及的钱包数量。"
+              },
+              "trade_attempt_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "一次交易尝试的稳定ID，提交及成功/失败结果共用；新尝试使用新ID。"
+              },
+              "trade_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "业务后端稳定且全局唯一的成交/交易ID，需与后端事实一致。"
+              },
+              "tx_hash": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "实际链上交易哈希；只有真实获得时提供，不能编造。"
+              }
+            },
+            "anyOf": [
+              {
+                "required": [
+                  "trade_attempt_id"
+                ]
+              },
+              {
+                "required": [
+                  "trade_id"
+                ]
+              }
+            ],
+            "description": "交易尝试实际提交时上报；同次提交与结果共享attempt_id，提交不代表成交。"
+          }
+        }
+      },
+      "$comment": "交易尝试实际提交时上报；同次提交与结果共享attempt_id，提交不代表成交。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "trade_succeeded"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "op_type",
+              "chain",
+              "token_address"
+            ],
+            "properties": {
+              "op_type": {
+                "type": "string",
+                "description": "实际操作方向或类型，使用产品统一定义，例如buy/sell。"
+              },
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "trade_type": {
+                "type": "string",
+                "description": "实际交易方式，例如market；保持稳定定义。"
+              },
+              "source": {
+                "type": "string",
+                "description": "本次行为的实际业务入口或来源，按产品统一定义；不自动替代首次来源或entry_module。"
+              },
+              "amount": {
+                "type": "number",
+                "description": "原有交易数量字段，单位由业务定义；不是volume_usd，不能直接作为USD成交量。"
+              },
+              "wallet_count": {
+                "type": "number",
+                "description": "本次操作涉及的钱包数量。"
+              },
+              "trade_attempt_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "一次交易尝试的稳定ID，提交及成功/失败结果共用；新尝试使用新ID。"
+              },
+              "trade_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "业务后端稳定且全局唯一的成交/交易ID，需与后端事实一致。"
+              },
+              "tx_hash": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "实际链上交易哈希；只有真实获得时提供，不能编造。"
+              }
+            },
+            "anyOf": [
+              {
+                "required": [
+                  "trade_attempt_id"
+                ]
+              },
+              {
+                "required": [
+                  "trade_id"
+                ]
+              }
+            ],
+            "description": "链上或业务后端确认成交成功后上报；关联同次提交。USD成交金额另由后端confirmed事实提供，不能用amount直接替代。"
+          }
+        }
+      },
+      "$comment": "链上或业务后端确认成交成功后上报；关联同次提交。USD成交金额另由后端confirmed事实提供，不能用amount直接替代。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "trade_failed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "op_type",
+              "chain",
+              "token_address"
+            ],
+            "properties": {
+              "op_type": {
+                "type": "string",
+                "description": "实际操作方向或类型，使用产品统一定义，例如buy/sell。"
+              },
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "trade_type": {
+                "type": "string",
+                "description": "实际交易方式，例如market；保持稳定定义。"
+              },
+              "source": {
+                "type": "string",
+                "description": "本次行为的实际业务入口或来源，按产品统一定义；不自动替代首次来源或entry_module。"
+              },
+              "amount": {
+                "type": "number",
+                "description": "原有交易数量字段，单位由业务定义；不是volume_usd，不能直接作为USD成交量。"
+              },
+              "wallet_count": {
+                "type": "number",
+                "description": "本次操作涉及的钱包数量。"
+              },
+              "reason": {
+                "type": "string",
+                "description": "明确、可解释的失败或停止原因；建议稳定原因码，避免记录敏感错误内容。"
+              },
+              "trade_attempt_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "一次交易尝试的稳定ID，提交及成功/失败结果共用；新尝试使用新ID。"
+              },
+              "trade_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "业务后端稳定且全局唯一的成交/交易ID，需与后端事实一致。"
+              },
+              "tx_hash": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "实际链上交易哈希；只有真实获得时提供，不能编造。"
+              }
+            },
+            "anyOf": [
+              {
+                "required": [
+                  "trade_attempt_id"
+                ]
+              },
+              {
+                "required": [
+                  "trade_id"
+                ]
+              }
+            ],
+            "description": "交易尝试明确失败时上报；关联同次attempt_id，并记录失败原因。新尝试使用新attempt_id。"
+          }
+        }
+      },
+      "$comment": "交易尝试明确失败时上报；关联同次attempt_id，并记录失败原因。新尝试使用新attempt_id。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "limit_order_created"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "op_type",
+              "chain",
+              "token_address"
+            ],
+            "properties": {
+              "op_type": {
+                "type": "string",
+                "description": "实际操作方向或类型，使用产品统一定义，例如buy/sell。"
+              },
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "source": {
+                "type": "string",
+                "description": "本次行为的实际业务入口或来源，按产品统一定义；不自动替代首次来源或entry_module。"
+              }
+            },
+            "description": "限价委托实际创建成功时上报；创建委托不等于成交成功。"
+          }
+        }
+      },
+      "$comment": "限价委托实际创建成功时上报；创建委托不等于成交成功。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "dca_order_created"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "op_type",
+              "chain",
+              "token_address"
+            ],
+            "properties": {
+              "op_type": {
+                "type": "string",
+                "description": "实际操作方向或类型，使用产品统一定义，例如buy/sell。"
+              },
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "source": {
+                "type": "string",
+                "description": "本次行为的实际业务入口或来源，按产品统一定义；不自动替代首次来源或entry_module。"
+              }
+            },
+            "description": "DCA委托实际创建成功时上报；创建委托不等于成交成功。"
+          }
+        }
+      },
+      "$comment": "DCA委托实际创建成功时上报；创建委托不等于成交成功。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "token_followed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "token_address",
+              "chain"
+            ],
+            "properties": {
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "source": {
+                "type": "string",
+                "description": "本次行为的实际业务入口或来源，按产品统一定义；不自动替代首次来源或entry_module。"
+              }
+            },
+            "description": "关注Token状态实际变为已关注时上报。"
+          }
+        }
+      },
+      "$comment": "关注Token状态实际变为已关注时上报。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "token_unfollowed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "token_address",
+              "chain"
+            ],
+            "properties": {
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "source": {
+                "type": "string",
+                "description": "本次行为的实际业务入口或来源，按产品统一定义；不自动替代首次来源或entry_module。"
+              }
+            },
+            "description": "Token实际取消关注成功时上报。"
+          }
+        }
+      },
+      "$comment": "Token实际取消关注成功时上报。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "address_followed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "address"
+            ],
+            "properties": {
+              "address": {
+                "type": "string",
+                "description": "被关注或取消关注的真实地址。"
+              },
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "group_id": {
+                "type": "string",
+                "description": "地址所属业务分组标识，按真实数据提供。"
+              },
+              "source": {
+                "type": "string",
+                "description": "本次行为的实际业务入口或来源，按产品统一定义；不自动替代首次来源或entry_module。"
+              }
+            },
+            "description": "地址实际关注成功时上报。"
+          }
+        }
+      },
+      "$comment": "地址实际关注成功时上报。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "address_unfollowed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "address"
+            ],
+            "properties": {
+              "address": {
+                "type": "string",
+                "description": "被关注或取消关注的真实地址。"
+              },
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "group_id": {
+                "type": "string",
+                "description": "地址所属业务分组标识，按真实数据提供。"
+              },
+              "source": {
+                "type": "string",
+                "description": "本次行为的实际业务入口或来源，按产品统一定义；不自动替代首次来源或entry_module。"
+              }
+            },
+            "description": "地址实际取消关注成功时上报。"
+          }
+        }
+      },
+      "$comment": "地址实际取消关注成功时上报。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "strategy_started"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "strategy_session_id",
+              "strategy_id",
+              "strategy_type",
+              "strategy_run_id"
+            ],
+            "properties": {
+              "strategy_session_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "原有策略会话ID，保留兼容。仅在业务证明与实际运行一一对应时可映射为run_id；当前分析不会自动映射。"
+              },
+              "strategy_id": {
+                "type": "string",
+                "description": "策略配置标识，不是种类或实际运行标识。"
+              },
+              "strategy_type": {
+                "type": "string",
+                "description": "稳定的策略种类，同种类重复启动不增加种类数；策略型/多策略分群依赖此字段。"
+              },
+              "strategy_source": {
+                "type": "string",
+                "enum": [
+                  "strategy_page",
+                  "ai_signal",
+                  "token_detail",
+                  "ranking",
+                  "other"
+                ],
+                "description": "策略实际启动入口，按枚举上报；不等于首次获客来源。"
+              },
+              "is_first_strategy": {
+                "type": "boolean",
+                "description": "是否首次使用策略，由完整历史或业务事实判定，不能只看当前会话。"
+              },
+              "chain": {
+                "type": "string",
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "strategy_run_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "一次实际运行的稳定ID，启动→结果生成→查看全链共用；新运行按业务定义生成新ID。"
+              },
+              "token_visit_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "一次真实Token访问的稳定ID。同次点击→详情→分析共享，新访问使用新ID；直达详情也要生成访问ID。"
+              },
+              "entry_module": {
+                "type": "string",
+                "enum": [
+                  "callouts",
+                  "signals",
+                  "popular",
+                  "fomo",
+                  "unknown"
+                ],
+                "description": "站内入口模块：callouts/signals/popular/fomo，无法确定填unknown；不是外部获客来源。"
+              }
+            },
+            "description": "策略实际成功开启时上报。配置保存、界面恢复、心跳不算启动。strategy_type表示种类，run_id表示实际运行。"
+          }
+        }
+      },
+      "$comment": "策略实际成功开启时上报。配置保存、界面恢复、心跳不算启动。strategy_type表示种类，run_id表示实际运行。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "strategy_stopped"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [],
+            "properties": {
+              "strategy_session_id": {
+                "type": "string",
+                "description": "原有策略会话ID，保留兼容。仅在业务证明与实际运行一一对应时可映射为run_id；当前分析不会自动映射。"
+              },
+              "strategy_id": {
+                "type": "string",
+                "description": "策略配置标识，不是种类或实际运行标识。"
+              },
+              "reason": {
+                "type": "string",
+                "description": "明确、可解释的失败或停止原因；建议稳定原因码，避免记录敏感错误内容。"
+              },
+              "strategy_run_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "一次实际运行的稳定ID，启动→结果生成→查看全链共用；新运行按业务定义生成新ID。"
+              }
+            },
+            "description": "策略实际停止时上报；保留所属会话及运行上下文。"
+          }
+        }
+      },
+      "$comment": "策略实际停止时上报；保留所属会话及运行上下文。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "strategy_heartbeat"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "strategy_session_id"
+            ],
+            "properties": {
+              "strategy_session_id": {
+                "type": "string",
+                "description": "原有策略会话ID，保留兼容。仅在业务证明与实际运行一一对应时可映射为run_id；当前分析不会自动映射。"
+              },
+              "strategy_id": {
+                "type": "string",
+                "description": "策略配置标识，不是种类或实际运行标识。"
+              },
+              "strategy_run_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "一次实际运行的稳定ID，启动→结果生成→查看全链共用；新运行按业务定义生成新ID。"
+              }
+            },
+            "description": "已运行策略按业务约定发送的心跳；不是新启动，也不新增策略种类或默认分析活跃。"
+          }
+        }
+      },
+      "$comment": "已运行策略按业务约定发送的心跳；不是新启动，也不新增策略种类或默认分析活跃。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "strategy_created"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "strategy_id": {
+                "type": "string",
+                "description": "策略配置标识，不是种类或实际运行标识。"
+              },
+              "strategy_name": {
+                "type": "string",
+                "description": "策略展示名称，辅助排查；不能代替稳定strategy_id或strategy_type。"
+              }
+            },
+            "description": "策略配置实际创建成功时上报；不是策略运行启动。"
+          }
+        }
+      },
+      "$comment": "策略配置实际创建成功时上报；不是策略运行启动。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "strategy_edited"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "strategy_id": {
+                "type": "string",
+                "description": "策略配置标识，不是种类或实际运行标识。"
+              },
+              "strategy_name": {
+                "type": "string",
+                "description": "策略展示名称，辅助排查；不能代替稳定strategy_id或strategy_type。"
+              }
+            },
+            "description": "策略配置实际修改成功时上报；不是策略运行启动。"
+          }
+        }
+      },
+      "$comment": "策略配置实际修改成功时上报；不是策略运行启动。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "strategy_deleted"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "strategy_id": {
+                "type": "string",
+                "description": "策略配置标识，不是种类或实际运行标识。"
+              },
+              "strategy_name": {
+                "type": "string",
+                "description": "策略展示名称，辅助排查；不能代替稳定strategy_id或strategy_type。"
+              }
+            },
+            "description": "策略配置实际删除成功时上报。"
+          }
+        }
+      },
+      "$comment": "策略配置实际删除成功时上报。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "strategy_backtesting_run"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "strategy_id": {
+                "type": "string",
+                "description": "策略配置标识，不是种类或实际运行标识。"
+              },
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              }
+            },
+            "description": "实际运行策略回测时上报；不能计为线上strategy_started。"
+          }
+        }
+      },
+      "$comment": "实际运行策略回测时上报；不能计为线上strategy_started。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "first_visit_captured"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "first_referrer_url",
+              "first_landing_url",
+              "first_visit_at"
+            ],
+            "properties": {
+              "first_referrer_url": {
+                "type": "string",
+                "description": "首次文档入口来源URL；无来源用空字符串，按产品约定清理敏感参数。"
+              },
+              "first_landing_url": {
+                "type": "string",
+                "description": "首次实际落地的HTTP(S)页面URL；首次固化后不覆盖。"
+              },
+              "first_visit_at": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                ],
+                "description": "真实首次访问时间；兼容Unix毫秒整数与带时区ISO字符串，不随回访更新。"
+              }
+            },
+            "description": "首次外部或无来源文档入口捕获时上报，固化首次事实。SPA路由变化不重复捕获；失败重试保持同event_id。"
+          }
+        }
+      },
+      "$comment": "首次外部或无来源文档入口捕获时上报，固化首次事实。SPA路由变化不重复捕获；失败重试保持同event_id。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "mint_submitted"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "quantity": {
+                "type": "number",
+                "description": "本次铸造数量，单位由铸造业务定义。"
+              }
+            },
+            "description": "实际提交铸造请求时上报；不表示铸造成功。"
+          }
+        }
+      },
+      "$comment": "实际提交铸造请求时上报；不表示铸造成功。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "mint_succeeded"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "quantity": {
+                "type": "number",
+                "description": "本次铸造数量，单位由铸造业务定义。"
+              }
+            },
+            "description": "铸造明确成功后上报。"
+          }
+        }
+      },
+      "$comment": "铸造明确成功后上报。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "reward_claimed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "reward_type": {
+                "type": "string",
+                "description": "实际领取的奖励种类。"
+              },
+              "amount": {
+                "type": "number",
+                "description": "实际领取奖励数量，单位由reward_type定义；不自动视为USD金额。"
+              }
+            },
+            "description": "奖励领取明确成功时上报；amount的单位由reward_type对应业务定义。"
+          }
+        }
+      },
+      "$comment": "奖励领取明确成功时上报；amount的单位由reward_type对应业务定义。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "invite_link_copied"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "source": {
+                "type": "string",
+                "description": "本次行为的实际业务入口或来源，按产品统一定义；不自动替代首次来源或entry_module。"
+              }
+            },
+            "description": "邀请链接复制成功时上报；不等于成功邀请或正式绑定。"
+          }
+        }
+      },
+      "$comment": "邀请链接复制成功时上报；不等于成功邀请或正式绑定。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "invite_page_entered"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source"
+            ],
+            "properties": {
+              "source": {
+                "type": "string",
+                "enum": [
+                  "wallet_menu",
+                  "rewards_page",
+                  "other"
+                ],
+                "description": "进入邀请页面的站内入口：wallet_menu/rewards_page/other。"
+              }
+            },
+            "description": "邀请页面成功呈现时上报；source为进入页面的站内入口。"
+          }
+        }
+      },
+      "$comment": "邀请页面成功呈现时上报；source为进入页面的站内入口。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "notification_clicked"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "notification_type": {
+                "type": "string",
+                "description": "被点击通知的稳定业务类型。"
+              },
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              }
+            },
+            "description": "用户实际点击通知时上报；不代表目标页面成功呈现或完成目标行为。"
+          }
+        }
+      },
+      "$comment": "用户实际点击通知时上报；不代表目标页面成功呈现或完成目标行为。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "strategy_result_generated"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "strategy_run_id",
+              "result_id"
+            ],
+            "properties": {
+              "strategy_run_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "一次实际运行的稳定ID，启动→结果生成→查看全链共用；新运行按业务定义生成新ID。"
+              },
+              "result_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "一次真实生成结果的稳定ID。同一结果查看保持不变；生命周期候选同时匹配run_id和result_id。"
+              },
+              "strategy_type": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "稳定的策略种类，同种类重复启动不增加种类数；策略型/多策略分群依赖此字段。"
+              },
+              "strategy_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "策略配置标识，不是种类或实际运行标识。"
+              },
+              "strategy_session_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "原有策略会话ID，保留兼容。仅在业务证明与实际运行一一对应时可映射为run_id；当前分析不会自动映射。"
+              },
+              "token_address": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "chain": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "entry_module": {
+                "type": "string",
+                "enum": [
+                  "callouts",
+                  "signals",
+                  "popular",
+                  "fomo",
+                  "unknown"
+                ],
+                "description": "站内入口模块：callouts/signals/popular/fomo，无法确定填unknown；不是外部获客来源。"
+              }
+            },
+            "description": "业务后端真实生成策略结果时上报；与启动共享run_id，每个真实结果有稳定result_id。心跳、请求发出不算结果生成。"
+          }
+        }
+      },
+      "$comment": "业务后端真实生成策略结果时上报；与启动共享run_id，每个真实结果有稳定result_id。心跳、请求发出不算结果生成。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "strategy_signal_viewed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "signal_type",
+              "result_id"
+            ],
+            "properties": {
+              "signal_type": {
+                "type": "string",
+                "description": "信号稳定业务类型；策略结果场景需真实运行和结果ID。"
+              },
+              "token_address": {
+                "type": "string",
+                "description": "真实Token地址；同次访问相关事件需保持一致。"
+              },
+              "chain": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "Token/交易所属链；建议统一字符串链标识，与顶层chain保持一致。兼容数字并不表示数字与字符串自动等价。"
+              },
+              "source": {
+                "type": "string",
+                "description": "本次行为的实际业务入口或来源，按产品统一定义；不自动替代首次来源或entry_module。"
+              },
+              "strategy_run_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "暂为可选。用于关联真实策略运行；缺失时不用于策略运行关联，不得伪造补值。"
+              },
+              "result_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "一次真实生成结果的稳定ID。同一结果查看保持不变；生命周期候选同时匹配run_id和result_id。"
+              },
+              "strategy_type": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "稳定的策略种类，同种类重复启动不增加种类数；策略型/多策略分群依赖此字段。"
+              },
+              "token_visit_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "一次真实Token访问的稳定ID。同次点击→详情→分析共享，新访问使用新ID；直达详情也要生成访问ID。"
+              },
+              "entry_module": {
+                "type": "string",
+                "enum": [
+                  "callouts",
+                  "signals",
+                  "popular",
+                  "fomo",
+                  "unknown"
+                ],
+                "description": "站内入口模块：callouts/signals/popular/fomo，无法确定填unknown；不是外部获客来源。"
+              }
+            },
+            "description": "signal_viewed的兼容别名，触发规则相同；同一次查看二选一上报，避免重复计数。"
+          }
+        }
+      },
+      "$comment": "signal_viewed的兼容别名，触发规则相同；同一次查看二选一上报，避免重复计数。"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "login_succeeded"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
+        }
+      },
+      "$comment": "产品身份认证成功时上报；携带真实user_id及原anonymous_id。自动恢复已有登录态不重复当作新登录。"
+    }
+  ],
+  "$comment": "跨事件语义由服务端校验：同ID重试、真实触发、身份合并、同访问同币链、同run/result、时序、金额换算及完整覆盖。JSON Schema不能验证跨记录一致性。strategy_session_id保留旧字段，不能自动替代strategy_run_id。"
+}

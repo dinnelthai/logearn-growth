@@ -87,7 +87,7 @@ export function normalizeApiResponse({ events, users, logearnUsers, referrals, t
       position: raw.properties?.position ?? null,
       session_id: raw.session_id ?? raw.properties?.session_id ?? null,
       token_address: raw.token_address ?? raw.properties?.token_address ?? null,
-      chain: raw.chain ?? raw.properties?.chain ?? null,
+      chain: raw.properties?.chain ?? raw.chain ?? null,
       token_visit_id: raw.token_visit_id ?? raw.properties?.token_visit_id ?? null,
       referrer: raw.properties?.first_referrer_url ?? raw.referrer ?? null,
       first_landing_url: raw.properties?.first_landing_url ?? null,
@@ -237,6 +237,25 @@ export function normalizeApiResponse({ events, users, logearnUsers, referrals, t
     });
   }
 
+  const activityUsers = new Map(normalizedUsers.map(u => [u.id, u]))
+  for (const raw of Array.isArray(events) ? events : []) {
+    if (!raw || !validIdentity(raw.user_id)) continue
+    const t = eventTimestamp(raw)
+    if (!Number.isFinite(t) || t > asOf) continue
+    const id = `user:${raw.user_id}`
+    let user = activityUsers.get(id)
+    if (!user) {
+      user = {id, source: raw.first_entry_source ?? '未知', events: []}
+      activityUsers.set(id, user)
+    }
+    user.loggedInVisits ??= []
+    user.loggedInVisits.push({type: 'logged_in_visit', t, session_id: raw.session_id ?? null,
+      token_visit_id: raw.properties?.token_visit_id ?? null,
+      strategy_run_id: raw.properties?.strategy_run_id ?? null,
+      token_address: raw.properties?.token_address ?? null,
+      chain: raw.properties?.chain ?? raw.chain ?? null})
+  }
+  for (const user of normalizedUsers) user.events.sort((a, b) => a.t - b.t)
   return {
     meta: {
       version: 'api-v1',
@@ -254,6 +273,13 @@ export function normalizeApiResponse({ events, users, logearnUsers, referrals, t
       // both user_id and anonymous_id on login events to enable merging.
     },
     users: normalizedUsers,
+    loggedInVisitUsers: [...activityUsers.values()],
+    // Login activity counts every raw event carrying a real user ID, including
+    // events not represented in the analysis vocabulary. Anonymous-only events
+    // remain excluded even when their identity can be merged after login.
+    loginActivity: (Array.isArray(events) ? events : []).filter(raw => raw && validIdentity(raw.user_id))
+      .map(raw => ({id: `user:${raw.user_id}`, t: eventTimestamp(raw)}))
+      .filter(e => Number.isFinite(e.t) && e.t <= asOf),
     referrals: referralInput.referrals,
     availability: availability ?? {},
     trades: normalizedTrades,

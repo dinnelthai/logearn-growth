@@ -28,16 +28,16 @@ function resolveAudienceUserIds({ audience_ids, cohort_id }) {
  */
 function candidateUserIds({ types, start, end, source, audienceIds }) {
   const raws = rawNamesForTypes(types)
-  if (!raws.length) return []
+  if (!raws.length && !types.includes('logged_in_visit')) return []
   const placeholders = raws.map(() => '?').join(',')
   let sql = `
     SELECT DISTINCT user_id AS user_id
     FROM events
     WHERE user_id IS NOT NULL
-      AND event_name IN (${placeholders})
+      ${types.includes('logged_in_visit') ? "AND TRIM(user_id) <> ''" : `AND event_name IN (${placeholders})`}
       AND client_ts >= ? AND client_ts < ?
   `
-  const params = [...raws, start, end]
+  const params = [...(types.includes('logged_in_visit') ? [] : raws), start, end]
   if (source && source !== 'all') {
     sql += ` AND user_id IN (SELECT user_id FROM user_facts WHERE first_source = ? AND user_id IS NOT NULL)`
     params.push(source)
@@ -120,7 +120,7 @@ function loadEventsForUsers(userIds, {
     : new Set([
       'module_viewed', 'strategy_started', 'strategy_result_generated',
       'signal_viewed', 'strategy_signal_viewed',
-      'ranking_token_clicked', 'token_opened', 'token_detail_viewed',
+      'ranking_token_clicked', 'token_opened', 'callout_card_clicked', 'token_detail_viewed',
       'chip_analysis_viewed', 'chip_analysis_drilldown',
       'trade_submitted', 'trade_succeeded', 'trade_failed',
     ])
@@ -152,7 +152,7 @@ function loadEventsForUsers(userIds, {
         strategy_run_id: props.strategy_run_id ?? null,
         token_visit_id: props.token_visit_id ?? null,
         token_address: props.token_address ?? null,
-        chain: row.chain ?? props.chain ?? null,
+        chain: props.chain ?? row.chain ?? null,
         trade_id: props.trade_id ?? null,
         trade_attempt_id: props.trade_attempt_id ?? null,
         session_id: row.session_id ?? null,
@@ -218,6 +218,21 @@ function loadNormalizedUsers({
     asOf,
     detail,
   })
+
+  if (types.includes('logged_in_visit')) {
+    const ids = new Set(userIds)
+    const rows = db.prepare(`SELECT user_id, client_ts, session_id, chain, properties
+      FROM events WHERE user_id IS NOT NULL AND TRIM(user_id) <> ''
+      AND client_ts >= ? AND client_ts < ?`).all(eventStart ?? 0, Math.min(end + endExtraMs, asOf + 1))
+    for (const row of rows) {
+      if (!ids.has(row.user_id)) continue
+      const props = parseProps(row.properties)
+      eventsByUser.get(row.user_id).push({type: 'logged_in_visit', t: row.client_ts,
+        session_id: row.session_id, token_visit_id: props.token_visit_id ?? null,
+        strategy_run_id: props.strategy_run_id ?? null, token_address: props.token_address ?? null,
+        chain: props.chain ?? row.chain ?? null})
+    }
+  }
 
   // For retention/funnel, also need history before start for firstEvent — load first_chip from facts
   const users = userIds.map(uid => {

@@ -6,7 +6,7 @@ export function createFunnelPage(ctx){
  let users=[]
  const chartLifecycle=createChartLifecycle(themeMedia)
  let nativeChart=null,view='conversion'
-function funnelResult(c){return computeFunnel(users,{steps:c.steps,startAt:c.start,endAt:c.end,conversionWindowMs:c.hours*3600000,sourceFilter:c.source,strategyFilter:c.strategy,asOf:asof,association:c.association})}
+function funnelResult(c){const input=c.steps.includes('logged_in_visit')&&!c.audienceIds&&!c.cohortId?ctx.dataStore.loggedInVisitUsers??users:users;return computeFunnel(input,{steps:c.steps,startAt:c.start,endAt:c.end,conversionWindowMs:c.hours*3600000,sourceFilter:c.source,strategyFilter:c.strategy,asOf:asof,association:c.association})}
 
 function median(arr){if(!arr.length)return '—';const a=[...arr].sort((a,b)=>a-b),n=a.length;return Math.round((n%2?a[(n-1)/2]:(a[n/2-1]+a[n/2])/2)/60000)+' 分钟'}
 function showFunnel(c,rows,counts){

@@ -94,7 +94,7 @@ router.get('/north-star', (req, res) => {
     const loginCounts = db.prepare(`
       SELECT DATE(client_ts / 1000, 'unixepoch', '+7 hours') AS date, COUNT(DISTINCT user_id) AS n
       FROM events
-      WHERE event_name = 'login_succeeded'
+      WHERE user_id IS NOT NULL AND TRIM(user_id) <> ''
         AND client_ts >= ? AND client_ts < ?
         AND first_entry_source = ?
       GROUP BY date
@@ -103,7 +103,7 @@ router.get('/north-star', (req, res) => {
     const chipCounts = db.prepare(`
       SELECT DATE(client_ts / 1000, 'unixepoch', '+7 hours') AS date, COUNT(*) AS n
       FROM events
-      WHERE event_name = 'chip_analysis_viewed'
+      WHERE event_name IN ('chip_analysis_viewed', 'chip_analysis_drilldown')
         AND client_ts >= ? AND client_ts < ?
         AND first_entry_source = ?
       GROUP BY date

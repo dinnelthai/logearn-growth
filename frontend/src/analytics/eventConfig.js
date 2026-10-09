@@ -121,8 +121,8 @@ export const EVENT_CONFIG = [
   },
   {
     rawName: 'chip_analysis_drilldown',
-    type: 'chip_drilldown',
-    label: '筹码分析下钻',
+    type: 'chip',
+    label: '有效分析（筹码峰）',
     source: 'analysis.ts',
     description: '筹码分析下钻（圈选 / 内盘 / 全生命周期等），properties 含 drill_type',
   },

@@ -1,0 +1,221 @@
+{
+  "rows": 2670,
+  "valid": 2670,
+  "missing_columns": [],
+  "extra_columns": [
+    "id",
+    "server_ts"
+  ],
+  "errors": {},
+  "null_or_empty": {
+    "referrer": 1213,
+    "user_id": 228,
+    "app_version": 20
+  },
+  "by_event": {
+    "signal_viewed": {
+      "count": 876,
+      "valid": 876,
+      "errors": {},
+      "property_keys": {
+        "chain": 876,
+        "source": 876,
+        "result_id": 876,
+        "signal_type": 876,
+        "token_address": 876,
+        "strategy_run_id": 233
+      }
+    },
+    "chip_analysis_drilldown": {
+      "count": 336,
+      "valid": 336,
+      "errors": {},
+      "property_keys": {
+        "chain": 336,
+        "token_address": 336,
+        "drilldown_type": 336
+      }
+    },
+    "ranking_token_clicked": {
+      "count": 401,
+      "valid": 401,
+      "errors": {},
+      "property_keys": {
+        "chain": 401,
+        "list_type": 401,
+        "entry_module": 401,
+        "token_address": 401,
+        "token_visit_id": 401
+      }
+    },
+    "app_opened_unauthenticated": {
+      "count": 124,
+      "valid": 124,
+      "errors": {},
+      "property_keys": {
+        "page": 124,
+        "session_entry_source": 124
+      }
+    },
+    "token_detail_viewed": {
+      "count": 722,
+      "valid": 722,
+      "errors": {},
+      "property_keys": {
+        "chain": 722,
+        "entry_module": 722,
+        "token_address": 722,
+        "token_visit_id": 722
+      }
+    },
+    "first_visit_captured": {
+      "count": 57,
+      "valid": 57,
+      "errors": {},
+      "property_keys": {
+        "first_visit_at": 57,
+        "first_landing_url": 57,
+        "first_referrer_url": 57
+      }
+    },
+    "login_succeeded": {
+      "count": 11,
+      "valid": 11,
+      "errors": {},
+      "property_keys": {
+        "is_new_user": 11,
+        "login_method": 11,
+        "wallet_address": 1
+      }
+    },
+    "trade_succeeded": {
+      "count": 35,
+      "valid": 35,
+      "errors": {},
+      "property_keys": {
+        "chain": 35,
+        "source": 35,
+        "op_type": 35,
+        "tx_hash": 35,
+        "trade_id": 35,
+        "trade_type": 35,
+        "token_address": 35,
+        "trade_attempt_id": 13
+      }
+    },
+    "trade_submitted": {
+      "count": 13,
+      "valid": 13,
+      "errors": {},
+      "property_keys": {
+        "chain": 13,
+        "amount": 13,
+        "source": 13,
+        "op_type": 13,
+        "trade_type": 13,
+        "wallet_count": 10,
+        "token_address": 13,
+        "trade_attempt_id": 13
+      }
+    },
+    "login_button_clicked": {
+      "count": 11,
+      "valid": 11,
+      "errors": {},
+      "property_keys": {
+        "source": 11
+      }
+    },
+    "trade_failed": {
+      "count": 7,
+      "valid": 7,
+      "errors": {},
+      "property_keys": {
+        "chain": 7,
+        "reason": 7,
+        "source": 7,
+        "op_type": 7,
+        "tx_hash": 7,
+        "trade_id": 7,
+        "trade_type": 7,
+        "token_address": 7
+      }
+    },
+    "callout_card_clicked": {
+      "count": 46,
+      "valid": 46,
+      "errors": {},
+      "property_keys": {
+        "kind": 46,
+        "chain": 46,
+        "platform": 46,
+        "entry_module": 46,
+        "token_symbol": 46,
+        "caller_handle": 46,
+        "token_address": 46,
+        "token_visit_id": 46
+      }
+    },
+    "strategy_started": {
+      "count": 6,
+      "valid": 6,
+      "errors": {},
+      "property_keys": {
+        "chain": 6,
+        "strategy_id": 6,
+        "strategy_type": 6,
+        "strategy_run_id": 6,
+        "strategy_source": 6,
+        "is_first_strategy": 6,
+        "strategy_session_id": 6
+      }
+    },
+    "language_changed": {
+      "count": 4,
+      "valid": 4,
+      "errors": {},
+      "property_keys": {
+        "lang": 4,
+        "from_lang": 4
+      }
+    },
+    "strategy_stopped": {
+      "count": 2,
+      "valid": 2,
+      "errors": {},
+      "property_keys": {
+        "reason": 2,
+        "strategy_id": 2
+      }
+    },
+    "holders_analysis_viewed": {
+      "count": 18,
+      "valid": 18,
+      "errors": {},
+      "property_keys": {
+        "chain": 18,
+        "view_type": 18,
+        "token_address": 18
+      }
+    },
+    "chip_analysis_viewed": {
+      "count": 1,
+      "valid": 1,
+      "errors": {},
+      "property_keys": {
+        "chain": 1,
+        "is_cache": 1,
+        "source_tab": 1,
+        "token_address": 1,
+        "time_range_type": 1
+      }
+    }
+  },
+  "distinct_users": 39,
+  "distinct_anonymous": 57,
+  "duplicate_event_ids": 4,
+  "time_range": [
+    "2026-10-08T17:16:24.609000+07:00",
+    "2026-10-09T14:05:44.214000+07:00"
+  ]
+}

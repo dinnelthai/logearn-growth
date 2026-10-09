@@ -106,7 +106,7 @@ function rebuildUserFacts() {
   const stmt = db.prepare(`
     SELECT event_name, user_id, anonymous_id, first_entry_source, client_ts, properties
     FROM events
-    WHERE event_name IN ('first_visit_captured','login_succeeded','chip_analysis_viewed')
+    WHERE event_name IN ('first_visit_captured','login_succeeded','chip_analysis_viewed','chip_analysis_drilldown')
       AND client_ts >= ? AND client_ts < ?
     ORDER BY client_ts ASC
   `)
@@ -149,7 +149,7 @@ function rebuildUserFacts() {
             })
           }
         }
-      } else if (row.event_name === 'chip_analysis_viewed') {
+      } else if (['chip_analysis_viewed', 'chip_analysis_drilldown'].includes(row.event_name)) {
         ensure(key, {
           user_id: row.user_id,
           anonymous_id: row.anonymous_id,
@@ -185,7 +185,7 @@ function rebuildDailyNorthStar() {
   const chipRows = db.prepare(`
     SELECT user_id, anonymous_id, client_ts
     FROM events
-    WHERE event_name = 'chip_analysis_viewed'
+    WHERE event_name IN ('chip_analysis_viewed', 'chip_analysis_drilldown')
     ORDER BY client_ts ASC
   `).all()
   for (const row of chipRows) {
@@ -206,7 +206,7 @@ function rebuildDailyNorthStar() {
   const loginRows = db.prepare(`
     SELECT user_id, anonymous_id, client_ts
     FROM events
-    WHERE event_name = 'login_succeeded'
+    WHERE user_id IS NOT NULL AND TRIM(user_id) <> ''
   `).all()
   for (const row of loginRows) {
     const key = resolveUserKey(row.user_id, row.anonymous_id)
@@ -283,13 +283,13 @@ function rebuildDailyChannelStats() {
   for (const row of db.prepare(`
     SELECT user_id, event_name, client_ts FROM events
     WHERE user_id IS NOT NULL AND event_name IN (
-      'login_succeeded','token_detail_viewed','chip_analysis_viewed','strategy_started'
+      'login_succeeded','token_detail_viewed','chip_analysis_viewed','chip_analysis_drilldown','strategy_started'
     )
   `).all()) {
     const u = ensureUser(row.user_id)
     if (row.event_name === 'login_succeeded') u.logins.push(row.client_ts)
     else if (row.event_name === 'token_detail_viewed') u.tokens.push(row.client_ts)
-    else if (row.event_name === 'chip_analysis_viewed') u.chips.push(row.client_ts)
+    else if (['chip_analysis_viewed', 'chip_analysis_drilldown'].includes(row.event_name)) u.chips.push(row.client_ts)
     else if (row.event_name === 'strategy_started') u.ais.push(row.client_ts)
   }
 
@@ -437,7 +437,7 @@ function rebuildDailyTradeStats() {
     let props = {}
     try { props = JSON.parse(s.properties || '{}') } catch { /* ignore */ }
     const date = toDateStr(s.client_ts)
-    const chain = s.chain || props.chain || '未知'
+    const chain = props.chain || s.chain || '未知'
     const key = `${date}|${chain}`
     const cur = agg.get(key) || {
       date, chain, submitted: 0, succeeded: 0, failed: 0, pending: 0, volume_usd: 0,
@@ -482,11 +482,76 @@ function rebuildDailyTradeStats() {
   return agg.size
 }
 
+function loadUserFeatureBases() {
+  // Prefer product user table when present; otherwise derive logged-in users
+  // from user_facts + events so event-only imports still power segmentation.
+  const fromUsers = db.prepare(`
+    SELECT
+      u.user_id AS user_id,
+      COALESCE(f.first_source, u.first_source) AS first_source,
+      COALESCE(f.first_chip_at,
+        CASE WHEN u.first_analysis_at IS NOT NULL THEN CAST(strftime('%s', u.first_analysis_at) AS INTEGER) * 1000 END
+      ) AS first_chip_at,
+      u.telegram_bound AS telegram_bound,
+      u.email_bound AS email_bound,
+      u.preferred_language AS preferred_language
+    FROM logearn_users u
+    LEFT JOIN user_facts f ON f.user_id = u.user_id
+  `).all()
+  if (fromUsers.length) return fromUsers
+
+  const byId = new Map()
+  for (const row of db.prepare(`
+    SELECT
+      user_id AS user_id,
+      first_source AS first_source,
+      first_chip_at AS first_chip_at,
+      NULL AS telegram_bound,
+      NULL AS email_bound,
+      NULL AS preferred_language
+    FROM user_facts
+    WHERE user_id IS NOT NULL AND TRIM(user_id) != ''
+  `).all()) {
+    byId.set(row.user_id, row)
+  }
+
+  for (const row of db.prepare(`
+    SELECT
+      user_id AS user_id,
+      MIN(first_entry_source) AS first_source
+    FROM events
+    WHERE user_id IS NOT NULL AND TRIM(user_id) != ''
+    GROUP BY user_id
+  `).all()) {
+    const cur = byId.get(row.user_id)
+    if (cur) {
+      if (cur.first_source == null && row.first_source != null) cur.first_source = row.first_source
+      continue
+    }
+    byId.set(row.user_id, {
+      user_id: row.user_id,
+      first_source: row.first_source ?? null,
+      first_chip_at: null,
+      telegram_bound: null,
+      email_bound: null,
+      preferred_language: null,
+    })
+  }
+
+  return [...byId.values()]
+}
+
 function rebuildUserFeatures() {
   ensureSchema()
   try { db.exec('DELETE FROM user_features') } catch { /* table created by ensureSchema */ }
   const meta = readMeta()
-  const asOf = Date.parse(meta.as_of) || Date.now()
+  // Prefer events watermark / imported max ts over wall clock so fresh imports
+  // classify against observed data instead of "now".
+  const asOf =
+    Date.parse(meta.as_of) ||
+    Date.parse(meta.events_complete_through) ||
+    (Number.isFinite(Number(meta.max_client_ts)) ? Number(meta.max_client_ts) : NaN) ||
+    Date.now()
   const recent28 = asOf - 28 * DAY
   const now = Date.now()
 
@@ -502,24 +567,12 @@ function rebuildUserFeatures() {
     )
   `)
 
-  const bases = db.prepare(`
-    SELECT
-      u.user_id AS user_id,
-      COALESCE(f.first_source, u.first_source) AS first_source,
-      COALESCE(f.first_chip_at,
-        CASE WHEN u.first_analysis_at IS NOT NULL THEN CAST(strftime('%s', u.first_analysis_at) AS INTEGER) * 1000 END
-      ) AS first_chip_at,
-      u.telegram_bound AS telegram_bound,
-      u.email_bound AS email_bound,
-      u.preferred_language AS preferred_language
-    FROM logearn_users u
-    LEFT JOIN user_facts f ON f.user_id = u.user_id
-  `).all()
+  const bases = loadUserFeatureBases()
 
   const chipByUser = new Map()
   for (const row of db.prepare(`
     SELECT user_id, client_ts FROM events
-    WHERE event_name = 'chip_analysis_viewed' AND user_id IS NOT NULL AND client_ts <= ?
+    WHERE event_name IN ('chip_analysis_viewed', 'chip_analysis_drilldown') AND user_id IS NOT NULL AND client_ts <= ?
     ORDER BY client_ts ASC
   `).all(asOf)) {
     if (!chipByUser.has(row.user_id)) chipByUser.set(row.user_id, [])
@@ -540,6 +593,7 @@ function rebuildUserFeatures() {
   db.exec('BEGIN')
   try {
     for (const b of bases) {
+      if (!b?.user_id) continue
       const chips = chipByUser.get(b.user_id) || []
       const firstChip = b.first_chip_at ?? (chips[0] ?? null)
       const lastChip = chips.length ? chips[chips.length - 1] : firstChip

@@ -51,7 +51,7 @@ export function createNorthStarAggPage(ctx) {
       root.querySelector('.a-head').append(toolbar)
     }
     toolbar.hidden = false
-    toolbar.innerHTML = `<div class="a-north-periods" role="group" aria-label="北极星统计周期">${[['all', '全周期'], ['7', '近7天'], ['14', '近14天'], ['30', '近30天']].map(([v, label]) => `<button class="a-button" data-north-period="${v}" aria-pressed="${String(c.period) === v}">${label}</button>`).join('')}</div><div class="a-muted a-north-dates">${date(c.start)}–${date(c.end - 86400000)} · 数据截至 ${clock(asof)} · UTC+7 · 服务端聚合</div>`
+    toolbar.innerHTML = `<div class="a-north-periods" role="group" aria-label="北极星统计周期">${[['all', '全周期'], ['7', '近7天'], ['14', '近14天'], ['30', '近30天']].map(([v, label]) => `<button class="a-button" data-north-period="${v}" aria-pressed="${String(c.period) === v}">${label}</button>`).join('')}</div><div class="a-muted a-north-dates">${date(c.start)}–${date(c.end - 86400000)} · 数据截至 ${clock(asof)} · UTC+7 · 截至日进行中 · 服务端聚合</div>`
     toolbar.querySelectorAll('[data-north-period]').forEach(b => {
       b.onclick = () => ctx.setPeriod(b.dataset.northPeriod)
     })
@@ -123,7 +123,7 @@ export function createNorthStarAggPage(ctx) {
     $$('[data-ns-ret]').forEach(b => b.onclick = () =>
       openDrill(`${fmtDate(b.dataset.nsRet)} 当天回访`, '当日回访', 'north_star_day', { date: b.dataset.nsRet, source: drillBase.source, cohort: 'returning' }))
     $$('[data-ns-login]').forEach(b => b.onclick = () =>
-      openDrill(`${fmtDate(b.dataset.nsLogin)} 登录用户`, '当日登录', 'north_star_login_day', { date: b.dataset.nsLogin, source: drillBase.source }))
+      openDrill(`${fmtDate(b.dataset.nsLogin)} 登录用户`, '当天任意事件带非空 user_id 的去重用户', 'north_star_login_day', { date: b.dataset.nsLogin, source: drillBase.source }))
 
     const host = $('#as-north-chart')
     if (!globalThis.echarts) {
@@ -165,14 +165,14 @@ export function createNorthStarAggPage(ctx) {
         },
         series: (northTrendView === 'split'
           ? [
-              { name: '当天首次', type: 'bar', stack: 'users', barMaxWidth: 34, itemStyle: { color: color('--a-accent') }, data: days.map(d => d.new_users) },
-              { name: '当天回访', type: 'bar', stack: 'users', barMaxWidth: 34, itemStyle: { color: color('--a-green') }, data: days.map(d => d.returning_users) },
+              { name: '当天首次', type: 'bar', label: { show: true, position: 'top', formatter: p => p.value > 0 ? String(p.value) : '' }, stack: 'users', barMaxWidth: 34, itemStyle: { color: color('--a-accent') }, data: days.map(d => d.new_users) },
+              { name: '当天回访', type: 'bar', label: { show: true, position: 'top', formatter: p => p.value > 0 ? String(p.value) : '' }, stack: 'users', barMaxWidth: 34, itemStyle: { color: color('--a-green') }, data: days.map(d => d.returning_users) },
             ]
           : [
-              { name: '有效分析总人数', type: 'bar', barMaxWidth: 34, itemStyle: { color: color('--a-accent') }, data: days.map(d => d.active_users) },
+              { name: '有效分析总人数', type: 'bar', label: { show: true, position: 'top', formatter: p => p.value > 0 ? String(p.value) : '' }, barMaxWidth: 34, itemStyle: { color: color('--a-accent') }, data: days.map(d => d.active_users) },
             ]
         ).concat([
-          { name: '每日登录用户', type: 'line', symbol: 'diamond', symbolSize: 5, lineStyle: { type: 'dashed' }, itemStyle: { color: '#e5a64b' }, data: days.map(d => d.login_users) },
+          { name: '每日登录用户', label: { show: true, position: 'top', distance: 16, formatter: p => p.value > 0 ? String(p.value) : '' }, type: 'line', symbol: 'diamond', symbolSize: 5, lineStyle: { type: 'dashed' }, itemStyle: { color: '#e5a64b' }, data: days.map(d => d.login_users) },
         ]),
       }, true)
     }
@@ -187,7 +187,7 @@ export function createNorthStarAggPage(ctx) {
       const d = days[p.dataIndex]
       if (!d) return
       if (p.seriesName === '每日登录用户') {
-        openDrill(`${fmtDate(d.date)} 登录用户`, '当日登录', 'north_star_login_day', { date: d.date, source: drillBase.source })
+        openDrill(`${fmtDate(d.date)} 登录用户`, '当天任意事件带非空 user_id 的去重用户', 'north_star_login_day', { date: d.date, source: drillBase.source })
         return
       }
       if (p.seriesType !== 'bar') return

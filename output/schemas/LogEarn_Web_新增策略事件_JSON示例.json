@@ -1,0 +1,57 @@
+[
+  {
+    "schema_version": "2.0",
+    "event_id": "f843f829-bf14-58ff-9b20-f7a23e6187a5",
+    "event_name": "strategy_result_generated",
+    "user_id": "user-123",
+    "anonymous_id": "anon-456",
+    "first_entry_source": "X",
+    "session_entry_source": "X",
+    "session_id": "session-001",
+    "client_ts": 1790824380000,
+    "occurred_at": "2026-10-01T03:13:00.000Z",
+    "page": "/token/token-example",
+    "referrer": "https://x.com/",
+    "chain": "solana",
+    "app_version": "1.0.0",
+    "device": "desktop",
+    "ua": "ExampleBrowser/1.0",
+    "lang": "cn",
+    "properties": {
+      "strategy_run_id": "run-001",
+      "result_id": "result-001",
+      "strategy_id": "strategy-001",
+      "strategy_type": "intraday",
+      "token_address": "token-example",
+      "chain": "solana"
+    }
+  },
+  {
+    "schema_version": "2.0",
+    "event_id": "5dca966c-0fd2-51ee-852c-4e424f1ab660",
+    "event_name": "strategy_signal_viewed",
+    "user_id": "user-123",
+    "anonymous_id": "anon-456",
+    "first_entry_source": "X",
+    "session_entry_source": "X",
+    "session_id": "session-001",
+    "client_ts": 1790824440000,
+    "occurred_at": "2026-10-01T03:14:00.000Z",
+    "page": "/token/token-example",
+    "referrer": "https://x.com/",
+    "chain": "solana",
+    "app_version": "1.0.0",
+    "device": "desktop",
+    "ua": "ExampleBrowser/1.0",
+    "lang": "cn",
+    "properties": {
+      "token_address": "token-example",
+      "chain": "solana",
+      "signal_type": "strategy_result",
+      "source": "strategy_page",
+      "strategy_run_id": "run-001",
+      "result_id": "result-001",
+      "strategy_type": "intraday"
+    }
+  }
+]

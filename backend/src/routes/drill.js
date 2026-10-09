@@ -143,7 +143,7 @@ function northStarLoginDayKeys({ date, source, start, end }) {
         SELECT DISTINCT
           CASE WHEN user_id IS NOT NULL THEN 'user:' || user_id ELSE 'anonymous:' || anonymous_id END AS user_key
         FROM events
-        WHERE event_name = 'login_succeeded'
+        WHERE user_id IS NOT NULL AND TRIM(user_id) <> ''
           AND client_ts >= ? AND client_ts < ?
           AND first_entry_source = ?
         ORDER BY user_key
@@ -152,7 +152,7 @@ function northStarLoginDayKeys({ date, source, start, end }) {
         SELECT DISTINCT
           CASE WHEN user_id IS NOT NULL THEN 'user:' || user_id ELSE 'anonymous:' || anonymous_id END AS user_key
         FROM events
-        WHERE event_name = 'login_succeeded'
+        WHERE user_id IS NOT NULL AND TRIM(user_id) <> ''
           AND client_ts >= ? AND client_ts < ?
         ORDER BY user_key
       `).all(dayStart, dayEnd)
@@ -250,7 +250,7 @@ router.get('/timeline', (req, res) => {
       t: row.client_ts,
       session_id: row.session_id,
       entry_source: row.first_entry_source,
-      chain: row.chain,
+      chain: properties.chain ?? row.chain ?? null,
       properties,
     }
   })

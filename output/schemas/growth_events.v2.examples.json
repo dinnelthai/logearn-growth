@@ -1,0 +1,439 @@
+{
+  "events": [
+    {
+      "event_id": "550e8400-e29b-41d4-a716-000000000001",
+      "event_name": "login_succeeded",
+      "user_id": "user-123",
+      "anonymous_id": "anon-456",
+      "first_entry_source": "X",
+      "session_entry_source": "direct",
+      "session_id": "session-001",
+      "client_ts": 1790823600000,
+      "page": "/token/example",
+      "referrer": "",
+      "chain": "solana",
+      "app_version": "1.0.0",
+      "device": "desktop",
+      "ua": "example-agent",
+      "lang": "zh",
+      "properties": {
+        "login_method": "wallet",
+        "is_new_user": false
+      },
+      "schema_version": "2.0"
+    },
+    {
+      "event_id": "550e8400-e29b-41d4-a716-000000000002",
+      "event_name": "ranking_token_clicked",
+      "user_id": "user-123",
+      "anonymous_id": "anon-456",
+      "first_entry_source": "X",
+      "session_entry_source": "direct",
+      "session_id": "session-001",
+      "client_ts": 1790823601000,
+      "page": "/token/example",
+      "referrer": "",
+      "chain": "solana",
+      "app_version": "1.0.0",
+      "device": "desktop",
+      "ua": "example-agent",
+      "lang": "zh",
+      "properties": {
+        "token_address": "token-example",
+        "chain": "solana",
+        "token_visit_id": "visit-001",
+        "entry_module": "signals",
+        "list_type": "signals",
+        "rank": 1
+      },
+      "schema_version": "2.0"
+    },
+    {
+      "event_id": "550e8400-e29b-41d4-a716-000000000003",
+      "event_name": "token_detail_viewed",
+      "user_id": "user-123",
+      "anonymous_id": "anon-456",
+      "first_entry_source": "X",
+      "session_entry_source": "direct",
+      "session_id": "session-001",
+      "client_ts": 1790823602000,
+      "page": "/token/example",
+      "referrer": "",
+      "chain": "solana",
+      "app_version": "1.0.0",
+      "device": "desktop",
+      "ua": "example-agent",
+      "lang": "zh",
+      "properties": {
+        "token_address": "token-example",
+        "chain": "solana",
+        "token_visit_id": "visit-001",
+        "entry_module": "signals"
+      },
+      "schema_version": "2.0"
+    },
+    {
+      "event_id": "550e8400-e29b-41d4-a716-000000000004",
+      "event_name": "chip_analysis_viewed",
+      "user_id": "user-123",
+      "anonymous_id": "anon-456",
+      "first_entry_source": "X",
+      "session_entry_source": "direct",
+      "session_id": "session-001",
+      "client_ts": 1790823603000,
+      "page": "/token/example",
+      "referrer": "",
+      "chain": "solana",
+      "app_version": "1.0.0",
+      "device": "desktop",
+      "ua": "example-agent",
+      "lang": "zh",
+      "properties": {
+        "token_address": "token-example",
+        "chain": "solana",
+        "token_visit_id": "visit-001",
+        "entry_module": "signals",
+        "cache_hit": true,
+        "analysis_source": "token_detail"
+      },
+      "schema_version": "2.0"
+    },
+    {
+      "event_id": "550e8400-e29b-41d4-a716-000000000005",
+      "event_name": "strategy_started",
+      "user_id": "user-123",
+      "anonymous_id": "anon-456",
+      "first_entry_source": "X",
+      "session_entry_source": "direct",
+      "session_id": "session-001",
+      "client_ts": 1790823604000,
+      "page": "/token/example",
+      "referrer": "",
+      "chain": "solana",
+      "app_version": "1.0.0",
+      "device": "desktop",
+      "ua": "example-agent",
+      "lang": "zh",
+      "properties": {
+        "strategy_session_id": "a50e8400-e29b-41d4-a716-446655440001",
+        "strategy_id": "strategy-001",
+        "strategy_type": "intraday",
+        "strategy_run_id": "run-001"
+      },
+      "schema_version": "2.0"
+    },
+    {
+      "event_id": "550e8400-e29b-41d4-a716-000000000006",
+      "event_name": "strategy_result_generated",
+      "user_id": "user-123",
+      "anonymous_id": "anon-456",
+      "first_entry_source": "X",
+      "session_entry_source": "direct",
+      "session_id": "session-001",
+      "client_ts": 1790823660000,
+      "page": "/token/example",
+      "referrer": "",
+      "chain": "solana",
+      "app_version": "1.0.0",
+      "device": "desktop",
+      "ua": "example-agent",
+      "lang": "zh",
+      "properties": {
+        "strategy_run_id": "run-001",
+        "result_id": "result-001"
+      },
+      "schema_version": "2.0"
+    },
+    {
+      "event_id": "550e8400-e29b-41d4-a716-000000000007",
+      "event_name": "signal_viewed",
+      "user_id": "user-123",
+      "anonymous_id": "anon-456",
+      "first_entry_source": "X",
+      "session_entry_source": "direct",
+      "session_id": "session-001",
+      "client_ts": 1790823720000,
+      "page": "/token/example",
+      "referrer": "",
+      "chain": "solana",
+      "app_version": "1.0.0",
+      "device": "desktop",
+      "ua": "example-agent",
+      "lang": "zh",
+      "properties": {
+        "signal_type": "strategy_result",
+        "strategy_run_id": "run-001",
+        "result_id": "result-001"
+      },
+      "schema_version": "2.0"
+    },
+    {
+      "event_id": "550e8400-e29b-41d4-a716-000000000008",
+      "event_name": "trade_succeeded",
+      "user_id": "user-123",
+      "anonymous_id": "anon-456",
+      "first_entry_source": "X",
+      "session_entry_source": "direct",
+      "session_id": "session-001",
+      "client_ts": 1790823780000,
+      "page": "/token/example",
+      "referrer": "",
+      "chain": "solana",
+      "app_version": "1.0.0",
+      "device": "desktop",
+      "ua": "example-agent",
+      "lang": "zh",
+      "properties": {
+        "op_type": "buy",
+        "chain": "solana",
+        "token_address": "token-example",
+        "trade_attempt_id": "attempt-001",
+        "trade_id": "trade-001"
+      },
+      "schema_version": "2.0"
+    }
+  ],
+  "users_response": {
+    "users": [
+      {
+        "user_id": "user-123",
+        "created_at": "2026-09-01T03:00:00Z",
+        "first_analysis_at": "2026-09-01T03:05:00Z",
+        "first_source": "X",
+        "first_analysis_entry_module": "signals",
+        "preferred_language": "zh",
+        "telegram_bound": true,
+        "email_bound": null
+      }
+    ]
+  },
+  "referrals_response": {
+    "referrals": [
+      {
+        "inviter_user_id": "user-123",
+        "invitee_user_id": "user-789",
+        "level": 1,
+        "bound_at": "2026-10-01T04:00:00Z"
+      }
+    ]
+  },
+  "trades_response": {
+    "trades": [
+      {
+        "trade_id": "trade-001",
+        "user_id": "user-123",
+        "status": "confirmed",
+        "volume_usd": 50,
+        "confirmed_at": "2026-10-01T05:00:00Z",
+        "trade_attempt_id": "attempt-001",
+        "chain": "solana"
+      }
+    ],
+    "meta": {
+      "history_complete": false,
+      "trades_start_at": "2026-09-01T00:00:00Z",
+      "trades_complete_through": "2026-10-02T00:00:00Z"
+    }
+  },
+  "events_response": {
+    "logearn_events": [
+      {
+        "event_id": "550e8400-e29b-41d4-a716-000000000001",
+        "event_name": "login_succeeded",
+        "user_id": "user-123",
+        "anonymous_id": "anon-456",
+        "first_entry_source": "X",
+        "session_entry_source": "direct",
+        "session_id": "session-001",
+        "client_ts": 1790823600000,
+        "page": "/token/example",
+        "referrer": "",
+        "chain": "solana",
+        "app_version": "1.0.0",
+        "device": "desktop",
+        "ua": "example-agent",
+        "lang": "zh",
+        "properties": {
+          "login_method": "wallet",
+          "is_new_user": false
+        },
+        "schema_version": "2.0"
+      },
+      {
+        "event_id": "550e8400-e29b-41d4-a716-000000000002",
+        "event_name": "ranking_token_clicked",
+        "user_id": "user-123",
+        "anonymous_id": "anon-456",
+        "first_entry_source": "X",
+        "session_entry_source": "direct",
+        "session_id": "session-001",
+        "client_ts": 1790823601000,
+        "page": "/token/example",
+        "referrer": "",
+        "chain": "solana",
+        "app_version": "1.0.0",
+        "device": "desktop",
+        "ua": "example-agent",
+        "lang": "zh",
+        "properties": {
+          "token_address": "token-example",
+          "chain": "solana",
+          "token_visit_id": "visit-001",
+          "entry_module": "signals",
+          "list_type": "signals",
+          "rank": 1
+        },
+        "schema_version": "2.0"
+      },
+      {
+        "event_id": "550e8400-e29b-41d4-a716-000000000003",
+        "event_name": "token_detail_viewed",
+        "user_id": "user-123",
+        "anonymous_id": "anon-456",
+        "first_entry_source": "X",
+        "session_entry_source": "direct",
+        "session_id": "session-001",
+        "client_ts": 1790823602000,
+        "page": "/token/example",
+        "referrer": "",
+        "chain": "solana",
+        "app_version": "1.0.0",
+        "device": "desktop",
+        "ua": "example-agent",
+        "lang": "zh",
+        "properties": {
+          "token_address": "token-example",
+          "chain": "solana",
+          "token_visit_id": "visit-001",
+          "entry_module": "signals"
+        },
+        "schema_version": "2.0"
+      },
+      {
+        "event_id": "550e8400-e29b-41d4-a716-000000000004",
+        "event_name": "chip_analysis_viewed",
+        "user_id": "user-123",
+        "anonymous_id": "anon-456",
+        "first_entry_source": "X",
+        "session_entry_source": "direct",
+        "session_id": "session-001",
+        "client_ts": 1790823603000,
+        "page": "/token/example",
+        "referrer": "",
+        "chain": "solana",
+        "app_version": "1.0.0",
+        "device": "desktop",
+        "ua": "example-agent",
+        "lang": "zh",
+        "properties": {
+          "token_address": "token-example",
+          "chain": "solana",
+          "token_visit_id": "visit-001",
+          "entry_module": "signals",
+          "cache_hit": true,
+          "analysis_source": "token_detail"
+        },
+        "schema_version": "2.0"
+      },
+      {
+        "event_id": "550e8400-e29b-41d4-a716-000000000005",
+        "event_name": "strategy_started",
+        "user_id": "user-123",
+        "anonymous_id": "anon-456",
+        "first_entry_source": "X",
+        "session_entry_source": "direct",
+        "session_id": "session-001",
+        "client_ts": 1790823604000,
+        "page": "/token/example",
+        "referrer": "",
+        "chain": "solana",
+        "app_version": "1.0.0",
+        "device": "desktop",
+        "ua": "example-agent",
+        "lang": "zh",
+        "properties": {
+          "strategy_session_id": "a50e8400-e29b-41d4-a716-446655440001",
+          "strategy_id": "strategy-001",
+          "strategy_type": "intraday",
+          "strategy_run_id": "run-001"
+        },
+        "schema_version": "2.0"
+      },
+      {
+        "event_id": "550e8400-e29b-41d4-a716-000000000006",
+        "event_name": "strategy_result_generated",
+        "user_id": "user-123",
+        "anonymous_id": "anon-456",
+        "first_entry_source": "X",
+        "session_entry_source": "direct",
+        "session_id": "session-001",
+        "client_ts": 1790823660000,
+        "page": "/token/example",
+        "referrer": "",
+        "chain": "solana",
+        "app_version": "1.0.0",
+        "device": "desktop",
+        "ua": "example-agent",
+        "lang": "zh",
+        "properties": {
+          "strategy_run_id": "run-001",
+          "result_id": "result-001"
+        },
+        "schema_version": "2.0"
+      },
+      {
+        "event_id": "550e8400-e29b-41d4-a716-000000000007",
+        "event_name": "signal_viewed",
+        "user_id": "user-123",
+        "anonymous_id": "anon-456",
+        "first_entry_source": "X",
+        "session_entry_source": "direct",
+        "session_id": "session-001",
+        "client_ts": 1790823720000,
+        "page": "/token/example",
+        "referrer": "",
+        "chain": "solana",
+        "app_version": "1.0.0",
+        "device": "desktop",
+        "ua": "example-agent",
+        "lang": "zh",
+        "properties": {
+          "signal_type": "strategy_result",
+          "strategy_run_id": "run-001",
+          "result_id": "result-001"
+        },
+        "schema_version": "2.0"
+      },
+      {
+        "event_id": "550e8400-e29b-41d4-a716-000000000008",
+        "event_name": "trade_succeeded",
+        "user_id": "user-123",
+        "anonymous_id": "anon-456",
+        "first_entry_source": "X",
+        "session_entry_source": "direct",
+        "session_id": "session-001",
+        "client_ts": 1790823780000,
+        "page": "/token/example",
+        "referrer": "",
+        "chain": "solana",
+        "app_version": "1.0.0",
+        "device": "desktop",
+        "ua": "example-agent",
+        "lang": "zh",
+        "properties": {
+          "op_type": "buy",
+          "chain": "solana",
+          "token_address": "token-example",
+          "trade_attempt_id": "attempt-001",
+          "trade_id": "trade-001"
+        },
+        "schema_version": "2.0"
+      }
+    ],
+    "meta": {
+      "history_complete": false,
+      "events_start_at": "2026-09-01T00:00:00Z",
+      "events_complete_through": "2026-10-02T00:00:00Z"
+    }
+  }
+}

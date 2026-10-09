@@ -1,0 +1,70 @@
+[
+  {
+    "name": "id",
+    "typeOid": 20
+  },
+  {
+    "name": "event_id",
+    "typeOid": 25
+  },
+  {
+    "name": "event_name",
+    "typeOid": 25
+  },
+  {
+    "name": "user_id",
+    "typeOid": 25
+  },
+  {
+    "name": "anonymous_id",
+    "typeOid": 25
+  },
+  {
+    "name": "first_entry_source",
+    "typeOid": 25
+  },
+  {
+    "name": "session_id",
+    "typeOid": 25
+  },
+  {
+    "name": "client_ts",
+    "typeOid": 20
+  },
+  {
+    "name": "server_ts",
+    "typeOid": 1184
+  },
+  {
+    "name": "page",
+    "typeOid": 25
+  },
+  {
+    "name": "referrer",
+    "typeOid": 25
+  },
+  {
+    "name": "chain",
+    "typeOid": 25
+  },
+  {
+    "name": "app_version",
+    "typeOid": 25
+  },
+  {
+    "name": "device",
+    "typeOid": 25
+  },
+  {
+    "name": "ua",
+    "typeOid": 25
+  },
+  {
+    "name": "lang",
+    "typeOid": 25
+  },
+  {
+    "name": "properties",
+    "typeOid": 3802
+  }
+]

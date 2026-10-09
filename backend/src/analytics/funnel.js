@@ -41,7 +41,7 @@ function computeFunnel(users, {
     const windowEnd = step0.t + conversionWindowMs
     for (let i = 1; i < steps.length; i++) {
       const candidates = events.filter(e =>
-        e.type === steps[i] && matchesStrategy(e) && e.t > lastT && e.t <= windowEnd && e.t <= (asOf ?? Infinity)
+        e.type === steps[i] && matchesStrategy(e) && (steps[i - 1] === 'logged_in_visit' ? e.t >= lastT : e.t > lastT) && e.t <= windowEnd && e.t <= (asOf ?? Infinity)
       )
       const next = candidates.find(matchesAssociation)
       if (!next) {

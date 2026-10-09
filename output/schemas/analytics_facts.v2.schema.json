@@ -1,0 +1,404 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://logearn.com/schemas/analytics_facts.v2.schema.json",
+  "title": "LogEarn 四项分析依赖的后端事实与覆盖契约",
+  "description": "分别校验各接口响应；不是产品事件。null表示未提供/未知，空数组表示已提供且无记录；完整性须真实声明。",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/usersResponse"
+    },
+    {
+      "$ref": "#/$defs/referralsResponse"
+    },
+    {
+      "$ref": "#/$defs/tradesResponse"
+    },
+    {
+      "$ref": "#/$defs/eventsResponse"
+    }
+  ],
+  "$defs": {
+    "user": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "user_id",
+        "created_at",
+        "first_analysis_at",
+        "first_source",
+        "first_analysis_entry_module",
+        "preferred_language",
+        "telegram_bound",
+        "email_bound"
+      ],
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "created_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "first_analysis_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "first_source": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "first_analysis_entry_module": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "callouts",
+                "signals",
+                "popular",
+                "fomo",
+                "unknown"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "preferred_language": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "zh",
+                "en",
+                "unknown"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "telegram_bound": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "email_bound": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "is_partner": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "description": "注册用户完整池，含无行为用户；首次事实历史回填；绑定与语言为当前事实，null未知。first_analysis_at不伪造一次行为。"
+    },
+    "referral": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inviter_user_id",
+        "invitee_user_id",
+        "bound_at",
+        "level"
+      ],
+      "properties": {
+        "inviter_user_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "invitee_user_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "bound_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "level": {
+          "const": 1
+        },
+        "referral_link_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "share_type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "description": "一级正式邀请绑定；排除自邀；一个被邀请者不应出现相互矛盾的首次绑定。"
+    },
+    "trade": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trade_id",
+        "user_id",
+        "status",
+        "volume_usd",
+        "confirmed_at"
+      ],
+      "properties": {
+        "trade_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "user_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "status": {
+          "const": "confirmed"
+        },
+        "volume_usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "confirmed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "trade_attempt_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "chain": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tx_hash": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "description": "业务后端已确认成交事实；volume_usd为该笔USD金额，非原币amount；零值允许供质量核对，人群对比交易人数要求>0。"
+    },
+    "usersResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "users"
+      ],
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/user"
+          }
+        }
+      }
+    },
+    "referralsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "referrals"
+      ],
+      "properties": {
+        "referrals": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/referral"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "tradesResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trades",
+        "meta"
+      ],
+      "properties": {
+        "trades": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/trade"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "history_complete",
+            "trades_start_at",
+            "trades_complete_through"
+          ],
+          "properties": {
+            "history_complete": {
+              "type": "boolean"
+            },
+            "trades_start_at": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "trades_complete_through": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "event": {
+      "$ref": "https://logearn.com/schemas/growth_events.v2.schema.json"
+    },
+    "eventsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "logearn_events",
+        "meta"
+      ],
+      "properties": {
+        "logearn_events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/event"
+          }
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "history_complete",
+            "events_start_at",
+            "events_complete_through"
+          ],
+          "properties": {
+            "history_complete": {
+              "type": "boolean"
+            },
+            "events_start_at": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "events_complete_through": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
