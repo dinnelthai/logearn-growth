@@ -219,18 +219,20 @@ function loadNormalizedUsers({
     detail,
   })
 
-  if (types.includes('logged_in_visit')) {
+  if (types.includes('logged_in_visit') || types.includes('login_verified')) {
     const ids = new Set(userIds)
-    const rows = db.prepare(`SELECT user_id, client_ts, session_id, chain, properties
+    const rows = db.prepare(`SELECT user_id, event_name, client_ts, session_id, chain, properties
       FROM events WHERE user_id IS NOT NULL AND TRIM(user_id) <> ''
       AND client_ts >= ? AND client_ts < ?`).all(eventStart ?? 0, Math.min(end + endExtraMs, asOf + 1))
     for (const row of rows) {
       if (!ids.has(row.user_id)) continue
       const props = parseProps(row.properties)
-      eventsByUser.get(row.user_id).push({type: 'logged_in_visit', t: row.client_ts,
+      const evidence = {type: 'logged_in_visit', t: row.client_ts,
         session_id: row.session_id, token_visit_id: props.token_visit_id ?? null,
         strategy_run_id: props.strategy_run_id ?? null, token_address: props.token_address ?? null,
-        chain: props.chain ?? row.chain ?? null})
+        chain: props.chain ?? row.chain ?? null}
+      if(types.includes('logged_in_visit'))eventsByUser.get(row.user_id).push(evidence)
+      if(types.includes('login_verified')&&rawNamesForTypes(['login_verified']).includes(row.event_name))eventsByUser.get(row.user_id).push({...evidence,type:'login_verified'})
     }
   }
 

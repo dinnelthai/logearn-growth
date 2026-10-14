@@ -1,3 +1,4 @@
+import {getToken} from '../auth/authClient.js'
 /**
  * cohortClient.js
  * Thin client for the /api/cohorts backend.
@@ -20,8 +21,8 @@ function lsSave(cohorts) {
 
 async function apiFetch(path, options = {}) {
   const res = await fetch(BASE + path, {
-    headers: { 'Content-Type': 'application/json' },
     ...options,
+    headers: { 'Content-Type': 'application/json',...(getToken()?{Authorization:'Bearer '+getToken()}:{}),...(options.headers||{}) },
   })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
@@ -60,7 +61,7 @@ export async function createCohort({ name, description = '', color = '#6366f1', 
     return { cohort: data.cohort, source: 'api' }
   } catch (e) {
     // Rethrow validation errors from the backend
-    if (e.errors) throw e
+    if (e.errors || e.status && e.status < 500) throw e
     // Backend unreachable — save locally
     const id = `cohort_local_${Date.now().toString(36)}`
     const now = Date.now()
@@ -98,7 +99,7 @@ export async function updateCohort(id, { name, description, color }) {
     })
     return { cohort: data.cohort, source: 'api' }
   } catch (e) {
-    if (e.errors) throw e
+    if (e.errors || e.status && e.status < 500) throw e
     const all = lsLoad()
     const idx = all.findIndex(c => c.id === id)
     if (idx === -1) throw new Error('群组不存在')

@@ -1,7 +1,9 @@
+import {createChannelInsightsPage} from './channelInsights.js'
 import { fetchChannelMetrics } from '../api/metrics.js'
 import { fetchDrillUsers, fetchUserTimeline } from '../api/drill.js'
 
 export function createChannelsAggPage(ctx) {
+  if(ctx.dataStore.meta.storage==='hologres')return createChannelInsightsPage(ctx)
   const { $, esc, fmt, pct, table, stat, drawer, date, names } = ctx
   const clearNative = ctx.clear
   let inflight = 0

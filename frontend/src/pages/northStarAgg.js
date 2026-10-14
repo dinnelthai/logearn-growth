@@ -17,8 +17,12 @@ export function createNorthStarAggPage(ctx) {
   let nativeChart = null
   let northTrendView = 'total'
   let inflight = 0
+  let previousMetrics = null
+  let previousConfig = null
+  let snapshotId = null
 
   async function openDrill(title, description, kind, params) {
+    params = {...params, snapshot_id: snapshotId}
     drawer.openRemote({
       title,
       description,
@@ -27,7 +31,7 @@ export function createNorthStarAggPage(ctx) {
       fetchTimeline: async (userId, host) => {
         host.innerHTML = '<p class="a-muted">加载时间线…</p>'
         try {
-          const data = await fetchUserTimeline({ userId, limit: 200 })
+          const data = await fetchUserTimeline({ userId, limit: 200, snapshotId: params.snapshot_id })
           const names = ctx.names || {}
           host.innerHTML = `<h2>${esc(data.user?.id || userId)} · 事件时间线</h2><div class="a-timeline">${(data.events || []).map(e => {
             const label = names[e.event_name] || e.event_name
@@ -42,8 +46,8 @@ export function createNorthStarAggPage(ctx) {
   }
 
   async function drawNorth(c) {
-    const reqId = ++inflight
     clearNative()
+    const reqId = ++inflight
     let toolbar = $('#as-north-toolbar')
     if (!toolbar) {
       toolbar = document.createElement('div')
@@ -51,13 +55,14 @@ export function createNorthStarAggPage(ctx) {
       root.querySelector('.a-head').append(toolbar)
     }
     toolbar.hidden = false
-    toolbar.innerHTML = `<div class="a-north-periods" role="group" aria-label="北极星统计周期">${[['all', '全周期'], ['7', '近7天'], ['14', '近14天'], ['30', '近30天']].map(([v, label]) => `<button class="a-button" data-north-period="${v}" aria-pressed="${String(c.period) === v}">${label}</button>`).join('')}</div><div class="a-muted a-north-dates">${date(c.start)}–${date(c.end - 86400000)} · 数据截至 ${clock(asof)} · UTC+7 · 截至日进行中 · 服务端聚合</div>`
+    toolbar.innerHTML = `<div class="a-north-periods" role="group" aria-label="北极星统计周期">${[['all', '全周期'], ['7', '近7天'], ['14', '近14天'], ['30', '近30天']].map(([v, label]) => `<button class="a-button" data-north-period="${v}" aria-pressed="${String(c.period) === v}">${label}</button>`).join('')}</div><div class="a-muted a-north-dates">${date(c.start)}–${date(c.end - 86400000)} · 数据截至 ${clock(ctx.dataStore.meta.asOf)} · UTC+7 · 截至日进行中 · 服务端聚合</div>`
     toolbar.querySelectorAll('[data-north-period]').forEach(b => {
       b.onclick = () => ctx.setPeriod(b.dataset.northPeriod)
     })
 
     $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted">正在从 /api/metrics/north-star 加载…</p></div>'
 
+    const configKey = JSON.stringify(c)
     let metrics
     try {
       metrics = await fetchNorthStarMetrics({
@@ -67,11 +72,19 @@ export function createNorthStarAggPage(ctx) {
       })
     } catch (err) {
       if (reqId !== inflight) return
+      if(previousMetrics && previousConfig===configKey){
+        metrics=previousMetrics
+        $('#as-data-status').textContent='数据更新失败 · 保留上次结果：'+(err.message||err)
+      }else{
       $('#as-output').innerHTML = `<div class="a-card a-details"><h2>北极星加载失败</h2><p>${esc(err.message || err)}</p></div>`
       return
+      }
     }
     if (reqId !== inflight) return
 
+    previousMetrics=metrics;previousConfig=configKey
+
+    snapshotId = metrics.meta?.snapshot_id ?? null
     const days = metrics.days || []
     const totals = metrics.totals || {}
     const avgDaa = Number(totals.avg_daa || 0)
@@ -92,7 +105,7 @@ export function createNorthStarAggPage(ctx) {
           </div>
         </div>
         <div class="a-chart"><div id="as-north-chart" style="height:300px;width:100%" role="img" aria-label="每日有效分析用户"></div></div>
-        <div class="a-insight">数字来自 daily_north_star rollup；下钻走 /api/drill，不把全量用户名单载入浏览器。</div>
+        <div class="a-insight">服务端按用户去重；截至日显示已观测人数。D7为首次观测分析后第7个自然日再次分析，按回访日展示；无到期批次显示为空，历史覆盖未确认。下钻分页查询，不加载全量事件。</div>
       </div>
       <details class="a-card a-details a-north-daily">
         <summary>每日明细 <span class="a-muted">${days.length} 天</span></summary>
@@ -145,8 +158,8 @@ export function createNorthStarAggPage(ctx) {
         animation: false,
         legend: {
           data: northTrendView === 'split'
-            ? ['当天首次', '当天回访', '每日登录用户']
-            : ['有效分析总人数', '每日登录用户'],
+            ? ['每日首次有效分析用户', '当天回访', '每日登录用户', 'D7回访用户数']
+            : ['有效分析总人数', '每日首次有效分析用户', '每日登录用户', 'D7回访用户数'],
           top: 0,
           textStyle: { color: color('--a-muted') },
         },
@@ -165,13 +178,15 @@ export function createNorthStarAggPage(ctx) {
         },
         series: (northTrendView === 'split'
           ? [
-              { name: '当天首次', type: 'bar', label: { show: true, position: 'top', formatter: p => p.value > 0 ? String(p.value) : '' }, stack: 'users', barMaxWidth: 34, itemStyle: { color: color('--a-accent') }, data: days.map(d => d.new_users) },
+              { name: '每日首次有效分析用户', type: 'bar', label: { show: true, position: 'top', formatter: p => p.value > 0 ? String(p.value) : '' }, stack: 'users', barMaxWidth: 34, itemStyle: { color: color('--a-accent') }, data: days.map(d => d.new_users) },
               { name: '当天回访', type: 'bar', label: { show: true, position: 'top', formatter: p => p.value > 0 ? String(p.value) : '' }, stack: 'users', barMaxWidth: 34, itemStyle: { color: color('--a-green') }, data: days.map(d => d.returning_users) },
             ]
           : [
               { name: '有效分析总人数', type: 'bar', label: { show: true, position: 'top', formatter: p => p.value > 0 ? String(p.value) : '' }, barMaxWidth: 34, itemStyle: { color: color('--a-accent') }, data: days.map(d => d.active_users) },
+              { name: '每日首次有效分析用户', type: 'line', symbol: 'circle', symbolSize: 6, label: { show: true, position: 'bottom', formatter: p => p.value > 0 ? String(p.value) : '' }, itemStyle: { color: color('--a-green') }, data: days.map(d => d.new_users) },
             ]
         ).concat([
+          { name: 'D7回访用户数', type: 'line', symbol: 'circle', symbolSize: 6, itemStyle: { color: '#c084fc' }, label: { show: true, position: 'top', formatter: p => p.value > 0 ? String(p.value) : '' }, data: days.map(d => d.d7_users ?? null) },
           { name: '每日登录用户', label: { show: true, position: 'top', distance: 16, formatter: p => p.value > 0 ? String(p.value) : '' }, type: 'line', symbol: 'diamond', symbolSize: 5, lineStyle: { type: 'dashed' }, itemStyle: { color: '#e5a64b' }, data: days.map(d => d.login_users) },
         ]),
       }, true)
@@ -186,8 +201,16 @@ export function createNorthStarAggPage(ctx) {
     nativeChart.on('click', p => {
       const d = days[p.dataIndex]
       if (!d) return
+      if (p.seriesName === 'D7回访用户数') {
+        openDrill(`${fmtDate(d.date)} · D7回访用户`, '首次有效分析后第7个UTC+7自然日再次分析，按回访日归属', 'north_star_day', { date: d.date, source: drillBase.source, cohort: 'd7' })
+        return
+      }
       if (p.seriesName === '每日登录用户') {
         openDrill(`${fmtDate(d.date)} 登录用户`, '当天任意事件带非空 user_id 的去重用户', 'north_star_login_day', { date: d.date, source: drillBase.source })
+        return
+      }
+      if (p.seriesName === '每日首次有效分析用户') {
+        openDrill(`${fmtDate(d.date)} · 每日首次有效分析用户`, '首次观测筹码峰查看或下钻发生在当天；历史覆盖未确认', 'north_star_day', { date: d.date, source: drillBase.source, cohort: 'new' })
         return
       }
       if (p.seriesType !== 'bar') return
@@ -200,6 +223,7 @@ export function createNorthStarAggPage(ctx) {
   return {
     draw: drawNorth,
     dispose() {
+      inflight++
       chartLifecycle.dispose()
       nativeChart = null
     },

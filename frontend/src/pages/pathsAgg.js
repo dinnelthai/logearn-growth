@@ -1,8 +1,10 @@
+import {createBehaviorPathsPage} from './behaviorPaths.js'
 import { fetchPathsMetrics } from '../api/metrics.js'
 import { fetchDrillUsers, fetchUserTimeline } from '../api/drill.js'
 import { createChartLifecycle } from './chartLifecycle.js'
 
 export function createPathsAggPage(ctx) {
+  if(ctx.dataStore.meta.storage==='hologres')return createBehaviorPathsPage(ctx)
   const { root, $, $$, names, day, date, esc, fmt, pct, table, stat, themeMedia, drawer } = ctx
   const clearNative = ctx.clear
   const chartLifecycle = createChartLifecycle(themeMedia)
@@ -47,8 +49,8 @@ export function createPathsAggPage(ctx) {
   }
 
   async function draw(c) {
-    const reqId = ++inflight
     clearNative()
+    const reqId = ++inflight
     const rangeDays = Math.ceil((c.end - c.start) / day)
     if (rangeDays > 7) {
       $('#as-output').innerHTML = `<div class="a-card a-details"><h2>行为路径 · 请缩小窗口</h2><p>聚合模式默认仅支持 ≤7 天统计期（当前 ${rangeDays} 天），以避免大规模会话展开过慢。请改用近 7 天后再运行。</p></div>`
@@ -191,6 +193,7 @@ export function createPathsAggPage(ctx) {
   return {
     draw,
     dispose() {
+      inflight++
       chartLifecycle.dispose()
       nativeChart = null
     },

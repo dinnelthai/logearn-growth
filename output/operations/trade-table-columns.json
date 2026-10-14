@@ -1,0 +1,5462 @@
+[
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_1",
+    "column_name": "chain_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_1",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_1",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_1",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_1",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_1",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_1",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_1",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_1",
+    "column_name": "transaction_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_1",
+    "column_name": "log_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_1",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_1",
+    "column_name": "created_at",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_1",
+    "column_name": "contract",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_3",
+    "column_name": "chain_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_3",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_3",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_3",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_3",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_3",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_3",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_3",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_3",
+    "column_name": "transaction_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_3",
+    "column_name": "log_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_3",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_3",
+    "column_name": "created_at",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_3",
+    "column_name": "contract",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_3",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_56",
+    "column_name": "chain_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_56",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_56",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_56",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_56",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_56",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_56",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_56",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_56",
+    "column_name": "transaction_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_56",
+    "column_name": "log_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_56",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_56",
+    "column_name": "created_at",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_56",
+    "column_name": "contract",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_8453",
+    "column_name": "chain_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_8453",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_8453",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_8453",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_8453",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_8453",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_8453",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_8453",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_8453",
+    "column_name": "transaction_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_8453",
+    "column_name": "log_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_8453",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_8453",
+    "column_name": "created_at",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_raw_transaction_data_rt_v1_8453",
+    "column_name": "contract",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_3",
+    "column_name": "ds",
+    "data_type": "date"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_3",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_3",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_3",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_3",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_3",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_3",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_3",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_3",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_3",
+    "column_name": "transaction_index",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_3",
+    "column_name": "log_index",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_3",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_3",
+    "column_name": "gas",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_3",
+    "column_name": "tips",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_3",
+    "column_name": "ori_sender",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_4663",
+    "column_name": "ds",
+    "data_type": "date"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_4663",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_4663",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_4663",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_4663",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_4663",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_4663",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_4663",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_4663",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_4663",
+    "column_name": "transaction_index",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_4663",
+    "column_name": "log_index",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_4663",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_4663",
+    "column_name": "gas",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_4663",
+    "column_name": "tips",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_4663",
+    "column_name": "ori_sender",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_56",
+    "column_name": "ds",
+    "data_type": "date"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_56",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_56",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_56",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_56",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_56",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_56",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_56",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_56",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_56",
+    "column_name": "transaction_index",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_56",
+    "column_name": "log_index",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_56",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_56",
+    "column_name": "gas",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_56",
+    "column_name": "tips",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_address_v2_56",
+    "column_name": "ori_sender",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_3",
+    "column_name": "chain_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_3",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_3",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_3",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_3",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_3",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_3",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_3",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_3",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_3",
+    "column_name": "transaction_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_3",
+    "column_name": "log_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_3",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_3",
+    "column_name": "pt_num",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_3",
+    "column_name": "gas",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_3",
+    "column_name": "tips",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_3",
+    "column_name": "ori_sender",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_4663",
+    "column_name": "chain_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_4663",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_4663",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_4663",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_4663",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_4663",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_4663",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_4663",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_4663",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_4663",
+    "column_name": "transaction_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_4663",
+    "column_name": "log_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_4663",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_4663",
+    "column_name": "pt_num",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_4663",
+    "column_name": "gas",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_4663",
+    "column_name": "tips",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_4663",
+    "column_name": "ori_sender",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_5042",
+    "column_name": "chain_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_5042",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_5042",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_5042",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_5042",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_5042",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_5042",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_5042",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_5042",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_5042",
+    "column_name": "transaction_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_5042",
+    "column_name": "log_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_5042",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_5042",
+    "column_name": "pt_num",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_5042",
+    "column_name": "gas",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_5042",
+    "column_name": "tips",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_5042",
+    "column_name": "ori_sender",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_56",
+    "column_name": "chain_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_56",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_56",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_56",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_56",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_56",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_56",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_56",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_56",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_56",
+    "column_name": "transaction_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_56",
+    "column_name": "log_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_56",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_56",
+    "column_name": "pt_num",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_56",
+    "column_name": "gas",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_56",
+    "column_name": "tips",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v1_56",
+    "column_name": "ori_sender",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v2_4663",
+    "column_name": "ds",
+    "data_type": "date"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v2_4663",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v2_4663",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v2_4663",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v2_4663",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v2_4663",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v2_4663",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v2_4663",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v2_4663",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v2_4663",
+    "column_name": "transaction_index",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v2_4663",
+    "column_name": "log_index",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v2_4663",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v2_4663",
+    "column_name": "gas",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v2_4663",
+    "column_name": "tips",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_all_v2_4663",
+    "column_name": "ori_sender",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_1",
+    "column_name": "chain_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_1",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_1",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_1",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_1",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_1",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_1",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_1",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_1",
+    "column_name": "transaction_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_1",
+    "column_name": "log_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_1",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_1",
+    "column_name": "created_at",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_1",
+    "column_name": "raw_swap_log",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_1",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_3",
+    "column_name": "chain_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_3",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_3",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_3",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_3",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_3",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_3",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_3",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_3",
+    "column_name": "transaction_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_3",
+    "column_name": "log_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_3",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_3",
+    "column_name": "created_at",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_3",
+    "column_name": "raw_swap_log",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_3",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_3",
+    "column_name": "gas",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_3",
+    "column_name": "tips",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_3",
+    "column_name": "ori_sender",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_4663",
+    "column_name": "chain_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_4663",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_4663",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_4663",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_4663",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_4663",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_4663",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_4663",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_4663",
+    "column_name": "transaction_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_4663",
+    "column_name": "log_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_4663",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_4663",
+    "column_name": "created_at",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_4663",
+    "column_name": "raw_swap_log",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_4663",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_4663",
+    "column_name": "gas",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_4663",
+    "column_name": "tips",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_4663",
+    "column_name": "ori_sender",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_5042",
+    "column_name": "chain_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_5042",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_5042",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_5042",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_5042",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_5042",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_5042",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_5042",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_5042",
+    "column_name": "transaction_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_5042",
+    "column_name": "log_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_5042",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_5042",
+    "column_name": "created_at",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_5042",
+    "column_name": "raw_swap_log",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_5042",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_5042",
+    "column_name": "gas",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_5042",
+    "column_name": "tips",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_5042",
+    "column_name": "ori_sender",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_56",
+    "column_name": "chain_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_56",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_56",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_56",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_56",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_56",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_56",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_56",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_56",
+    "column_name": "transaction_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_56",
+    "column_name": "log_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_56",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_56",
+    "column_name": "created_at",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_56",
+    "column_name": "raw_swap_log",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_56",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_56",
+    "column_name": "gas",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_56",
+    "column_name": "tips",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_56",
+    "column_name": "ori_sender",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_8453",
+    "column_name": "chain_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_8453",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_8453",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_8453",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_8453",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_8453",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_8453",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_8453",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_8453",
+    "column_name": "transaction_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_8453",
+    "column_name": "log_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_8453",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_8453",
+    "column_name": "created_at",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_8453",
+    "column_name": "raw_swap_log",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_rt_v1_8453",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_3",
+    "column_name": "ds",
+    "data_type": "date"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_3",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_3",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_3",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_3",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_3",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_3",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_3",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_3",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_3",
+    "column_name": "transaction_index",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_3",
+    "column_name": "log_index",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_3",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_3",
+    "column_name": "gas",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_3",
+    "column_name": "tips",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_3",
+    "column_name": "ori_sender",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_4663",
+    "column_name": "ds",
+    "data_type": "date"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_4663",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_4663",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_4663",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_4663",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_4663",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_4663",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_4663",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_4663",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_4663",
+    "column_name": "transaction_index",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_4663",
+    "column_name": "log_index",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_4663",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_4663",
+    "column_name": "gas",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_4663",
+    "column_name": "tips",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_4663",
+    "column_name": "ori_sender",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_56",
+    "column_name": "ds",
+    "data_type": "date"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_56",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_56",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_56",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_56",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_56",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_56",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_56",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_56",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_56",
+    "column_name": "transaction_index",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_56",
+    "column_name": "log_index",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_56",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_56",
+    "column_name": "gas",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_56",
+    "column_name": "tips",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_token_v2_56",
+    "column_name": "ori_sender",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_3",
+    "column_name": "chain_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_3",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_3",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_3",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_3",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_3",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_3",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_3",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_3",
+    "column_name": "transaction_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_3",
+    "column_name": "log_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_3",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_3",
+    "column_name": "created_at",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_3",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_3",
+    "column_name": "gas",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_3",
+    "column_name": "tips",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_3",
+    "column_name": "ori_sender",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_56",
+    "column_name": "chain_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_56",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_56",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_56",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_56",
+    "column_name": "receiver",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_56",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_56",
+    "column_name": "amount_token",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_56",
+    "column_name": "amount_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_56",
+    "column_name": "transaction_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_56",
+    "column_name": "log_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_56",
+    "column_name": "trade_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_56",
+    "column_name": "created_at",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_56",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_56",
+    "column_name": "gas",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_56",
+    "column_name": "tips",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transaction_data_user_v1_56",
+    "column_name": "ori_sender",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transactions",
+    "column_name": "id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transactions",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transactions",
+    "column_name": "chain_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transactions",
+    "column_name": "tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transactions",
+    "column_name": "block_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "amm_transactions",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v1",
+    "column_name": "id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v1",
+    "column_name": "copyer_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v1",
+    "column_name": "copied_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v1",
+    "column_name": "strategy_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v1",
+    "column_name": "status",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v1",
+    "column_name": "status_description",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v1",
+    "column_name": "created_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v1",
+    "column_name": "updated_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v1",
+    "column_name": "copied_tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v1",
+    "column_name": "copyer_tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v1",
+    "column_name": "tx_unique_id",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v1",
+    "column_name": "copy_type",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v1",
+    "column_name": "msg",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v1",
+    "column_name": "source_tx",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v2",
+    "column_name": "id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v2",
+    "column_name": "protocol",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v2",
+    "column_name": "chain",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v2",
+    "column_name": "tx_unique_id",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v2",
+    "column_name": "batch_id",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v2",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v2",
+    "column_name": "trade_type",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v2",
+    "column_name": "params",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v2",
+    "column_name": "action",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v2",
+    "column_name": "status",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v2",
+    "column_name": "status_description",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v2",
+    "column_name": "msg",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v2",
+    "column_name": "created_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_order_v2",
+    "column_name": "updated_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "trade_tx_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "chain_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "protocol",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "swap_type",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "copied_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "parse_index",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "hold_amount",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "hold_cost_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "unrelized_pnl",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "unrelized_return_rate",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "last_order_time",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "last_price",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "avg_price",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "tx_amount",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "tx_cost_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "analysics_amount",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "status_description",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "is_mark_close",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "created_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "updated_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "stop_profit_number",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "stop_loss_number",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "stop_profit1",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "stop_profit1_percent",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "stop_profit2",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "stop_profit2_percent",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "stop_profit3",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "stop_profit3_percent",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "position_user_updated",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "stop_loss1",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "stop_loss1_percent",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "open_position_time",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "total_cost_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "total_receive_coin",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "withdraw_stop_loss1",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "withdraw_stop_loss2",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "withdraw_stop_loss3",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "withdraw_stop_loss1_percent",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "withdraw_stop_loss2_percent",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "withdraw_stop_loss3_percent",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "withdraw_stop_loss_number",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "max_price",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "entrust_stop_profit1",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "entrust_stop_profit2",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "entrust_stop_profit3",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "entrust_stop_profit1_percent",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "entrust_stop_profit2_percent",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "entrust_stop_profit3_percent",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "entrust_condition_stop_profit1",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "entrust_condition_stop_profit2",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "entrust_condition_stop_profit3",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "is_trigger_entrust_stop_profit1",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "is_trigger_entrust_stop_profit2",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "is_trigger_entrust_stop_profit3",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position",
+    "column_name": "quote_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_1d",
+    "column_name": "wallet",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_1d",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_1d",
+    "column_name": "hold_amount",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_1d",
+    "column_name": "hold_cost_coin",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_1d",
+    "column_name": "realised_pnl",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_1d",
+    "column_name": "realised_return_rate",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_1d",
+    "column_name": "total_amount",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_1d",
+    "column_name": "total_transferin_amount",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_1d",
+    "column_name": "total_transferout_amount",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_1d",
+    "column_name": "total_cost_coin",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_1d",
+    "column_name": "total_receive_coin",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_1d",
+    "column_name": "earliest_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_1d",
+    "column_name": "earliest_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_1d",
+    "column_name": "lastest_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_1d",
+    "column_name": "last_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_1d",
+    "column_name": "buy_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_1d",
+    "column_name": "sell_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_1d",
+    "column_name": "transferin_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_1d",
+    "column_name": "transferout_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_1d",
+    "column_name": "pt",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_td",
+    "column_name": "wallet",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_td",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_td",
+    "column_name": "hold_amount",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_td",
+    "column_name": "hold_cost_coin",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_td",
+    "column_name": "realised_pnl",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_td",
+    "column_name": "realised_return_rate",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_td",
+    "column_name": "total_amount",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_td",
+    "column_name": "total_transferin_amount",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_td",
+    "column_name": "total_transferout_amount",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_td",
+    "column_name": "total_cost_coin",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_td",
+    "column_name": "total_receive_coin",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_td",
+    "column_name": "earliest_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_td",
+    "column_name": "earliest_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_td",
+    "column_name": "lastest_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_td",
+    "column_name": "last_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_td",
+    "column_name": "buy_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_td",
+    "column_name": "sell_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_td",
+    "column_name": "transferin_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_position_td",
+    "column_name": "transferout_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_tx_v1",
+    "column_name": "id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_tx_v1",
+    "column_name": "order_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_tx_v1",
+    "column_name": "chain_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_tx_v1",
+    "column_name": "protocol",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_tx_v1",
+    "column_name": "trade_type",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_tx_v1",
+    "column_name": "wallet_type",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_tx_v1",
+    "column_name": "status",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_tx_v1",
+    "column_name": "caller",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_tx_v1",
+    "column_name": "req",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_tx_v1",
+    "column_name": "status_description",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_tx_v1",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_tx_v1",
+    "column_name": "retry_times",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_tx_v1",
+    "column_name": "created_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_tx_v1",
+    "column_name": "updated_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_tx_v1",
+    "column_name": "partition_key",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_tx_v1",
+    "column_name": "create_tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "copy_trade_tx_v1",
+    "column_name": "copied_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "pool_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "signal_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "all_bullish",
+    "data_type": "boolean"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "kline1_bullish",
+    "data_type": "boolean"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "kline1_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "kline2_bullish",
+    "data_type": "boolean"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "kline2_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "kline3_bullish",
+    "data_type": "boolean"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "kline3_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "kline1_buy_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "kline1_sell_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "kline2_buy_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "kline2_sell_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "kline3_buy_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "kline3_sell_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "max_amplitude",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "max_amplitude_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "volume1",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "volume2",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "volume3",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "updated_time",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "created_time",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "signal_price",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "standardized_slope",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_3",
+    "column_name": "cv",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "pool_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "signal_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "all_bullish",
+    "data_type": "boolean"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "kline1_bullish",
+    "data_type": "boolean"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "kline1_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "kline2_bullish",
+    "data_type": "boolean"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "kline2_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "kline3_bullish",
+    "data_type": "boolean"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "kline3_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "kline1_buy_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "kline1_sell_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "kline2_buy_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "kline2_sell_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "kline3_buy_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "kline3_sell_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "max_amplitude",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "max_amplitude_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "volume1",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "volume2",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "volume3",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "updated_time",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "created_time",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "signal_price",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "standardized_slope",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_4663",
+    "column_name": "cv",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "pool_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "signal_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "all_bullish",
+    "data_type": "boolean"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "kline1_bullish",
+    "data_type": "boolean"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "kline1_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "kline2_bullish",
+    "data_type": "boolean"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "kline2_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "kline3_bullish",
+    "data_type": "boolean"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "kline3_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "kline1_buy_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "kline1_sell_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "kline2_buy_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "kline2_sell_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "kline3_buy_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "kline3_sell_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "max_amplitude",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "max_amplitude_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "volume1",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "volume2",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "volume3",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "updated_time",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "created_time",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "signal_price",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "standardized_slope",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_5042",
+    "column_name": "cv",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "pool_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "signal_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "all_bullish",
+    "data_type": "boolean"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "kline1_bullish",
+    "data_type": "boolean"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "kline1_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "kline2_bullish",
+    "data_type": "boolean"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "kline2_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "kline3_bullish",
+    "data_type": "boolean"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "kline3_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "kline1_buy_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "kline1_sell_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "kline2_buy_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "kline2_sell_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "kline3_buy_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "kline3_sell_tx_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "max_amplitude",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "max_amplitude_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "volume1",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "volume2",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "volume3",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "updated_time",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "created_time",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "signal_price",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "standardized_slope",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_15s_56",
+    "column_name": "cv",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_3",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_3",
+    "column_name": "pool_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_3",
+    "column_name": "signal_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_3",
+    "column_name": "avg_history_volume",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_3",
+    "column_name": "current_bullish",
+    "data_type": "boolean"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_3",
+    "column_name": "current_close_price",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_3",
+    "column_name": "current_kline_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_3",
+    "column_name": "current_open_price",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_3",
+    "column_name": "current_volume",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_3",
+    "column_name": "history_end_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_3",
+    "column_name": "history_kline_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_3",
+    "column_name": "history_start_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_3",
+    "column_name": "volume_ratio",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_3",
+    "column_name": "updated_time",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_3",
+    "column_name": "created_time",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_3",
+    "column_name": "cv",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_3",
+    "column_name": "standardized_slope",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_4663",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_4663",
+    "column_name": "pool_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_4663",
+    "column_name": "signal_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_4663",
+    "column_name": "avg_history_volume",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_4663",
+    "column_name": "current_bullish",
+    "data_type": "boolean"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_4663",
+    "column_name": "current_close_price",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_4663",
+    "column_name": "current_kline_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_4663",
+    "column_name": "current_open_price",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_4663",
+    "column_name": "current_volume",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_4663",
+    "column_name": "history_end_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_4663",
+    "column_name": "history_kline_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_4663",
+    "column_name": "history_start_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_4663",
+    "column_name": "volume_ratio",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_4663",
+    "column_name": "updated_time",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_4663",
+    "column_name": "created_time",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_4663",
+    "column_name": "cv",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_4663",
+    "column_name": "standardized_slope",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_5042",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_5042",
+    "column_name": "pool_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_5042",
+    "column_name": "signal_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_5042",
+    "column_name": "avg_history_volume",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_5042",
+    "column_name": "current_bullish",
+    "data_type": "boolean"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_5042",
+    "column_name": "current_close_price",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_5042",
+    "column_name": "current_kline_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_5042",
+    "column_name": "current_open_price",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_5042",
+    "column_name": "current_volume",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_5042",
+    "column_name": "history_end_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_5042",
+    "column_name": "history_kline_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_5042",
+    "column_name": "history_start_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_5042",
+    "column_name": "volume_ratio",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_5042",
+    "column_name": "updated_time",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_5042",
+    "column_name": "created_time",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_5042",
+    "column_name": "cv",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_5042",
+    "column_name": "standardized_slope",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_56",
+    "column_name": "token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_56",
+    "column_name": "pool_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_56",
+    "column_name": "signal_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_56",
+    "column_name": "avg_history_volume",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_56",
+    "column_name": "current_bullish",
+    "data_type": "boolean"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_56",
+    "column_name": "current_close_price",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_56",
+    "column_name": "current_kline_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_56",
+    "column_name": "current_open_price",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_56",
+    "column_name": "current_volume",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_56",
+    "column_name": "history_end_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_56",
+    "column_name": "history_kline_count",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_56",
+    "column_name": "history_start_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_56",
+    "column_name": "volume_ratio",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_56",
+    "column_name": "updated_time",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_56",
+    "column_name": "created_time",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_56",
+    "column_name": "cv",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "dws_volume_signal_300s_56",
+    "column_name": "standardized_slope",
+    "data_type": "double precision"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "user_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "user_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "name",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "description",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "points_multiplier",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "fee_reduction_rate",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "points_rebate_ratio_level1",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "points_rebate_ratio_level2",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "points_rebate_ratio_level3",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "fee_rebate_ratio_level1",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "fee_rebate_ratio_level2",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "fee_rebate_ratio_level3",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "vip_rebate_ratio_level1",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "vip_rebate_ratio_level2",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "vip_rebate_ratio_level3",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "vip_discount",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "effective_start_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "effective_end_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "status",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "created_by",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "created_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "internal_trading_config",
+    "column_name": "updated_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "nft_mint_order",
+    "column_name": "id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "nft_mint_order",
+    "column_name": "user_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "nft_mint_order",
+    "column_name": "order_no",
+    "data_type": "character varying"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "nft_mint_order",
+    "column_name": "quantity",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "nft_mint_order",
+    "column_name": "unit_price",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "nft_mint_order",
+    "column_name": "total_amount",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "nft_mint_order",
+    "column_name": "actual_amount",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "nft_mint_order",
+    "column_name": "chain_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "nft_mint_order",
+    "column_name": "chain_account",
+    "data_type": "character varying"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "nft_mint_order",
+    "column_name": "payment_currency_type",
+    "data_type": "character varying"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "nft_mint_order",
+    "column_name": "payment_status",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "nft_mint_order",
+    "column_name": "payment_tx_hash",
+    "data_type": "character varying"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "nft_mint_order",
+    "column_name": "mint_status",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "nft_mint_order",
+    "column_name": "mint_tx_hash",
+    "data_type": "character varying"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "nft_mint_order",
+    "column_name": "nft_token_ids",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "nft_mint_order",
+    "column_name": "remark",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "nft_mint_order",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "nft_mint_order",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "operate_trade_order",
+    "column_name": "id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "operate_trade_order",
+    "column_name": "address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "operate_trade_order",
+    "column_name": "gas_fee_max",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "operate_trade_order",
+    "column_name": "per_trade_value",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "operate_trade_order",
+    "column_name": "status",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "operate_trade_order",
+    "column_name": "status_description",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "operate_trade_order",
+    "column_name": "operate_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "operate_trade_order",
+    "column_name": "tx_hash",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "operate_trade_order",
+    "column_name": "tx_unique_id",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "operate_trade_order",
+    "column_name": "created_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "operate_trade_order",
+    "column_name": "updated_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "operate_trade_order",
+    "column_name": "chain",
+    "data_type": "character varying"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "operate_trade_order",
+    "column_name": "protocol",
+    "data_type": "character varying"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "operate_trade_order",
+    "column_name": "extras",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "operate_trade_order",
+    "column_name": "msg",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "points_transaction",
+    "column_name": "id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "points_transaction",
+    "column_name": "user_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "points_transaction",
+    "column_name": "transaction_id",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "points_transaction",
+    "column_name": "points_change",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "points_transaction",
+    "column_name": "action_type",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "points_transaction",
+    "column_name": "source_id",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "points_transaction",
+    "column_name": "invitee_user_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "points_transaction",
+    "column_name": "invitation_level",
+    "data_type": "smallint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "points_transaction",
+    "column_name": "raw_points",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "points_transaction",
+    "column_name": "multiplier_applied",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "points_transaction",
+    "column_name": "description",
+    "data_type": "character varying"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "points_transaction",
+    "column_name": "created_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "prod_bi_amm_tx_anlysis_detail_holo",
+    "column_name": "volume_usd",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "prod_bi_amm_tx_anlysis_detail_holo_1",
+    "column_name": "volume_usd",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "prod_bi_amm_tx_anlysis_detail_holo_3",
+    "column_name": "volume_usd",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "prod_bi_amm_tx_anlysis_detail_holo_56",
+    "column_name": "volume_usd",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "prod_bi_amm_tx_anlysis_detail_holo_8453",
+    "column_name": "volume_usd",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "prod_dwd_amm_tx_anlysis_detail",
+    "column_name": "volume_usd",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "prod_dwd_bsc_tx_anlysis_detail",
+    "column_name": "volume_usd",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "prod_dwd_eth_tx_anlysis_detail",
+    "column_name": "volume_usd",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "solana_transactions",
+    "column_name": "id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "solana_transactions",
+    "column_name": "block_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "solana_transactions",
+    "column_name": "tx_id",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "solana_transactions",
+    "column_name": "pid",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "solana_transactions",
+    "column_name": "tx_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "solana_transactions",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "telegram_trading_address",
+    "column_name": "id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "telegram_trading_address",
+    "column_name": "telegram_group_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "telegram_trading_address",
+    "column_name": "telegram_user_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "telegram_trading_address",
+    "column_name": "telegram_group_title",
+    "data_type": "character varying"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "telegram_trading_address",
+    "column_name": "telegram_user_name",
+    "data_type": "character varying"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "telegram_trading_address",
+    "column_name": "trading_address",
+    "data_type": "character varying"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "telegram_trading_address",
+    "column_name": "created_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "telegram_trading_address",
+    "column_name": "updated_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "telegram_trading_address",
+    "column_name": "protocol",
+    "data_type": "character varying"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "telegram_trading_address",
+    "column_name": "chain",
+    "data_type": "character varying"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "key",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "account",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "index_token_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "position_num",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "collateral_now",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "size_now",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "collateral_open",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "size_open",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "is_long",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "level",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "avg_price",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "last_price",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "pnl",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "return_rate",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "position_type",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "stop_address_list",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "open_time",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "lastest_time",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "description",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "status",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trade_stop_logs",
+    "column_name": "retry_num",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_level_config",
+    "column_name": "id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_level_config",
+    "column_name": "level_code",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_level_config",
+    "column_name": "level_name",
+    "data_type": "character varying"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_level_config",
+    "column_name": "min_trading_volume",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_level_config",
+    "column_name": "points_multiplier",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_level_config",
+    "column_name": "fee_reduction_rate",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_level_config",
+    "column_name": "points_rebate_ratio_level1",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_level_config",
+    "column_name": "points_rebate_ratio_level2",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_level_config",
+    "column_name": "points_rebate_ratio_level3",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_level_config",
+    "column_name": "fee_rebate_ratio_level1",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_level_config",
+    "column_name": "fee_rebate_ratio_level2",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_level_config",
+    "column_name": "fee_rebate_ratio_level3",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_level_config",
+    "column_name": "vip_rebate_ratio_level1",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_level_config",
+    "column_name": "vip_rebate_ratio_level2",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_level_config",
+    "column_name": "vip_rebate_ratio_level3",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_level_config",
+    "column_name": "vip_discount",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_level_config",
+    "column_name": "status",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_level_config",
+    "column_name": "created_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_level_config",
+    "column_name": "updated_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_transaction",
+    "column_name": "id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_transaction",
+    "column_name": "chain",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_transaction",
+    "column_name": "transaction_hash",
+    "data_type": "character varying"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_transaction",
+    "column_name": "user_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_transaction",
+    "column_name": "chain_account",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_transaction",
+    "column_name": "action_type",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_transaction",
+    "column_name": "trade_amount",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_transaction",
+    "column_name": "currency_type",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_transaction",
+    "column_name": "trade_value",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_transaction",
+    "column_name": "raw_fee",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_transaction",
+    "column_name": "actual_fee",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_transaction",
+    "column_name": "coupon_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_transaction",
+    "column_name": "raw_points",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_transaction",
+    "column_name": "points_earned",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_transaction",
+    "column_name": "point_multiplier",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_transaction",
+    "column_name": "trading_level_code",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_transaction",
+    "column_name": "transaction_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "trading_transaction",
+    "column_name": "created_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "per_copy_order_value_type",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "per_copy_order_fixed_value",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "user_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "chain",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "copyer_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "copied_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "copy_type",
+    "data_type": "ARRAY"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "price_premium",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "filters_price_min",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "filters_price_max",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "gas_fee_min",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "gas_fee_max",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "status",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "created_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "updated_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "name",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "copy_lever",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "stop_profit",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "stop_profit_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "stop_loss",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "stop_loss_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "copy_currency",
+    "data_type": "ARRAY"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "collateral_currency",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "protocol",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "token_security",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "is_pause",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "is_each_token_once",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "copy_mode",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "only_new",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "close_source",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "buy_tax_threshold",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "sell_tax_threshold",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "slippage_tolerance",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "liquidity_threshold",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "trade_amount_threshold",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "gas_price_max",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "stop_loss_percent",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "stop_profit1",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "stop_profit1_percent",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "stop_profit2",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "stop_profit2_percent",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "stop_profit3",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "stop_profit3_percent",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "max_priority_fee_per_gas",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "order_delay_time",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "strategy_config",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "withdraw_stop_loss1",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "withdraw_stop_loss2",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "withdraw_stop_loss3",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "withdraw_stop_loss1_percent",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "withdraw_stop_loss2_percent",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy",
+    "column_name": "withdraw_stop_loss3_percent",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "per_copy_order_value_type",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "per_copy_order_fixed_value",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "user_id",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "chain",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "copyer_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "copied_address",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "copy_type",
+    "data_type": "ARRAY"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "price_premium",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "filters_price_min",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "filters_price_max",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "gas_fee_min",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "gas_fee_max",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "status",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "created_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "updated_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "name",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "copy_lever",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "stop_profit",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "stop_profit_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "stop_loss",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "stop_loss_type",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "copy_currency",
+    "data_type": "ARRAY"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "collateral_currency",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_copy_trade_strategy_sc_backup",
+    "column_name": "protocol",
+    "data_type": "text"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_trading_level",
+    "column_name": "id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_trading_level",
+    "column_name": "user_id",
+    "data_type": "bigint"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_trading_level",
+    "column_name": "current_level_code",
+    "data_type": "integer"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_trading_level",
+    "column_name": "total_trading_volume",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_trading_level",
+    "column_name": "monthly_trading_volume",
+    "data_type": "numeric"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_trading_level",
+    "column_name": "level_upgrade_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_trading_level",
+    "column_name": "created_time",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "user_trading_level",
+    "column_name": "updated_time",
+    "data_type": "timestamp with time zone"
+  }
+]

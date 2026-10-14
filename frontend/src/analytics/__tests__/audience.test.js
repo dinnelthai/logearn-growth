@@ -18,9 +18,9 @@ it('the same fixed audience feeds funnel, paths and retention',()=>{
  expect(computePaths(audienceUsers(users,audience,'paths'),{startAt:start,endAt:end,asOf:end}).users).toBe(2)
  expect(buildCohorts(audienceUsers(users,audience,'retention'),{startAt:start,endAt:end,asOf:end}).flatMap(c=>c.users).map(u=>u.id)).toEqual(audience.ids)
 })
-it('north star and referral retain their original platform scope; clearing restores all users',()=>{
+it('north star keeps platform scope and referral accepts the fixed audience; clearing restores all users',()=>{
  expect(audienceUsers(users,audience,'north')).toBe(users)
- expect(audienceUsers(users,audience,'referral')).toBe(users)
+ expect(audienceUsers(users,audience,'referral').map(u=>u.id)).toEqual(audience.ids)
  expect(audienceUsers(users,null,'paths')).toBe(users)
 })
 it('snapshot membership does not expand when new users arrive; empty selections fail explicitly',()=>{

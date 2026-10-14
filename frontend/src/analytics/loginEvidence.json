@@ -1,0 +1,11 @@
+[
+  "login_succeeded",
+  "chip_analysis_viewed",
+  "chip_analysis_drilldown",
+  "strategy_started",
+  "strategy_stopped",
+  "trade_submitted",
+  "trade_succeeded",
+  "trade_failed",
+  "limit_order_created"
+]

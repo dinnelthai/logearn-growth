@@ -9,11 +9,14 @@ export function createFunnelAggPage(ctx) {
   const chartLifecycle = createChartLifecycle(themeMedia)
   let nativeChart = null
   let inflight = 0
+  let previousMetrics = null
+  let previousConfig = null
   let view = 'conversion'
 
   function openCached(title, description, cacheId, listKey) {
     if (!cacheId) return
     drawer.openRemote({
+      selection:{cache_id:cacheId,list_key:listKey},
       title,
       description,
       fetchPage: ({ offset, limit, q }) =>
@@ -21,7 +24,7 @@ export function createFunnelAggPage(ctx) {
       fetchTimeline: async (userId, host) => {
         host.innerHTML = '<p class="a-muted">加载时间线…</p>'
         try {
-          const data = await fetchUserTimeline({ userId, limit: 200 })
+          const data = await fetchUserTimeline({ userId, limit: 200, cacheId })
           host.innerHTML = `<h2>${esc(data.user?.id || userId)}</h2><div class="a-timeline">${(data.events || []).map(e => {
             const label = names[e.event_name] || e.event_name
             const t = new Date(e.t + 7 * 3600000).toISOString().slice(5, 16).replace('T', ' ')
@@ -35,11 +38,12 @@ export function createFunnelAggPage(ctx) {
   }
 
   async function draw(c) {
-    const reqId = ++inflight
     clearNative()
+    const reqId = ++inflight
     $('#as-title').textContent = c.association === 'user' ? '用户激活漏斗' : `${ASSOCIATIONS[c.association] || c.association}漏斗`
     $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted">正在从 /api/metrics/funnel 加载…</p></div>'
 
+    const configKey = JSON.stringify(c)
     let metrics
     try {
       metrics = await fetchFunnelMetrics({
@@ -49,16 +53,24 @@ export function createFunnelAggPage(ctx) {
         hours: c.hours,
         association: c.association || 'user',
         source: c.source || 'all',
+        snapshot_id:c.snapshotId,
         strategy: c.strategy || 'all',
         audience_ids: c.audienceIds || null,
         cohort_id: c.cohortId || null,
       })
     } catch (err) {
       if (reqId !== inflight) return
+      if(previousMetrics && previousConfig===configKey){
+        metrics=previousMetrics
+        $('#as-data-status').textContent='数据更新失败 · 保留上次结果：'+(err.message||err)
+      }else{
       $('#as-output').innerHTML = `<div class="a-card"><h2>漏斗加载失败</h2><p>${esc(err.message || err)}</p></div>`
       return
+      }
     }
     if (reqId !== inflight) return
+
+    previousMetrics=metrics;previousConfig=configKey
 
     const steps = metrics.steps || []
     const counts = steps.map(s => s.users)
@@ -70,9 +82,11 @@ export function createFunnelAggPage(ctx) {
     const maxLoss = Math.max(0, ...losses.slice(0, -1))
     const maxLossIdx = losses.findIndex((n, i) => i < losses.length - 1 && n === maxLoss)
 
+    const visitNote=c.steps.includes('daily_visit')?'<p class="a-muted">每日访问：统计期内任意事件的去重用户，包含匿名和已登录用户；已登录访问：任意事件带非空 user_id。同日已带登录身份的访问可同时满足两步。此口径不等于页面打开次数。</p>':''
     const context = `${ASSOCIATIONS[c.association] || c.association} · ${date(c.start)}–${date(c.end - day)} · ${c.hours} 小时内 · ${c.source === 'all' ? '全部来源' : c.source}`
 
-    $('#as-output').innerHTML = `
+    const loginNote=c.steps.includes('login_verified')?'<p class="a-muted">登录成功（含登录后行为）：非空 user_id 的主动登录、筹码峰展示/下钻、策略开启/停止、手动交易提交/终态或限价单创建，按同一用户去重。表示已登录证据，不代表本次重新登录；同一行为可同时满足登录状态和分析步骤。</p>':''
+    $('#as-output').innerHTML = `${visitNote}${loginNote}
       <div class="a-context"><span class="a-chip">服务端漏斗 · 按用户去重</span><span>${context}</span></div>
       <div class="a-summary">
         ${stat('整体转化率', pct(metrics.total_converted, metrics.total_entered), `${fmt(metrics.total_converted)} / ${fmt(metrics.total_entered)}`)}
@@ -180,7 +194,7 @@ export function createFunnelAggPage(ctx) {
     }
 
     const bind = () => {
-      $$('[data-reached]').forEach(b => b.onclick = () =>
+    $$('[data-reached]').forEach(b => b.onclick = () =>
         openCached(names[steps[+b.dataset.reached]?.key] || '步骤', '已到达当前步骤', cacheId, `reached:${b.dataset.reached}`))
       $$('[data-loss]').forEach(b => b.onclick = () =>
         openCached(`步骤 ${+b.dataset.loss + 1} → ${+b.dataset.loss + 2} 流失`, '已确认流失', cacheId, `drop:${b.dataset.loss}`))
@@ -203,6 +217,7 @@ export function createFunnelAggPage(ctx) {
   return {
     draw,
     dispose() {
+      inflight++
       chartLifecycle.dispose()
       nativeChart = null
     },

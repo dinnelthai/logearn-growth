@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "commonjs",
-  "engines": { "node": ">=22.5.0" },
+  "engines": {
+    "node": ">=22.5.0"
+  },
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
@@ -12,10 +14,14 @@
     "generate:data:2m": "USERS=50000 TARGET_EVENTS=2000000 BATCH=200 node src/db/generateBusinessData.js",
     "rebuild:rollups": "node src/db/rebuildRollups.js",
     "import:events": "node src/db/importGrowthEvents.js",
-    "import:events:full": "node src/db/importGrowthEvents.js --import --rebuild"
+    "import:events:full": "node src/db/importGrowthEvents.js --import --rebuild",
+    "test": "node --test test/*.test.js",
+    "start:remote": "ANALYTICS_STORAGE=hologres node src/index.js"
   },
   "dependencies": {
     "cors": "2.8.5",
-    "express": "4.19.2"
+    "dotenv": "^18.0.6",
+    "express": "4.19.2",
+    "pg": "^8.23.1"
   }
 }

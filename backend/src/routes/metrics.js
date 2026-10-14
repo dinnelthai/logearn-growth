@@ -55,6 +55,17 @@ function coverageFor(start, end) {
   }
 }
 
+router.get('/my-monitor',(req,res,next)=>{
+ const r=parseRange(req.query)
+ if(r.error)return res.status(400).json({error:r.error})
+ if(r.end-r.start>366*DAY)return res.status(400).json({error:'日期范围最长366天'})
+ try{
+ const meta=readKeyedMeta('events_meta'),asOf=Date.parse(meta.as_of)
+ if(!Number.isFinite(asOf))return res.status(503).json({error:'事件快照尚未准备好'})
+ res.json(require('../data/myMonitorLocal').myMonitorLocal(db,{...r,asOf,historyComplete:meta.history_complete===true||meta.history_complete==='true'}))
+ }catch(e){next(e)}
+})
+
 /** GET /api/metrics/north-star?start&end&source= */
 router.get('/north-star', (req, res) => {
   const range = parseRange(req.query)
@@ -594,6 +605,7 @@ router.post('/paths', (req, res) => {
   if (range.error) return res.status(400).json({ error: range.error })
   const {
     path_start: pathStart = 'all',
+    path_stop: pathStop = 'none',
     path_depth: pathDepth = 5,
     source = 'all',
     audience_ids = null,
@@ -612,7 +624,7 @@ router.post('/paths', (req, res) => {
   }
   const asOf = readAsOf(end)
   const maxSteps = Math.min(7, Math.max(3, Number(pathDepth) || 5))
-  const key = memoKey(['paths', start, end, asOf, pathStart, maxSteps, source, audience_ids, cohort_id])
+  const key = memoKey(['paths', start, end, asOf, pathStart, pathStop, maxSteps, source, audience_ids, cohort_id])
   const hit = memoGet(key)
   if (hit) return res.json(hit)
   const { PATH_TYPES } = require('../analytics/eventMap')
@@ -634,6 +646,7 @@ router.post('/paths', (req, res) => {
     endAt: end,
     asOf,
     startEvent: pathStart || 'all',
+    stopEvent: pathStop || 'none',
     maxSteps,
     sourceFilter: source || 'all',
     typeSet: new Set(PATH_TYPES),

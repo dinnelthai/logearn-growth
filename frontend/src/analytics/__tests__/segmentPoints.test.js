@@ -1,0 +1,4 @@
+import {test,expect} from 'vitest'
+import {pointsPanel,pointsTrendOption} from '../../pages/segmentPoints.js'
+test('points trend drill keys distinguish ledger and checkin users',()=>{const p={days:[{date:'2026-10-05',list_key:'points:day:2026-10-05',users:2,checkin_users:1}]},o=pointsTrendOption(p,'#123');expect(o.series[0].data[0].list_key).toBe('points:day:2026-10-05');expect(o.series[1].data[0].list_key).toBe('points:day:2026-10-05:checkin')})
+test('points panel distinguishes ledger amounts from available balances and global diagnostics',()=>{const m={points:{summary:{ledger_users:1,earned_users:1,checkin_users:1,streak_users:0,earned:10,negative:-2,period_users:1,negative_users:1},quality:{source_users:2,unmapped_users:1,remapped_users:1},types:[],days:[],definition:'已观测变动'}},s=pointsPanel(m,{esc:String,fmt:String,table:()=>'',link:(n,k)=>n+':'+k});expect(s).toContain('积分流水不等于可用余额');expect(s).toContain('points:negative');expect(s).toContain('该诊断不受页面筛选影响')})

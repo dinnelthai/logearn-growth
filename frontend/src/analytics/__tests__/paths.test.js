@@ -35,3 +35,10 @@ describe('behavior paths',()=>{
   expect(computePaths([u],{...opts,sourceFilter:'Bot'}).sessions).toBe(0)
  })
 })
+
+it('collapses repeated token click/detail runs and preserves analysis boundaries',()=>{
+ const types=['token_click','token','token_click','token','chip','token_click','token','chip']
+ const r=computePaths([user(types.map((type,i)=>event(type,i,'a')))],{...opts,maxSteps:8})
+ expect(r.paths[0].types).toEqual(['token_click','token','chip','token_click','token','chip'])
+ expect(r.paths[0].terminal).toBe('end')
+})

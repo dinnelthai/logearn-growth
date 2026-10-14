@@ -1,0 +1,41 @@
+{
+  "fixture": "1M generated rows / 10k authenticated users / 100 events each",
+  "scope": "synthetic SQL; optional two simultaneous funnel queries; not production physical-table or 10-user load test",
+  "checked_at": "2026-10-09T10:03:09.175Z",
+  "results": [
+    {
+      "name": "north",
+      "passed": true,
+      "ms": 4021,
+      "returned_rows": 1,
+      "returned_bytes": 15
+    },
+    {
+      "name": "funnel",
+      "passed": true,
+      "ms": 6294,
+      "returned_rows": 10000,
+      "returned_bytes": 2828891
+    },
+    {
+      "name": "retention",
+      "passed": true,
+      "ms": 5003,
+      "returned_rows": 10000,
+      "returned_bytes": 3108891
+    },
+    {
+      "name": "segments",
+      "passed": true,
+      "ms": 5642,
+      "returned_rows": 10000,
+      "returned_bytes": 2768891
+    },
+    {
+      "name": "funnel_concurrency_2",
+      "passed": true,
+      "ms": 8306,
+      "returned_rows": 20000
+    }
+  ]
+}

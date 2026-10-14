@@ -5,6 +5,8 @@ export function createRetentionAggPage(ctx) {
   const { $, $$, names, day, date, esc, fmt, pct, table, stat, drawer } = ctx
   const clearNative = ctx.clear
   let inflight = 0
+  let previousMetrics = null
+  let previousConfig = null
   let continuous = false
   let cacheId = null
   let daily = []
@@ -12,6 +14,7 @@ export function createRetentionAggPage(ctx) {
   function openCached(title, description, listKey) {
     if (!cacheId || !listKey) return
     drawer.openRemote({
+      selection:{cache_id:cacheId,list_key:listKey},
       title,
       description,
       fetchPage: ({ offset, limit, q }) =>
@@ -19,7 +22,7 @@ export function createRetentionAggPage(ctx) {
       fetchTimeline: async (userId, host) => {
         host.innerHTML = '<p class="a-muted">加载时间线…</p>'
         try {
-          const data = await fetchUserTimeline({ userId, limit: 200 })
+          const data = await fetchUserTimeline({ userId, limit: 200, cacheId })
           host.innerHTML = `<h2>${esc(data.user?.id || userId)}</h2><div class="a-timeline">${(data.events || []).map(e => {
             const label = (ctx.names && ctx.names[e.event_name]) || e.event_name
             const t = new Date(e.t + 7 * 3600000).toISOString().slice(5, 16).replace('T', ' ')
@@ -63,9 +66,10 @@ export function createRetentionAggPage(ctx) {
   }
 
   async function draw(c) {
-    const reqId = ++inflight
     clearNative()
+    const reqId = ++inflight
     $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted">正在从 /api/metrics/retention 加载…</p></div>'
+    const configKey = JSON.stringify(c)
     let metrics
     try {
       metrics = await fetchRetentionMetrics({
@@ -74,15 +78,23 @@ export function createRetentionAggPage(ctx) {
         initial: c.initial || 'chip',
         returning: c.returning || 'chip',
         source: c.source || 'all',
+        snapshot_id:c.snapshotId,
         audience_ids: c.audienceIds || null,
         cohort_id: c.cohortId || null,
       })
     } catch (err) {
       if (reqId !== inflight) return
+      if(previousMetrics && previousConfig===configKey){
+        metrics=previousMetrics
+        $('#as-data-status').textContent='数据更新失败 · 保留上次结果：'+(err.message||err)
+      }else{
       $('#as-output').innerHTML = `<div class="a-card"><h2>留存加载失败</h2><p>${esc(err.message || err)}</p></div>`
       return
+      }
     }
     if (reqId !== inflight) return
+
+    previousMetrics=metrics;previousConfig=configKey
 
     daily = metrics.daily || []
     cacheId = metrics.drill?.cache_id
@@ -133,5 +145,5 @@ export function createRetentionAggPage(ctx) {
     })
   }
 
-  return { draw, dispose() {} }
+  return { draw, dispose() { inflight++ } }
 }

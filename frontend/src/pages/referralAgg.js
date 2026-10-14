@@ -1,7 +1,9 @@
+import {createReferralInsightsPage} from './referralInsights.js'
 import { fetchReferralMetrics } from '../api/metrics.js'
 import { fetchDrillUsers, fetchUserTimeline } from '../api/drill.js'
 
 export function createReferralAggPage(ctx) {
+  if(ctx.dataStore.meta.storage==='hologres')return createReferralInsightsPage(ctx)
   const { $, esc, fmt, pct, table, stat, drawer, date, day } = ctx
   const clearNative = ctx.clear
   let inflight = 0

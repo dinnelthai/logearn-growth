@@ -6,9 +6,10 @@ import { getToken } from '../auth/authClient.js'
 
 const BACKEND_BASE = import.meta.env.VITE_BACKEND_BASE_URL ?? 'http://localhost:3001'
 
-async function backendFetch(path) {
+async function backendFetch(path,options={}) {
   const token = getToken()
   const res = await fetch(`${BACKEND_BASE}${path}`, {
+    ...options,
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
@@ -62,8 +63,8 @@ export async function fetchBackendTrades(startAt, endAt) {
 }
 
 /** Lightweight bootstrap — no raw events. Prefer this for large SQLite datasets. */
-export async function fetchBackendMeta() {
-  return backendFetch('/api/analytics/meta')
+export async function fetchBackendMeta({refresh=false}={}) {
+  return refresh?backendFetch('/api/analytics/refresh',{method:'POST'}):backendFetch('/api/analytics/meta')
 }
 
 /**

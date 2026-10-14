@@ -1,0 +1,17 @@
+export const EFFECTS=[{name:'分析覆盖率',field:'analysis_rate',count:'analysis_users',suffix:'analysis',color:'#5367e8'},{name:'策略使用率',field:'strategy_rate',count:'strategy_users',suffix:'strategy',color:'#18a999'},{name:'交易记录占比',field:'trade_rate',count:'trade_users',suffix:'trade',color:'#eca545'}]
+export const SEGMENT_COLORS=['#5367e8','#18a999','#eca545','#9c7ade','#ed849b','#74b6de']
+export function behaviorOption(metrics,colors){
+ const rows=metrics.segments||[],total=metrics.total||0
+ return {aria:{enabled:true,description:'当前筛选用户的互斥行为分群。可通过旁边名单按钮下钻。'},color:SEGMENT_COLORS,
+ tooltip:{trigger:'item',renderMode:'richText',formatter:p=>`${p.name}\n${p.value} 人 · ${total?(p.value/total*100).toFixed(1):0}%`},
+ graphic:[{type:'text',left:'center',top:'40%',style:{text:total.toLocaleString('en-US'),fontSize:30,fontWeight:700,fill:colors.text}},{type:'text',left:'center',top:'56%',style:{text:'当前用户',fontSize:12,fill:colors.muted}}],
+ series:[{name:'行为分群',type:'pie',radius:['61%','82%'],center:['50%','50%'],label:{show:false},itemStyle:{borderColor:colors.panel,borderWidth:4,borderRadius:4},data:rows.map((r,i)=>({name:r.segment,value:r.users,list_key:r.list_key,itemStyle:{color:r.segment==='未观测分析'?'#c7cfdf':SEGMENT_COLORS[i%SEGMENT_COLORS.length]}}))}]}
+}
+export function comparisonOption(rows,colors){return {aria:{enabled:true,description:'各组注册账号中的分析、策略及交易用户占比，三个行为可以重叠。'},tooltip:{trigger:'item',renderMode:'richText',formatter:p=>`${p.data.group}\n${p.seriesName} ${(p.value||0).toFixed(1)}%\n${p.data.count} / ${p.data.total} 人`},
+ legend:{top:0,textStyle:{color:colors.muted,fontSize:11},itemWidth:10,itemHeight:10},grid:{top:48,left:130,right:45,bottom:20},
+ xAxis:{type:'value',max:100,axisLabel:{formatter:'{value}%',color:colors.muted,fontSize:10},splitLine:{lineStyle:{color:colors.border,type:'dashed'}}},
+ yAxis:{type:'category',inverse:true,data:rows.map(r=>r.label),axisLabel:{color:colors.text,fontSize:11,width:115,overflow:'truncate'},axisLine:{show:false},axisTick:{show:false}},
+ series:EFFECTS.map(e=>({name:e.name,type:'bar',barMaxWidth:13,itemStyle:{color:e.color,borderRadius:[0,4,4,0]},data:rows.map(r=>({value:r[e.field]==null?null:r[e.field]*100,group:r.label,count:r[e.count],total:r.users,list_key:r.list_key+':'+e.suffix}))}))}}
+export function cohortOption(rows,colors){return {aria:{enabled:true,description:'最近12个注册周批次在同一统计期内的分析人数比例，不是注册后转化。'},tooltip:{trigger:'item',renderMode:'richText',formatter:p=>`${p.data.group}\n${p.seriesName} ${p.data.count} / ${p.data.total} 人 (${(p.value||0).toFixed(1)}%)`},legend:{top:0,textStyle:{color:colors.muted},itemWidth:10,itemHeight:10},grid:{top:46,left:95,right:35,bottom:25},
+ xAxis:{type:'value',max:100,axisLabel:{formatter:'{value}%',color:colors.muted},splitLine:{lineStyle:{color:colors.border,type:'dashed'}}},yAxis:{type:'category',inverse:true,data:rows.map(r=>r.label.slice(5)),axisLine:{show:false},axisTick:{show:false},axisLabel:{color:colors.text}},
+ series:[{name:'观测到分析',suffix:'analysis',color:'#5367e8'},{name:'未观测分析',suffix:'unobserved',color:'#d8deed'}].map(e=>({name:e.name,type:'bar',stack:'users',barMaxWidth:16,itemStyle:{color:e.color},data:rows.map(r=>({value:r.users?100*(e.suffix==='analysis'?r.analysis_users:r.users-r.analysis_users)/r.users:null,count:e.suffix==='analysis'?r.analysis_users:r.users-r.analysis_users,total:r.users,group:r.label,list_key:r.list_key+':'+e.suffix}))}))}}

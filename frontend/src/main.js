@@ -1,8 +1,9 @@
 import * as FloatingUIDOM from "@floating-ui/dom";
-import { BarChart, FunnelChart, LineChart, SankeyChart } from "echarts/charts";
+import { BarChart, FunnelChart, LineChart, PieChart, SankeyChart } from "echarts/charts";
 import {
   AriaComponent,
   GridComponent,
+  GraphicComponent,
   LegendComponent,
   TooltipComponent,
 } from "echarts/components";
@@ -15,8 +16,10 @@ echarts.use([
   BarChart,
   FunnelChart,
   GridComponent,
+  GraphicComponent,
   LegendComponent,
   LineChart,
+  PieChart,
   SankeyChart,
   SVGRenderer,
   TooltipComponent,
@@ -85,6 +88,13 @@ async function start() {
             asOf,
             timezone:meta.timezone??'Asia/Bangkok',
             source:'backend-agg',
+            storage:meta.storage??'sqlite',
+            capabilities:meta.capabilities??null,
+            snapshot_cutoff:meta.snapshot_cutoff??null,
+            sources:meta.sources??[],
+            funnelSteps:meta.funnel_steps??null,
+            strategies:meta.strategies??[],
+            dataVersion:meta.data_version??null,
             historyComplete:!!meta.history_complete,
             coverage:{events:eventsCov,trades:tradesCov},
             eventCount:meta.event_count,
@@ -173,6 +183,11 @@ async function start() {
   }
   await import('./dashboard.js')
   await import('./tooltips.js')
+  if (globalThis.LOGEARN_ANALYTICS_DATA?.meta.storage === 'hologres') {
+    const { mountManualRefresh } = await import('./api/remoteRefresh.js')
+    mountManualRefresh()
+  }
+
 }
 start().catch((err)=>{
   console.error('[main] start() failed:', err)

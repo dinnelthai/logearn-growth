@@ -1,7 +1,9 @@
+import {createOnlineTradeMonitorPage} from './onlineTradeMonitor.js'
 import { fetchTradeMetrics } from '../api/metrics.js'
 import { createChartLifecycle } from './chartLifecycle.js'
 
 export function createTradeMonitorAggPage(ctx) {
+  if(ctx.dataStore.meta.storage==='hologres')return createOnlineTradeMonitorPage(ctx)
   const { root, $, esc, fmt, pct, table, stat, themeMedia, date } = ctx
   const clearNative = ctx.clear
   const chartLifecycle = createChartLifecycle(themeMedia)
@@ -9,8 +11,8 @@ export function createTradeMonitorAggPage(ctx) {
   let inflight = 0
 
   async function draw(c) {
-    const reqId = ++inflight
     clearNative()
+    const reqId = ++inflight
     $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted">正在从 /api/metrics/trades 加载…</p></div>'
     let metrics
     try {
@@ -87,6 +89,7 @@ export function createTradeMonitorAggPage(ctx) {
   return {
     draw,
     dispose() {
+      inflight++
       chartLifecycle.dispose()
       nativeChart = null
     },

@@ -1,7 +1,7 @@
 /** Port of frontend/src/analytics/paths.js — returns aggregates without embedding user objects. */
 const IDLE_MS = 30 * 60000
 
-function computePaths(users, { startAt, endAt, asOf, startEvent = 'all', maxSteps = 5, sourceFilter = 'all', typeSet }) {
+function computePaths(users, { startAt, endAt, asOf, startEvent = 'all', stopEvent = 'none', maxSteps = 5, sourceFilter = 'all', typeSet, includeDiagnosticSessions = false }) {
   const TYPES = typeSet || new Set(users.flatMap(u => u.events.map(e => e.type)))
   const sessions = []
   for (const user of users) {
@@ -16,7 +16,7 @@ function computePaths(users, { startAt, endAt, asOf, startEvent = 'all', maxStep
     let index = 0
     for (const event of events) {
       let key
-      if (event.session_id) key = 'session:' + event.session_id
+      if (event.session_id) {key = 'session:' + event.session_id;fallback=null;lastFallback=-Infinity}
       else {
         if (!fallback || event.t - lastFallback >= IDLE_MS) fallback = 'inferred:' + index++
         key = fallback
@@ -26,14 +26,27 @@ function computePaths(users, { startAt, endAt, asOf, startEvent = 'all', maxStep
       groups.get(key).push(event)
     }
     for (const [key, group] of groups) {
-      const start = startEvent === 'all' ? 0 : group.findIndex(e => e.type === startEvent)
+      const start = startEvent === 'all' ? 0 : group.findIndex(e => e.type === startEvent && e.t >= startAt && e.t < endAt)
       if (start < 0 || group[start].t < startAt || group[start].t >= endAt) continue
-      const available = group.slice(start).filter(e => e.t < endAt)
+      const context = group.slice(start).filter(e => e.t < endAt)
+      const stopIndex = stopEvent === 'none' ? -1 : context.findIndex(e => e.type === stopEvent || stopEvent === 'chip' && e.type === 'chip_drilldown')
+      const available = stopIndex < 0 ? context : context.slice(0, stopIndex + 1)
       const compact = []
-      for (const event of available) if (compact.at(-1)?.type !== event.type) compact.push(event)
+      // A consecutive token-discovery run occupies at most one click and one detail step.
+      // Other actions (including analysis/drilldown) end the run; raw events remain intact.
+      let tokenRun = new Set()
+      for (const event of available) {
+        if (event.type === 'token_click' || event.type === 'token') {
+          if (!tokenRun.has(event.type)) compact.push(event)
+          tokenRun.add(event.type)
+        } else {
+          tokenRun = new Set()
+          if (compact.at(-1)?.type !== event.type) compact.push(event)
+        }
+      }
       if (!compact.length) continue
-      const visible = compact.slice(0, maxSteps)
-      const terminal = compact.length > maxSteps
+      const visible = stopIndex >= 0 ? compact : compact.slice(0, maxSteps)
+      const terminal = stopIndex >= 0 ? 'reached' : compact.length > maxSteps
         ? 'more'
         : group.some(e => e.t >= endAt)
           ? 'boundary'
@@ -46,6 +59,8 @@ function computePaths(users, { startAt, endAt, asOf, startEvent = 'all', maxStep
         types: visible.map(e => e.type),
         terminal,
         inferred: key.startsWith('inferred:'),
+        observedEvents: available,
+        visibleEvents: visible,
       })
     }
   }
@@ -94,6 +109,7 @@ function computePaths(users, { startAt, endAt, asOf, startEvent = 'all', maxStep
   }))
 
   const nodeList = [...nodes.values()].map(node => ({
+    user_ids:[...new Set(sessions.filter(s=>[...s.types,s.terminal][node.stage]===node.type).map(s=>s.userId))],
     ...node,
     value: Math.max(
       linkList.filter(l => l.source === node.name).reduce((n, l) => n + l.value, 0),
@@ -102,6 +118,9 @@ function computePaths(users, { startAt, endAt, asOf, startEvent = 'all', maxStep
   }))
 
   return {
+    ...(includeDiagnosticSessions?{diagnostic_sessions:sessions}:{}),
+    user_ids:[...new Set(sessions.map(s=>s.userId))],
+    terminal_counts:Object.fromEntries(['reached','end','pending','boundary','more'].map(t=>[t,{sessions:sessions.filter(s=>s.terminal===t).length,user_ids:[...new Set(sessions.filter(s=>s.terminal===t).map(s=>s.userId))]}])),
     sessions: sessions.length,
     users: new Set(sessions.map(r => r.userId)).size,
     inferred_sessions: sessions.filter(r => r.inferred).length,

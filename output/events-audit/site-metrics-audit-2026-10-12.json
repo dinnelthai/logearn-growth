@@ -1,0 +1,148 @@
+{
+  "cutoff": "2026-10-12T02:22:50.284Z",
+  "timezone": "Asia/Bangkok",
+  "scope": "all observed history at arrival cutoff, event_id deduplicated, acc_ excluded; not complete product history",
+  "rows": [
+    {
+      "event_name": "signal_viewed",
+      "events": "4380",
+      "users": "31",
+      "visit_ids": "0",
+      "run_ids": "200"
+    },
+    {
+      "event_name": "token_detail_viewed",
+      "events": "4112",
+      "users": "126",
+      "visit_ids": "4112",
+      "run_ids": "0"
+    },
+    {
+      "event_name": "chip_analysis_drilldown",
+      "events": "2075",
+      "users": "53",
+      "visit_ids": "0",
+      "run_ids": "0"
+    },
+    {
+      "event_name": "ranking_token_clicked",
+      "events": "2049",
+      "users": "92",
+      "visit_ids": "2049",
+      "run_ids": "0"
+    },
+    {
+      "event_name": "trade_succeeded",
+      "events": "525",
+      "users": "13",
+      "visit_ids": "0",
+      "run_ids": "0"
+    },
+    {
+      "event_name": "trade_submitted",
+      "events": "364",
+      "users": "16",
+      "visit_ids": "0",
+      "run_ids": "0"
+    },
+    {
+      "event_name": "app_opened_unauthenticated",
+      "events": "307",
+      "users": "187",
+      "visit_ids": "0",
+      "run_ids": "0"
+    },
+    {
+      "event_name": "callout_card_clicked",
+      "events": "229",
+      "users": "14",
+      "visit_ids": "229",
+      "run_ids": "0"
+    },
+    {
+      "event_name": "first_visit_captured",
+      "events": "187",
+      "users": "186",
+      "visit_ids": "0",
+      "run_ids": "0"
+    },
+    {
+      "event_name": "strategy_started",
+      "events": "86",
+      "users": "21",
+      "visit_ids": "0",
+      "run_ids": "86"
+    },
+    {
+      "event_name": "trade_failed",
+      "events": "81",
+      "users": "5",
+      "visit_ids": "0",
+      "run_ids": "0"
+    },
+    {
+      "event_name": "login_succeeded",
+      "events": "50",
+      "users": "42",
+      "visit_ids": "0",
+      "run_ids": "0"
+    },
+    {
+      "event_name": "login_button_clicked",
+      "events": "40",
+      "users": "29",
+      "visit_ids": "0",
+      "run_ids": "0"
+    },
+    {
+      "event_name": "strategy_stopped",
+      "events": "38",
+      "users": "17",
+      "visit_ids": "0",
+      "run_ids": "13"
+    },
+    {
+      "event_name": "limit_order_created",
+      "events": "21",
+      "users": "7",
+      "visit_ids": "0",
+      "run_ids": "0"
+    },
+    {
+      "event_name": "language_changed",
+      "events": "20",
+      "users": "10",
+      "visit_ids": "0",
+      "run_ids": "0"
+    },
+    {
+      "event_name": "invite_page_entered",
+      "events": "14",
+      "users": "11",
+      "visit_ids": "0",
+      "run_ids": "0"
+    }
+  ],
+  "quality": [
+    {
+      "events": "14578",
+      "users": "259",
+      "future_events": "0",
+      "logged_drills": "2075"
+    }
+  ],
+  "drillKinds": [
+    {
+      "kind": "full_lifecycle",
+      "events": "1046"
+    },
+    {
+      "kind": "circle_select",
+      "events": "664"
+    },
+    {
+      "kind": "inner",
+      "events": "365"
+    }
+  ]
+}

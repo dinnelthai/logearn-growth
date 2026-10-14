@@ -2,6 +2,7 @@ import {validateEvents,resolveIdentities,validateUsers,validateReferrals,validId
 import {attributeVisit,referrerDomain} from '../channels/rules.js'
 import {sourceCoverage} from './coverage.js'
 import {validateTradeFacts} from './tradeFacts.js'
+import LOGIN_EVIDENCE_RAWS from './loginEvidence.json'
 import { normalizeLanguage } from './language.js'
 /**
  * normalize.js
@@ -249,6 +250,10 @@ export function normalizeApiResponse({ events, users, logearnUsers, referrals, t
       activityUsers.set(id, user)
     }
     user.loggedInVisits ??= []
+    if (LOGIN_EVIDENCE_RAWS.includes(raw.event_name)) {
+      user.loginEvidence ??= []
+      user.loginEvidence.push({type:'login_verified',t,session_id:raw.session_id??null,token_visit_id:raw.properties?.token_visit_id??null,strategy_run_id:raw.properties?.strategy_run_id??null,token_address:raw.properties?.token_address??null,chain:raw.properties?.chain??raw.chain??null})
+    }
     user.loggedInVisits.push({type: 'logged_in_visit', t, session_id: raw.session_id ?? null,
       token_visit_id: raw.properties?.token_visit_id ?? null,
       strategy_run_id: raw.properties?.strategy_run_id ?? null,

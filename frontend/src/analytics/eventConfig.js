@@ -68,6 +68,13 @@ export const EVENT_CONFIG = [
 
   // ─── Navigation / Discovery ─── navigation.ts ──────────────────────────────
   {
+    rawName: 'page_visit_ended',
+    type: 'page_end',
+    label: '页面停留记录',
+    source: 'pageVisits.ts',
+    description: '页面隐藏、切换或关闭时上报累计可见停留时间，按 page_visit_id 关联',
+  },
+  {
     rawName: 'page_viewed',
     type: 'page_view',
     label: '页面浏览',

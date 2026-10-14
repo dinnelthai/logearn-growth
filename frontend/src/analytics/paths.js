@@ -2,7 +2,7 @@ const IDLE_MS=30*60000
 import { EVENT_LABELS } from './events.js'
 const TYPES=new Set(Object.keys(EVENT_LABELS))
 /** Counts actual session paths, with stage-indexed nodes so revisits never form cycles. */
-export function computePaths(users,{startAt,endAt,asOf,startEvent='all',maxSteps=5,sourceFilter='all'}) {
+export function computePaths(users,{startAt,endAt,asOf,startEvent='all',stopEvent='none',maxSteps=5,sourceFilter='all'}) {
   const sessions=[]
   for(const user of users) {
     if(sourceFilter!=='all'&&user.source!==sourceFilter)continue
@@ -21,12 +21,25 @@ export function computePaths(users,{startAt,endAt,asOf,startEvent='all',maxSteps
     for(const [key,group] of groups) {
       const start=startEvent==='all'?0:group.findIndex(e=>e.type===startEvent)
       if(start<0||group[start].t<startAt||group[start].t>=endAt)continue
-      const available=group.slice(start).filter(e=>e.t<endAt)
+      const context=group.slice(start).filter(e=>e.t<endAt)
+      const stopIndex=stopEvent==='none'?-1:context.findIndex(e=>e.type===stopEvent||stopEvent==='chip'&&e.type==='chip_drilldown')
+      const available=stopIndex<0?context:context.slice(0,stopIndex+1)
       const compact=[]
-      for(const event of available)if(compact.at(-1)?.type!==event.type)compact.push(event)
+      // A consecutive token-discovery run occupies at most one click and one detail step.
+      // Other actions (including analysis/drilldown) end the run; raw events remain intact.
+      let tokenRun = new Set()
+      for (const event of available) {
+        if (event.type === 'token_click' || event.type === 'token') {
+          if (!tokenRun.has(event.type)) compact.push(event)
+          tokenRun.add(event.type)
+        } else {
+          tokenRun = new Set()
+          if (compact.at(-1)?.type !== event.type) compact.push(event)
+        }
+      }
       if(!compact.length)continue
-      const visible=compact.slice(0,maxSteps)
-      const terminal=compact.length>maxSteps?'more':group.some(e=>e.t>=endAt)?'boundary':asOf-available.at(-1).t<IDLE_MS?'pending':'end'
+      const visible=stopIndex>=0?compact:compact.slice(0,maxSteps)
+      const terminal=stopIndex>=0?'reached':compact.length>maxSteps?'more':group.some(e=>e.t>=endAt)?'boundary':asOf-available.at(-1).t<IDLE_MS?'pending':'end'
       sessions.push({u:user,key:user.id+':'+key,events:visible,terminal,inferred:key.startsWith('inferred:')})
     }
   }

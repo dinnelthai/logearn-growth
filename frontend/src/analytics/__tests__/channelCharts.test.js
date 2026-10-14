@@ -1,0 +1,3 @@
+import {test,expect} from 'vitest'
+import {channelName,channelRankOption,channelTrendOption} from '../../pages/channelCharts.js'
+test('sources preserve their raw meaning and charts drill into each independent numerator',()=>{expect(channelName('referrer:google.com')).toContain('外部来源');expect(channelName('referrer:google.com')).not.toContain('SEO');const r={source:'direct',users:8,analysis:2,succeeded:1,list_key:'source:0'},o=channelRankOption([r],'#333');expect(o.series[1].data[0]).toMatchObject({value:2,list_key:'source:0:analysis'});const trend=channelTrendOption([{...r,date:'2026-10-09',list_key:'day:2026-10-09'}],'#333');expect(trend.series[2].data[0].list_key).toBe('day:2026-10-09:succeeded')})

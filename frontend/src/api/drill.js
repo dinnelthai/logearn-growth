@@ -32,10 +32,14 @@ export function fetchDrillUsers(query) {
   })
 }
 
-export function fetchUserTimeline({ userId, start, end, limit = 200 }) {
-  const id = String(userId).replace(/^user:/, '')
+export function fetchUserTimeline({ userId, start, end, limit = 200, snapshotId, cacheId }) {
+  const id = (snapshotId || cacheId || globalThis.LOGEARN_ANALYTICS_DATA?.meta.storage==='hologres') ? String(userId) : String(userId).replace(/^user:/, '')
   const qs = new URLSearchParams({ user_id: id, limit: String(limit) })
+  if (snapshotId) qs.set('snapshot_id', snapshotId)
+  if (cacheId) qs.set('cache_id', cacheId)
   if (Number.isFinite(start)) qs.set('start', String(start))
   if (Number.isFinite(end)) qs.set('end', String(end))
   return drillFetch(`/api/drill/timeline?${qs}`)
 }
+
+export function materializeAudience(body){return drillFetch('/api/analytics/audience',{method:'POST',body:JSON.stringify(body)})}

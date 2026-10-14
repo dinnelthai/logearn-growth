@@ -1,3 +1,4 @@
+require('dotenv').config({ path: require('path').join(__dirname, '../.env'), quiet: true })
 const express = require('express')
 const cors = require('cors')
 const fs = require('fs')
@@ -20,7 +21,7 @@ schema.split(';').map(s => s.trim()).filter(Boolean).forEach(stmt => db.exec(stm
 // Seed default admin if no users exist
 seedAdmin().catch(console.error)
 // Seed analytics mock facts (events / users / referrals / trades)
-try { seedMock() } catch (err) { console.error('seedMock failed:', err) }
+try { if (process.env.ANALYTICS_STORAGE !== 'hologres') seedMock() } catch (err) { console.error('seedMock failed:', err) }
 
 const app = express()
 
@@ -41,7 +42,14 @@ app.get('/health', (req, res) => res.json({ ok: true, ts: Date.now() }))
 // Auth routes (login is public, rest require auth internally)
 app.use('/api/auth', authRouter)
 
+// Remote priority analytics routes precede SQLite routes; no silent local fallback.
+if (process.env.ANALYTICS_STORAGE === 'hologres') {
+  app.use(['/api/analytics', '/api/metrics', '/api/drill', '/api/events'], requireAuth)
+  app.use(require('./routes/remoteAnalytics'))
+}
+
 // Protected routes
+app.use('/api/activities', requireAuth, require('./routes/activities'))
 app.use('/api/cohorts', requireAuth, cohortsRouter)
 app.use('/api/saved-configs', savedConfigsRouter)
 app.use('/api/events', requireAuth, analyticsRouter)
@@ -55,7 +63,7 @@ app.use((req, res) => res.status(404).json({ error: '接口不存在' }))
 // Error handler
 app.use((err, req, res, _next) => {
   console.error(err)
-  res.status(500).json({ error: '服务器内部错误', detail: err.message })
+  res.status(err.status || 503).json({ error: err.status ? err.message : '数据查询失败，请稍后重试' })
 })
 
 const PORT = process.env.PORT || 3001

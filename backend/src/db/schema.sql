@@ -240,3 +240,15 @@ CREATE TABLE IF NOT EXISTS user_features (
 CREATE INDEX IF NOT EXISTS idx_user_features_source ON user_features(first_source);
 CREATE INDEX IF NOT EXISTS idx_user_features_segment ON user_features(last_chip_at, chip_days_28);
 
+
+CREATE TABLE IF NOT EXISTS growth_activities (
+ id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, name TEXT NOT NULL,
+ start_at INTEGER NOT NULL, cutoff_at INTEGER NOT NULL,
+ baseline_snapshot TEXT NOT NULL, import_report TEXT NOT NULL,
+ settled_at INTEGER, settled_result TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_activity_owner ON growth_activities(owner_id,start_at);
+CREATE TABLE IF NOT EXISTS growth_activity_members (
+ activity_id TEXT NOT NULL REFERENCES growth_activities(id),user_id TEXT NOT NULL,
+ baseline_first_at INTEGER,PRIMARY KEY(activity_id,user_id)
+);

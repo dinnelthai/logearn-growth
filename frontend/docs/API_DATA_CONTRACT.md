@@ -177,3 +177,95 @@ first_visit_captured 可提供 channel_id/channel_version 快照；当前归一�
 推荐先统一过滤非法ID、自邀、无效/未来绑定；每个invitee保留最早绑定，相同内容重复去重，晚于首次的事实计superseded。同一最早时间内容矛盾则该invitee整组隔离，不任取邀请人/链接。正式关系、推荐和分享计算消费同一校验结果；缺推荐接口仍为null，不变成空数组。
 
 inputQuality 顶层含 events、users、logearnUsers、referrals、identity；原有 tradeQuality 保留。各来源input=accepted+excluded，排除原因互斥；invalidFields和missingEventId属于独立诊断，不与排除总量相加。范围非法明确失败，可选接口根数组格式不符保留缺失状态。
+
+## 远程注册用户分群（2026-10-11）
+
+Hologres模式的 `POST /api/metrics/segments` 使用注册账号作为分母，事件身份未匹配账号者单列。沿用202作业轮询和账户隔离的cached_list下钻。
+
+请求：`{start,end,source,audience_ids,cohort_id,filters,group_by}`。start/end为毫秒半开区间，最长366天；前端提供含今日的7/14/28天统计期。缺省日期使用最近7天。filters是交叉条件：registration/login（all/7/28/older，login另含unknown）、binding（all/telegram/email/both/neither）、identity（all/phantom/metamask/multiple）、invitation（all/referred/none/inviter）、trade（all/none/first/repeat）、status（all/active/locked）、segment（all及当前显示行为分类）。trade的first仅指一条历史交易记录，不声称已确认首次成交。group_by支持binding/registration/identity/invitation/trade/status/segment。
+
+响应新增summary、registered_total、unmatched_users、comparison、registration_cohorts、start/end、facts_as_of、retention_reason；每行提供list_key。summary分析覆盖率/策略率/交易记录用户占比均以筛选后注册用户为分母；平均分析活跃日以分析用户为分母。期间登录人数依据事件明确user_id，不从当前last_login_at重建历史登录频次。各注册周批次描述同一统计期内表现，不能解释为同账号年龄的转化。
+
+当前事件完整覆盖及历史首次未确认，D1/D7、注册后7日分析率返回null；观察不足不能显示为0或确认流失。行为分类“未观测分析”不证明历史从未使用。当前绑定属性用于描述相关性，不代表注册时或分析时状态。
+
+分群cached_list分页返回账号创建/最近登录、最近分析、28天分析天数、当前绑定、身份类别、账号状态、邀请标签和历史交易记录数。细节由同一分析作业缓存，事实表后续改变不会重新生成明细字段；名单存在性和来源查询仍可能受源历史更新影响，整体保持arrival-cutoff弱一致。缓存过期要求重新分析。
+
+### 业务信号默认用户池（2026-10-11）
+
+segments请求增加 `pool`：business（默认）、registered、contact_only、no_signal；group_by新增signal并作为默认。邮箱/TG单独不是业务信号。business纳入已观测有效分析/实际策略使用、历史交易记录、NFT持有记录、近期正余额或可用积分任一条件的注册账号。contact_only为没有业务信号但有已验证邮箱/TG者；no_signal为没有已知业务信号且没有已验证邮箱/TG者。未知事实不证明用户无价值，三池只是已知证据划分，不称为死用户。
+
+filters新增asset：all/balance/nft/points/vip/balance_unknown/points_unknown。VIP正式权益未确认，vip_active始终null，不从交易等级猜测；页面不开放有效VIP筛选。响应增加focus、business_total、contact_only_total、no_signal_total、pool，以及value/recent_used/contactable_value/value_without_recent_use名单。近28天使用指有效分析或实际策略启动；近期未观测不等于流失。分析覆盖等率使用当前选择并筛选后的用户池作为分母，全注册总数置于背景入口。
+
+NFT只读取Ethereum/Base的nft_owner所有权记录，以chain+nft_num去重，经已验证钱包身份及active wallet_v2的地址关联；EVM地址规范化大小写，跨账号地址冲突排除，不按数值钱包ID猜关联。新版wallet_balance_v2当前为空；旧user_balance通过同一唯一身份地址关联，仅采用明确EVM链1/56/42161、24小时内更新的记录。正余额只作线索，不做USD估值、不能声称完成残值过滤，缺记录/过期为未知。可用积分来自user_points_account.available_points，缺记录或重复用户行不强取最大值，保持未知；当前表为空。
+
+分群下钻新增signal_tier、business_signal、nft_count、has_balance、balance_updated_at、available_points、vip_active。不传钱包私钥、身份credential或联系方式。事实仍为弱一致查询。
+
+### 手动刷新（2026-10-11，覆盖早期自动刷新说明）
+
+远程分析不再定时检查meta，也不在页面重新可见时触发请求。首次加载后仅用户点击顶部“刷新数据”按钮获取新版本。`POST /api/analytics/refresh`（需认证）绕过30秒status缓存并返回新meta/snapshot；旧快照在正常TTL内继续供下钻使用。该接口只读源数据，无远程写入。
+
+按钮刷新期间禁用，等待当前页面分析完成后恢复；同一时刻仅一次手动刷新。失败保留旧结果并允许重试。保留已应用筛选和分群用户池；有未应用编辑时只更新可用数据版本，保留旧分析与编辑，提示应用修改。长分析的202作业轮询仍用于完成用户主动发起的请求，不是后台自动刷新。
+
+### 分群图表与精确下钻（2026-10-11）
+
+行为分群环图使用互斥分群；资产标签可重叠，使用独立条形占比。人群效果对比展示各组分析、策略和交易记录用户占比；注册批次图展示最近12个注册周在同一统计期内的分析覆盖，完整批次表可展开。
+
+cached_list新增 `period:analysis/strategy/trade/login/new`、`nft/balance/points`、`referral:new/analysis`；比较组和注册批次的既有list_key增加 `:analysis/:unobserved/:strategy/:trade` 后缀。点击柱形返回该指标分子用户，点击人群总数返回整组；所有名单与汇总来自同一作业。未知积分/VIP不当作零，零分母比例显示不可计算。
+
+常用5项条件保持展开，其余折叠；统计期统一在主筛选区。图表随容器和主题变化重绘，切页或重新分析销毁旧实例；按钮、图例及展开表提供图形下钻的替代入口。保留顶部手动刷新。
+
+## 分析任务与跨模块人群（2026-10-11）
+
+增加“分析任务”入口：业务用户未使用诊断、渠道质量、积分签到效果、推荐增长质量四个模板。新任务默认含今日7天，锁定已有远程snapshot_id；诊断模板采用filters.task=value_unobserved，积分模板采用filters.points=recent。任务栏支持模块导航、人工标记已核对、记录结论与下一步；任务记录保存在本浏览器，不保存用户ID，不能自动恢复旧名单或假装旧快照仍有效。
+
+认证 `POST /api/analytics/audience` 请求 `{cache_id,list_key,q}`，从当前账号拥有的作业缓存取得完整搜索匹配名单，包含全部分页；返回去重ids、原start/end/source、snapshot_id/as_of及origin。只接受用户/匿名用户名单，记录/关系名单拒绝；空人群、超过50000人、缓存/快照失效明确报错，不截断或退回全平台。客户端可继续进入分群、路径、漏斗、留存、渠道、推荐和交易监控。固定人群路径查询允许最长31天，保留原150000条/48MB预算；全平台路径查询仍最长7天。
+
+各远程POST分析增加可选snapshot_id，给定时必须使用该快照且保持既有预算、认证作业和所有者隔离。任务或人群锁定时分群和推荐不重新计算统计期；任务刷新只更新可用数据版本，不自动替换任务快照或名单。北极星仍为平台基准并显式提示。各模块统计条件不同，不把同一用户范围等同于同一行为分母。
+
+用户抽屉支持保存完整匹配名单为用户群组，cohortClient发送已有Bearer认证；远程群组可直接在分群侧栏用于分析，不依赖浏览器加载全量用户。快照来源名单仅保存用户ID，群组再次分析采用新的数据事实，应另开新任务。推荐的全平台累计传播背景仍保持全体账号范围，选中用户范围只约束被邀请用户批次。
+
+## 分群积分与签到（2026-10-11）
+
+`POST /api/metrics/segments` 增加 `filters.points`：all/ledger/recent/earned/negative/checkin/streak，分别对应任意已观测积分流水、本期变动、本期正变动、本期负变动、本期签到、本期最长连续签到至少3天。积分流水或签到纳入business池；可用余额字段和asset=points仍只依据余额表，缺记录为未知。
+
+新增 `points.summary/types/days/quality/definition`。正变动与负变动分别聚合，负变动不称消费；签到按UTC+7日去重，最长连续天数仅在所选期间内计算，不使用旧表缓存的连续天数字段。来源参与者可重叠，签到表的奖励不再叠加到积分流水。每日与来源及summary名单使用 `points:*` list_key，仍采用账号隔离的同作业缓存。
+
+下钻用户新增points_records/points_period_records/points_earned_period/points_negative_period/last_points_at/checkin_days_period/checkin_streak_period/last_checkin_at。内部画像缓存采用字段字典+数组压缩，API仍返回命名字段，保留零、false与null语义；未提高4MB作业结果预算。
+
+业务表旧user_id若存在旧user_account，必须通过唯一已验证钱包身份映射account_v2，不按数字相等猜测。旧表不存在时可采用存在的新account_id；地址冲突/未匹配单列quality。quality是全库来源用户诊断，不受页面用户池、来源或条件筛选影响。仅使用截止前流水/签到事实，数据库只读，历史覆盖和余额完整性不确认。
+
+## 真实渠道分析（2026-10-11）
+
+认证 `POST /api/metrics/channels`：`{start,end,source:'all'|真实来源值,pool:'active'|'new'}`，最长31天，沿用202作业、账号隔离和15分钟名单缓存。真实来源使用 `first_entry_source` 最早非空记录；空来源单列，不套用本地演示渠道规则，也不推断SEO或付费属性。匿名身份仅在无歧义时合并。
+
+响应 `total/groups/days` 包含用户、首次观测、存量观测、已登录访问、Token详情、分析、策略、提交和成功终态用户；各行为独立覆盖，比例分母是同组用户。日用户去重，不能相加为周期用户；每日首次观测按当日首次事件计算。`groups[].list_key` 和每个指标后缀返回同一作业的准确名单，支持分页、搜索和同快照时间线。
+
+活跃池为本期发生任意事件的用户；首次观测池为首次已观测事件在本期的用户，不等于已确认新增获客。`d7_rate/payment_users/volume_usd` 保持null，历史完整性和交易币种金额未确认。成功终态用户是上报成功事件的用户，订单终态成功率应使用交易监控页。
+
+页面提供来源贡献图、每日趋势、来源质量表、每日明细及图形/人数下钻。只手动刷新；刷新失败仅在同配置下保留旧结果，切页销毁图表并拒绝迟到请求。
+
+## 远程推荐与增长循环（2026-10-11）
+
+认证 POST `/api/metrics/referral`，请求 `{start,end,scope:'all'|'period',quality:'all'|'business'|'value'|'used'|'contactable',inviter,window_days:7|28,source}`；scope=all忽略绑定批次范围，仍要求有效的范围参数。沿用202作业、所有者隔离和15分钟快照缓存，不加载全量事件。
+
+响应包含 summary、global、window、ranking、daily、cohorts、quality 和 drill。summary描述所选绑定批次；绑定后行为观察至各自截止。global始终是全体账号累计关系，不受推荐人/来源/质量/批次筛选影响；window的分母保留所选批次未推荐者，pending单列，confirmed_new_registration_rate=null。二三级佣金与金额未在第一阶段接入。
+
+一级推荐双方必须匹配account_id、有效非自邀、排除ID=0/缺推荐人/未匹配身份/时间异常/同时间冲突/循环关系。下一代要求中间用户绑定时间严格早于下代，使用微秒精度保持数据库顺序；相同时间单列global.simultaneous，不计传播。注册邻近绑定只作描述，不确认新增获客或无成本自然增长。
+
+推荐下钻的成员和画像来自同一作业缓存，支持分页与按用户/来源/关系原因搜索，不重新查询当前关系生成名单；未知身份以relation记录单列，不能点击为账号时间线。榜单总数、使用、交易、价值及下一代分子分别对应list_key；profile/children名单支持推荐人详情和逐层展开。缓存所有者、过期校验与其他下钻一致。
+
+前端默认累计榜单，提供7/28/90天绑定批次、7/28天传播观察窗、质量与推荐人筛选、贡献排序/搜索/分页、3张图表、累计传播卡片、异常分类下钻。只手动刷新；未应用筛选保持编辑，失败仅在同一筛选口径下保留旧结果，切页拒绝迟到响应。
+
+### 2026-10-11：远程行为路径与手动交易终态监控
+
+- `POST /api/metrics/paths`：含今日最长7天，`path_start` 为实际已知业务行为或 `all`，`path_depth` 为3/5/7；可传首次来源与已有受众。真实用户+会话取得全部已观测上下文；缺session按30分钟推断。返回会话数、去重用户、平均步数、路径种类、前100种路径、结束状态及前12种路径的桑基图覆盖率。
+- 路径图是显式标注的子集；`graph.nodes/links[].list_key` 只下钻图中路径的用户。完整路径/结束状态名单与图中会话数采用不同去重单位。历史覆盖未知，窗口截止、仍在观察、观测结束及折叠分别统计。
+- `POST /api/metrics/trade-monitor`：最长31天，`chain`/首次来源筛选；按提交日期组成批次，结果观察至快照截止。提交按用户+尝试ID去重；终态订单按用户+链+订单ID去重。明确关联，不按时间猜测；重复、矛盾、别名冲突、未关联终态单列。
+- `success_rate = succeeded / (succeeded + failed)`，仅已关联且无冲突终态订单进入分母，无终态为null。提交、待确认、混合及钱包数未知是批次；成功/失败是订单，两种单位不可相加。钱包数未知只确认已观测订单，不确认整批完成。
+- `total`/`days`/`chains`/`reasons` 的 `list_key` 与 `list_entities` 决定下钻集合及单位。提交成员提供 `orders_key`，继续展开该批次的已观测订单。搜索支持用户、尝试ID、订单ID、链、原因；用户时间线传同一个 `cache_id`，最多200条，按时间升序。
+- 成功/失败源自产品手动交易业务终态4与3/6/7，不表示链上最终结算。自动策略交易、统一成交额/币种与USD、全历史完整率未提供，页面不估算这些指标。
+- 两个接口沿用认证作业、账号隔离、15分钟缓存和预算限制；远程数据库只读。所有刷新需按钮点击，编辑待应用时保留原结果；同口径刷新失败保留旧结果，切页销毁图表并忽略迟到响应。
+
+### Credits用户额度
+分群新增 `filters.credits=all|available|used|empty|unknown`。`credits:available/used/empty/unknown` 为完整注册用户下钻名单，可用于任务跨模块圈选。`payload.credits` 返回各类人数和全库身份质量；用户明细包含 `credits_available/credits_used/credits_total/credits_cumulative/credits_updated_at`。
+数据来自 `api_quota`，按快照截止时间限制创建与更新时间，经唯一已验证钱包身份关联注册账号；多个来源ID关联同账号时保守隔离，不叠加额度。无记录为未知，明确0与未知分开。可用额度直接采用 `available_quota`，不按总额减已用推算；累计已用不当期间消费，额度不证明付费。可用Credits计入价值线索，有已用Credits计入使用信号，但不推断近期使用。AI credits流水表当前为空。该表非版本化，后续更新可能影响同一截止时间的重查结果，已缓存下钻仍匹配其汇总。

@@ -46,7 +46,7 @@ export function computeFunnel(users, {
     if (sourceFilter !== 'all' && u.source !== sourceFilter) continue
 
     // Find first qualifying step-0 event in range
-    const events=[...u.events,...(steps.includes('logged_in_visit')?u.loggedInVisits??[]:[])].filter(e=>Number.isFinite(e.t)).slice().sort((a,b)=>a.t-b.t)
+    const events=[...u.events,...(steps.includes('logged_in_visit')?u.loggedInVisits??[]:[]),...(steps.includes('login_verified')?u.loginEvidence??[]:[])].filter(e=>Number.isFinite(e.t)).slice().sort((a,b)=>a.t-b.t)
     const step0 = events.find(
       e => e.type === steps[0] && matchesStrategy(e) && e.t >= startAt && e.t < endAt && e.t <= (asOf ?? Infinity)
     )
@@ -61,7 +61,7 @@ export function computeFunnel(users, {
     const windowEnd = step0.t + conversionWindowMs
 
     for (let i = 1; i < steps.length; i++) {
-      const candidates=events.filter(e=>e.type===steps[i]&&matchesStrategy(e)&&(steps[i-1]==='logged_in_visit'?e.t>=lastT:e.t>lastT)&&e.t<=windowEnd&&e.t<=(asOf??Infinity))
+      const candidates=events.filter(e=>e.type===steps[i]&&matchesStrategy(e)&&(['daily_visit','logged_in_visit','login_verified'].includes(steps[i-1])?e.t>=lastT:e.t>lastT)&&e.t<=windowEnd&&e.t<=(asOf??Infinity))
       const next=candidates.find(matchesAssociation)
       if (!next) {
         // An observed candidate without an ID cannot be classified as dropout.

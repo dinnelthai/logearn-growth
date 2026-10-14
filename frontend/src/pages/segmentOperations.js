@@ -1,0 +1,23 @@
+export const OPERATING_LEADS = [
+ {id:'single_page',stage:'激活',pool:'registered',priority:'P1',title:'单页访问无操作',filters:{task:'single_page_no_action'},reason:'本期起始会话只有一个页面浏览，没有主动核心操作，至少30分钟未观测后续行为；需要有效 URL 埋点。',action:'在行为路径查看入口 URL，核实加载、入口和页面价值表达。',metric:'入口页有效分析转化、后续回访'},
+ {id:'token_page',stage:'激活',pool:'registered',priority:'P1',title:'代币详情未分析',filters:{task:'token_detail_no_analysis'},reason:'有 URL 记录的本期会话展示过代币详情，没有有效分析，至少30分钟未观测后续行为。',action:'按代币详情入口定位筹码功能可发现性和加载问题。',metric:'详情到分析转化、分析失败率'},
+ {id:'new_idle',stage:'激活',pool:'registered',priority:'P1',title:'新注册未观测启动',filters:{task:'new_no_activity'},reason:'近7日注册，但没有关联到任何行为事件；可能是身份或采集缺失。',action:'先核实身份与最近登录，再提供启动教程。',metric:'7天内有效分析人数'},
+ {id:'repeat_analysis',stage:'转化',pool:'registered',priority:'P1',title:'多日分析无交易记录',filters:{task:'repeat_analysis_no_trade'},reason:'本期至少2个自然日分析，关联交易表无交易记录；不强制要求交易。',action:'了解用户是研究型还是有执行需求，优先处理执行阻力。',metric:'需求反馈、有效重复分析、有执行需求用户的首单'},
+ {id:'analysis_trade',stage:'转化',pool:'registered',priority:'P2',title:'分析无交易记录',filters:{task:'analysis_no_trade'},reason:'本期分析过，关联交易表无交易记录；不是严格顺序漏斗。',action:'提供分析结果解读及执行流程说明，核实需求。',metric:'重复分析、需求反馈及有执行需求用户的首单'},
+ {id:'strategy_trade',stage:'转化',pool:'registered',priority:'P2',title:'启动策略无交易记录',filters:{task:'strategy_no_trade'},reason:'本期启动过策略，关联交易表无记录；策略类型不一定需要交易。',action:'检查策略用途、配置和运行结果，定位配置或执行阻力。',metric:'问题解决、策略继续使用'},
+ {id:'single_trade',stage:'转化',pool:'registered',priority:'P1',title:'仅一次交易记录',filters:{trade:'first'},reason:'当前历史交易表只有1条记录；未统一首单观察窗口。',action:'核实交易时间与体验，满观察期后再做重复使用回访。',metric:'成熟观察期内重复使用、第二次交易'},
+ {id:'trade_analysis',stage:'维护',pool:'registered',priority:'P2',title:'本期交易未分析',filters:{task:'trade_no_analysis'},reason:'本期有交易记录，但本期未观测有效分析。',action:'按实际使用场景提供分析教程，不称为流失。',metric:'分析采用、重复分析'},
+ {id:'unbound',stage:'维护',pool:'registered',priority:'P2',title:'分析用户未绑定触达渠道',filters:{task:'analysis_no_binding'},reason:'本期分析过，没有已验证邮箱或Telegram绑定。',action:'在产品内说明通知用途，由用户自愿订阅与绑定。',metric:'自愿订阅、后续回访；不只看绑定数量'},
+ {id:'referred_idle',stage:'推荐',pool:'registered',priority:'P2',title:'被邀请用户本期未分析',filters:{task:'referred_no_analysis'},reason:'存在有效邀请人，但本期未观测分析；不等于从未激活。',action:'按注册时间区分新老用户，提供邀请场景对应的上手说明。',metric:'有效分析及次日回访'},
+ {id:'login',pool:'registered',priority:'P1',title:'登录未分析',filters:{task:'login_no_analysis'},reason:'本期有已登录访问事件，但本期未观测有效分析。',action:'下钻最近行为，按入口未发现、不会读结果等具体阻力，提供一次分析引导。',metric:'引导后24小时有效分析、7天重复分析'},
+ {id:'retention',pool:'registered',priority:'P1',title:'分析后未留存',filters:{task:'analysis_no_d1'},reason:'首次观测分析的次日已完整结束，次日未观测再次分析；不是永久流失。',action:'围绕上次分析场景提供一次使用帮助，核实结果是否读懂、是否解决需求。',metric:'7天再次分析人数、后续重复使用'},
+ {id:'absent',pool:'registered',priority:'P1',title:'3天未回来',filters:{task:'absent_3d'},reason:'最后一次已观测访问后，连续3个完整UTC+7自然日没有任何事件。',action:'先核实近期登录和业务表活动，再按上次使用场景安排召回；仍在交易的人不要称为流失。',metric:'7天返回人数、返回后有效分析；记录真实不再使用原因'},
+ {id:'value',priority:'P1',title:'价值用户功能引导',filters:{task:'value_unobserved'},reason:'有交易、NFT、余额或Credits线索，但未观测近期分析或策略。',action:'先从可联系名单选20人，按已有业务经历提供一次功能教程并记录使用阻力。',metric:'7天内有效分析人数、随后再次使用人数'},
+ {id:'credits',priority:'P2',title:'可用API额度激活',filters:{task:'value_unobserved',credits:'available'},reason:'有可用API额度，但未观测近期分析或策略；不代表API未使用。',action:'先核实API调用与需求，再提供一个调用示例及错误排查说明。',metric:'成功调用与7天重复调用；当前页面尚无期间调用口径'},
+ {id:'nft',priority:'P2',title:'NFT持有用户服务',filters:{task:'value_unobserved',asset:'nft'},reason:'有NFT持有记录，但未观测近期分析或策略。',action:'核实当前所有权与实际权益，再提供对应功能说明；不自动称为VIP。',metric:'功能采用人数、7天回访人数'},
+ {id:'checkin',priority:'P2',title:'签到用户价值体验',pool:'registered',filters:{task:'checkin_no_analysis'},reason:'本期签到，但本期未观测有效分析。',action:'在签到后的已有产品入口提供一段筹码分析教程，帮助完成一次分析。',metric:'有效分析人数、次日再次分析；签到和积分不是成功指标'},
+ {id:'new',pool:'registered',priority:'P1',title:'新账号首单诊断',filters:{registration:'7',trade:'none'},reason:'近7日注册，当前关联业务表中没有交易记录。',action:'核实账号映射，区分未理解价值、未配置与尝试失败，提供对应帮助。',metric:'完整7天窗口的首单率、后续重复使用与交易失败率'}
+]
+export function operationsPanel({esc,activeId}) {
+ return `<section class="a-card si-panel"><div class="si-sectionhead"><div><h2>运营线索与行动</h2><p>选择一个线索立即圈选；人数由当前快照查询，不预填历史数字。其他筛选会重置，统计期与外层受众保留。</p></div></div><div class="si-ops-grid">${OPERATING_LEADS.map(r=>`<article class="si-ops-card"><span class="a-chip">${r.stage||({login:'激活',retention:'留存',absent:'召回',new:'激活',checkin:'激活',value:'召回'}[r.id])||'资源使用'} · ${r.priority}</span><h3>${esc(r.title)}</h3><p>${esc(r.reason)}</p><p><strong>行动：</strong>${esc(r.action)}</p><p><strong>衡量：</strong>${esc(r.metric)}</p><button class="a-button ${activeId===r.id?'a-primary':''}" data-operation="${r.id}" aria-pressed="${activeId===r.id}">圈选${esc(r.title)}用户</button></article>`).join('')}</div><p class="si-footnote">行为标签按已观测事件圈选；未回来不等于完整业务流失，记录缺失可能影响名单。名单可重叠。选定后使用“可联系的价值用户”或绑定筛选查看触达线索；绑定不等于订阅或渠道可用。未观测不等于流失，先核实再触达。交易失败线索请到“线上监控 → 交易成功率”；详情后未分析线索请到整体激活漏斗的已确认流失名单。</p></section>`
+}

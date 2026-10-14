@@ -8,7 +8,7 @@ import { createAudience } from '../analytics/audience.js'
 
 const SWATCH = ['#6366f1','#f97316','#22c55e','#0ea5e9','#ec4899','#f59e0b','#14b8a6','#8b5cf6']
 
-export function mountCohortManager(host, { allUsers, asof, day, onApply, esc }) {
+export function mountCohortManager(host, { allUsers, asof, day, onApply, esc, remote=false }) {
   let cohorts = []
   let busy = false
   let error = ''
@@ -153,13 +153,13 @@ export function mountCohortManager(host, { allUsers, asof, day, onApply, esc }) 
           }
           const idSet = new Set(userIds)
           const matched = allUsers.filter(u => idSet.has(u.id.replace(/^user:/, '')))
-          if (!matched.length) { error = `群组"${cohort.name}"在当前数据中没有匹配用户`; render(); return }
+          if (!remote&&!matched.length) { error = `群组"${cohort.name}"在当前数据中没有匹配用户`; render(); return }
           const end = Math.floor((asof + 7 * 3600000) / 86400000) * 86400000 - 7 * 3600000
           const start = end - 14 * 86400000
           const audience = createAudience({
             title: cohort.name,
             description: `自定义群组 · ${cohort.description || ''} · 匹配 ${matched.length} / ${userIds.length} 人`,
-            rows: matched,
+            rows: remote?userIds.map(id=>({id:String(id).startsWith('anonymous:')?String(id):'user:'+String(id).replace(/^user:/,'')})):matched,
             context: { start, end, mode: 'funnel', source: 'all' },
           })
           onApply(audience)
