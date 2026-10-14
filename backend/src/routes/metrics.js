@@ -7,6 +7,7 @@ const db = require('../db/connection')
 const { toDateStr } = require('../db/rebuildRollups')
 
 const router = express.Router()
+router.use((req,res,next)=>{try{if(req.body?.cohort_id)require('../analytics/loadUsers').resolveAudienceUserIds(req.body,req.user?.user_id);next()}catch(e){next(e)}})
 const TZ_OFFSET_MS = 7 * 3600000
 const DAY = 86400000
 
@@ -380,6 +381,7 @@ router.post('/funnel', (req, res) => {
     source,
     audience_ids,
     cohort_id,
+    owner:req.user.user_id,
     endExtraMs: conversionWindowMs,
     // User-order funnel only needs type/time/strategy; association ids require full props.
     detail: association === 'user' ? 'light' : 'full',
@@ -467,6 +469,7 @@ router.post('/retention', (req, res) => {
     source,
     audience_ids,
     cohort_id,
+    owner:req.user.user_id,
     endExtraMs: Math.max(0, asOf - end) + 8 * 86400000,
   })
 
@@ -534,7 +537,7 @@ router.post('/segments', (req, res) => {
   if (source) { sql += ` AND first_source = ?`; params.push(source) }
 
   const { resolveAudienceUserIds } = require('../analytics/loadUsers')
-  const audienceIds = resolveAudienceUserIds({ audience_ids, cohort_id })
+  const audienceIds = resolveAudienceUserIds({ audience_ids, cohort_id },req.user.user_id)
   if (audienceIds) {
     if (!audienceIds.length) {
       return res.json({
@@ -638,6 +641,7 @@ router.post('/paths', (req, res) => {
     source,
     audience_ids,
     cohort_id,
+    owner:req.user.user_id,
     eventStartPadMs: IDLE_MS,
   })
 
@@ -708,6 +712,7 @@ router.post('/comparison', (req, res) => {
       filters,
       audience_ids,
       cohort_id,
+      owner:req.user.user_id,
     })
     const cache_id = cachePut({
       kind: 'comparison',
@@ -759,6 +764,7 @@ router.post('/comparison/funnel', (req, res) => {
       association,
       audience_ids,
       cohort_id,
+      owner:req.user.user_id,
     })
     const cache_id = cachePut({
       kind: 'comparison_funnel',

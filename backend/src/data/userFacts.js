@@ -16,9 +16,9 @@ function userFactsCte(period=false) {
     SELECT user_id, level1_user_id, invitation_time FROM public.user_invitation_relation
     WHERE is_valid=true AND invitation_time <= $1::timestamptz AND created_time <= $1::timestamptz
       AND level1_user_id IS NOT NULL AND user_id <> level1_user_id
-  ), trade_facts AS (
-    SELECT user_id, COUNT(*) AS trade_count${period?', COUNT(*) FILTER(WHERE transaction_time >= TO_TIMESTAMP($5::double precision/1000) AND transaction_time < TO_TIMESTAMP($6::double precision/1000)) AS trade_count_period':''} FROM public.trading_transaction
-    WHERE transaction_time <= $1::timestamptz AND created_time <= $1::timestamptz GROUP BY user_id
+  )${require('./tradeIdentity').tradeIdentityFragment()}, trade_facts AS (
+    SELECT v.account_id AS user_id, COUNT(*) AS trade_count${period?', COUNT(*) FILTER(WHERE t.transaction_time >= TO_TIMESTAMP($5::double precision/1000) AND t.transaction_time < TO_TIMESTAMP($6::double precision/1000)) AS trade_count_period':''} FROM public.trading_transaction t JOIN valid_map v ON v.user_id=t.user_id
+    WHERE t.transaction_time <= $1::timestamptz AND t.created_time <= $1::timestamptz GROUP BY v.account_id
   ), address_candidates AS (
     SELECT account_id,CASE WHEN subject ~ '^0x[0-9a-fA-F]{40}$' THEN LOWER(subject) ELSE subject END AS address
     FROM public.account_identity_v2 WHERE verified=true AND created_at <= $1::timestamptz

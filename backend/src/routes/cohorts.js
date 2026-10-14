@@ -7,8 +7,8 @@ const router = express.Router()
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-function getCohort(id) {
-  return db.prepare(`SELECT * FROM cohorts WHERE id = ? AND is_deleted = 0`).get(id)
+function getCohort(id, owner) {
+  return db.prepare(`SELECT * FROM cohorts WHERE id = ? AND created_by = ? AND is_deleted = 0`).get(id, String(owner))
 }
 
 function memberCount(id) {
@@ -33,10 +33,10 @@ router.get('/', (req, res) => {
            COUNT(m.user_id) AS member_count
     FROM cohorts c
     LEFT JOIN cohort_members m ON m.cohort_id = c.id
-    WHERE c.is_deleted = 0
+    WHERE c.is_deleted = 0 AND c.created_by = ?
     GROUP BY c.id
     ORDER BY c.created_at DESC
-  `).all()
+  `).all(String(req.user.user_id))
   res.json({ cohorts: rows })
 })
 
@@ -51,16 +51,16 @@ router.post('/', (req, res) => {
   db.prepare(`
     INSERT INTO cohorts (id, name, description, color, created_at, updated_at, created_by)
     VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(id, value.name, value.description, value.color, now, now, req.body.created_by ?? null)
+  `).run(id, value.name, value.description, value.color, now, now, String(req.user.user_id))
 
   if (value.userIds?.length) insertMembers(id, value.userIds, now)
 
-  res.status(201).json({ cohort: { ...getCohort(id), member_count: memberCount(id), truncated: value.truncated } })
+  res.status(201).json({ cohort: { ...getCohort(id, req.user.user_id), member_count: memberCount(id), truncated: value.truncated } })
 })
 
 // ── GET /api/cohorts/:id ──────────────────────────────────────────────────────
 router.get('/:id', (req, res) => {
-  const cohort = getCohort(req.params.id)
+  const cohort = getCohort(req.params.id, req.user.user_id)
   if (!cohort) return res.status(404).json({ error: '群组不存在' })
   const members = db.prepare(`SELECT user_id FROM cohort_members WHERE cohort_id = ? ORDER BY added_at`).all(cohort.id)
   res.json({ ...cohort, user_ids: members.map(m => m.user_id) })
@@ -68,7 +68,7 @@ router.get('/:id', (req, res) => {
 
 // ── PUT /api/cohorts/:id ──────────────────────────────────────────────────────
 router.put('/:id', (req, res) => {
-  const cohort = getCohort(req.params.id)
+  const cohort = getCohort(req.params.id, req.user.user_id)
   if (!cohort) return res.status(404).json({ error: '群组不存在' })
 
   const { errors, value } = validateCohortBody({ ...cohort, ...req.body })
@@ -77,12 +77,12 @@ router.put('/:id', (req, res) => {
   db.prepare(`UPDATE cohorts SET name = ?, description = ?, color = ?, updated_at = ? WHERE id = ?`)
     .run(value.name, value.description, value.color, Date.now(), cohort.id)
 
-  res.json({ cohort: { ...getCohort(cohort.id), member_count: memberCount(cohort.id) } })
+  res.json({ cohort: { ...getCohort(cohort.id, req.user.user_id), member_count: memberCount(cohort.id) } })
 })
 
 // ── POST /api/cohorts/:id/members ─────────────────────────────────────────────
 router.post('/:id/members', (req, res) => {
-  const cohort = getCohort(req.params.id)
+  const cohort = getCohort(req.params.id, req.user.user_id)
   if (!cohort) return res.status(404).json({ error: '群组不存在' })
 
   const { ids, truncated, invalid } = cleanUserIds(req.body?.user_ids)
@@ -97,7 +97,7 @@ router.post('/:id/members', (req, res) => {
 
 // ── DELETE /api/cohorts/:id/members ──────────────────────────────────────────
 router.delete('/:id/members', (req, res) => {
-  const cohort = getCohort(req.params.id)
+  const cohort = getCohort(req.params.id, req.user.user_id)
   if (!cohort) return res.status(404).json({ error: '群组不存在' })
 
   const { ids, invalid } = cleanUserIds(req.body?.user_ids)
@@ -114,7 +114,7 @@ router.delete('/:id/members', (req, res) => {
 
 // ── DELETE /api/cohorts/:id ───────────────────────────────────────────────────
 router.delete('/:id', (req, res) => {
-  const cohort = getCohort(req.params.id)
+  const cohort = getCohort(req.params.id, req.user.user_id)
   if (!cohort) return res.status(404).json({ error: '群组不存在' })
   db.prepare(`UPDATE cohorts SET is_deleted = 1, updated_at = ? WHERE id = ?`).run(Date.now(), cohort.id)
   res.json({ deleted: true })

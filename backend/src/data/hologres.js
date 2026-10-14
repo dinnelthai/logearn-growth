@@ -58,6 +58,7 @@ function eventsCte(cutoffIndex = 1) {
     SELECT *, ROW_NUMBER() OVER (PARTITION BY event_id ORDER BY server_ts, id) AS rn
     FROM ${table} WHERE server_ts <= $${cutoffIndex}::timestamptz
       AND event_id IS NOT NULL AND BTRIM(event_id) <> '' AND client_ts IS NOT NULL
+      AND client_ts >= 0 AND client_ts <= EXTRACT(EPOCH FROM $${cutoffIndex}::timestamptz)*1000
   ), identities AS (
     SELECT anonymous_id, MIN(user_id) AS linked_user FROM ranked
     WHERE user_id IS NOT NULL AND BTRIM(user_id) <> '' AND anonymous_id IS NOT NULL
@@ -97,7 +98,7 @@ async function status(force=false) {
     const snapshot = createHash('sha1').update(cutoff).digest('hex').slice(0, 16)
     const value = { mode: 'aggregated', storage: 'hologres', data_version: snapshot, snapshot_id: snapshot,
       snapshot_cutoff: cutoff, funnel_steps:funnelSteps, sources:sources.map(r=>r.value), strategies:strategies.map(r=>r.value), start_at: new Date(Number(row.start)).toISOString(),
-      as_of: new Date(Number(row.latest)).toISOString(), last_success_at: cutoff,
+      as_of: new Date(Math.min(Number(row.latest),Date.parse(cutoff))).toISOString(), last_success_at: cutoff,
       latest_event_at: new Date(Number(row.latest)).toISOString(), source_seen_at: row.source_seen,
       event_count: Number(row.n), max_events_raw: 0, timezone: 'Asia/Bangkok', history_complete: false,
       events_complete_through: null, capabilities: ['north','funnel','retention','segments','referral','paths','trade-monitor','channels'], consistency: 'arrival-cutoff',

@@ -3,7 +3,7 @@ const remote=require('../data/hologres')
 const {loadUsers,features,retentionUsers,orderedFunnelUsers}=require('../data/remoteUsers')
 const {computeFunnel}=require('../analytics/funnel')
 const {buildCohorts,retainedUsers,toDateStr}=require('../analytics/retention')
-async function run({kind,body,snapshot:s,audience}){
+async function run({kind,body,snapshot:s,audience,owner}){
   const {start,end}=body,asOf=Date.parse(s.as_of),source=body.source||'all',lists={}
   if(kind==='channels')return require('../analytics/channelInsights').channelInsights(await require('../data/channelFacts').channelFacts(s,body,audience),body,s)
   if(kind==='paths')return require('../analytics/pathInsights').pathInsights(await require('../data/behaviorPaths').pathUsers(s,body,audience),body,s)
@@ -26,7 +26,11 @@ async function run({kind,body,snapshot:s,audience}){
       const visits=require('../analytics/pageVisits').pageVisits(pageUsers,{start:periodStart,end:periodEnd,asOf})
       urlSingles=new Set(visits.lists['url:single']);urlTokens=new Set(visits.lists['url:token_no_analysis'])
     }
-    const enriched=rows.map(r=>({...r,single_page_no_action:urlSingles.has(r.user_key),token_detail_no_analysis:urlTokens.has(r.user_key),...(points.get(String(r.account_id))||{}),...(creditsData.map.get(String(r.account_id))||{})}))
+    const tagMap=new Map()
+    const scopedTags=require('../analytics/userTags').userTags(owner,{userIds:rows.map(r=>r.user_key)})
+    const selectedTags=new Set((body.user_tag_snapshot||[]).map(t=>t.id))
+    for(const tag of [...scopedTags.filter(t=>!selectedTags.has(t.id)),...(body.user_tag_snapshot||[])])for(const id of tag.user_ids){if(!tagMap.has(id))tagMap.set(id,[]);tagMap.get(id).push({id:tag.id,name:tag.name,type:tag.type})}
+    const enriched=rows.map(r=>({...r,operational_tags:tagMap.get(r.user_key)||[],single_page_no_action:urlSingles.has(r.user_key),token_detail_no_analysis:urlTokens.has(r.user_key),...(points.get(String(r.account_id))||{}),...(creditsData.map.get(String(r.account_id))||{})}))
     return require('../analytics/compactDetails').compactDetails(computeInsights(enriched,{asOf,factsAsOf,start:periodStart,end:periodEnd,pointsData,creditsQuality:creditsData.quality,filters:body.filters||{},groupBy:body.group_by||'signal',pool:body.pool||'business',historyComplete:!!s.history_complete}))
   }
   let types=body.steps,startAt=start,endAt=Math.min(asOf+1,end)

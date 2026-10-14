@@ -4,8 +4,8 @@ async function referralFacts(s){
   SELECT id,user_id,level1_user_id,inviter_referral_code,invitation_time,is_valid,
    ROW_NUMBER() OVER(PARTITION BY user_id ORDER BY invitation_time,id) AS rn
   FROM public.user_invitation_relation WHERE created_time<=$1::timestamptz AND (invitation_time<=$1::timestamptz OR invitation_time IS NULL)
- ), trades AS (
-  SELECT r.id,COUNT(t.id) AS after_trade_count FROM relations r JOIN public.trading_transaction t ON t.user_id=r.user_id
+ )${require('./tradeIdentity').tradeIdentityFragment()}, trades AS (
+  SELECT r.id,COUNT(t.id) AS after_trade_count FROM relations r JOIN valid_map v ON v.account_id=r.user_id JOIN public.trading_transaction t ON t.user_id=v.user_id
    AND t.transaction_time>=r.invitation_time AND t.transaction_time<=$1::timestamptz AND t.created_time<=$1::timestamptz
   GROUP BY r.id
  ) SELECT r.*,(EXTRACT(EPOCH FROM r.invitation_time)*1000000)::bigint::text AS invitation_order,COALESCE(t.after_trade_count,0) AS after_trade_count FROM relations r LEFT JOIN trades t ON t.id=r.id LIMIT 80001`,[s.snapshot_cutoff])

@@ -96,9 +96,16 @@ for(const kind of ['funnel','retention','segments','referral','paths','trade-mon
     const s=body.snapshot_id?await remote.snapshot(String(body.snapshot_id)):await remote.status()
     // Cohort state is local app state, but event membership is queried remotely.
     if(Array.isArray(body.audience_ids)&&body.audience_ids.length>50000)return res.status(422).json({error:'人群过大'})
-    let audience=resolveAudienceUserIds(body)
+    let audience=resolveAudienceUserIds(body,req.user.user_id)
     if(Array.isArray(body.audience_ids)&&!body.audience_ids.length&&!body.cohort_id)audience=[]
     if(audience)audience=audience.map(id=>String(id).startsWith('anonymous:')?id:'user:'+String(id).replace(/^user:/,''))
+    if(kind==='segments'){
+      const {userTags,resolveTags}=require('../analytics/userTags'),tags=userTags(req.user.user_id,{tagIds:body.tag_ids||[]})
+      audience=resolveTags(tags,body.tag_ids||[],body.tag_mode||'any',audience)
+      // Capture current local tag membership in the job; never accept a client-supplied snapshot.
+      body.user_tag_snapshot=tags
+      body.user_tag_catalog=userTags(req.user.user_id,{includeMembers:false})
+    }
     const j=jobs.start(kind,body,s,audience,req.user.user_id)
     if(j.state==='failed')return res.status(j.status).json({error:j.error})
     if(j.state==='complete')return res.json(jobPayload(j,req.user.user_id))

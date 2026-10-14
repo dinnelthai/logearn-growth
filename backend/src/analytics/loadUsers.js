@@ -11,16 +11,22 @@ function parseProps(text) {
   try { return text ? JSON.parse(text) : {} } catch { return {} }
 }
 
-function resolveAudienceUserIds({ audience_ids, cohort_id }) {
+function resolveAudienceUserIds({ audience_ids, cohort_id }, owner) {
+  let audience = null
+  if (audience_ids != null) {
+    if (!Array.isArray(audience_ids) || audience_ids.some(id => typeof id !== 'string')) throw Object.assign(new Error('用户范围必须是字符串数组'), {status:400})
+    audience = [...new Set(audience_ids.map(id => id.trim().replace(/^user:/, '')).filter(Boolean))]
+    if (audience.length > 50000) throw Object.assign(new Error('用户范围超过50000人'), {status:422})
+  }
   if (cohort_id) {
-    return db.prepare(`
+    if (!owner || !db.prepare('SELECT id FROM cohorts WHERE id=? AND created_by=? AND is_deleted=0').get(String(cohort_id),String(owner))) throw Object.assign(new Error('群组不存在或无权访问'),{status:404})
+    const members = db.prepare(`
       SELECT user_id FROM cohort_members WHERE cohort_id = ?
     `).all(String(cohort_id)).map(r => String(r.user_id).replace(/^user:/, ''))
+    const selected = audience === null ? null : new Set(audience)
+    return selected === null ? members : members.filter(id => selected.has(id))
   }
-  if (Array.isArray(audience_ids) && audience_ids.length) {
-    return [...new Set(audience_ids.map(id => String(id).replace(/^user:/, '')).filter(Boolean))].slice(0, 50000)
-  }
-  return null
+  return audience
 }
 
 /**
@@ -178,6 +184,7 @@ function loadNormalizedUsers({
   source = 'all',
   audience_ids = null,
   cohort_id = null,
+  owner = null,
   endExtraMs = 0,
   /** Pull events this many ms before `start` (session continuity); candidates still use `start`. */
   eventStartPadMs = 0,
@@ -185,7 +192,7 @@ function loadNormalizedUsers({
   /** If true, candidates = all logearn_users (optionally audience), not event-window based */
   allUsers = false,
 }) {
-  const audienceIds = resolveAudienceUserIds({ audience_ids, cohort_id })
+  const audienceIds = resolveAudienceUserIds({ audience_ids, cohort_id }, owner)
   let userIds
   if (allUsers) {
     if (audienceIds) {

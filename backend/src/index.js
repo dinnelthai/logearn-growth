@@ -31,7 +31,7 @@ app.use(cors({
     if (!origin || allowed.includes(origin)) cb(null, true)
     else cb(new Error('Not allowed by CORS'))
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }))
 app.use(express.json({ limit: '2mb' }))
@@ -50,6 +50,24 @@ if (process.env.ANALYTICS_STORAGE === 'hologres') {
 
 // Protected routes
 app.use('/api/activities', requireAuth, require('./routes/activities'))
+app.use('/api/crm/kols', requireAuth, require('./routes/crm'))
+app.get('/api/user-tags',requireAuth,(req,res,next)=>{try{res.json({tags:require('./analytics/userTags').userTags(req.user.user_id,{includeMembers:false}).map(({user_ids,...tag})=>tag)})}catch(e){next(e)}})
+app.post('/api/user-tags/audience',requireAuth,async(req,res,next)=>{
+  try{
+    const {userTags,resolveTags}=require('./analytics/userTags'),{start,end}=require('./analytics/kolMetrics').validatePeriod(req.body)
+    if(!Array.isArray(req.body.tag_ids)||!req.body.tag_ids.length)throw Object.assign(new Error('请至少选择一个活动或 KOL 标签'),{status:400})
+    let existing=req.body.audience_ids
+    if(existing!=null&&(!Array.isArray(existing)||existing.length>50000||existing.some(id=>typeof id!=='string')))throw Object.assign(new Error('原人群格式无效'),{status:400})
+    if(req.body.cohort_id){
+      if(!db.prepare('SELECT id FROM cohorts WHERE id=? AND created_by=? AND is_deleted=0').get(String(req.body.cohort_id),String(req.user.user_id)))throw Object.assign(new Error('用户群组不存在或无权访问'),{status:404})
+      const cohortIds=db.prepare('SELECT user_id FROM cohort_members WHERE cohort_id=?').all(String(req.body.cohort_id)).map(r=>'user:'+String(r.user_id).replace(/^user:/,'')),allowed=new Set(cohortIds)
+      existing=existing==null?cohortIds:existing.filter(id=>allowed.has(id))
+    }
+    const tags=userTags(req.user.user_id,{tagIds:req.body.tag_ids}),ids=resolveTags(tags,req.body.tag_ids,req.body.tag_mode||'all',existing??null)
+    const remote=require('./data/hologres'),s=req.body.snapshot_id?await remote.snapshot(String(req.body.snapshot_id)):await remote.status()
+    res.json({ids,count:ids.length,start,end,snapshot_id:s.snapshot_id,as_of:s.as_of,title:tags.filter(t=>req.body.tag_ids.includes(t.id)).map(t=>(t.type==='activity'?'活动：':'KOL：')+t.name).join(' + '),description:(req.body.tag_mode==='any'?'拥有任一所选标签':'同时拥有所选标签')+' · 应用时固定名单',source:req.body.source||'all',origin:'tags'})
+  }catch(e){next(e)}
+})
 app.use('/api/cohorts', requireAuth, cohortsRouter)
 app.use('/api/saved-configs', savedConfigsRouter)
 app.use('/api/events', requireAuth, analyticsRouter)

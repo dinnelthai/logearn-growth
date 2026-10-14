@@ -23,3 +23,7 @@ test('oversized values are returned but never retained in cache',async()=>{
   assert.equal(await remote.cached('oversized',async()=>value),value)
   assert.equal(remote.getCached('oversized'),null)
 })
+test('invalid client clocks are excluded before identity resolution and facts at the selected cutoff',()=>{
+ const sql=remote.eventsCte(2),ranked=sql.slice(0,sql.indexOf('), identities AS'))
+ assert.match(ranked,/client_ts >= 0/);assert.match(ranked,/client_ts <= EXTRACT\(EPOCH FROM \$2::timestamptz\)\*1000/)
+})

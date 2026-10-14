@@ -44,10 +44,10 @@ function computeReferralInsights(input,relations,{start,end,asOf,factsAsOf,scope
   return {...r,u,analysis:afterAnalysis,strategy:afterStrategy,used:afterAnalysis||afterStrategy,trade:r.after_trade_count>0,value:u.value_signal,contactable:u.value_signal&&u.contactable,next,continued:next.length>0,
    nearby:u.created_at>=r.invitation_at-DAY&&u.created_at<=r.invitation_at,stored:u.created_at<r.invitation_at-DAY}
  }
- for(const r of all){const f=flag(r);Object.assign(members[id(r.user_id)],{bound_at:r.invitation_at,inviter_id:r.level1_user_id,after_analysis:f.analysis,after_strategy:f.strategy,after_trade_count:r.after_trade_count,continued:f.continued})}
+ for(const r of all){const f=flag(r);Object.assign(members[id(r.user_id)],{bound_at:r.invitation_at,bound_order:order(r),inviter_id:r.level1_user_id,after_analysis:f.analysis,after_strategy:f.strategy,after_trade_count:r.after_trade_count,continued:f.continued})}
  const rows=chosen.map(flag),fields=['analysis','strategy','used','trade','value','contactable','continued','nearby','stored'],summary={users:put('bound',rows.map(r=>id(r.user_id))),inviters:put('inviters',rows.map(r=>id(r.level1_user_id)))}
  for(const field of fields)summary[field]=put(field,rows.filter(r=>r[field]).map(r=>id(r.user_id)))
- for(const r of rows)Object.assign(members[id(r.user_id)],{bound_at:r.invitation_at,inviter_id:r.level1_user_id,after_analysis:r.analysis,after_strategy:r.strategy,after_trade_count:r.after_trade_count,continued:r.continued})
+ for(const r of rows)Object.assign(members[id(r.user_id)],{bound_at:r.invitation_at,bound_order:order(r),inviter_id:r.level1_user_id,after_analysis:r.analysis,after_strategy:r.strategy,after_trade_count:r.after_trade_count,continued:r.continued})
  const byInviter=new Map()
  for(const r of rows){if(!byInviter.has(r.level1_user_id))byInviter.set(r.level1_user_id,[]);byInviter.get(r.level1_user_id).push(r)}
  const ranking=[...byInviter].map(([uid,rs])=>{const key='inviter:'+uid,row={id:id(uid),inviter_id:uid,list_key:key,users:put(key,rs.map(r=>id(r.user_id))),telegram_bound:members[id(uid)].telegram_bound,email_bound:members[id(uid)].email_bound}

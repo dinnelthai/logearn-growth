@@ -1,3 +1,4 @@
+import {fetchUserTags} from '../api/userTags.js'
 import {mountSegmentUserList} from './segmentUserList.js'
 import {OPERATING_LEADS,operationsPanel} from './segmentOperations.js'
 import {pointsPanel,pointsTrendOption} from './segmentPoints.js'
@@ -20,10 +21,10 @@ const OPTIONS={
  segment:['行为分群',[['all','全部'],...['未观测分析','新分析用户','分析型','高频核心','策略型','流失风险','已流失','回流','观察不足'].map(v=>[v,v])]],
  trade:['交易经历',[['all','全部'],['none','无交易记录'],['first','一条交易记录'],['repeat','重复交易记录']]]
 }
-const GROUPS=[['signal','业务信号层级'],['binding','绑定状态'],['registration','注册时间'],['identity','身份类型'],['invitation','邀请关系'],['trade','交易经历'],['status','账号状态'],['segment','行为分群']]
+const GROUPS=[['signal','业务信号层级'],['binding','绑定状态'],['registration','注册时间'],['identity','身份类型'],['invitation','邀请关系'],['trade','交易经历'],['status','账号状态'],['segment','行为分群'],['tag','活动 / KOL 标签']]
 export function createSegmentInsightsPage(ctx){
  const {$,esc,fmt,pct,stat,table,drawer}=ctx
- let advancedOpen=false,chartOwners=[]
+ let tagCatalog=[],tagError='';let advancedOpen=false,chartOwners=[]
  const disposeCharts=()=>{chartOwners.forEach(c=>c.dispose());chartOwners=[]}
  let applied={days:7,group:'signal',pool:'business',filters:{}},draft=structuredClone(applied),lastConfig=null,active=false,inflight=0,previous=null,previousKey=null
  const time=t=>t==null?'—':new Date(Number(t)+25200000).toISOString().slice(0,16).replace('T',' ')
@@ -31,15 +32,16 @@ export function createSegmentInsightsPage(ctx){
  const rate=v=>v==null?'—':(v*100).toFixed(1)+'%'
  function select(k){const [label,opts]=OPTIONS[k];return `<label>${label}<select data-filter="${k}">${opts.map(([v,l])=>`<option value="${v}" ${(draft.filters[k]||'all')===v?'selected':''}>${l}</option>`).join('')}</select></label>`}
  function operatingPanel(){const activeId=OPERATING_LEADS.find(r=>applied.pool===(r.pool||'business')&&JSON.stringify(applied.filters)===JSON.stringify(r.filters))?.id;return `<details class="a-card segment-collapsed"><summary>运营线索</summary>${operationsPanel({esc,activeId})}</details>`}
+ function tagSelect(type,key,label){return `<label>${label}<select data-tag-select="${key}"><option value="">全部</option>${tagCatalog.filter(t=>t.type===type).map(t=>`<option value="${esc(t.id)}" ${draft[key]===t.id?'selected':''}>${esc(t.name)}（${fmt(t.users)}人）</option>`).join('')}</select></label>`}
  function toolbar(){const extra=Object.keys(OPTIONS).filter(k=>!['asset','binding'].includes(k)),count=extra.filter(k=>draft.filters[k]&&draft.filters[k]!=='all').length;return `<section class="a-card si-filter-card"><div class="si-sectionhead"><div><h2>圈选业务用户</h2><p>选择用户池与统计期，再比较不同人群的表现</p></div><span class="si-note">手动刷新 · 筛选需应用</span></div><div class="si-filter-main">
  <label>用户池<select data-insight="pool">${POOLS.map(([v,l])=>`<option value="${v}" ${draft.pool===v?'selected':''}>${l}</option>`).join('')}</select></label>
  <label>统计期<select data-insight="days" ${lastConfig?.taskLocked||lastConfig?.snapshotId?'disabled':''}>${[7,14,28].map(n=>`<option value="${n}" ${draft.days===n?'selected':''}>最近${n}天（含今日）</option>`).join('')}</select></label>
- ${select('asset')}${select('binding')}
+ ${select('asset')}${select('binding')}${tagSelect('activity','activityTag','活动标签')}${tagSelect('kol','kolTag','KOL 标签')}<label>标签匹配<select data-insight="tagMode"><option value="all" ${draft.tagMode!=='any'?'selected':''}>同时拥有所选标签</option><option value="any" ${draft.tagMode==='any'?'selected':''}>拥有任一所选标签</option></select></label>
  <label>对比维度<select data-insight="group">${GROUPS.map(([v,l])=>`<option value="${v}" ${draft.group===v?'selected':''}>${l}</option>`).join('')}</select></label></div>
- <div class="si-filter-bottom"><details data-advanced ${advancedOpen||count?'open':''}><summary>更多筛选${count?` · ${count} 项`:''}</summary><div class="si-filter-extra">${extra.map(select).join('')}</div></details><div class="si-filter-actions"><span data-insight-dirty role="status"></span><button class="a-button" data-reset-insights>重置</button><button class="a-button a-primary" data-apply-insights>应用筛选</button></div></div></section>`}
+ <p class="a-muted">标签来自活动固定名单与 KOL 关联账号 / 标签名单；选择标签默认切换到全部注册用户。按标签对比时各组可重叠，人数不能相加。${tagError?`<span class="si-error">${esc(tagError)}</span>`:''}</p><div class="si-filter-bottom"><details data-advanced ${advancedOpen||count?'open':''}><summary>更多筛选${count?` · ${count} 项`:''}</summary><div class="si-filter-extra">${extra.map(select).join('')}</div></details><div class="si-filter-actions"><span data-insight-dirty role="status"></span><button class="a-button" data-reset-insights>重置</button><button class="a-button a-primary" data-apply-insights>应用筛选</button></div></div></section>`}
  function open(title,id,key,userQuery=''){drawer.openRemote({selection:{cache_id:id,list_key:key},title,description:'注册账号去重名单；账号状态与绑定为当前事实',
- columns:['用户','业务信号','注册时间','最近分析','绑定','NFT记录','余额线索','可用积分','Credits可用 / 已用 / 总额','Credits更新时间','期间获得 / 负变动','期间签到 / 最长连续','最近积分变动','交易记录'],
- renderRow:r=>[`<button class="a-tablelink" data-user="${esc(r.id)}">${esc(r.id)}</button>`,esc(r.signal_tier||'未知'),esc(time(r.created_at)),esc(time(r.last_chip_at)),`Telegram：${bound(r.telegram_bound)}<br>邮箱：${bound(r.email_bound)}`,r.nft_count==null?'未知':fmt(r.nft_count),r.has_balance==null?'未知':r.has_balance?'近期正余额（未估值）':'近期未观测正余额',r.available_points==null?'未知':fmt(r.available_points),r.credits_available==null?'未知':`${fmt(r.credits_available)} / ${r.credits_used==null?'未知':fmt(r.credits_used)} / ${r.credits_total==null?'未知':fmt(r.credits_total)}`,esc(time(r.credits_updated_at)),`${fmt(r.points_earned_period||0)} / ${fmt(r.points_negative_period||0)}`,`${fmt(r.checkin_days_period||0)}天 / ${fmt(r.checkin_streak_period||0)}天`,esc(time(r.last_points_at)),r.trade_count==null?'未知':fmt(r.trade_count)],
+ columns:['用户','运营标签','业务信号','注册时间','最近分析','绑定','NFT记录','余额线索','可用积分','Credits可用 / 已用 / 总额','Credits更新时间','期间获得 / 负变动','期间签到 / 最长连续','最近积分变动','交易记录'],
+ renderRow:r=>[`<button class="a-tablelink" data-user="${esc(r.id)}">${esc(r.id)}</button>`,esc((r.operational_tags||[]).map(t=>(t.type==='activity'?'活动：':'KOL：')+t.name).join('、')||'无'),esc(r.signal_tier||'未知'),esc(time(r.created_at)),esc(time(r.last_chip_at)),`Telegram：${bound(r.telegram_bound)}<br>邮箱：${bound(r.email_bound)}`,r.nft_count==null?'未知':fmt(r.nft_count),r.has_balance==null?'未知':r.has_balance?'近期正余额（未估值）':'近期未观测正余额',r.available_points==null?'未知':fmt(r.available_points),r.credits_available==null?'未知':`${fmt(r.credits_available)} / ${r.credits_used==null?'未知':fmt(r.credits_used)} / ${r.credits_total==null?'未知':fmt(r.credits_total)}`,esc(time(r.credits_updated_at)),`${fmt(r.points_earned_period||0)} / ${fmt(r.points_negative_period||0)}`,`${fmt(r.checkin_days_period||0)}天 / ${fmt(r.checkin_streak_period||0)}天`,esc(time(r.last_points_at)),r.trade_count==null?'未知':fmt(r.trade_count)],
  fetchPage:({offset,limit,q})=>fetchDrillUsers({kind:'cached_list',params:{cache_id:id,list_key:key},offset,limit,q:userQuery||q}),
  fetchTimeline:async(userId,host)=>{host.innerHTML='<p class="a-muted">加载时间线…</p>';try{const r=await fetchUserTimeline({userId,cacheId:id,limit:200});host.innerHTML=`<h2>${esc(userId)} · 事件时间线</h2>${r.events.length?`<div class="a-timeline">${r.events.map(e=>`<div class="a-event"><strong>${esc(e.event_name)}</strong><div>${esc(time(e.t))}</div></div>`).join('')}</div>`:'<p class="a-muted">当前快照内没有观测到事件。</p>'}`}catch(e){host.innerHTML=`<p class="a-empty">${esc(e.message)}</p>`}}
  })}
@@ -56,6 +58,7 @@ export function createSegmentInsightsPage(ctx){
   }
  }
  function bind(){const host=$('#as-output');host.querySelectorAll('[data-operation]').forEach(el=>el.onclick=()=>{const lead=OPERATING_LEADS.find(r=>r.id===el.dataset.operation);if(!lead)return;applied={...applied,pool:lead.pool||'business',filters:{...lead.filters}};draft=structuredClone(applied);return draw(lastConfig)});const extra=host.querySelector('[data-advanced]');if(extra)extra.ontoggle=()=>{advancedOpen=extra.open};if(JSON.stringify(draft)!==JSON.stringify(applied))host.querySelector('[data-insight-dirty]').textContent='筛选未应用；下方为上次结果';host.querySelectorAll('[data-filter]').forEach(el=>el.onchange=()=>{draft.filters[el.dataset.filter]=el.value;host.querySelector('[data-insight-dirty]').textContent='筛选未应用；下方为上次结果'})
+ host.querySelectorAll('[data-tag-select]').forEach(el=>el.onchange=()=>{draft[el.dataset.tagSelect]=el.value;if(el.value){draft.pool='registered';host.querySelector('[data-insight=pool]').value='registered'}host.querySelector('[data-insight-dirty]').textContent='标签筛选未应用；下方为上次结果'})
  host.querySelectorAll('[data-insight]').forEach(el=>el.onchange=()=>{draft[el.dataset.insight]=el.dataset.insight==='days'?Number(el.value):el.value;host.querySelector('[data-insight-dirty]').textContent='筛选未应用；下方为上次结果'})
  host.querySelector('[data-apply-insights]').onclick=()=>{applied=structuredClone(draft);return draw(lastConfig)}
  host.querySelector('[data-reset-insights]').onclick=()=>{applied={days:7,group:'signal',pool:'business',filters:{}};draft=structuredClone(applied);return draw(lastConfig)}
@@ -64,7 +67,8 @@ export function createSegmentInsightsPage(ctx){
  // Preserve draft filters when the data version changes; applying them is explicit.
  if(active&&JSON.stringify(draft)!==JSON.stringify(applied))return
  active=true;disposeCharts();ctx.clear();const req=++inflight,end=c.taskLocked||c.snapshotId?c.end:ctx.dataStore.meta.asOf+1,start=c.taskLocked||c.snapshotId?c.start:Math.floor((end+25200000)/86400000)*86400000-25200000-(applied.days-1)*86400000
- const body={start,end,source:c.source||'all',snapshot_id:c.snapshotId,audience_ids:c.audienceIds||null,cohort_id:c.cohortId||null,filters:applied.filters,group_by:applied.group,pool:applied.pool},key=JSON.stringify({...body,start:0,end:0,days:applied.days})
+ try{tagCatalog=await fetchUserTags();tagError=''}catch(e){tagError='标签列表加载失败：'+e.message}if(req!==inflight)return
+ const body={tag_ids:[applied.activityTag,applied.kolTag].filter(Boolean),tag_mode:applied.tagMode||'all',start,end,source:c.source||'all',snapshot_id:c.snapshotId,audience_ids:c.audienceIds||null,cohort_id:c.cohortId||null,filters:applied.filters,group_by:applied.group,pool:applied.pool},key=JSON.stringify({...body,start:0,end:0,days:applied.days})
  $('#as-output').innerHTML='<div class="si-page">'+toolbar()+operatingPanel()+'<div class="si-loading"><span></span>正在更新分析结果…</div></div>';bind()
  let m,error=null
  try{m=await fetchSegmentsMetrics(body)}catch(e){if(req!==inflight)return;if(previous&&previousKey===key){m=previous;error=e.message}else{$('#as-output').innerHTML='<div class="si-page">'+toolbar()+operatingPanel()+`<p class="a-empty">分群加载失败：${esc(e.message)}</p></div>`;bind();return}}

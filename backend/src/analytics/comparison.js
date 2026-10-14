@@ -153,11 +153,12 @@ function computeComparisonOverview({
   filters = {},
   audience_ids = null,
   cohort_id = null,
+  owner = null,
 }) {
   if (!Object.hasOwn(DIMENSIONS, dimension)) throw new TypeError('Unknown dimension')
 
   const { resolveAudienceUserIds } = require('./loadUsers')
-  const audienceIds = resolveAudienceUserIds({ audience_ids, cohort_id })
+  const audienceIds = resolveAudienceUserIds({ audience_ids, cohort_id }, owner)
   let features = loadFeatureRows({ audienceIds })
 
   // Apply filters (except the grouping dimension itself still applies as filter if set)
@@ -244,12 +245,13 @@ function computeComparisonFunnels({
   association,
   audience_ids = null,
   cohort_id = null,
+  owner = null,
 }) {
   const funnelDef = FUNNELS[preset] || FUNNELS.analysis
   const steps = funnelDef.steps
   const assoc = association || funnelDef.association || 'user'
   const overview = computeComparisonOverview({
-    startAt, endAt, asOf, dimension, filters, audience_ids, cohort_id,
+    startAt, endAt, asOf, dimension, filters, audience_ids, cohort_id, owner,
   })
 
   // Build audience = all pool user ids

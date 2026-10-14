@@ -4,7 +4,7 @@ FILTERS.credits=['all','available','used','empty','unknown']
 FILTERS.task=['all','single_page_no_action','token_detail_no_analysis','value_unobserved','login_no_analysis','analysis_no_d1','absent_3d','new_no_activity','analysis_no_trade','repeat_analysis_no_trade','strategy_no_trade','trade_no_analysis','analysis_no_binding','checkin_no_analysis','referred_no_analysis']
 FILTERS.points=['all','ledger','recent','earned','negative','checkin','streak']
 const POOLS=['business','registered','contact_only','no_signal']
-const GROUPS=['signal','binding','registration','identity','invitation','trade','status','segment']
+const GROUPS=['signal','binding','registration','identity','invitation','trade','status','segment','tag']
 function validateOptions(body){
   if(body.pool&&!POOLS.includes(body.pool))throw Object.assign(new Error('未知用户池'),{status:400})
   const filters=body.filters||{}
@@ -78,7 +78,7 @@ function computeInsights(input,{asOf,factsAsOf,start,end,pointsData=null,credits
   const rows=input.filter(r=>r.account_id!=null).map(r=>businessSignals({...r,segment:segment(r,asOf,historyComplete)},factsAsOf))
   const inPool=r=>pool==='registered'||pool==='business'&&r.business_signal||pool==='contact_only'&&!r.business_signal&&r.contactable||pool==='no_signal'&&!r.business_signal&&!r.contactable
   const selected=rows.filter(r=>inPool(r)&&matches(r,filters,asOf)),lists={all:selected.map(r=>r.user_key),unmatched:input.filter(r=>r.account_id==null).map(r=>r.user_key)},groups=new Map(),segments=new Map(),cohorts=new Map()
-  for(const r of selected){const label=groupLabel(r,groupBy,factsAsOf);if(!groups.has(label))groups.set(label,[]);groups.get(label).push(r)
+  for(const r of selected){const labels=groupBy==='tag'?(r.operational_tags?.length?r.operational_tags.map(t=>t.id):['无运营标签']):[groupLabel(r,groupBy,factsAsOf)];for(const label of labels){if(!groups.has(label))groups.set(label,[]);groups.get(label).push(r)}
     if(!segments.has(r.segment))segments.set(r.segment,[]);segments.get(r.segment).push(r)
     // Calendar Monday registration cohorts, UTC+7.
     const day=Math.floor((r.created_at+OFFSET)/DAY),monday=day-((day+3)%7),key=new Date(monday*DAY).toISOString().slice(0,10)
@@ -90,7 +90,7 @@ function computeInsights(input,{asOf,factsAsOf,start,end,pointsData=null,credits
     lists[key+':strategy']=rs.filter(r=>r.strategy_period).map(r=>r.user_key)
     lists[key+':trade']=rs.filter(r=>r.trade_count_period>0).map(r=>r.user_key)
   }
-  const compare=[...groups].map(([label,rs],i)=>{const key='group:'+i;lists[key]=rs.map(r=>r.user_key);periodLists(key,rs);return {label,list_key:key,...summary(rs,start,end)}})
+  const compare=[...groups].map(([groupKey,rs],i)=>{const tag=groupBy==='tag'?rs[0].operational_tags?.find(t=>t.id===groupKey):null,label=tag?`${tag.type==='activity'?'活动':'KOL'}：${tag.name}`:groupKey;const key='group:'+i;lists[key]=rs.map(r=>r.user_key);periodLists(key,rs);return {label,list_key:key,...summary(rs,start,end)}})
   const main=[...segments].map(([label,rs],i)=>{const key='segment:'+i;lists[key]=rs.map(r=>r.user_key);return {segment:label,users:rs.length,list_key:key}})
   const cohortRows=[...cohorts].sort(([a],[b])=>b.localeCompare(a)).map(([label,rs])=>{const key='registration:'+label;lists[key]=rs.map(r=>r.user_key);periodLists(key,rs);return {label,list_key:key,...summary(rs,start,end)}})
   const focus={value_users:selected.filter(r=>r.value_signal).length,recent_used_users:selected.filter(r=>r.recent_used).length,contactable_value_users:selected.filter(r=>r.value_signal&&r.contactable).length,value_without_recent_use:selected.filter(r=>r.value_signal&&!r.recent_used).length,
@@ -102,7 +102,7 @@ function computeInsights(input,{asOf,factsAsOf,start,end,pointsData=null,credits
     'referral:new':r=>r.invitation_at>=start&&r.invitation_at<end,
     'referral:analysis':r=>r.invitation_at>=start&&r.invitation_at<end&&r.referred_analysis_period}))lists[key]=selected.filter(condition).map(r=>r.user_key)
   const details=Object.fromEntries(input.map(r=>[r.user_key,{registered:r.account_id!=null,created_at:r.created_at,last_login_at:r.last_login_at,account_status:r.account_status,
-    source:r.source||'未知',first_chip_at:r.first_chip_at,last_chip_at:r.last_chip_at,chip_days_28:r.chip_days_28,
+    source:r.source||'未知',operational_tags:r.operational_tags||[],first_chip_at:r.first_chip_at,last_chip_at:r.last_chip_at,chip_days_28:r.chip_days_28,
     telegram_bound:r.telegram_bound,email_bound:r.email_bound,identity: r.account_id!=null?identity(r):'未知',
     nft_count:r.nft_count,has_balance:r.has_balance,balance_updated_at:r.balance_updated_at,available_points:r.available_points,vip_active:r.vip_active,
     ...(r.credits_available!=null?{credits_available:r.credits_available,credits_total:r.credits_total,credits_used:r.credits_used,credits_cumulative:r.credits_cumulative,credits_updated_at:r.credits_updated_at}:{}),

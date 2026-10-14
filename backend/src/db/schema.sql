@@ -252,3 +252,32 @@ CREATE TABLE IF NOT EXISTS growth_activity_members (
  activity_id TEXT NOT NULL REFERENCES growth_activities(id),user_id TEXT NOT NULL,
  baseline_first_at INTEGER,PRIMARY KEY(activity_id,user_id)
 );
+
+CREATE TABLE IF NOT EXISTS crm_kols (
+ id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, name TEXT NOT NULL,
+ platform TEXT NOT NULL, profile_url TEXT NOT NULL DEFAULT '',
+ account_id TEXT, assignee TEXT NOT NULL DEFAULT '', stage TEXT NOT NULL DEFAULT '待联系',
+ contact TEXT NOT NULL DEFAULT '', language TEXT NOT NULL DEFAULT '', tags TEXT NOT NULL DEFAULT '',
+ notes TEXT NOT NULL DEFAULT '', next_followup_at INTEGER,
+ created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
+ UNIQUE(owner_id,account_id)
+);
+CREATE INDEX IF NOT EXISTS idx_crm_owner ON crm_kols(owner_id,updated_at);
+CREATE TABLE IF NOT EXISTS crm_followups (
+ id TEXT PRIMARY KEY, kol_id TEXT NOT NULL REFERENCES crm_kols(id),
+ author_id TEXT NOT NULL, content TEXT NOT NULL, next_step TEXT NOT NULL DEFAULT '',
+ created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS crm_activity_links (
+ kol_id TEXT NOT NULL REFERENCES crm_kols(id),
+ activity_id TEXT NOT NULL REFERENCES growth_activities(id), created_at INTEGER NOT NULL,
+ PRIMARY KEY(kol_id,activity_id)
+);
+CREATE TABLE IF NOT EXISTS crm_profile_history (
+ id TEXT PRIMARY KEY, kol_id TEXT NOT NULL REFERENCES crm_kols(id),
+ author_id TEXT NOT NULL, before_json TEXT, after_json TEXT NOT NULL, created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS crm_kol_members (
+ kol_id TEXT NOT NULL REFERENCES crm_kols(id),user_id TEXT NOT NULL,
+ PRIMARY KEY(kol_id,user_id)
+);

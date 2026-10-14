@@ -37,7 +37,8 @@ export async function listCohorts() {
   try {
     const data = await apiFetch('/')
     return { cohorts: data.cohorts, source: 'api' }
-  } catch {
+  } catch (e) {
+    if(e.status && e.status<500)throw e
     return { cohorts: lsLoad(), source: 'local' }
   }
 }
@@ -45,7 +46,8 @@ export async function listCohorts() {
 export async function getCohort(id) {
   try {
     return await apiFetch(`/${id}`)
-  } catch {
+  } catch (e) {
+    if(!id.startsWith('cohort_local_'))throw e
     const cohort = lsLoad().find(c => c.id === id)
     if (!cohort) throw new Error('群组不存在')
     return cohort
@@ -82,13 +84,8 @@ export async function createCohort({ name, description = '', color = '#6366f1', 
 }
 
 export async function deleteCohort(id) {
-  try {
-    return await apiFetch(`/${id}`, { method: 'DELETE' })
-  } catch {
-    const all = lsLoad().filter(c => c.id !== id)
-    lsSave(all)
-    return { deleted: true, source: 'local' }
-  }
+  if (id.startsWith('cohort_local_')) { lsSave(lsLoad().filter(c=>c.id!==id));return {deleted:true,source:'local'} }
+  return apiFetch(`/${id}`, { method: 'DELETE' })
 }
 
 export async function updateCohort(id, { name, description, color }) {

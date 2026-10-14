@@ -1,6 +1,6 @@
 const DAY=86400000,OFFSET=25200000
 function parseIds(input){
- const raw=Array.isArray(input)?input:typeof input==='string'?input.split(/[\n\r,;\t]+/):[]
+ const raw=Array.isArray(input)?input:typeof input==='string'?input.split(/[\s,;]+/):[]
  if(raw.length>10000)throw Object.assign(new Error('一次最多导入5000个用户ID'),{status:400})
  const seen=new Set(),ids=[],dirty=[],invalid=[];let duplicates=0
  for(let value of raw){const id=String(value).trim().replace(/^"|"$/g,'').replace(/^user:/,'');if(!id||/^(user_?id|用户\s*id)$/i.test(id))continue

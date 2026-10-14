@@ -18,7 +18,7 @@ function start(kind,body,snapshot,audience,owner){
   }
   if(queue.length>=20||jobs.size>=128)throw Object.assign(new Error('分析队列已满，请稍后重试'),{status:429})
   const id=randomBytes(16).toString('hex'),j={id,key,owner,state:'queued',expires:Date.now()+900000,snapshot:snapshot.snapshot_id,context:{mode:kind,start:body.start,end:body.end,source:body.source||'all'}}
-  jobs.set(id,j);keys.set(key,id);queue.push({j,data:{kind,body,snapshot,audience}});pump();return j
+  jobs.set(id,j);keys.set(key,id);queue.push({j,data:{kind,body,snapshot,audience,owner}});pump();return j
 }
 function pump(){
   while(active<2&&queue.length){
