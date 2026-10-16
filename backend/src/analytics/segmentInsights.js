@@ -1,9 +1,11 @@
-const {behaviorTags,DEFINITIONS:BEHAVIOR_TAGS}=require('./behaviorTags')
+const {behaviorTags,hasValueSignal,DEFINITIONS:BEHAVIOR_TAGS}=require('./behaviorTags')
 const DAY=86400000,OFFSET=25200000
 const FILTERS={registration:['all','7','28','older'],login:['all','7','28','older','unknown'],binding:['all','telegram','email','both','neither'],identity:['all','phantom','metamask','multiple'],invitation:['all','referred','none','inviter'],trade:['all','none','first','repeat'],status:['all','active','locked'],asset:['all','balance','nft','points','vip','balance_unknown','points_unknown'],segment:['all','未观测分析','新分析用户','分析型','高频核心','策略型','流失风险','已流失','回流','观察不足']}
 FILTERS.behavior_tag=['all',...BEHAVIOR_TAGS.map(([key])=>key)]
 FILTERS.credits=['all','available','used','empty','unknown']
 FILTERS.task=['all','single_page_no_action','token_detail_no_analysis','value_unobserved','login_no_analysis','analysis_no_d1','absent_3d','new_no_activity','analysis_no_trade','repeat_analysis_no_trade','strategy_no_trade','trade_no_analysis','analysis_no_binding','checkin_no_analysis','referred_no_analysis']
+FILTERS.vip_kind=['all','week','month','nft']
+FILTERS.vip_state=['all','active','expiring','expired','scheduled','recorded','revoked','unobserved_use']
 FILTERS.points=['all','ledger','recent','earned','negative','checkin','streak']
 const POOLS=['business','registered','contact_only','no_signal']
 const GROUPS=['signal','binding','registration','identity','invitation','trade','status','segment','tag']
@@ -39,6 +41,8 @@ function groupLabel(r,by,now){
   return r.segment
 }
 function matches(r,f,now){
+  if(f.vip_kind&&f.vip_kind!=='all'||f.vip_state&&f.vip_state!=='all'){const rights=(r.manual_entitlements||[]).filter(e=>!f.vip_kind||f.vip_kind==='all'||e.kind===f.vip_kind);if(!rights.some(e=>f.vip_state==='unobserved_use'?['active','expiring'].includes(e.state)&&!(r.last_chip_at!=null&&r.last_chip_at>=now-7*DAY):!f.vip_state||f.vip_state==='all'||(f.vip_state==='active'?['active','expiring'].includes(e.state):e.state===f.vip_state)))return false}
+
   if(f.behavior_tag&&f.behavior_tag!=='all'&&!r.behavior_tags?.some(t=>t.key===f.behavior_tag))return false
   if(f.credits==='available'&&!(r.credits_available>0)||f.credits==='used'&&!(r.credits_used>0)||f.credits==='empty'&&r.credits_available!==0||f.credits==='unknown'&&r.credits_available!=null)return false
   const operational={single_page_no_action:r.single_page_no_action===true,token_detail_no_analysis:r.token_detail_no_analysis===true,new_no_activity:r.created_at>=now-7*DAY&&r.first_observed_at==null,analysis_no_trade:r.analysis_days_period>0&&r.trade_count===0,repeat_analysis_no_trade:r.analysis_days_period>=2&&r.trade_count===0,strategy_no_trade:r.strategy_period&&r.trade_count===0,trade_no_analysis:r.trade_count_period>0&&r.analysis_days_period===0,analysis_no_binding:r.analysis_days_period>0&&!r.telegram_bound&&!r.email_bound,checkin_no_analysis:r.checkin_days_period>0&&r.analysis_days_period===0,referred_no_analysis:r.referred_user&&r.analysis_days_period===0}
@@ -72,9 +76,9 @@ function summary(rows,start,end){const analysts=rows.filter(r=>r.analysis_days_p
 }}
 function businessSignals(r,now){
   const contactable=!!(r.telegram_bound||r.email_bound),used=r.first_chip_at!=null||!!r.used_strategy||r.credits_used>0,
-    value=Number(r.trade_count)>0||r.nft_count>0||r.has_balance===true||r.vip_active===true||r.credits_available>0,points=r.available_points>0||r.points_records>0||r.checkin_days>0,
+    value=hasValueSignal(r),points=r.available_points>0||r.points_records>0||r.checkin_days>0,
     recent=r.last_chip_at!=null&&r.last_chip_at>=now-28*DAY||r.last_strategy_at!=null&&r.last_strategy_at>=now-28*DAY
-  return {...r,contactable,business_signal:value||used||points,value_signal:value,recent_used:recent,
+  return {...r,contactable,business_signal:value||used||points||(r.manual_entitlements||[]).length>0,value_signal:value,recent_used:recent,
     signal_tier:value?'价值线索':used?'使用用户':points?'积分线索':contactable?'仅可联系':'无已知业务信号'}
 }
 function computeInsights(input,{asOf,factsAsOf,start,end,pointsData=null,creditsQuality=null,filters={},groupBy='signal',pool='business',historyComplete=false}){
@@ -105,7 +109,7 @@ function computeInsights(input,{asOf,factsAsOf,start,end,pointsData=null,credits
     'referral:new':r=>r.invitation_at>=start&&r.invitation_at<end,
     'referral:analysis':r=>r.invitation_at>=start&&r.invitation_at<end&&r.referred_analysis_period}))lists[key]=selected.filter(condition).map(r=>r.user_key)
   const details=Object.fromEntries(input.map(r=>[r.user_key,{registered:r.account_id!=null,created_at:r.created_at,last_login_at:r.last_login_at,account_status:r.account_status,
-    behavior_tags:behaviorTags(r,{start,end,asOf,historyComplete}),source:r.source||'未知',operational_tags:r.operational_tags||[],first_chip_at:r.first_chip_at,last_chip_at:r.last_chip_at,chip_days_28:r.chip_days_28,
+    manual_entitlements:r.manual_entitlements||[],behavior_tags:behaviorTags(r,{start,end,asOf,historyComplete}),source:r.source||'未知',operational_tags:r.operational_tags||[],first_chip_at:r.first_chip_at,last_chip_at:r.last_chip_at,chip_days_28:r.chip_days_28,
     telegram_bound:r.telegram_bound,email_bound:r.email_bound,identity: r.account_id!=null?identity(r):'未知',
     nft_count:r.nft_count,has_balance:r.has_balance,balance_updated_at:r.balance_updated_at,available_points:r.available_points,vip_active:r.vip_active,
     ...(r.credits_available!=null?{credits_available:r.credits_available,credits_total:r.credits_total,credits_used:r.credits_used,credits_cumulative:r.credits_cumulative,credits_updated_at:r.credits_updated_at}:{}),

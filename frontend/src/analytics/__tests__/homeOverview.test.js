@@ -1,5 +1,6 @@
 import {test,expect,vi,beforeEach} from 'vitest'
 vi.mock('../../api/metrics.js',()=>({fetchNorthStarMetrics:vi.fn(),fetchOnlineTradeMetrics:vi.fn(),fetchTradeVolumeMetrics:vi.fn(),fetchSegmentsMetrics:vi.fn(),fetchMyMonitorMetrics:vi.fn()}))
+vi.mock('../../pages/platformAssets.js',()=>({mountPlatformAssets:()=>({dispose(){}})}))
 vi.mock('../../api/backendAnalytics.js',()=>({fetchBackendMeta:vi.fn()}))
 import * as api from '../../api/metrics.js'
 import {fetchBackendMeta} from '../../api/backendAnalytics.js'

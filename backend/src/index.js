@@ -48,6 +48,8 @@ app.get('/health', (req, res) => res.json({ ok: true, ts: Date.now() }))
 // Auth routes (login is public, rest require auth internally)
 app.use('/api/auth', authRouter)
 
+app.use('/api/user-crm',requireAuth,require('./routes/userCrm'))
+
 app.use(['/api/users','/api/user-followups','/api/workbench'],requireAuth)
 app.use(require('./routes/userOperations'))
 

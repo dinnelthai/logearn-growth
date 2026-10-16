@@ -111,6 +111,7 @@ for(const kind of ['funnel','retention','segments','referral','paths','trade-mon
       audience=resolveTags(tags,body.tag_ids||[],body.tag_mode||'any',audience)
       // Capture current local tag membership in the job; never accept a client-supplied snapshot.
       body.user_tag_snapshot=tags
+      const rights=require('../db/connection').prepare('SELECT user_key,kind,starts_at,expires_at,revoked_at FROM ops_entitlements WHERE owner_id=? LIMIT 50001').all(String(req.user.user_id));if(rights.length>50000)return res.status(422).json({error:'权益记录超过分析预算'});body.entitlement_snapshot=rights.map(e=>({...e,state:require('../services/userCrm').state(e,Date.parse(s.snapshot_cutoff))}))
       body.user_tag_catalog=userTags(req.user.user_id,{includeMembers:false})
     }
     const j=jobs.start(kind,body,s,audience,req.user.user_id)

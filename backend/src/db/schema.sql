@@ -417,3 +417,34 @@ END;
 CREATE TRIGGER IF NOT EXISTS legacy_kol_account_insert AFTER INSERT ON crm_kols WHEN NEW.account_id IS NOT NULL BEGIN
  INSERT INTO crm_kol_accounts(kol_id,owner_id,account_id,position,created_at) VALUES(NEW.id,NEW.owner_id,NEW.account_id,0,NEW.created_at);
 END;
+
+CREATE TABLE IF NOT EXISTS ops_address_notes (
+ id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, user_key TEXT, network TEXT NOT NULL,
+ address TEXT NOT NULL, alias TEXT NOT NULL DEFAULT '', note TEXT NOT NULL,
+ created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
+ UNIQUE(owner_id,network,address)
+);
+CREATE TABLE IF NOT EXISTS ops_entitlements (
+ id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, user_key TEXT NOT NULL,
+ kind TEXT NOT NULL CHECK(kind IN('week','month','nft')), starts_at INTEGER NOT NULL, expires_at INTEGER,
+ quantity INTEGER NOT NULL DEFAULT 1, reference TEXT NOT NULL, note TEXT NOT NULL DEFAULT '',
+ revoked_at INTEGER, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ops_entitlements_owner ON ops_entitlements(owner_id,user_key,expires_at);
+CREATE TABLE IF NOT EXISTS ops_conversion_tasks (
+ id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, user_key TEXT NOT NULL, title TEXT NOT NULL,
+ goal TEXT NOT NULL, target_days INTEGER NOT NULL DEFAULT 2, entitlement_id TEXT,
+ status TEXT NOT NULL DEFAULT 'open', starts_at INTEGER NOT NULL, deadline INTEGER NOT NULL, due_at INTEGER,
+ next_step TEXT NOT NULL DEFAULT '', baseline_json TEXT NOT NULL, result_json TEXT NOT NULL DEFAULT '{}',
+ created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ops_conversion_owner ON ops_conversion_tasks(owner_id,user_key,status,deadline);
+CREATE TABLE IF NOT EXISTS ops_crm_history (
+ id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, object_id TEXT NOT NULL, action TEXT NOT NULL,
+ before_json TEXT, after_json TEXT NOT NULL, created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ops_crm_history_owner ON ops_crm_history(owner_id,object_id,created_at);
+CREATE TABLE IF NOT EXISTS ops_conversion_reports (
+ id TEXT PRIMARY KEY,owner_id TEXT NOT NULL,user_key TEXT,report_json TEXT NOT NULL,created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ops_conversion_reports_owner ON ops_conversion_reports(owner_id,created_at);

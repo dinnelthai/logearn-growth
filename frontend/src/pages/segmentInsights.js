@@ -21,7 +21,9 @@ const OPTIONS={
  identity:['身份类型',[['all','全部'],['phantom','Phantom'],['metamask','MetaMask'],['multiple','多种已验证身份']]],
  invitation:['邀请关系',[['all','全部'],['referred','有有效邀请人'],['none','无有效邀请关系'],['inviter','邀请过别人']]],
  status:['账号状态',[['all','全部'],['active','active'],['locked','locked']]],
- behavior_tag:['运营行为标签',[['all','全部'],['new_analysis','新分析用户'],['core','高频核心'],['low_frequency','低频使用用户'],['analysis_no_trade','已分析未交易'],['traded','交易用户'],['unactivated','待激活用户'],['silent','沉默用户（观测）'],['returned','回流用户']]],
+ vip_kind:['人工登记权益',[['all','全部'],['week','VIP 周卡'],['month','VIP 月卡'],['nft','NFT 权益']]],
+ vip_state:['登记权益状态',[['all','全部'],['active','生效中（含即将到期）'],['expiring','即将到期（周卡2天/月卡3天）'],['expired','已到期'],['scheduled','待生效'],['recorded','期限待确认'],['revoked','已作废'],['unobserved_use','有效权益且近7天未观测分析']]],
+ behavior_tag:['运营行为标签',[['all','全部'],['new_analysis','新分析用户'],['core','高频核心'],['low_frequency','低频使用用户'],['analysis_no_trade','已分析未交易'],['traded','交易用户'],['unactivated','有价值线索的用户'],['silent','沉默用户（观测）'],['returned','回流用户']]],
  segment:['行为分群',[['all','全部'],...['未观测分析','新分析用户','分析型','高频核心','策略型','流失风险','已流失','回流','观察不足'].map(v=>[v,v])]],
  trade:['交易经历',[['all','全部'],['none','无交易记录'],['first','一条交易记录'],['repeat','重复交易记录']]]
 }

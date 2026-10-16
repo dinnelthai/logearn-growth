@@ -74,3 +74,19 @@ test('lifecycle operating filters distinguish repeated analysis, known trades an
 })
 
 test('URL operating tags require explicitly observed session evidence',()=>{const rows=[row(1,{single_page_no_action:true}),row(2,{token_detail_no_analysis:true}),row(3)];for(const task of ['single_page_no_action','token_detail_no_analysis'])validateOptions({filters:{task}});assert.deepEqual(computeInsights(rows,{...options,filters:{task:'single_page_no_action'}}).lists.all,['user:1']);assert.deepEqual(computeInsights(rows,{...options,filters:{task:'token_detail_no_analysis'}}).lists.all,['user:2'])})
+test('value lead card, drill list, details and filter use the same value facts',()=>{
+ const rows=[row(1),row(2,{trade_count:1,first_chip_at:now-DAY}),row(3,{credits_available:5}),row(4,{telegram_bound:true,available_points:100})]
+ const r=computeInsights(rows,options),card=r.payload.behavior_groups.find(g=>g.key==='unactivated')
+ assert.equal(card.label,'有价值线索的用户');assert.equal(card.users,2)
+ assert.deepEqual(r.lists[card.list_key],['user:2','user:3'])
+ assert.deepEqual(r.lists[card.list_key],r.lists.value)
+ assert(r.details['user:2'].behavior_tags.some(t=>t.key==='unactivated'))
+ assert.deepEqual(computeInsights(rows,{...options,filters:{behavior_tag:'unactivated'}}).lists.all,r.lists[card.list_key])
+})
+test('manual VIP filters match the same cycle, retain owner-provided records and support unobserved usage',()=>{
+ const rows=[row(1,{manual_entitlements:[{kind:'week',state:'expiring'}]}),row(2,{manual_entitlements:[{kind:'week',state:'expired'},{kind:'month',state:'active'}]}),row(3,{manual_entitlements:[{kind:'week',state:'active'}],last_chip_at:now}),row(4)]
+ assert.deepEqual(computeInsights(rows,{...options,pool:'business',filters:{vip_kind:'week',vip_state:'expiring'}}).lists.all,['user:1'])
+ assert.deepEqual(computeInsights(rows,{...options,filters:{vip_kind:'week',vip_state:'active'}}).lists.all,['user:1','user:3'])
+ assert.deepEqual(computeInsights(rows,{...options,filters:{vip_kind:'week',vip_state:'unobserved_use'}}).lists.all,['user:1'])
+ assert.equal(validateOptions({filters:{vip_kind:'month',vip_state:'expired'}}).vip_kind,'month')
+})

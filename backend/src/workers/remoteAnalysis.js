@@ -30,7 +30,8 @@ async function run({kind,body,snapshot:s,audience,owner}){
     const scopedTags=require('../analytics/userTags').userTags(owner,{userIds:rows.map(r=>r.user_key)})
     const selectedTags=new Set((body.user_tag_snapshot||[]).map(t=>t.id))
     for(const tag of [...scopedTags.filter(t=>!selectedTags.has(t.id)),...(body.user_tag_snapshot||[])])for(const id of tag.user_ids){if(!tagMap.has(id))tagMap.set(id,[]);tagMap.get(id).push({id:tag.id,name:tag.name,type:tag.type})}
-    const enriched=rows.map(r=>({...r,operational_tags:tagMap.get(r.user_key)||[],single_page_no_action:urlSingles.has(r.user_key),token_detail_no_analysis:urlTokens.has(r.user_key),...(points.get(String(r.account_id))||{}),...(creditsData.map.get(String(r.account_id))||{})}))
+    const entMap=new Map();for(const e of body.entitlement_snapshot||[]){if(!entMap.has(e.user_key))entMap.set(e.user_key,[]);entMap.get(e.user_key).push(e)}
+    const enriched=rows.map(r=>({...r,manual_entitlements:entMap.get(r.user_key)||[],operational_tags:tagMap.get(r.user_key)||[],single_page_no_action:urlSingles.has(r.user_key),token_detail_no_analysis:urlTokens.has(r.user_key),...(points.get(String(r.account_id))||{}),...(creditsData.map.get(String(r.account_id))||{})}))
     return require('../analytics/compactDetails').compactDetails(computeInsights(enriched,{asOf,factsAsOf,start:periodStart,end:periodEnd,pointsData,creditsQuality:creditsData.quality,filters:body.filters||{},groupBy:body.group_by||'signal',pool:body.pool||'business',historyComplete:!!s.history_complete}))
   }
   let types=body.steps,startAt=start,endAt=Math.min(asOf+1,end)

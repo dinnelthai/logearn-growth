@@ -74,3 +74,37 @@
   #la-studio .a-topnav { order: 3; flex: 1 1 100%; }
   #la-studio .a-badge { margin-left: auto; }
 }
+
+/* Shared address, membership and conversion workspace. */
+#la-studio .crm-ops{margin-top:16px}
+#la-studio .crm-ops-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+#la-studio .crm-ops-tabs span{margin-left:6px;opacity:.8}
+#la-studio .crm-ops-toolbar{display:flex;gap:12px;align-items:end;margin:16px 0;flex-wrap:wrap}
+#la-studio .crm-ops-toolbar label:first-child{flex:1;min-width:180px}
+#la-studio .crm-ops-toolbar label{min-width:150px}
+#la-studio .crm-ops-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#la-studio .crm-ops form{display:grid;gap:12px;margin:16px 0}
+#la-studio .crm-ops form button{justify-self:start}
+#la-studio .crm-ops td{vertical-align:top;min-width:120px}
+#la-studio .crm-ops td strong,#la-studio .crm-ops td small{display:block;margin-top:5px;overflow-wrap:anywhere}
+#la-studio .crm-ops td small{color:var(--a-muted);max-width:320px}
+#la-studio .crm-ops-chip{display:inline-block;border:1px solid var(--a-border);border-radius:6px;padding:3px 7px;font-size:12px;margin:2px 3px 2px 0}
+#la-studio .crm-ops-chip.success{color:#168361;background:#1683610d;border-color:#16836140}
+#la-studio .crm-ops-chip.warning{color:#ad6515;background:#d58d1910;border-color:#d58d1940}
+#la-studio .crm-ops-create{border-top:1px solid var(--a-border);margin-top:18px;padding-top:16px}
+#la-studio .crm-ops-create summary{font-weight:600;cursor:pointer}
+#la-studio .crm-ops-address{font-family:ui-monospace,monospace;overflow-wrap:anywhere}
+#la-studio .crm-ops-wallets{padding:12px;background:var(--a-bg);border-radius:8px}
+#la-studio .crm-ops-wallets div{padding:8px 0;overflow-wrap:anywhere}
+#la-studio .crm-ops-wallets span{margin-left:10px;color:var(--a-muted)}
+#la-studio .crm-ops-empty{text-align:center;padding:28px 12px;color:var(--a-muted)}
+#la-studio .crm-ops-history article{padding:12px 0;border-bottom:1px solid var(--a-border)}
+@media(max-width:640px){#la-studio .crm-ops-grid{grid-template-columns:1fr}#la-studio .crm-ops-toolbar{align-items:stretch}#la-studio .crm-ops-toolbar label{width:100%}}
+#la-studio .crm-ops{padding:20px;min-width:0}
+#la-studio .crm-ops label{display:grid;gap:6px;color:var(--a-muted);font-size:12px}
+#la-studio .crm-ops input:not([type=checkbox]),#la-studio .crm-ops select,#la-studio .crm-ops textarea{width:100%;min-width:0;border:1px solid var(--a-border);border-radius:7px;padding:9px 10px;background:var(--a-panel);color:var(--a-text);font:inherit}
+#la-studio .crm-ops input:focus-visible,#la-studio .crm-ops textarea:focus-visible{outline:2px solid var(--a-accent);outline-offset:2px}
+#la-studio .crm-ops textarea{resize:vertical;min-height:80px}
+#la-studio .crm-ops label:has(input[type=checkbox]){display:flex;align-items:center;gap:6px;margin-bottom:6px}
+#la-studio .operations-workbench>.si-panel .crm-kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+@media(max-width:640px){#la-studio .crm-ops{padding:14px}}
