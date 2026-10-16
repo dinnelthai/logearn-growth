@@ -54,14 +54,15 @@ export async function getCohort(id) {
   }
 }
 
-export async function createCohort({ name, description = '', color = '#6366f1', user_ids = [] }) {
+export async function createCohort({ name, description = '', color = '#6366f1', user_ids = [],kind='static',rule }) {
   try {
     const data = await apiFetch('/', {
       method: 'POST',
-      body: JSON.stringify({ name, description, color, user_ids }),
+      body: JSON.stringify({ name, description, color, user_ids,kind,rule }),
     })
     return { cohort: data.cohort, source: 'api' }
   } catch (e) {
+    if(kind==='dynamic')throw e
     // Rethrow validation errors from the backend
     if (e.errors || e.status && e.status < 500) throw e
     // Backend unreachable — save locally
@@ -105,3 +106,7 @@ export async function updateCohort(id, { name, description, color }) {
     return { cohort: all[idx], source: 'local' }
   }
 }
+
+export const saveCohortVersion=(id,cache_id)=>apiFetch('/'+encodeURIComponent(id)+'/versions',{method:'POST',body:JSON.stringify({cache_id})})
+export const listCohortVersions=(id,offset=0)=>apiFetch('/'+encodeURIComponent(id)+'/versions?offset='+offset)
+export const getCohortVersion=(id,version)=>apiFetch('/'+encodeURIComponent(id)+'/versions/'+encodeURIComponent(version))

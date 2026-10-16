@@ -1,4 +1,5 @@
-// Page modes stay unchanged so existing analysis and drill-down links still work.
+// Existing deep links keep their modes while sharing one navigation entry.
+export const navigationMode=mode=>({referral:'channels','my-monitor':'home'}[mode]||mode)
 export function mountSectionNavigation(root, navigate) {
   const sections = [...root.querySelectorAll('[data-navigation-section]')];
   const parents = [...root.querySelectorAll('[data-section]')];
@@ -7,13 +8,14 @@ export function mountSectionNavigation(root, navigate) {
   const nav = root.querySelector('#as-section-nav');
 
   function update(mode) {
+    const canonical=navigationMode(mode);
     const section = sections.find(group =>
-      [...group.querySelectorAll('[data-mode]')].some(button => button.dataset.mode === mode));
+      [...group.querySelectorAll('[data-mode]')].some(button => button.dataset.mode === canonical));
     if (!section) return;
     const key = section.dataset.navigationSection;
     remembered.set(key, mode);
     sections.forEach(group => { group.hidden = group !== section; });
-    buttons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mode === mode)));
+    buttons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mode === canonical)));
     parents.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.section === key)));
     const title = parents.find(button => button.dataset.section === key)?.textContent.trim();
     nav.setAttribute('aria-label', `${title}页面`);
@@ -23,8 +25,8 @@ export function mountSectionNavigation(root, navigate) {
     button.onclick = () => {
       const group = sections.find(section => section.dataset.navigationSection === button.dataset.section);
       const available = [...group.querySelectorAll('[data-mode]')].filter(item => !item.hidden && !item.disabled);
-      const selected = available.find(item => item.dataset.mode === remembered.get(button.dataset.section)) || available[0];
-      if (selected) navigate(selected.dataset.mode);
+      const selected = available.find(item => item.dataset.mode === navigationMode(remembered.get(button.dataset.section))) || available[0];
+      if (selected) navigate(remembered.get(button.dataset.section)||selected.dataset.mode);
     };
   });
   buttons.forEach(button => { button.onclick = () => navigate(button.dataset.mode); });

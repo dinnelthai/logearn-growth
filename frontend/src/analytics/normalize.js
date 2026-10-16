@@ -68,6 +68,18 @@ export function normalizeApiResponse({ events, users, logearnUsers, referrals, t
     if (!byKey.has(key)) byKey.set(key, [])
     byKey.get(key).push({
       type: internalType,
+      login_type: raw.properties?.login_type ?? null,
+      page_visit_id: raw.properties?.page_visit_id ?? null,
+      page_name: raw.properties?.page_name ?? null,
+      view_mode: raw.properties?.view_mode ?? null,
+      navigation_source: raw.properties?.navigation_source ?? null,
+      previous_page_visit_id: raw.properties?.previous_page_visit_id ?? null,
+      previous_page_path: raw.properties?.previous_page_path ?? null,
+      end_reason: raw.properties?.end_reason ?? null,
+      viewport_width: raw.properties?.viewport_width ?? null,
+      viewport_height: raw.properties?.viewport_height ?? null,
+      page_url: raw.properties?.page_path ?? raw.properties?.page_url ?? raw.properties?.path ?? raw.page ?? null,
+      duration_ms: raw.properties?.visible_duration_ms ?? null,
       // Support both client_ts (ms number) and occurred_at (ISO string)
       t: eventTime,
       trade_id: raw.trade_id ?? raw.properties?.trade_id ?? null,

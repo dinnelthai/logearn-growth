@@ -72,7 +72,7 @@ export function mountComparisonAgg(host, {
           q,
         }),
       fetchTimeline: async (userId, el) => {
-        el.innerHTML = '<p class="a-muted">加载时间线…</p>'
+        el.innerHTML = '<p class="a-muted si-loading" role="status">加载时间线…</p>'
         try {
           const data = await fetchUserTimeline({ userId, limit: 200 })
           el.innerHTML = `<h2>${esc(data.user?.id || userId)}</h2><div class="a-timeline">${(data.events || []).map(e => {
@@ -99,7 +99,7 @@ export function mountComparisonAgg(host, {
     const startAt = lockedPeriod?.startAt ?? endAt - state.range * 86400000
     const dateFmt = date || (t => new Date(t + 7 * 3600000).toISOString().slice(5, 10).replace('-', '/'))
 
-    host.innerHTML = `<div class="a-card"><p class="a-muted">正在加载人群对比…</p></div>`
+    host.innerHTML = `<div class="a-card"><p class="a-muted si-loading" role="status">正在加载人群对比…</p></div>`
 
     let overview
     try {

@@ -3,7 +3,7 @@
  * Keep in sync with frontend/src/analytics/eventConfig.js (subset used by metrics).
  */
 const RAW_TO_TYPE = {
-  app_opened_unauthenticated:'app_open',login_button_clicked:'login_click',wallet_connect_submitted:'wallet_connect_submitted',wallet_connect_succeeded:'wallet_connected',wallet_connect_failed:'wallet_connect_failed',logout:'logout',page_viewed:'page_view',token_detail_tab_switched:'token_tab',search_performed:'search',holders_analysis_viewed:'holders',invite_page_entered:'invite_page',limit_order_created:'limit_order',strategy_stopped:'strategy_stopped',
+  app_opened_unauthenticated:'app_open',login_button_clicked:'login_click',wallet_connect_submitted:'wallet_connect_submitted',wallet_connect_succeeded:'wallet_connected',wallet_connect_failed:'wallet_connect_failed',logout:'logout',page_visit_ended:'page_end',page_viewed:'page_view',token_detail_tab_switched:'token_tab',search_performed:'search',holders_analysis_viewed:'holders',invite_page_entered:'invite_page',limit_order_created:'limit_order',strategy_stopped:'strategy_stopped',
   login_succeeded: 'login',
   token_detail_viewed: 'token',
   ranking_token_clicked: 'token_click',
@@ -28,7 +28,7 @@ const RAW_TO_TYPE = {
 const LOGIN_EVIDENCE_RAWS = require('../../../frontend/src/analytics/loginEvidence.json')
 const TYPE_TO_RAWS = {
   login_verified: LOGIN_EVIDENCE_RAWS,
-  app_open:['app_opened_unauthenticated'],login_click:['login_button_clicked'],wallet_connect_submitted:['wallet_connect_submitted'],wallet_connected:['wallet_connect_succeeded'],wallet_connect_failed:['wallet_connect_failed'],logout:['logout'],page_view:['page_viewed'],token_tab:['token_detail_tab_switched'],search:['search_performed'],holders:['holders_analysis_viewed'],invite_page:['invite_page_entered'],limit_order:['limit_order_created'],strategy_stopped:['strategy_stopped'],
+  app_open:['app_opened_unauthenticated'],login_click:['login_button_clicked'],wallet_connect_submitted:['wallet_connect_submitted'],wallet_connected:['wallet_connect_succeeded'],wallet_connect_failed:['wallet_connect_failed'],logout:['logout'],page_end:['page_visit_ended'],page_view:['page_viewed'],token_tab:['token_detail_tab_switched'],search:['search_performed'],holders:['holders_analysis_viewed'],invite_page:['invite_page_entered'],limit_order:['limit_order_created'],strategy_stopped:['strategy_stopped'],
   login: ['login_succeeded'],
   token: ['token_detail_viewed'],
   token_click: ['ranking_token_clicked', 'token_opened'],

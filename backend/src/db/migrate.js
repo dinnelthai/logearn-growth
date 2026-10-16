@@ -5,8 +5,9 @@ const path = require('path')
 const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8')
 
 // Split on semicolons and run each statement
-schema.split(';').map(s => s.trim()).filter(Boolean).forEach(stmt => {
-  db.exec(stmt)
-})
+db.exec(schema)
 
-console.log('Migration complete:', db.pragma('user_version', { simple: true }))
+require('./upgradeActivities').upgradeActivities(db)
+require('./upgradeActivities').upgradeCohorts(db)
+require('./upgradeKolAccounts').upgradeKolAccounts(db)
+console.log('Migration complete:', db.prepare('PRAGMA user_version').get().user_version)

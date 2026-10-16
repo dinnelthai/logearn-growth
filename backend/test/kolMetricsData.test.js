@@ -41,3 +41,33 @@ test('relationship microseconds survive into KOL aggregation',async()=>{
  const r=await kolMetrics([{id:'a',account_id:'1'}],{start,end})
  assert.equal(r.metrics[0].invited.total.analysis_events,1);assert.equal(r.metrics[0].invited.total.transactions,1)
 })
+test('manual-only KOL metrics work without an own account or referral lookup',async()=>{
+ remote.query=async sql=>{
+  if(sql.includes('user_invitation_relation'))throw Error('manual profiles must not need referrals')
+  if(sql.includes('SELECT event_id,SUBSTRING'))return [{event_id:'tag1',user_id:'2',t:asOf-1000}]
+  if(sql.includes('trade_groups'))return [{account_id:'2',chain:3,transaction_hash:'tag-t',trade_value:12,transaction_time:new Date(asOf-1000).toISOString(),valid:true}]
+  return [{account_id:'2'}]
+ }
+ const r=await kolMetrics([{id:'manual',account_id:null,user_ids:['2','2']}],{start,end}),m=r.metrics[0]
+ assert.equal(m.available,true);assert.equal(m.own,null);assert.equal(m.invited,null);assert.equal(m.tagged.total.users,1);assert.equal(m.tagged.total.analysis_events,1);assert.equal(m.tagged.total.volume_usd,12);assert.equal(r.errors.referral,null)
+})
+test('tag scopes deduplicate overlaps, exclude own account and can return summary-only lists',async()=>{
+ remote.query=async sql=>{
+  if(sql.includes('user_invitation_relation'))return []
+  if(sql.includes('SELECT event_id,SUBSTRING'))return ['1','2'].map(user_id=>({event_id:'a'+user_id,user_id,t:asOf-1000}))
+  if(sql.includes('trade_groups'))return []
+  return ['1','2'].map(account_id=>({account_id,created_at:'2026-01-01T00:00:00Z'}))
+ }
+ const profiles=[{id:'a',account_id:'1',user_ids:['1','2','2']}]
+ const m=(await kolMetrics(profiles,{start,end})).metrics[0]
+ assert.equal(m.tagged.total.users,2);assert.equal(m.tagged.total.analysis_events,2);assert.equal(m.tagged_excluding_own.total.users,1);assert.equal(m.own.total.users,1)
+ const small=(await kolMetrics(profiles,{start,end},{includeDetails:false})).metrics[0];assert.equal(small.tagged.rows,undefined);assert.equal(small.tagged.daily,undefined);assert.equal(small.tagged.total.users,2)
+})
+test('account lookup failures make manual populations unknown rather than zero',async()=>{
+ remote.query=async sql=>{
+  if(sql.includes('SELECT account_id::text AS account_id'))throw Error('accounts offline')
+  return []
+ }
+ const r=await kolMetrics([{id:'a',account_id:null,user_ids:['2']}],{start,end})
+ assert.equal(r.metrics[0].tagged,null);assert.equal(r.errors.account,'accounts offline')
+})

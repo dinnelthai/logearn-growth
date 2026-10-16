@@ -17,7 +17,7 @@ function start(kind,body,snapshot,audience,owner){
     for(const [oldId,old]of jobs){if(!['running','queued'].includes(old.state)){jobs.delete(oldId);keys.delete(old.key);remote.deleteCached('job:'+oldId);break}}
   }
   if(queue.length>=20||jobs.size>=128)throw Object.assign(new Error('分析队列已满，请稍后重试'),{status:429})
-  const id=randomBytes(16).toString('hex'),j={id,key,owner,state:'queued',expires:Date.now()+900000,snapshot:snapshot.snapshot_id,context:{mode:kind,start:body.start,end:body.end,source:body.source||'all'}}
+  const id=randomBytes(16).toString('hex'),j={id,key,owner,state:'queued',expires:Date.now()+900000,snapshot:snapshot.snapshot_id,context:{mode:kind,start:body.start,end:body.end,source:body.source||'all',...(kind==='segments'?{cohort_id:body.resolving_cohort_id||null,cohort_rule:body.resolving_cohort_rule||null,selection:{pool:body.pool||'business',filters:body.filters||{},tag_mode:body.tag_mode||'any',tags:(body.user_tag_snapshot||[]).map(t=>({id:t.id,name:t.name})),scoped_count:audience?.length??null}}:{})}}
   jobs.set(id,j);keys.set(key,id);queue.push({j,data:{kind,body,snapshot,audience,owner}});pump();return j
 }
 function pump(){

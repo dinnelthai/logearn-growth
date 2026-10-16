@@ -11,7 +11,7 @@ async function loadUsers(s, {types, start, end, source = 'all', audience = null}
       e.properties->>'strategy_run_id' AS strategy_run_id,e.properties->>'strategy_type' AS strategy_type,
       e.properties->>'result_id' AS result_id,e.properties->>'module' AS module,
       e.properties->>'entry_module' AS entry_module,e.properties->>'trade_id' AS trade_id,
-      e.properties->>'trade_attempt_id' AS trade_attempt_id,e.properties->>'reason' AS reason
+      e.properties->>'login_type' AS login_type,e.properties->>'page_visit_id' AS page_visit_id,e.properties->>'page_name' AS page_name,e.properties->>'view_mode' AS view_mode,e.properties->>'navigation_source' AS navigation_source,e.properties->>'previous_page_visit_id' AS previous_page_visit_id,e.properties->>'previous_page_path' AS previous_page_path,e.properties->>'end_reason' AS end_reason,e.properties->>'viewport_width' AS viewport_width,e.properties->>'viewport_height' AS viewport_height,COALESCE(e.properties->>'page_path',e.properties->>'page_url',e.properties->>'path',e.page) AS page_url,e.properties->>'visible_duration_ms' AS duration_ms,e.properties->>'trade_attempt_id' AS trade_attempt_id,e.properties->>'reason' AS reason
     FROM e JOIN facts f ON f.user_key=e.user_key
     WHERE e.client_ts >= $2 AND e.client_ts < $3 AND e.client_ts <= $4
       AND ($5::text='all' OR f.source=$5) AND ($6::text[] IS NULL OR e.user_key=ANY($6))
@@ -25,7 +25,7 @@ async function loadUsers(s, {types, start, end, source = 'all', audience = null}
     let u=users.get(r.user_key)
     if(!u){u={id:r.user_key,source:r.source||'未知',first_analysis_at:r.first_chip==null?null:Number(r.first_chip),
       preferred_language:null,telegram_bound:null,email_bound:null,events:[]};users.set(r.user_key,u)}
-    const e={type:internalType(r.event_name,{module:r.module}),t:Number(r.client_ts),session_id:r.session_id,
+    const e={login_type:r.login_type,page_visit_id:r.page_visit_id,page_name:r.page_name,view_mode:r.view_mode,navigation_source:r.navigation_source,previous_page_visit_id:r.previous_page_visit_id,previous_page_path:r.previous_page_path,end_reason:r.end_reason,viewport_width:r.viewport_width,viewport_height:r.viewport_height,page_url:r.page_url,duration_ms:r.duration_ms,type:internalType(r.event_name,{module:r.module}),t:Number(r.client_ts),session_id:r.session_id,
       token_visit_id:r.token_visit_id,token_address:r.token_address,chain:r.chain,strategy_run_id:r.strategy_run_id,
       strategy:r.strategy_type,result_id:r.result_id,entry_module:r.entry_module,entry_source:u.source,
       trade_id:r.trade_id,trade_attempt_id:r.trade_attempt_id,reason:r.reason}

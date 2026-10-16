@@ -16,7 +16,13 @@ const requireAuth = require('./middleware/requireAuth')
 
 // Run migrations on startup
 const schema = fs.readFileSync(path.join(__dirname, 'db/schema.sql'), 'utf8')
-schema.split(';').map(s => s.trim()).filter(Boolean).forEach(stmt => db.exec(stmt))
+db.exec(schema)
+
+require('./db/upgradeActivities').upgradeActivities(db)
+require('./db/upgradeActivities').upgradeCohorts(db)
+require('./db/upgradeKolAccounts').upgradeKolAccounts(db)
+require('./services/activitySchedule').startScheduler()
+require('./services/platformAssets').start()
 
 // Seed default admin if no users exist
 seedAdmin().catch(console.error)
@@ -42,6 +48,9 @@ app.get('/health', (req, res) => res.json({ ok: true, ts: Date.now() }))
 // Auth routes (login is public, rest require auth internally)
 app.use('/api/auth', authRouter)
 
+app.use(['/api/users','/api/user-followups','/api/workbench'],requireAuth)
+app.use(require('./routes/userOperations'))
+
 // Remote priority analytics routes precede SQLite routes; no silent local fallback.
 if (process.env.ANALYTICS_STORAGE === 'hologres') {
   app.use(['/api/analytics', '/api/metrics', '/api/drill', '/api/events'], requireAuth)
@@ -49,6 +58,9 @@ if (process.env.ANALYTICS_STORAGE === 'hologres') {
 }
 
 // Protected routes
+app.use('/api/promotions',requireAuth,require('./routes/promotions'))
+app.use('/api/operation-tasks', requireAuth, require('./routes/operationTasks'))
+app.use('/api/operations', requireAuth, require('./routes/operationsComparison'))
 app.use('/api/activities', requireAuth, require('./routes/activities'))
 app.use('/api/crm/kols', requireAuth, require('./routes/crm'))
 app.get('/api/user-tags',requireAuth,(req,res,next)=>{try{res.json({tags:require('./analytics/userTags').userTags(req.user.user_id,{includeMembers:false}).map(({user_ids,...tag})=>tag)})}catch(e){next(e)}})
@@ -59,7 +71,9 @@ app.post('/api/user-tags/audience',requireAuth,async(req,res,next)=>{
     let existing=req.body.audience_ids
     if(existing!=null&&(!Array.isArray(existing)||existing.length>50000||existing.some(id=>typeof id!=='string')))throw Object.assign(new Error('原人群格式无效'),{status:400})
     if(req.body.cohort_id){
-      if(!db.prepare('SELECT id FROM cohorts WHERE id=? AND created_by=? AND is_deleted=0').get(String(req.body.cohort_id),String(req.user.user_id)))throw Object.assign(new Error('用户群组不存在或无权访问'),{status:404})
+      const cohort=db.prepare('SELECT id,kind FROM cohorts WHERE id=? AND created_by=? AND is_deleted=0').get(String(req.body.cohort_id),String(req.user.user_id))
+      if(!cohort)throw Object.assign(new Error('用户群组不存在或无权访问'),{status:404})
+      if(cohort.kind==='dynamic')throw Object.assign(new Error('动态人群需先重新计算并使用固定名单'),{status:409})
       const cohortIds=db.prepare('SELECT user_id FROM cohort_members WHERE cohort_id=?').all(String(req.body.cohort_id)).map(r=>'user:'+String(r.user_id).replace(/^user:/,'')),allowed=new Set(cohortIds)
       existing=existing==null?cohortIds:existing.filter(id=>allowed.has(id))
     }
@@ -68,12 +82,15 @@ app.post('/api/user-tags/audience',requireAuth,async(req,res,next)=>{
     res.json({ids,count:ids.length,start,end,snapshot_id:s.snapshot_id,as_of:s.as_of,title:tags.filter(t=>req.body.tag_ids.includes(t.id)).map(t=>(t.type==='activity'?'活动：':'KOL：')+t.name).join(' + '),description:(req.body.tag_mode==='any'?'拥有任一所选标签':'同时拥有所选标签')+' · 应用时固定名单',source:req.body.source||'all',origin:'tags'})
   }catch(e){next(e)}
 })
+app.use('/api',requireAuth,require('./routes/audienceHistory'))
 app.use('/api/cohorts', requireAuth, cohortsRouter)
 app.use('/api/saved-configs', savedConfigsRouter)
 app.use('/api/events', requireAuth, analyticsRouter)
 app.use('/api/analytics', requireAuth, analyticsRouter)
 app.use('/api/metrics', requireAuth, metricsRouter)
 app.use('/api/drill', requireAuth, drillRouter)
+
+app.use('/api/platform-assets', requireAuth, require('./routes/platformAssets'))
 
 // 404
 app.use((req, res) => res.status(404).json({ error: '接口不存在' }))

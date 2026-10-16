@@ -29,7 +29,7 @@ export function createNorthStarAggPage(ctx) {
       fetchPage: ({ offset, limit, q }) =>
         fetchDrillUsers({ kind, params, offset, limit, q }),
       fetchTimeline: async (userId, host) => {
-        host.innerHTML = '<p class="a-muted">加载时间线…</p>'
+        host.innerHTML = '<p class="a-muted si-loading" role="status">加载时间线…</p>'
         try {
           const data = await fetchUserTimeline({ userId, limit: 200, snapshotId: params.snapshot_id })
           const names = ctx.names || {}
@@ -60,7 +60,7 @@ export function createNorthStarAggPage(ctx) {
       b.onclick = () => ctx.setPeriod(b.dataset.northPeriod)
     })
 
-    $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted">正在从 /api/metrics/north-star 加载…</p></div>'
+    $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted si-loading" role="status">正在从 /api/metrics/north-star 加载…</p></div>'
 
     const configKey = JSON.stringify(c)
     let metrics

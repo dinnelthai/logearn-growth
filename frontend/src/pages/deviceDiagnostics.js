@@ -24,7 +24,7 @@ export function browserGroups(rows){
 }
 export async function openDeviceSummary(ctx,m,entry,key){
  let rows=[],groups={}
- const update=ctx.drawer.openSummary({title:'浏览器与系统分布 · '+entry,description:'当前选中条形的人群，按用户去重；先看分布，再点击分组查看用户',html:'<p>正在加载完整人群…</p>',onAction:action=>{
+ const update=ctx.drawer.openSummary({title:'浏览器与系统分布 · '+entry,description:'当前选中条形的人群，按用户去重；先看分布，再点击分组查看用户',html:'<p class="si-loading" role="status">正在加载完整人群…</p>',onAction:action=>{
   if(action==='all')return openObservedDrill(ctx,m,'全部选中用户 · '+entry,key,rows)
   const [dim,index]=action.split(':');const group=groups[dim]?.[Number(index)];if(group)openObservedDrill(ctx,m,group.label+' · '+group.rows.length+'位用户',key,group.rows)
  }})

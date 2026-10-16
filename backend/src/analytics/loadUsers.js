@@ -19,7 +19,9 @@ function resolveAudienceUserIds({ audience_ids, cohort_id }, owner) {
     if (audience.length > 50000) throw Object.assign(new Error('用户范围超过50000人'), {status:422})
   }
   if (cohort_id) {
-    if (!owner || !db.prepare('SELECT id FROM cohorts WHERE id=? AND created_by=? AND is_deleted=0').get(String(cohort_id),String(owner))) throw Object.assign(new Error('群组不存在或无权访问'),{status:404})
+    const cohort=owner&&db.prepare('SELECT id,kind FROM cohorts WHERE id=? AND created_by=? AND is_deleted=0').get(String(cohort_id),String(owner))
+    if (!cohort) throw Object.assign(new Error('群组不存在或无权访问'),{status:404})
+    if(cohort.kind==='dynamic')throw Object.assign(new Error('动态人群需先重新计算并使用固定名单'),{status:409})
     const members = db.prepare(`
       SELECT user_id FROM cohort_members WHERE cohort_id = ?
     `).all(String(cohort_id)).map(r => String(r.user_id).replace(/^user:/, ''))
@@ -122,9 +124,9 @@ function loadEventsForUsers(userIds, {
   if (Number.isFinite(asOf) && asOf !== Infinity) rangeEnd = Math.min(rangeEnd, asOf + 1)
 
   const needsProps = detail === 'light'
-    ? new Set(['module_viewed', 'strategy_started'])
+    ? new Set(['module_viewed', 'strategy_started', 'login_succeeded'])
     : new Set([
-      'module_viewed', 'strategy_started', 'strategy_result_generated',
+      'login_succeeded', 'page_viewed', 'page_visit_ended', 'module_viewed', 'strategy_started', 'strategy_result_generated',
       'signal_viewed', 'strategy_signal_viewed',
       'ranking_token_clicked', 'token_opened', 'callout_card_clicked', 'token_detail_viewed',
       'chip_analysis_viewed', 'chip_analysis_drilldown',
@@ -152,6 +154,18 @@ function loadEventsForUsers(userIds, {
       if (typeSet && !typeSet.has(type)) continue
       byUser.get(row.user_id).push({
         type,
+        login_type: props.login_type ?? null,
+        page_visit_id: props.page_visit_id ?? null,
+        page_name: props.page_name ?? null,
+        view_mode: props.view_mode ?? null,
+        navigation_source: props.navigation_source ?? null,
+        previous_page_visit_id: props.previous_page_visit_id ?? null,
+        previous_page_path: props.previous_page_path ?? null,
+        end_reason: props.end_reason ?? null,
+        viewport_width: props.viewport_width ?? null,
+        viewport_height: props.viewport_height ?? null,
+        page_url: props.page_path ?? props.page_url ?? props.path ?? null,
+        duration_ms: props.visible_duration_ms ?? null,
         t: row.client_ts,
         entry_source: row.first_entry_source ?? props.first_entry_source ?? null,
         strategy: props.strategy_type ?? null,

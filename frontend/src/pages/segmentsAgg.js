@@ -20,7 +20,7 @@ export function createSegmentsAggPage(ctx) {
       fetchPage: ({ offset, limit, q }) =>
         fetchDrillUsers({ kind: 'cached_list', params: { cache_id: cacheId, list_key: listKey }, offset, limit, q }),
       fetchTimeline: async (userId, host) => {
-        host.innerHTML = '<p class="a-muted">加载时间线…</p>'
+        host.innerHTML = '<p class="a-muted si-loading" role="status">加载时间线…</p>'
         try {
           const data = await fetchUserTimeline({ userId, limit: 200, cacheId })
           host.innerHTML = `<h2>${esc(data.user?.id || userId)}</h2><div class="a-timeline">${(data.events || []).map(e => {
@@ -41,7 +41,7 @@ export function createSegmentsAggPage(ctx) {
     }
     clearNative()
     const reqId = ++inflight
-    $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted">正在从 /api/metrics/segments 加载…</p></div>'
+    $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted si-loading" role="status">正在从 /api/metrics/segments 加载…</p></div>'
     const configKey = JSON.stringify(c)
     let metrics
     try {

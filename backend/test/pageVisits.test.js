@@ -28,3 +28,18 @@ test('first observed session outside period excluded; missing sessions split at 
 
 test('drilldown alone qualifies as effective analysis',()=>{const r=pageVisits([{id:'a',events:[e('page_view',2000,{page_url:'/a'}),e('chip_drilldown',3000)]}],opts);assert.equal(r.payload.entries[0].analysis_users,1);assert.equal(r.payload.token_no_analysis_users,0)})
 test('existing event page context produces URL records without claiming a single-page visit',()=>{const r=pageVisits([{id:'a',events:[e('app_open',2000,{page_url:'/cn'}),e('token',3000,{page_url:'/cn/token'}),e('token',4000,{page_url:'/cn/token'})]}],opts);assert.equal(r.payload.sessions,1);assert.equal(r.payload.context_sessions,1);assert.equal(r.payload.records.length,2);assert.equal(r.payload.records[0].record_source,'业务事件所在页面');assert.equal(r.payload.single_users,0)})
+test('automatic login restore remains passive while manual login counts as interaction',()=>{
+ const users=['auto_restore','manual'].map((login_type,i)=>({id:String(i),events:[e('page_view',2000,{page_url:'/cn/signals'}),e('login',3000,{login_type})]}))
+ const r=pageVisits(users,opts);assert.deepEqual(r.lists['url:single'],['0'])
+})
+test('PR26 float visits preserve context and use per-visit maximum duration within snapshot',()=>{
+ const r=pageVisits([{id:'a',events:[e('page_view',2000,{page_url:'/cn/signals',page_visit_id:'host',view_mode:'page',viewport_width:1400,viewport_height:900}),e('page_view',3000,{page_url:'/cn/solana/tokens/ABC',page_visit_id:'float',view_mode:'float',page_name:'token_detail',previous_page_visit_id:'host',previous_page_path:'/cn/signals',navigation_source:'internal_click',viewport_width:800,viewport_height:600}),e('page_end',4000,{page_visit_id:'float',duration_ms:100}),e('page_end',4500,{page_visit_id:'float',duration_ms:200}),e('page_end',6000000,{page_visit_id:'float',duration_ms:900})]}],opts)
+ const visit=r.payload.records.find(r=>r.page_visit_id==='float');assert.equal(visit.duration_ms,200);assert.equal(visit.view_mode,'float');assert.equal(visit.previous_page_visit_id,'host');assert.equal(visit.viewport_width,800);assert.equal(r.payload.records.find(r=>r.page_visit_id==='host').duration_ms,null)
+})
+test('visit dimensions use full records before detail cap and exclude business context',()=>{
+ const events=Array.from({length:1002},(_,i)=>e('page_view',2000+i,{page_url:'/cn/signals',page_visit_id:'p'+i,view_mode:i%2?'float':'page',navigation_source:'internal_click',viewport_width:400,viewport_height:800}))
+ const r=pageVisits([{id:'a',events},{id:'context',events:[e('token',2000,{page_url:'/cn/signals'})]}],opts).payload
+ assert.equal(r.records.length,1000);assert.equal(r.records_truncated,true)
+ assert.equal(r.visit_dimensions.view_mode.reduce((n,x)=>n+x.visits,0),1002)
+ assert.equal(r.visit_dimensions.viewport[0].value,'narrow');assert.equal(r.visit_dimensions.viewport[0].users,1);assert.equal(r.visit_dimensions.viewport[0].average_duration_ms,null)
+})

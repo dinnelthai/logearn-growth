@@ -56,7 +56,7 @@ export const EVENT_CONFIG = [
     type: 'login',
     label: '登录成功',
     source: 'auth.ts',
-    description: '登录成功；session 级去重，autoLogin 不上报',
+    description: '登录成功，login_type 区分 manual 主动登录与 auto_restore 自动恢复；历史缺字段保持未知',
   },
   {
     rawName: 'logout',
@@ -71,7 +71,7 @@ export const EVENT_CONFIG = [
     rawName: 'page_visit_ended',
     type: 'page_end',
     label: '页面停留记录',
-    source: 'pageVisits.ts',
+    source: 'navigation.ts',
     description: '页面隐藏、切换或关闭时上报累计可见停留时间，按 page_visit_id 关联',
   },
   {
@@ -79,7 +79,7 @@ export const EVENT_CONFIG = [
     type: 'page_view',
     label: '页面浏览',
     source: 'navigation.ts',
-    description: '页面浏览，properties 含 path 和路由名',
+    description: '页面呈现，properties 含 page_path/page_name、view_mode、navigation_source 及前次访问关联',
   },
   {
     rawName: 'token_detail_viewed',

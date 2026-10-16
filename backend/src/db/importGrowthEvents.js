@@ -282,13 +282,7 @@ function openSqlite() {
   delete require.cache[require.resolve('./connection')]
   const db = require('./connection')
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8')
-  schema.split(';').map((s) => s.trim()).filter(Boolean).forEach((stmt) => {
-    try {
-      db.exec(stmt)
-    } catch (err) {
-      if (!String(err.message || '').includes('already exists')) throw err
-    }
-  })
+  db.exec(schema)
   return db
 }
 

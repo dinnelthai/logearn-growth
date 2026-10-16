@@ -15,3 +15,14 @@
 上线验收：产品构建发布；确认现有 collect 接口允许新增的两个事件（对应 schema 已更新）；直接打开详情 URL、不登录离开、站内跳转、前进后退、隐藏再返回各一次，查 Hologres 的 event_name、page_visit_id 与停留记录。当前历史库缺少有效 page_viewed，无法回填历史 URL/真实停留。
 
 修正：历史业务事件信封的 page 字段已有页面路径。页面 URL 列表已接入该字段，连续相同上下文合并，并标记“业务事件所在页面”。此类记录不证明每次页面打开，不用于单页无操作判定；入口按首个已观测上下文统计。仅真实 page_viewed 会话可判断单页无操作。
+
+## PR #26 对接（2026-10-15）
+
+对照 logearn-web PR #26，提交 `939007bdf957dffdb02df1e33baf7853e2c21835`：
+
+- 页面路径优先读取 `properties.page_path`，兼容历史 page_url/path 和信封 page；page_name、view_mode（page/float）、navigation_source、previous_page_visit_id/previous_page_path 与 page_visit_id 一起保留。
+- 页面停留仍使用 `visible_duration_ms`，同一用户同一 page_visit_id 的检查点取最大累计值；排除快照之后的检查点。宿主页和浮窗各自按访问 ID 关联，缺失时长显示未知。end_reason 仅是生命周期信号，不证明退出。
+- login_succeeded 保留 login_type：manual / auto_restore；历史缺字段保持未知。登录成功总口径包含两类，用户时间线区分显示；自动恢复不作为单页无操作诊断的主动操作。
+- 远程行为路径、远程漏斗事件加载、SQLite 事件加载与前端原始数据归一保留新属性；viewport_width/viewport_height 来自事件发生时快照，页面记录使用自身尺寸。
+- 只读落库核验：page_viewed 243 条、page_visit_ended 498 条，均具备 page_path/page_visit_id/viewport_width；login_succeeded 中 auto_restore 25 条、manual 4 条、历史无类型 105 条。数量为核验时快照，并非固定预期。
+- 真实最近 24 小时路径查询及页面统计跑通：127 个路径用户、898 条页面/业务上下文记录，其中 198 条具备可关联时长；事件加载同时返回历史未知、auto_restore 和 manual 登录。

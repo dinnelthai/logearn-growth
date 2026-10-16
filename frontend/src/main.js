@@ -10,6 +10,7 @@ import {
 import * as echarts from "echarts/core";
 import { SVGRenderer } from "echarts/renderers";
 import "./styles.css";
+import "./polish.css";
 
 echarts.use([
   AriaComponent,

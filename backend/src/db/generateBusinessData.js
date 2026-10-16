@@ -57,12 +57,7 @@ function iso(t) { return new Date(t).toISOString() }
 
 function ensureSchema() {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8')
-  schema.split(';').map(s => s.trim()).filter(Boolean).forEach(stmt => {
-    try { db.exec(stmt) } catch (err) {
-      // Ignore duplicate-table noise; surface real errors
-      if (!String(err.message || '').includes('already exists')) throw err
-    }
-  })
+  db.exec(schema)
 }
 
 function clearFacts() {

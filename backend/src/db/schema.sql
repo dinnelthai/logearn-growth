@@ -10,7 +10,9 @@ CREATE TABLE IF NOT EXISTS cohorts (
   created_at  INTEGER NOT NULL,
   updated_at  INTEGER NOT NULL,
   created_by  TEXT,
-  is_deleted  INTEGER NOT NULL DEFAULT 0
+  is_deleted  INTEGER NOT NULL DEFAULT 0,
+  kind TEXT NOT NULL DEFAULT 'static',
+  rule_json TEXT
 );
 
 CREATE TABLE IF NOT EXISTS cohort_members (
@@ -245,12 +247,25 @@ CREATE TABLE IF NOT EXISTS growth_activities (
  id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, name TEXT NOT NULL,
  start_at INTEGER NOT NULL, cutoff_at INTEGER NOT NULL,
  baseline_snapshot TEXT NOT NULL, import_report TEXT NOT NULL,
+ goal TEXT NOT NULL DEFAULT 'activation',
+ target_metric TEXT,target_value REAL,
+ schedule_state TEXT NOT NULL DEFAULT 'active',schedule_version INTEGER NOT NULL DEFAULT 0,
+ baseline_frozen_at INTEGER,schedule_error TEXT,schedule_last_attempt_at INTEGER,
+ parent_id TEXT,archived_at INTEGER,tag_version INTEGER NOT NULL DEFAULT 0,
  settled_at INTEGER, settled_result TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_activity_owner ON growth_activities(owner_id,start_at);
 CREATE TABLE IF NOT EXISTS growth_activity_members (
  activity_id TEXT NOT NULL REFERENCES growth_activities(id),user_id TEXT NOT NULL,
  baseline_first_at INTEGER,PRIMARY KEY(activity_id,user_id)
+);
+CREATE TABLE IF NOT EXISTS growth_activity_planned_members (
+ activity_id TEXT NOT NULL REFERENCES growth_activities(id),user_id TEXT NOT NULL,
+ PRIMARY KEY(activity_id,user_id)
+);
+CREATE TABLE IF NOT EXISTS growth_activity_schedule_history (
+ id TEXT PRIMARY KEY,activity_id TEXT NOT NULL REFERENCES growth_activities(id),
+ action TEXT NOT NULL,actor_id TEXT NOT NULL,before_json TEXT,after_json TEXT NOT NULL,created_at INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS crm_kols (
@@ -281,3 +296,124 @@ CREATE TABLE IF NOT EXISTS crm_kol_members (
  kol_id TEXT NOT NULL REFERENCES crm_kols(id),user_id TEXT NOT NULL,
  PRIMARY KEY(kol_id,user_id)
 );
+
+CREATE TABLE IF NOT EXISTS user_followups (
+ id TEXT PRIMARY KEY,owner_id TEXT NOT NULL,user_key TEXT NOT NULL,
+ content TEXT NOT NULL,next_step TEXT NOT NULL DEFAULT '',due_at INTEGER,
+ status TEXT NOT NULL DEFAULT 'open',created_at INTEGER NOT NULL,completed_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_user_followup_owner ON user_followups(owner_id,status,due_at);
+CREATE INDEX IF NOT EXISTS idx_user_followup_user ON user_followups(owner_id,user_key,created_at);
+
+CREATE TABLE IF NOT EXISTS growth_activity_tags (
+ activity_id TEXT NOT NULL REFERENCES growth_activities(id),user_id TEXT NOT NULL,added_at INTEGER NOT NULL,
+ PRIMARY KEY(activity_id,user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_activity_tags_user ON growth_activity_tags(user_id,activity_id);
+
+CREATE TABLE IF NOT EXISTS operation_tasks (
+ id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, origin_job TEXT NOT NULL,
+ title TEXT NOT NULL,assignee TEXT NOT NULL DEFAULT '',priority TEXT NOT NULL DEFAULT 'P2',
+ status TEXT NOT NULL DEFAULT 'open',next_step TEXT NOT NULL DEFAULT '',due_at INTEGER,
+ source_json TEXT NOT NULL,members_json TEXT NOT NULL,baseline_json TEXT NOT NULL,
+ created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,completed_at INTEGER,
+ UNIQUE(owner_id,origin_job)
+);
+CREATE INDEX IF NOT EXISTS idx_operation_tasks_owner ON operation_tasks(owner_id,status,due_at);
+CREATE TABLE IF NOT EXISTS operation_task_history (
+ id TEXT PRIMARY KEY,task_id TEXT NOT NULL REFERENCES operation_tasks(id),
+ note TEXT NOT NULL DEFAULT '',before_json TEXT,after_json TEXT NOT NULL,created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_operation_task_history ON operation_task_history(task_id,created_at);
+
+CREATE TABLE IF NOT EXISTS crm_collaborations (
+ id TEXT PRIMARY KEY,kol_id TEXT NOT NULL REFERENCES crm_kols(id),owner_id TEXT NOT NULL,
+ name TEXT NOT NULL,start_at INTEGER NOT NULL,end_at INTEGER NOT NULL,
+ goal TEXT NOT NULL DEFAULT '',deliverables TEXT NOT NULL DEFAULT '',assignee TEXT NOT NULL DEFAULT '',
+ status TEXT NOT NULL DEFAULT 'planned',review TEXT NOT NULL DEFAULT '',
+ revision INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_collaboration_kol ON crm_collaborations(kol_id,created_at);
+CREATE TABLE IF NOT EXISTS crm_collaboration_activities (
+ collaboration_id TEXT NOT NULL REFERENCES crm_collaborations(id),activity_id TEXT NOT NULL REFERENCES growth_activities(id),
+ created_at INTEGER NOT NULL,PRIMARY KEY(collaboration_id,activity_id)
+);
+CREATE TABLE IF NOT EXISTS crm_collaboration_costs (
+ id TEXT PRIMARY KEY,collaboration_id TEXT NOT NULL REFERENCES crm_collaborations(id),
+ category TEXT NOT NULL,currency TEXT NOT NULL,amount_minor INTEGER NOT NULL,
+ state TEXT NOT NULL,description TEXT NOT NULL,occurred_at INTEGER NOT NULL,
+ created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_collaboration_costs ON crm_collaboration_costs(collaboration_id,created_at);
+CREATE TABLE IF NOT EXISTS crm_collaboration_history (
+ id TEXT PRIMARY KEY,collaboration_id TEXT NOT NULL REFERENCES crm_collaborations(id),
+ summary TEXT NOT NULL,before_json TEXT,after_json TEXT NOT NULL,created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS crm_collaboration_reports (
+ id TEXT PRIMARY KEY,collaboration_id TEXT NOT NULL REFERENCES crm_collaborations(id),
+ version INTEGER NOT NULL,report_json TEXT NOT NULL,created_at INTEGER NOT NULL,
+ UNIQUE(collaboration_id,version)
+);
+
+CREATE TABLE IF NOT EXISTS operation_comparison_reports (
+ id TEXT PRIMARY KEY,owner_id TEXT NOT NULL,name TEXT NOT NULL,
+ configuration_json TEXT NOT NULL,result_json TEXT NOT NULL,created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_comparison_report_owner ON operation_comparison_reports(owner_id,created_at);
+
+CREATE TABLE IF NOT EXISTS crm_collaboration_revenue (
+ id TEXT PRIMARY KEY,collaboration_id TEXT NOT NULL REFERENCES crm_collaborations(id),
+ currency TEXT NOT NULL,amount_minor INTEGER NOT NULL,kind TEXT NOT NULL,
+ state TEXT NOT NULL,reference TEXT NOT NULL,description TEXT NOT NULL,occurred_at INTEGER NOT NULL,
+ created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,
+ UNIQUE(collaboration_id,reference)
+);
+CREATE TABLE IF NOT EXISTS cohort_versions (
+ id TEXT PRIMARY KEY,cohort_id TEXT NOT NULL REFERENCES cohorts(id),origin_job TEXT,
+ members_json TEXT NOT NULL,context_json TEXT NOT NULL,created_at INTEGER NOT NULL,
+ UNIQUE(cohort_id,origin_job)
+);
+CREATE INDEX IF NOT EXISTS idx_cohort_versions ON cohort_versions(cohort_id,created_at);
+CREATE TABLE IF NOT EXISTS audience_tag_history (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,owner_id TEXT NOT NULL,tag_id TEXT NOT NULL,
+ user_id TEXT NOT NULL,action TEXT NOT NULL,created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_tag_history ON audience_tag_history(owner_id,created_at);
+CREATE TRIGGER IF NOT EXISTS audit_activity_tag_add AFTER INSERT ON growth_activity_tags BEGIN
+ INSERT INTO audience_tag_history(owner_id,tag_id,user_id,action,created_at) SELECT owner_id,'activity:'||id,NEW.user_id,'add',CAST(unixepoch('subsec')*1000 AS INTEGER) FROM growth_activities WHERE id=NEW.activity_id;
+END;
+CREATE TRIGGER IF NOT EXISTS audit_activity_tag_remove AFTER DELETE ON growth_activity_tags BEGIN
+ INSERT INTO audience_tag_history(owner_id,tag_id,user_id,action,created_at) SELECT owner_id,'activity:'||id,OLD.user_id,'remove',CAST(unixepoch('subsec')*1000 AS INTEGER) FROM growth_activities WHERE id=OLD.activity_id;
+END;
+CREATE TRIGGER IF NOT EXISTS audit_kol_tag_add AFTER INSERT ON crm_kol_members BEGIN
+ INSERT INTO audience_tag_history(owner_id,tag_id,user_id,action,created_at) SELECT owner_id,'kol:'||id,NEW.user_id,'add',CAST(unixepoch('subsec')*1000 AS INTEGER) FROM crm_kols WHERE id=NEW.kol_id;
+END;
+CREATE TRIGGER IF NOT EXISTS audit_kol_tag_remove AFTER DELETE ON crm_kol_members BEGIN
+ INSERT INTO audience_tag_history(owner_id,tag_id,user_id,action,created_at) SELECT owner_id,'kol:'||id,OLD.user_id,'remove',CAST(unixepoch('subsec')*1000 AS INTEGER) FROM crm_kols WHERE id=OLD.kol_id;
+END;
+CREATE TABLE IF NOT EXISTS promotion_links (
+ id TEXT PRIMARY KEY,owner_id TEXT NOT NULL,kol_id TEXT REFERENCES crm_kols(id),activity_id TEXT REFERENCES growth_activities(id),
+ name TEXT NOT NULL,url TEXT NOT NULL,created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_promotion_owner ON promotion_links(owner_id,created_at);
+
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_crm_kol_owner_pair ON crm_kols(id,owner_id);
+CREATE TABLE IF NOT EXISTS crm_kol_accounts (
+ kol_id TEXT NOT NULL,owner_id TEXT NOT NULL,account_id TEXT NOT NULL,
+ position INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL,
+ PRIMARY KEY(owner_id,account_id),UNIQUE(kol_id,account_id),
+ FOREIGN KEY(kol_id,owner_id) REFERENCES crm_kols(id,owner_id)
+);
+CREATE INDEX IF NOT EXISTS idx_kol_accounts_kol ON crm_kol_accounts(kol_id,position);
+DROP TRIGGER IF EXISTS audit_kol_account_add;
+DROP TRIGGER IF EXISTS audit_kol_account_change;
+CREATE TRIGGER IF NOT EXISTS audit_kol_accounts_add AFTER INSERT ON crm_kol_accounts BEGIN
+ INSERT INTO audience_tag_history(owner_id,tag_id,user_id,action,created_at) VALUES(NEW.owner_id,'kol:'||NEW.kol_id,NEW.account_id,'account_add',CAST(unixepoch('subsec')*1000 AS INTEGER));
+END;
+CREATE TRIGGER IF NOT EXISTS audit_kol_accounts_remove AFTER DELETE ON crm_kol_accounts BEGIN
+ INSERT INTO audience_tag_history(owner_id,tag_id,user_id,action,created_at) VALUES(OLD.owner_id,'kol:'||OLD.kol_id,OLD.account_id,'account_remove',CAST(unixepoch('subsec')*1000 AS INTEGER));
+END;
+CREATE TRIGGER IF NOT EXISTS legacy_kol_account_insert AFTER INSERT ON crm_kols WHEN NEW.account_id IS NOT NULL BEGIN
+ INSERT INTO crm_kol_accounts(kol_id,owner_id,account_id,position,created_at) VALUES(NEW.id,NEW.owner_id,NEW.account_id,0,NEW.created_at);
+END;

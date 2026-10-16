@@ -13,7 +13,7 @@ export function createTradeMonitorAggPage(ctx) {
   async function draw(c) {
     clearNative()
     const reqId = ++inflight
-    $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted">正在从 /api/metrics/trades 加载…</p></div>'
+    $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted si-loading" role="status">正在从 /api/metrics/trades 加载…</p></div>'
     let metrics
     try {
       metrics = await fetchTradeMetrics({ start: c.start, end: c.end, source: c.source || 'all' })

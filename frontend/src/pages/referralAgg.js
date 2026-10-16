@@ -16,7 +16,7 @@ export function createReferralAggPage(ctx) {
       fetchPage: ({ offset, limit, q }) =>
         fetchDrillUsers({ kind: 'cached_list', params: { cache_id: cacheId, list_key: listKey }, offset, limit, q }),
       fetchTimeline: async (userId, host) => {
-        host.innerHTML = '<p class="a-muted">加载时间线…</p>'
+        host.innerHTML = '<p class="a-muted si-loading" role="status">加载时间线…</p>'
         try {
           const data = await fetchUserTimeline({ userId, limit: 200 })
           host.innerHTML = `<h2>${esc(data.user?.id || userId)}</h2><div class="a-timeline">${(data.events || []).map(e => {
@@ -33,7 +33,7 @@ export function createReferralAggPage(ctx) {
   async function draw(c) {
     const reqId = ++inflight
     clearNative()
-    $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted">正在从 /api/metrics/referral 加载…</p></div>'
+    $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted si-loading" role="status">正在从 /api/metrics/referral 加载…</p></div>'
     let metrics
     try {
       metrics = await fetchReferralMetrics({ start: c.start, end: c.end, source: c.source || 'all' })

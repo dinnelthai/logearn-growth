@@ -78,7 +78,13 @@ const {ASSOCIATIONS}=require('../analytics/funnel')
 const {TYPE_TO_RAWS}=require('../analytics/eventMap')
 for(const kind of ['funnel','retention','segments','referral','paths','trade-monitor','channels']){
   router.post('/api/metrics/'+kind,wrap(async(req,res)=>{
-    const body={...req.body}
+    const body={...req.body};delete body.resolving_cohort_rule
+    let resolving=null
+    if(kind==='segments'&&body.resolving_cohort_id){
+      resolving=require('../db/connection').prepare('SELECT * FROM cohorts WHERE id=? AND created_by=? AND is_deleted=0 AND kind=?').get(String(body.resolving_cohort_id),String(req.user.user_id),'dynamic')
+      if(!resolving)return res.status(404).json({error:'动态人群不存在'})
+      const r=JSON.parse(resolving.rule_json);Object.assign(body,{filters:r.filters,pool:r.pool,source:r.source,tag_ids:r.tag_ids,tag_mode:r.tag_mode,audience_ids:r.base_ids,cohort_id:null,resolving_cohort_rule:resolving.rule_json})
+    }
     if(kind!=='segments'||body.start!=null||body.end!=null)Object.assign(body,range(body))
     if(kind==='channels')require('../analytics/channelInsights').validateChannels(body)
     if(kind==='paths')require('../analytics/pathInsights').validatePaths(body)
@@ -94,6 +100,7 @@ for(const kind of ['funnel','retention','segments','referral','paths','trade-mon
     if(kind==='retention'&&[body.initial||'chip',body.returning||'chip'].some(x=>!['daily_visit','logged_in_visit'].includes(x)&&!TYPE_TO_RAWS[x]))
       return res.status(400).json({error:'未知留存行为'})
     const s=body.snapshot_id?await remote.snapshot(String(body.snapshot_id)):await remote.status()
+    if(resolving){const r=JSON.parse(resolving.rule_json);body.end=Date.parse(s.as_of)+1;body.start=Math.floor((body.end+25200000)/86400000)*86400000-25200000-(r.days-1)*86400000}
     // Cohort state is local app state, but event membership is queried remotely.
     if(Array.isArray(body.audience_ids)&&body.audience_ids.length>50000)return res.status(422).json({error:'人群过大'})
     let audience=resolveAudienceUserIds(body,req.user.user_id)

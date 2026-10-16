@@ -55,3 +55,11 @@ test('KOL manual user roster is validated, persists as a tag, and can be cleared
   const cleared=await request('/'+p.id,'PATCH',{expected_updated_at:p.updated_at,user_ids:''})
   assert.equal(cleared.status,200);assert.deepEqual(cleared.body.kol.user_ids,[])
 })
+test('single-member tag changes validate accounts, owner and version without changing the rest of a profile',async()=>{
+ const p=(await request('','POST',{name:'单人标签操作',platform:'X',user_ids:['123']})).body.kol
+ assert.equal((await request('/'+p.id+'/members','PATCH',{action:'add',user_id:'456',expected_updated_at:p.updated_at},'b')).status,404)
+ assert.equal((await request('/'+p.id+'/members','PATCH',{action:'add',user_id:'999',expected_updated_at:p.updated_at})).status,400)
+ const added=await request('/'+p.id+'/members','PATCH',{action:'add',user_id:'456',expected_updated_at:p.updated_at});assert.equal(added.status,200);assert.deepEqual(added.body.kol.user_ids,['123','456']);assert.equal(added.body.kol.name,p.name)
+ assert.equal((await request('/'+p.id+'/members','PATCH',{action:'remove',user_id:'123',expected_updated_at:p.updated_at})).status,409)
+ const removed=await request('/'+p.id+'/members','PATCH',{action:'remove',user_id:'123',expected_updated_at:added.body.kol.updated_at});assert.equal(removed.status,200);assert.deepEqual(removed.body.kol.user_ids,['456'])
+})

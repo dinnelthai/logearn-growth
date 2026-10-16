@@ -3,6 +3,7 @@ const { randomUUID } = require('node:crypto')
 const db = require('../db/connection')
 const { validateCohortBody, cleanUserIds } = require('../middleware/validate')
 
+const {validateRule,publicCohort}=require('../analytics/cohortRules')
 const router = express.Router()
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -29,7 +30,7 @@ function insertMembers(cohortId, userIds, now) {
 // ── GET /api/cohorts ──────────────────────────────────────────────────────────
 router.get('/', (req, res) => {
   const rows = db.prepare(`
-    SELECT c.id, c.name, c.description, c.color, c.created_at, c.updated_at, c.created_by,
+    SELECT c.id, c.name, c.description, c.color, c.created_at, c.updated_at, c.created_by,c.kind,c.rule_json,
            COUNT(m.user_id) AS member_count
     FROM cohorts c
     LEFT JOIN cohort_members m ON m.cohort_id = c.id
@@ -37,7 +38,7 @@ router.get('/', (req, res) => {
     GROUP BY c.id
     ORDER BY c.created_at DESC
   `).all(String(req.user.user_id))
-  res.json({ cohorts: rows })
+  res.json({ cohorts: rows.map(publicCohort) })
 })
 
 // ── POST /api/cohorts ─────────────────────────────────────────────────────────
@@ -45,17 +46,21 @@ router.post('/', (req, res) => {
   const { errors, value } = validateCohortBody(req.body, { requireUsers: false })
   if (errors.length) return res.status(400).json({ errors })
 
+  const kind=req.body.kind||'static'
+  if(!['static','dynamic'].includes(kind))return res.status(400).json({error:'未知人群类型'})
+  const rule=kind==='dynamic'?validateRule(req.body.rule,req.user.user_id):null
+  if(kind==='dynamic'&&value.userIds?.length)return res.status(400).json({error:'动态人群保存条件，不能同时写入静态成员'})
   const id = `cohort_${randomUUID().replace(/-/g, '').slice(0, 16)}`
   const now = Date.now()
 
   db.prepare(`
-    INSERT INTO cohorts (id, name, description, color, created_at, updated_at, created_by)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(id, value.name, value.description, value.color, now, now, String(req.user.user_id))
+    INSERT INTO cohorts (id, name, description, color, created_at, updated_at, created_by,kind,rule_json)
+    VALUES (?, ?, ?, ?, ?, ?, ?,?,?)
+  `).run(id, value.name, value.description, value.color, now, now, String(req.user.user_id),kind,rule?JSON.stringify(rule):null)
 
   if (value.userIds?.length) insertMembers(id, value.userIds, now)
 
-  res.status(201).json({ cohort: { ...getCohort(id, req.user.user_id), member_count: memberCount(id), truncated: value.truncated } })
+  res.status(201).json({ cohort: { ...publicCohort({...getCohort(id, req.user.user_id), member_count: memberCount(id)}), truncated: value.truncated } })
 })
 
 // ── GET /api/cohorts/:id ──────────────────────────────────────────────────────
@@ -63,7 +68,7 @@ router.get('/:id', (req, res) => {
   const cohort = getCohort(req.params.id, req.user.user_id)
   if (!cohort) return res.status(404).json({ error: '群组不存在' })
   const members = db.prepare(`SELECT user_id FROM cohort_members WHERE cohort_id = ? ORDER BY added_at`).all(cohort.id)
-  res.json({ ...cohort, user_ids: members.map(m => m.user_id) })
+  res.json({ ...publicCohort(cohort), ...(cohort.kind==='dynamic'?{}:{user_ids: members.map(m => m.user_id)}) })
 })
 
 // ── PUT /api/cohorts/:id ──────────────────────────────────────────────────────
@@ -77,7 +82,7 @@ router.put('/:id', (req, res) => {
   db.prepare(`UPDATE cohorts SET name = ?, description = ?, color = ?, updated_at = ? WHERE id = ?`)
     .run(value.name, value.description, value.color, Date.now(), cohort.id)
 
-  res.json({ cohort: { ...getCohort(cohort.id, req.user.user_id), member_count: memberCount(cohort.id) } })
+  res.json({ cohort: { ...publicCohort({...getCohort(cohort.id, req.user.user_id), member_count: memberCount(cohort.id)}) } })
 })
 
 // ── POST /api/cohorts/:id/members ─────────────────────────────────────────────
@@ -85,6 +90,7 @@ router.post('/:id/members', (req, res) => {
   const cohort = getCohort(req.params.id, req.user.user_id)
   if (!cohort) return res.status(404).json({ error: '群组不存在' })
 
+  if(cohort.kind==='dynamic')return res.status(409).json({error:'动态人群不能手动编辑成员，请重新计算名单'})
   const { ids, truncated, invalid } = cleanUserIds(req.body?.user_ids)
   if (invalid) return res.status(400).json({ errors: ['user_ids 必须是字符串数组'] })
   if (!ids.length) return res.status(400).json({ errors: ['user_ids 不能为空'] })
@@ -100,6 +106,7 @@ router.delete('/:id/members', (req, res) => {
   const cohort = getCohort(req.params.id, req.user.user_id)
   if (!cohort) return res.status(404).json({ error: '群组不存在' })
 
+  if(cohort.kind==='dynamic')return res.status(409).json({error:'动态人群不能手动编辑成员，请重新计算名单'})
   const { ids, invalid } = cleanUserIds(req.body?.user_ids)
   if (invalid) return res.status(400).json({ errors: ['user_ids 必须是字符串数组'] })
 

@@ -32,3 +32,9 @@ test('business pool is the default and switching pools cannot reuse a failed res
  t.days.dataset.insight='pool';t.days.value='registered';t.days.onchange();await t.nodes['[data-apply-insights]'].onclick()
  expect(fetchSegmentsMetrics.mock.calls[1][0].pool).toBe('registered');expect(t.host.innerHTML).toContain('分群加载失败');expect(t.host.innerHTML).not.toContain('显示上次结果')
 })
+test('fixed audiences show their actual period and explicit audience selection includes signal-free users',async()=>{
+ fetchSegmentsMetrics.mockResolvedValue(metric);const t=setup();t.page.configureAudience({ids:['user:1']})
+ const start=1791300000000,end=1791400000000;await t.page.draw({source:'all',start,end,snapshotId:'fixed',audienceIds:['user:1']})
+ expect(fetchSegmentsMetrics.mock.calls[0][0]).toMatchObject({start,end,pool:'registered',audience_ids:['user:1']})
+ expect(t.host.innerHTML).toContain('人群统计期');expect(t.host.innerHTML.match(/<select data-insight="days"[^>]*>([\s\S]*?)<\/select>/)[1]).not.toContain('最近7天');expect(t.host.innerHTML).toContain('动态统计期')
+})

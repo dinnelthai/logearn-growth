@@ -18,18 +18,22 @@ function myMonitorLocal(db,{start,end,asOf,historyComplete=false}) {
  MIN(client_ts) FILTER(WHERE event_name='page_viewed') AS first_page,
  MIN(client_ts) FILTER(WHERE event_name IN (${raws})) AS first_chip,
  MIN(client_ts) FILTER(WHERE event_name='login_succeeded' AND NULLIF(TRIM(user_id),'') IS NOT NULL) AS first_login,
+ MIN(client_ts) FILTER(WHERE event_name='login_succeeded' AND NULLIF(TRIM(user_id),'') IS NOT NULL AND json_extract(properties,'$.login_type')='manual') AS first_manual_login,
  MAX(event_name='login_button_clicked') AS has_start,
  MAX(event_name='free_trial_started' AND NULLIF(TRIM(user_id),'') IS NOT NULL) AS has_trial,
  json_group_array(client_ts) FILTER(WHERE event_name='page_viewed' AND client_ts>=?) AS pages,
  json_group_array(client_ts) FILTER(WHERE event_name='login_succeeded' AND NULLIF(TRIM(user_id),'') IS NOT NULL AND client_ts>=?) AS logins,
+ json_group_array(client_ts) FILTER(WHERE event_name='login_succeeded' AND NULLIF(TRIM(user_id),'') IS NOT NULL AND json_extract(properties,'$.login_type')='manual' AND client_ts>=?) AS manual_logins,
+ json_group_array(client_ts) FILTER(WHERE event_name='login_succeeded' AND NULLIF(TRIM(user_id),'') IS NOT NULL AND json_extract(properties,'$.login_type')='auto_restore' AND client_ts>=?) AS auto_logins,
+ json_group_array(client_ts) FILTER(WHERE event_name='login_succeeded' AND NULLIF(TRIM(user_id),'') IS NOT NULL AND COALESCE(json_extract(properties,'$.login_type'),'') NOT IN ('manual','auto_restore') AND client_ts>=?) AS unknown_logins,
  json_group_array(client_ts) FILTER(WHERE event_name='login_button_clicked' AND client_ts>=?) AS starts,
  json_group_array(client_ts) FILTER(WHERE event_name='free_trial_started' AND NULLIF(TRIM(user_id),'') IS NOT NULL AND client_ts>=?) AS trials,
  json_group_array(client_ts) FILTER(WHERE event_name IN (${raws}) AND client_ts>=?) AS analyses
  FROM clean GROUP BY user_key LIMIT 80001`
- const rows=db.prepare(sql).all(asOf,asOf,start,start,start,start,start)
+ const rows=db.prepare(sql).all(asOf,asOf,start,start,start,start,start,start,start,start)
  if(rows.length>80000)throw Object.assign(new Error('监控用户超过分析上限'),{status:422})
- const records=rows.map(r=>({...r,...Object.fromEntries(['pages','logins','starts','trials','analyses'].map(k=>[k,JSON.parse(r[k])]))}))
- const availability={pages:records.some(r=>r.first_page!=null),login:records.some(r=>r.first_login!=null),starts:records.some(r=>r.has_start),trial:records.some(r=>r.has_trial),analysis:records.some(r=>r.first_chip!=null)}
+ const records=rows.map(r=>({...r,...Object.fromEntries(['pages','logins','manual_logins','auto_logins','unknown_logins','starts','trials','analyses'].map(k=>[k,JSON.parse(r[k])]))}))
+ const availability={pages:records.some(r=>r.first_page!=null),login:records.some(r=>r.first_login!=null),manual_login:records.some(r=>r.first_manual_login!=null),starts:records.some(r=>r.has_start),trial:records.some(r=>r.has_trial),analysis:records.some(r=>r.first_chip!=null)}
  return computeMyMonitor(records,{start,end,asOf,historyComplete,availability})
 }
 module.exports={myMonitorLocal}

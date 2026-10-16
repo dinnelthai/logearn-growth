@@ -33,7 +33,7 @@ export function createPathsAggPage(ctx) {
           q,
         }),
       fetchTimeline: async (userId, host) => {
-        host.innerHTML = '<p class="a-muted">加载时间线…</p>'
+        host.innerHTML = '<p class="a-muted si-loading" role="status">加载时间线…</p>'
         try {
           const data = await fetchUserTimeline({ userId, limit: 200 })
           host.innerHTML = `<h2>${esc(data.user?.id || userId)}</h2><div class="a-timeline">${(data.events || []).map(e => {
@@ -57,7 +57,7 @@ export function createPathsAggPage(ctx) {
       return
     }
 
-    $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted">正在从 /api/metrics/paths 加载…</p></div>'
+    $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted si-loading" role="status">正在从 /api/metrics/paths 加载…</p></div>'
     let metrics
     try {
       metrics = await fetchPathsMetrics({
