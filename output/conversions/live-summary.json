@@ -1,0 +1,88 @@
+{
+  "cutoff": "2026-10-16T15:05:54.808Z",
+  "users": 175,
+  "events": 7858,
+  "login": {
+    "breakdown": [
+      {
+        "type": "manual",
+        "events": 39,
+        "users": 36,
+        "list_key": "login:evidence:manual"
+      },
+      {
+        "type": "auto_restore",
+        "events": 219,
+        "users": 77,
+        "list_key": "login:evidence:auto_restore"
+      },
+      {
+        "type": "unknown",
+        "events": 105,
+        "users": 88,
+        "list_key": "login:evidence:unknown"
+      }
+    ],
+    "attempts_available": false,
+    "stage_available": false
+  },
+  "invite": {
+    "available": false,
+    "flows": 0,
+    "steps": [
+      {
+        "key": "visited",
+        "label": "邀请链接访问",
+        "available": false,
+        "flows": 0,
+        "users": 0,
+        "list_key": "invite:step:visited"
+      },
+      {
+        "key": "validated",
+        "label": "邀请校验有效",
+        "available": false,
+        "flows": 0,
+        "users": 0,
+        "list_key": "invite:step:validated"
+      },
+      {
+        "key": "account_confirmed",
+        "label": "账号确认（已有登录态 / 登录成功）",
+        "available": false,
+        "flows": 0,
+        "users": 0,
+        "list_key": "invite:step:account_confirmed"
+      },
+      {
+        "key": "bound",
+        "label": "本次正式绑定",
+        "available": false,
+        "flows": 0,
+        "users": 0,
+        "list_key": "invite:step:bound"
+      },
+      {
+        "key": "analysed",
+        "label": "绑定后分析",
+        "available": false,
+        "flows": 0,
+        "users": 0,
+        "list_key": "invite:step:analysed"
+      }
+    ],
+    "independent_facts": {
+      "available": true,
+      "relations": 15,
+      "users": 15,
+      "list_key": "invite:facts",
+      "error": null,
+      "quality": {
+        "invalid": 4487,
+        "conflicts": 0,
+        "cycles": 0
+      },
+      "ignores_link_and_campaign_filters": true
+    }
+  }
+}

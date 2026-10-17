@@ -91,3 +91,5 @@ export function fetchMyMonitorMetrics({start,end,snapshot_id}) {
  if(snapshot_id)qs.set('snapshot_id',snapshot_id)
  return metricsFetch('/api/metrics/my-monitor?'+qs)
 }
+
+export function fetchConversionMetrics(scene,body){if(!['login','invite'].includes(scene))throw new Error('未知转化场景');return metricsFetch('/api/metrics/'+scene+'-conversion',{method:'POST',body:JSON.stringify(body)})}

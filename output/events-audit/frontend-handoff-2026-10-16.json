@@ -1,0 +1,285 @@
+{
+  "cutoff": "2026-10-16T08:17:33.637Z",
+  "scope": "All observed valid events, dashboard identity and dedup rules; not proof of complete collection",
+  "events": [
+    {
+      "event_name": "signal_viewed",
+      "events": "18887",
+      "users": "99",
+      "latest": "1792138637830",
+      "token_visit": "0",
+      "page_visit": "58",
+      "entry_module": "0",
+      "viewport": "5375"
+    },
+    {
+      "event_name": "token_detail_viewed",
+      "events": "13447",
+      "users": "224",
+      "latest": "1792138626228",
+      "token_visit": "13447",
+      "page_visit": "0",
+      "entry_module": "13447",
+      "viewport": "1674"
+    },
+    {
+      "event_name": "chip_analysis_drilldown",
+      "events": "6970",
+      "users": "77",
+      "latest": "1792138624776",
+      "token_visit": "0",
+      "page_visit": "870",
+      "entry_module": "0",
+      "viewport": "870"
+    },
+    {
+      "event_name": "page_visit_ended",
+      "events": "6526",
+      "users": "101",
+      "latest": "1792138644057",
+      "token_visit": "0",
+      "page_visit": "6526",
+      "entry_module": "0",
+      "viewport": "6526"
+    },
+    {
+      "event_name": "ranking_token_clicked",
+      "events": "6103",
+      "users": "158",
+      "latest": "1792138603984",
+      "token_visit": "6103",
+      "page_visit": "32",
+      "entry_module": "6103",
+      "viewport": "696"
+    },
+    {
+      "event_name": "page_viewed",
+      "events": "3068",
+      "users": "108",
+      "latest": "1792138626444",
+      "token_visit": "1668",
+      "page_visit": "3068",
+      "entry_module": "0",
+      "viewport": "3068"
+    },
+    {
+      "event_name": "trade_succeeded",
+      "events": "757",
+      "users": "21",
+      "latest": "1791990971718",
+      "token_visit": "0",
+      "page_visit": "0",
+      "entry_module": "0",
+      "viewport": "0"
+    },
+    {
+      "event_name": "app_opened_unauthenticated",
+      "events": "754",
+      "users": "339",
+      "latest": "1792138121931",
+      "token_visit": "0",
+      "page_visit": "0",
+      "entry_module": "0",
+      "viewport": "106"
+    },
+    {
+      "event_name": "callout_card_clicked",
+      "events": "545",
+      "users": "26",
+      "latest": "1792136086321",
+      "token_visit": "545",
+      "page_visit": "0",
+      "entry_module": "545",
+      "viewport": "11"
+    },
+    {
+      "event_name": "trade_submitted",
+      "events": "537",
+      "users": "24",
+      "latest": "1792048630657",
+      "token_visit": "0",
+      "page_visit": "0",
+      "entry_module": "0",
+      "viewport": "0"
+    },
+    {
+      "event_name": "first_visit_captured",
+      "events": "345",
+      "users": "340",
+      "latest": "1792138121930",
+      "token_visit": "0",
+      "page_visit": "0",
+      "entry_module": "0",
+      "viewport": "42"
+    },
+    {
+      "event_name": "login_succeeded",
+      "events": "325",
+      "users": "126",
+      "latest": "1792138072477",
+      "token_visit": "0",
+      "page_visit": "31",
+      "entry_module": "0",
+      "viewport": "220"
+    },
+    {
+      "event_name": "strategy_started",
+      "events": "226",
+      "users": "29",
+      "latest": "1792138268429",
+      "token_visit": "0",
+      "page_visit": "54",
+      "entry_module": "0",
+      "viewport": "54"
+    },
+    {
+      "event_name": "login_button_clicked",
+      "events": "196",
+      "users": "85",
+      "latest": "1792134586064",
+      "token_visit": "0",
+      "page_visit": "109",
+      "entry_module": "0",
+      "viewport": "109"
+    },
+    {
+      "event_name": "trade_failed",
+      "events": "121",
+      "users": "9",
+      "latest": "1792048637063",
+      "token_visit": "0",
+      "page_visit": "0",
+      "entry_module": "0",
+      "viewport": "0"
+    },
+    {
+      "event_name": "strategy_stopped",
+      "events": "116",
+      "users": "28",
+      "latest": "1792137187655",
+      "token_visit": "0",
+      "page_visit": "28",
+      "entry_module": "0",
+      "viewport": "28"
+    },
+    {
+      "event_name": "language_changed",
+      "events": "60",
+      "users": "24",
+      "latest": "1792133535998",
+      "token_visit": "0",
+      "page_visit": "6",
+      "entry_module": "0",
+      "viewport": "6"
+    },
+    {
+      "event_name": "limit_order_created",
+      "events": "33",
+      "users": "10",
+      "latest": "1791991079485",
+      "token_visit": "0",
+      "page_visit": "0",
+      "entry_module": "0",
+      "viewport": "0"
+    },
+    {
+      "event_name": "invite_page_entered",
+      "events": "18",
+      "users": "14",
+      "latest": "1792040075514",
+      "token_visit": "0",
+      "page_visit": "0",
+      "entry_module": "0",
+      "viewport": "0"
+    }
+  ],
+  "login": [
+    {
+      "login_type": "unknown",
+      "events": "105",
+      "users": "88"
+    },
+    {
+      "login_type": "auto_restore",
+      "events": "188",
+      "users": "70"
+    },
+    {
+      "login_type": "manual",
+      "events": "32",
+      "users": "30"
+    }
+  ],
+  "dimensions": [
+    {
+      "event_name": "page_viewed",
+      "viewport_type": "number",
+      "duration_type": null,
+      "events": "3068"
+    },
+    {
+      "event_name": "page_visit_ended",
+      "viewport_type": "number",
+      "duration_type": "number",
+      "events": "6526"
+    }
+  ],
+  "trades": [
+    {
+      "event_name": "trade_failed",
+      "events": "121",
+      "with_attempt": "49",
+      "with_trade_id": "121"
+    },
+    {
+      "event_name": "trade_succeeded",
+      "events": "757",
+      "with_attempt": "414",
+      "with_trade_id": "757"
+    },
+    {
+      "event_name": "trade_submitted",
+      "events": "537",
+      "with_attempt": "537",
+      "with_trade_id": "0"
+    }
+  ],
+  "modules": [
+    {
+      "event_name": "callout_card_clicked",
+      "list_type": null,
+      "entry_module": "callouts",
+      "events": "545"
+    },
+    {
+      "event_name": "ranking_token_clicked",
+      "list_type": "signals",
+      "entry_module": "signals",
+      "events": "1798"
+    },
+    {
+      "event_name": "ranking_token_clicked",
+      "list_type": "trending",
+      "entry_module": "popular",
+      "events": "1479"
+    },
+    {
+      "event_name": "ranking_token_clicked",
+      "list_type": "search",
+      "entry_module": "unknown",
+      "events": "1225"
+    },
+    {
+      "event_name": "ranking_token_clicked",
+      "list_type": "strategy_pnl",
+      "entry_module": "unknown",
+      "events": "862"
+    },
+    {
+      "event_name": "ranking_token_clicked",
+      "list_type": "trenches",
+      "entry_module": "unknown",
+      "events": "739"
+    }
+  ]
+}

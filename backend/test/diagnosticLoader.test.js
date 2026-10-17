@@ -1,0 +1,7 @@
+const {test}=require('node:test'),assert=require('node:assert/strict')
+const remote=require('../src/data/hologres')
+test('path loader projects safe diagnostic properties, preserves origin context and keeps diagnostics out of business paths',async()=>{
+ const query=remote.query;let sql,params
+ remote.query=async(s,p)=>{sql=s;params=p;return [{user_key:'user:one',event_id:'e',event_name:'analysis_request_finished',client_ts:2000,session_id:'s',source:'x',device:'desktop',app_version:'v1',page:'/new',properties:{analysis_request_id:'r',outcome:'success',page_path:'/old',page_visit_id:'origin',chain:'3',viewport_width:1400,diagnostics_version:'2026-10-16.v1'}},{user_key:'user:one',event_id:'p',event_name:'page_engaged',client_ts:3000,session_id:'s',properties:{page_path:'/old',page_visit_id:'origin',visible_duration_ms:10000}}]}
+ try{const users=await require('../src/data/behaviorPaths').pathUsers({snapshot_cutoff:'2026-10-16T00:00:00Z',as_of:'2026-10-16T00:00:00Z'},{start:0,end:10000});assert.equal(users[0].events[0].page_url,'/old');assert.equal(users[0].events[0].diagnostic,true);assert.equal(users[0].events[0].properties.analysis_request_id,'r');assert.equal(users[0].events[1].type,'page_engaged');assert.equal(users[0].events[1].duration_ms,10000);assert(sql.includes('jsonb_strip_nulls'));assert(!sql.includes("e.properties->'wallet_address'"));assert(params[6].includes('login_attempt_finished'));assert(params[6].includes('page_content_load_finished'))}finally{remote.query=query}
+})

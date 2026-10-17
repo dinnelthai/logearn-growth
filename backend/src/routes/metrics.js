@@ -459,7 +459,7 @@ router.post('/retention', (req, res) => {
   } = req.body ?? {}
   const { start, end } = range
   const asOf = readAsOf(end)
-  const periods = Number(maxDailyPeriods) || 7
+  let periods;try{periods=require('../analytics/retentionCurves').validateRetention({maxDailyPeriods})}catch(e){return res.status(400).json({error:e.message})}
 
   const loaded = loadNormalizedUsers({
     types: [...new Set([initial, returning])],
@@ -473,55 +473,10 @@ router.post('/retention', (req, res) => {
     endExtraMs: Math.max(0, asOf - end) + 8 * 86400000,
   })
 
-  const { retainedUsers: retainedFn, buildCohorts, toDateStr } = require('../analytics/retention')
-  const cohorts = buildCohorts(loaded.users, {
-    startAt: start, endAt: end, asOf, initialEvent: initial, sourceFilter: source || 'all',
-  }).map(co => ({ ...co, returningEvent: returning, asOf }))
-
-  const lists = {}
-  const daily = []
-  for (const co of cohorts) {
-    if (!co.users.length) continue
-    const cohort_date = toDateStr(co.start)
-    lists[`cohort:${cohort_date}`] = co.users.map(u => u.id)
-    const periodRows = []
-    for (let p = 1; p <= periods; p++) {
-      const observed = co.start + p * 86400000 <= asOf
-      const complete = co.start + (p + 1) * 86400000 <= asOf
-      if (!observed) {
-        periodRows.push({ period: p, retained_users: null, retention_rate: null, complete: false })
-        continue
-      }
-      const dailyIds = retainedFn(co, p, false, returning).map(u => u.id)
-      const contIds = retainedFn(co, p, true, returning).map(u => u.id)
-      lists[`retained:${cohort_date}:D${p}`] = dailyIds
-      lists[`retained:${cohort_date}:C${p}`] = contIds
-      periodRows.push({
-        period: p,
-        retained_users: dailyIds.length,
-        retention_rate: co.users.length ? dailyIds.length / co.users.length : 0,
-        continuous_retained_users: contIds.length,
-        continuous_retention_rate: co.users.length ? contIds.length / co.users.length : 0,
-        complete,
-      })
-    }
-    daily.push({
-      cohort_date,
-      cohort_start: co.start,
-      cohort_size: co.users.length,
-      periods: periodRows,
-    })
-  }
-
-  const cache_id = cachePut({ kind: 'retention', lists, meta: { start, end, initial, returning } })
-
-  res.json({
-    daily,
-    truncated: loaded.truncated,
-    candidate_count: loaded.candidate_count,
-    coverage: coverageFor(start, end),
-    drill: { cache_id },
-  })
+  if(loaded.truncated)return res.status(422).json({error:'留存候选数据超过预算，请缩小入组日期或人群，未返回截断指标'})
+  const result=require('../analytics/retentionCurves').computeRetentionCurves(loaded.users,{start,end,asOf,initial,returning,source,maxDailyPeriods:periods})
+  const cache_id=cachePut({...result,owner:req.user.user_id,kind:'retention',meta:{start,end,initial,returning}})
+  res.json({...result.payload,truncated:loaded.truncated,candidate_count:loaded.candidate_count,coverage:coverageFor(start,end),drill:{cache_id}})
 })
 
 /** POST /api/metrics/segments */

@@ -22,7 +22,10 @@ test('token list and unrelated URLs are not merged into token details',()=>{
 test('sanitize URL credentials, queries and fragments',()=>{assert.equal(safePage('https://name:secret@x.test/a?key=secret#private'),'https://x.test/a');assert.equal(safePage('/en/signals?a=1'),'/en/signals');assert.equal(safePage('javascript:alert(1)'),null)})
 test('single page with passive token rendering is an operational lead; chip is not',()=>{const r=pageVisits([{id:'anonymous:a',events:[e('page_view',2000,{page_url:'/token'}),e('token',3000)]},{id:'user:b',events:[e('page_view',2000,{page_url:'/token'}),e('chip',3000)]}],opts);assert.equal(r.payload.single_users,1);assert.equal(r.payload.token_no_analysis_users,1);assert.equal(r.payload.entries[0].analysis_users,1)})
 test('only actual visible duration checkpoints are used and max avoids double counting',()=>{const r=pageVisits([{id:'a',events:[e('page_view',2000,{page_url:'/a',page_visit_id:'p'}),e('page_end',3000,{page_visit_id:'p',duration_ms:100}),e('page_end',4000,{page_visit_id:'p',duration_ms:200})]}],opts);assert.equal(r.payload.records[0].duration_ms,200);assert.equal(r.payload.single_users,1);assert.equal(r.payload.sessions,1)})
-test('recent or window-boundary sessions are not declared single-page idle',()=>{for(const events of [[e('page_view',2900000,{page_url:'/a'})],[e('page_view',2000,{page_url:'/a'}),e('chip',3100000)]]){const r=pageVisits([{id:'a',events}],{...opts,asOf:3000000});assert.equal(r.payload.single_users,0)}})
+test('recent or window-boundary segments are not declared single-page idle',()=>{
+ const recent=pageVisits([{id:'a',events:[e('page_view',2900000,{page_url:'/a'})]}],{...opts,asOf:3000000});assert.equal(recent.payload.single_users,0)
+ const boundary=pageVisits([{id:'a',events:[e('page_view',2900000,{page_url:'/a'}),e('chip',3100000)]}],opts);assert.equal(boundary.payload.single_users,0)
+})
 test('missing URL is coverage gap, never classified idle',()=>{const r=pageVisits([{id:'a',events:[e('token',2000)]}],opts);assert.equal(r.payload.missing_sessions,1);assert.equal(r.payload.sessions,0)})
 test('first observed session outside period excluded; missing sessions split at thirty minutes',()=>{const r=pageVisits([{id:'a',events:[e('page_view',0,{page_url:'/old',session_id:null}),e('page_view',1800001,{page_url:'/new',session_id:null})]}],opts);assert.equal(r.payload.sessions,1);assert.equal(r.payload.entries[0].url,'/new')})
 
@@ -42,4 +45,20 @@ test('visit dimensions use full records before detail cap and exclude business c
  assert.equal(r.records.length,1000);assert.equal(r.records_truncated,true)
  assert.equal(r.visit_dimensions.view_mode.reduce((n,x)=>n+x.visits,0),1002)
  assert.equal(r.visit_dimensions.viewport[0].value,'narrow');assert.equal(r.visit_dimensions.viewport[0].users,1);assert.equal(r.visit_dimensions.viewport[0].average_duration_ms,null)
+})
+
+test('first screen uses one visit per session, max checkpoint, valid zero and excludes unknown from averages',()=>{
+ const users=[{id:'a',events:[e('app_open',1500,{page_url:'/'}),e('page_view',2000,{page_url:'/',page_visit_id:'first',view_mode:'page'}),e('page_end',3000,{page_visit_id:'first',duration_ms:5000}),e('page_view',4000,{page_url:'/second',page_visit_id:'second'}),e('page_end',5000,{page_visit_id:'second',duration_ms:90000}),e('page_end',6000,{page_visit_id:'first',duration_ms:9000}),e('page_end',6000000,{page_visit_id:'first',duration_ms:99999})]},
+ {id:'zero',events:[e('page_view',2000,{page_url:'/',page_visit_id:'z'}),e('page_end',3000,{page_visit_id:'z',duration_ms:0})]},
+ {id:'unknown',events:[e('page_view',2000,{page_url:'/',page_visit_id:'missing'})]},
+ {id:'context',events:[e('token',2000,{page_url:'/'})]}]
+ const r=pageVisits(users,opts).payload
+ assert.deepEqual(r.first_screen,{sessions:4,duration_sessions:2,unknown_sessions:2,average_duration_ms:4500,median_duration_ms:4500})
+ assert.equal(r.entries.find(x=>x.url==='/').first_screen.duration_sessions,2)
+ assert.equal(r.records.find(x=>x.page_visit_id==='second').is_first_screen,false)
+ assert.equal(r.records.find(x=>x.page_visit_id==='first').is_first_screen,true)
+})
+test('first screen counts multiple sessions of one user and preserves unknown with no checkpoint',()=>{
+ const r=pageVisits([{id:'a',events:[e('page_view',2000,{page_url:'/',page_visit_id:'p1',session_id:'one'}),e('page_view',3000,{page_url:'/',page_visit_id:'p2',session_id:'two'})]}],opts).payload
+ assert.equal(r.first_screen.sessions,2);assert.equal(r.first_screen.duration_sessions,0);assert.equal(r.first_screen.average_duration_ms,null);assert.equal(r.first_screen.median_duration_ms,null)
 })

@@ -82,20 +82,20 @@ function eventCondition(type, namesParam) {
   if(moduleTypes.includes(type))return `e.event_name=ANY($${namesParam}::text[]) AND e.properties->>'module'='${type}'`
   return `e.event_name=ANY($${namesParam}::text[])`
 }
-async function retentionUsers(s,{initial='chip',returning='chip',start,end,source='all',audience=null}){
+async function retentionUsers(s,{initial='chip',returning='chip',start,end,source='all',audience=null,maxDailyPeriods=7}){
   const rows=await remote.query(`${remote.eventsCte()}, grouped AS(
     SELECT e.user_key,
       (ARRAY_AGG(e.first_entry_source ORDER BY e.client_ts,e.event_id) FILTER(WHERE e.first_entry_source IS NOT NULL))[1] AS source,
       MIN(e.client_ts) FILTER(WHERE ${eventCondition(initial,7)}) AS first_t,
       ARRAY_AGG(DISTINCT FLOOR((e.client_ts+25200000)/86400000.0)::bigint)
-        FILTER(WHERE e.client_ts >= $2 AND (${eventCondition(returning,8)})) AS days
+        FILTER(WHERE e.client_ts >= $2 AND e.client_ts < $9 AND (${eventCondition(returning,8)})) AS days
     FROM e WHERE e.client_ts <= $4 AND $7::text[] IS NOT NULL AND $8::text[] IS NOT NULL
       AND ($6::text[] IS NULL OR e.user_key=ANY($6)) GROUP BY e.user_key)
     SELECT * FROM grouped WHERE first_t >= $2 AND first_t < $3 AND ($5::text='all' OR source=$5) LIMIT 80001`,
-    [s.snapshot_cutoff,start,end,Date.parse(s.as_of),source,audience,rawNamesForTypes([initial]),rawNamesForTypes([returning])])
+    [s.snapshot_cutoff,start,end,Date.parse(s.as_of),source,audience,rawNamesForTypes([initial]),rawNamesForTypes([returning]),Math.min(Date.parse(s.as_of)+1,Math.floor((end-1+25200000)/86400000)*86400000-25200000+(Number(maxDailyPeriods)+1)*86400000)])
   if(rows.length>80000||Buffer.byteLength(JSON.stringify(rows))>48*1024*1024)throw Object.assign(new Error('留存数据超过预算，请缩小范围'),{status:422})
   return rows.map(r=>({id:r.user_key,source:r.source||'未知',first_analysis_at:initial==='chip'?Number(r.first_t):null,
-    events:[{type:initial,t:Number(r.first_t),entry_source:r.source},...(r.days||[]).map(d=>({type:returning,t:Number(d)*86400000-25200000}))]}))
+    events:[{type:initial,t:Number(r.first_t),entry_source:r.source},...(r.days||[]).filter(d=>Number(d)>Math.floor((Number(r.first_t)+25200000)/86400000)).map(d=>({type:returning,t:Number(d)*86400000-25200000}))]}))
 }
 module.exports.retentionUsers=retentionUsers
 

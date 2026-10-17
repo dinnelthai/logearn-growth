@@ -76,7 +76,7 @@ router.post('/api/analytics/audience',wrap(async(req,res)=>{
 }))
 const {ASSOCIATIONS}=require('../analytics/funnel')
 const {TYPE_TO_RAWS}=require('../analytics/eventMap')
-for(const kind of ['funnel','retention','segments','referral','paths','trade-monitor','channels']){
+for(const kind of ['funnel','retention','segments','referral','paths','trade-monitor','channels','login-conversion','invite-conversion']){
   router.post('/api/metrics/'+kind,wrap(async(req,res)=>{
     const body={...req.body};delete body.resolving_cohort_rule
     let resolving=null
@@ -86,6 +86,7 @@ for(const kind of ['funnel','retention','segments','referral','paths','trade-mon
       const r=JSON.parse(resolving.rule_json);Object.assign(body,{filters:r.filters,pool:r.pool,source:r.source,tag_ids:r.tag_ids,tag_mode:r.tag_mode,audience_ids:r.base_ids,cohort_id:null,resolving_cohort_rule:resolving.rule_json})
     }
     if(kind!=='segments'||body.start!=null||body.end!=null)Object.assign(body,range(body))
+    if(['login-conversion','invite-conversion'].includes(kind))require('../analytics/loginConversion').validateConversion(body)
     if(kind==='channels')require('../analytics/channelInsights').validateChannels(body)
     if(kind==='paths')require('../analytics/pathInsights').validatePaths(body)
     if(kind==='trade-monitor')require('../analytics/tradeInsights').validateTrade(body)
@@ -97,6 +98,7 @@ for(const kind of ['funnel','retention','segments','referral','paths','trade-mon
       if(!Object.hasOwn(ASSOCIATIONS,body.association||'user'))return res.status(400).json({error:'未知关联模式'})
       if(body.hours!=null&&![1,24,72].includes(Number(body.hours)))return res.status(400).json({error:'转化窗口仅支持1/24/72小时'})
     }
+    if(kind==='retention')require('../analytics/retentionCurves').validateRetention(body)
     if(kind==='retention'&&[body.initial||'chip',body.returning||'chip'].some(x=>!['daily_visit','logged_in_visit'].includes(x)&&!TYPE_TO_RAWS[x]))
       return res.status(400).json({error:'未知留存行为'})
     const s=body.snapshot_id?await remote.snapshot(String(body.snapshot_id)):await remote.status()
@@ -135,7 +137,7 @@ router.post('/api/drill/users', wrap(async (req, res) => {
   const {kind, params = {}, q = ''} = req.body || {}
   if(kind==='cached_list'){
     const {j,value}=jobs.result(params.cache_id,req.user.user_id)
-    const ids=value.lists[params.list_key]
+    const ids=require('../analytics/retentionCurves').resolveCachedList(value,params.list_key)
     if(!Array.isArray(ids))return res.status(400).json({error:'未知下钻名单'})
     const s=await remote.snapshot(j.snapshot),limit=Math.min(200,Math.max(1,Number(req.body.limit)||50)),offset=Math.max(0,Number(req.body.offset)||0)
     if(value.members){

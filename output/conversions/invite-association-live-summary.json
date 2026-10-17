@@ -1,0 +1,74 @@
+{
+  "cutoff": "2026-10-16T18:42:40.574Z",
+  "days": 28,
+  "loaded_users": 434,
+  "relations": 6452,
+  "relation_quality": {
+    "invalid": 4487,
+    "conflicts": 0,
+    "cycles": 0
+  },
+  "association": {
+    "available": true,
+    "steps": [
+      {
+        "key": "visited",
+        "label": "邀请入口",
+        "entries": 62,
+        "users": 62,
+        "list_key": "invite:association:visited"
+      },
+      {
+        "key": "account",
+        "label": "身份确认",
+        "entries": 14,
+        "users": 14,
+        "list_key": "invite:association:account"
+      },
+      {
+        "key": "bound",
+        "label": "邀请码与关系匹配",
+        "entries": 2,
+        "users": 2,
+        "list_key": "invite:association:bound"
+      },
+      {
+        "key": "analysed",
+        "label": "匹配绑定后分析",
+        "entries": 2,
+        "users": 2,
+        "list_key": "invite:association:analysed"
+      }
+    ],
+    "states": [
+      {
+        "state": "unresolved",
+        "entries": 48,
+        "users": 48,
+        "list_key": "invite:association:state:unresolved"
+      },
+      {
+        "state": "account_only",
+        "entries": 10,
+        "users": 10,
+        "list_key": "invite:association:state:account_only"
+      },
+      {
+        "state": "preexisting",
+        "entries": 2,
+        "users": 2,
+        "list_key": "invite:association:state:preexisting"
+      },
+      {
+        "state": "matched",
+        "entries": 2,
+        "users": 2,
+        "list_key": "invite:association:state:matched"
+      }
+    ],
+    "entries": 62,
+    "record_total": 62,
+    "records_truncated": false
+  },
+  "explicit_flows": 0
+}

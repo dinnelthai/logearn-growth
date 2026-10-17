@@ -1,0 +1,58 @@
+{
+  "cutoff": "2026-10-16T13:31:53.404Z",
+  "range_days": 7,
+  "loaded_users": 411,
+  "loaded_events": 62958,
+  "response_bytes": 2698799,
+  "first_screen": {
+    "sessions": 3179,
+    "duration_sessions": 352,
+    "unknown_sessions": 2827,
+    "average_duration_ms": 283968.4005681818,
+    "median_duration_ms": 27472
+  },
+  "home_bounce": {
+    "sessions": 92,
+    "engaged_users": 44,
+    "bounced": 0,
+    "engaged": 82,
+    "pending": 5,
+    "unknown": 5,
+    "denominator": 82,
+    "bounce_rate": 0,
+    "available": true,
+    "records_truncated": false,
+    "as_of": 1792157513404,
+    "definition": "首页主页面 /、/cn、/en；同标签页30分钟无活动分段，观察结束且可判定会话为分母；缺少结束证据保持未知，pagehide不证明退出。"
+  },
+  "requests": {
+    "analysis": {
+      "available": false,
+      "requests": 0,
+      "quality": {
+        "missing_id_events": 0,
+        "orphan_terminals": 0,
+        "conflicts": 0
+      }
+    },
+    "login": {
+      "available": false,
+      "requests": 0,
+      "quality": {
+        "missing_id_events": 0,
+        "orphan_terminals": 0,
+        "conflicts": 0
+      }
+    },
+    "page_load": {
+      "available": false,
+      "requests": 0,
+      "quality": {
+        "missing_id_events": 0,
+        "orphan_terminals": 0,
+        "conflicts": 0
+      }
+    }
+  },
+  "exposure_available": false
+}

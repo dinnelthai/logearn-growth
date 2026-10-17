@@ -180,7 +180,7 @@ function channelVisitKeys({ start, end, channel }) {
   return rows.map(r => r.user_key)
 }
 
-function resolveKeys(kind, params = {}) {
+function resolveKeys(kind, params = {}, owner) {
   switch (kind) {
     case 'north_star_period':
       return northStarPeriodKeys(params)
@@ -193,9 +193,10 @@ function resolveKeys(kind, params = {}) {
     case 'cached_list': {
       const { cacheGet } = require('../analytics/resultCache')
       const cached = cacheGet(params.cache_id)
-      if (!cached) return []
-      const list = cached.lists?.[params.list_key]
-      if (!Array.isArray(list)) return []
+      if (!cached) throw Object.assign(new Error('分析结果已过期，请重新运行'),{status:409})
+      if(cached.owner!=null&&cached.owner!==owner)throw Object.assign(new Error('分析结果不存在或无权访问'),{status:404})
+      const list = require('../analytics/retentionCurves').resolveCachedList(cached,params.list_key)
+      if (!Array.isArray(list)) throw Object.assign(new Error('未知下钻名单'),{status:400})
       return list.map(id => String(id))
     }
     default:
@@ -207,7 +208,7 @@ function resolveKeys(kind, params = {}) {
 router.post('/users', (req, res) => {
   const { kind, params = {}, q } = req.body ?? {}
   if (!kind) return res.status(400).json({ error: '缺少 kind' })
-  const keys = resolveKeys(kind, params)
+  const keys = resolveKeys(kind, params, req.user?.user_id)
   if (keys == null) return res.status(400).json({ error: `未知 drill kind: ${kind}` })
 
   const profiles = filterQ(profileRows(keys), q)

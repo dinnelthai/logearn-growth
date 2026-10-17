@@ -108,3 +108,32 @@
 #la-studio .crm-ops label:has(input[type=checkbox]){display:flex;align-items:center;gap:6px;margin-bottom:6px}
 #la-studio .operations-workbench>.si-panel .crm-kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 @media(max-width:640px){#la-studio .crm-ops{padding:14px}}
+
+#la-studio .retention-toolbar{display:flex;gap:14px;align-items:end;flex-wrap:wrap;margin:16px 0}
+#la-studio .retention-toolbar label{flex:1;min-width:130px;display:grid;gap:6px;color:var(--a-muted);font-size:12px}
+#la-studio .retention-toolbar label:first-child{flex:2;min-width:220px}
+#la-studio .retention-toolbar label>span{padding:9px 0;color:var(--a-text);font-variant-numeric:tabular-nums}
+#la-studio .retention-page select{border:1px solid var(--a-border);background:var(--a-panel);color:var(--a-text);border-radius:7px;padding:9px 10px;font:inherit;max-width:100%}
+#la-studio .retention-page .si-sectionhead{gap:12px;flex-wrap:wrap}
+#la-studio .retention-summary{margin-top:16px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+#la-studio .retention-compare{display:flex;align-items:end;gap:8px;flex-wrap:wrap;margin:16px 0}
+#la-studio .retention-compare label{display:grid;gap:6px;font-size:12px;color:var(--a-muted)}
+#la-studio .retention-chart{width:100%;height:340px}
+#la-studio .retention-lists{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}
+#la-studio .retention-lists .si-kpi{padding:16px;text-align:left;display:grid;gap:8px;background:var(--a-panel);border:1px solid var(--a-border);cursor:pointer}
+#la-studio .retention-lists .si-kpi strong{font-size:26px;color:var(--a-accent)}
+#la-studio .retention-lists .si-kpi:disabled{cursor:default;opacity:.65}
+#la-studio .retention-empty{padding:24px;text-align:center;color:var(--a-muted)}
+#la-studio .retention-page .a-heat{min-width:66px}
+@media(max-width:640px){#la-studio .retention-toolbar{display:grid;grid-template-columns:1fr 1fr}#la-studio .retention-toolbar label:first-child{grid-column:1/-1;min-width:0}#la-studio .retention-lists{grid-template-columns:1fr}#la-studio .retention-chart{height:300px}#la-studio .retention-compare{align-items:stretch}}
+
+/* Conversion scenes keep attempts, flows and users visibly separate. */
+.conversion-flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:18px 0}
+.conversion-step{display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid var(--a-border,#394150);border-radius:12px;min-width:0;overflow-wrap:anywhere}
+.conversion-step strong{font-size:26px}.conversion-step small{opacity:.8}
+.conversion-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px}
+.conversion-filters label{display:flex;flex-direction:column;gap:8px;min-width:0}
+.conversion-filters input,.conversion-filters select{width:100%;box-sizing:border-box;min-width:0}
+.conversion-page .a-scroll{max-width:100%;overflow:auto}.conversion-page td{overflow-wrap:anywhere}
+@media(max-width:900px){.conversion-flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.conversion-flow,.conversion-filters{grid-template-columns:minmax(0,1fr)}}

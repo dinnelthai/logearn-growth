@@ -8,11 +8,12 @@ export function firstEvent(user,type,asOf=Infinity){
  return observed;
 }
 export function buildCohorts(users, {startAt,endAt,asOf,initialEvent='chip',returningEvent='chip',sourceFilter='all'}) {
-  const cohorts=Array.from({length:Math.ceil((endAt-startAt)/DAY)},(_,i)=>({start:startAt+i*DAY,users:[]}))
+  const firstDay=midnight(startAt)
+  const cohorts=Array.from({length:Math.ceil((endAt-firstDay)/DAY)},(_,i)=>({start:firstDay+i*DAY,users:[]}))
   for (const user of users) {
     const first=firstEvent(user,initialEvent,asOf)
-    if (!first || first.t<startAt || first.t>=endAt || (sourceFilter!=='all' && first.entry_source!==sourceFilter)) continue
-    const index=Math.floor((midnight(first.t)-startAt)/DAY)
+    if (!first || first.t<startAt || first.t>=endAt || (sourceFilter!=='all' && first.entry_source!==sourceFilter && user.source!==sourceFilter)) continue
+    const index=Math.floor((midnight(first.t)-firstDay)/DAY)
     if(cohorts[index]) cohorts[index].users.push(user)
   }
   return cohorts.map(co=>({...co,returningEvent,asOf}))

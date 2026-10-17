@@ -7,32 +7,35 @@ function entryPage(value){
  try{const path=new URL(value,'https://relative.invalid').pathname;if(/^\/(?:cn|en)\/[^/]+\/tokens\/[^/]+\/?$/.test(path))return 'Token 详情页';if(/^\/(?:cn|en)\/[^/]+\/address\/[^/]+\/?$/.test(path))return '钱包地址详情页';return value}catch{return value}
 }
 function pageVisits(users,{start,end,asOf}){
- const entries=new Map(),lists={},members={},records=[],all=new Set(),single=new Set(),tokenNoAnalysis=new Set();let sessions=0,missing=0,contextSessions=0
- for(const u of users){const durations=new Map();for(const e of u.events)if(e.type==='page_end'&&e.t<=asOf&&e.page_visit_id&&e.duration_ms!=null&&Number.isFinite(Number(e.duration_ms))&&Number(e.duration_ms)>=0)durations.set(e.page_visit_id,Math.max(durations.get(e.page_visit_id)||0,e.duration_ms));const groups=new Map();let fallback=0,last=-Infinity
-  for(const e of [...u.events].filter(e=>e.type!=='page_end').sort((a,b)=>a.t-b.t)){if(e.t-last>=1800000)fallback++;last=e.t;const key=e.session_id||'inferred:'+fallback;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(e)}
-  for(const es of groups.values()){
+ const entries=new Map(),lists={},members={},records=[],firstScreens=[],all=new Set(),single=new Set(),tokenNoAnalysis=new Set();let sessions=0,missing=0,contextSessions=0
+ for(const u of users){const durations=new Map();for(const e of u.events)if(['page_end','page_engaged'].includes(e.type)&&e.t<=asOf&&e.page_visit_id&&e.duration_ms!=null&&Number.isFinite(Number(e.duration_ms))&&Number(e.duration_ms)>=0)durations.set(e.page_visit_id,Math.max(durations.get(e.page_visit_id)||0,Number(e.duration_ms)));
+  for(const group of require('./observedSessions').observedSessions(u.events,asOf)){
+   const es=group.events.filter(e=>!['page_end','page_engaged'].includes(e.type)&&!e.diagnostic)
+   if(!es.length)continue
    if(es[0].t<start||es[0].t>=end)continue
    const events=es.filter(e=>e.t<end&&e.t<=asOf),explicitPages=events.filter(e=>e.type==='page_view'&&e.page_url),pages=explicitPages.length?explicitPages:events.filter(e=>e.page_url).filter((e,i,a)=>i===0||e.page_url!==a[i-1].page_url)
    if(!explicitPages.length&&pages.length)contextSessions++
    if(!pages.length){missing++;continue}sessions++;all.add(u.id)
-   const entry=entryPage(pages[0].page_url),analysis=events.some(e=>['chip','chip_drilldown'].includes(e.type)),core=events.some(e=>!(e.type==='login'&&e.login_type==='auto_restore')&&!['page_view','app_open','first_visit','login_click','token','callouts','signals','popular','fomo'].includes(e.type)),mature=asOf-events.at(-1).t>=1800000&&!es.some(e=>e.t>=end)
+   const entry=entryPage(pages[0].page_url),analysis=events.some(e=>['chip','chip_drilldown'].includes(e.type)),core=events.some(e=>!(e.type==='login'&&e.login_type==='auto_restore')&&!['page_view','app_open','first_visit','login_click','token','callouts','signals','popular','fomo'].includes(e.type)),mature=asOf-group.last>=1800000&&!group.events.some(e=>e.t>=end)
    const idle=explicitPages.length>0&&pages.length===1&&!core&&mature
    if(idle)single.add(u.id);if(events.some(e=>e.type==='token')&&!analysis&&mature)tokenNoAnalysis.add(u.id)
-   if(!entries.has(entry))entries.set(entry,{url:entry,sessions:0,users:new Set(),single:new Set(),analysis:new Set(),pending:0,device_sessions:[]})
+   if(!entries.has(entry))entries.set(entry,{url:entry,sessions:0,users:new Set(),single:new Set(),analysis:new Set(),pending:0,device_sessions:[],first_screens:[]})
    const info=require('./deviceInfo').deviceInfo(pages[0]);
    const contextOnly=!explicitPages.length&&pages.length===1&&!core&&mature
    const state=idle?'idle':contextOnly?'context':!mature?'pending':'continued'
-   const r=entries.get(entry);r.device_sessions.push({id:u.id,info,state,explicit:explicitPages.length>0});
-   const profiles=members[u.id]?.entry_sessions||[];profiles.push({...info,entry_page:entry,entry_at:pages[0].t,last_observed_at:events.at(-1).t,observation_status:state});
-   if(!members[u.id]||pages[0].t<members[u.id].entry_at)members[u.id]={...info,entry_page:entry,entry_at:pages[0].t,last_observed_at:events.at(-1).t,observation_status:state};members[u.id].entry_sessions=profiles;
+   const first=explicitPages[0],firstDuration=first?.page_visit_id?durations.get(first.page_visit_id)??null:null;
+   const sample={duration_ms:firstDuration};firstScreens.push(sample);
+   const r=entries.get(entry);r.first_screens.push(sample);r.device_sessions.push({id:u.id,info,state,explicit:explicitPages.length>0});
+   const profiles=members[u.id]?.entry_sessions||[];profiles.push({...info,first_screen_duration_ms:firstDuration,entry_page:entry,entry_at:pages[0].t,last_observed_at:events.at(-1).t,observation_status:state});
+   if(!members[u.id]||pages[0].t<members[u.id].entry_at)members[u.id]={...info,first_screen_duration_ms:firstDuration,entry_page:entry,entry_at:pages[0].t,last_observed_at:events.at(-1).t,observation_status:state};members[u.id].entry_sessions=profiles;
    r.sessions++;r.users.add(u.id);if(idle)r.single.add(u.id);if(analysis)r.analysis.add(u.id);if(!mature)r.pending++
-   for(const p of pages)records.push({user_id:u.id,session_id:p.session_id||null,t:p.t,url:p.page_url,record_source:explicitPages.length?'页面浏览':'业务事件所在页面',page_visit_id:p.page_visit_id??null,page_name:p.page_name??null,view_mode:p.view_mode??null,navigation_source:p.navigation_source??null,previous_page_visit_id:p.previous_page_visit_id??null,previous_page_path:safePage(p.previous_page_path),...require('./deviceInfo').deviceInfo(p),duration_ms:durations.get(p.page_visit_id)??p.duration_ms??null})
+   for(const p of pages)records.push({user_id:u.id,session_id:p.session_id||null,t:p.t,url:p.page_url,record_source:explicitPages.length?'页面浏览':'业务事件所在页面',page_visit_id:p.page_visit_id??null,page_name:p.page_name??null,view_mode:p.view_mode??null,navigation_source:p.navigation_source??null,previous_page_visit_id:p.previous_page_visit_id??null,previous_page_path:safePage(p.previous_page_path),...require('./deviceInfo').deviceInfo(p),is_first_screen:p===first,duration_ms:durations.get(p.page_visit_id)??p.duration_ms??null})
   }
  }
- const rows=[...entries.values()].sort((a,b)=>b.sessions-a.sessions).slice(0,100).map((r,i)=>{const key='url:entry:'+i;lists[key]=[...r.users];lists[key+':single']=[...r.single];return {url:r.url,sessions:r.sessions,users:r.users.size,single_users:r.single.size,analysis_users:r.analysis.size,pending:r.pending,list_key:key,device_breakdown:deviceBreakdown(r.device_sessions,key,lists)}})
+ const rows=[...entries.values()].sort((a,b)=>b.sessions-a.sessions).slice(0,100).map((r,i)=>{const key='url:entry:'+i;lists[key]=[...r.users];lists[key+':single']=[...r.single];return {first_screen:firstScreenStats(r.first_screens),url:r.url,sessions:r.sessions,users:r.users.size,single_users:r.single.size,analysis_users:r.analysis.size,pending:r.pending,list_key:key,device_breakdown:deviceBreakdown(r.device_sessions,key,lists)}})
  for(const r of records.sort((a,b)=>b.t-a.t).slice(0,1000))lists['url:user:'+r.user_id]=[r.user_id]
  lists['url:all']=[...all];lists['url:single']=[...single];lists['url:token_no_analysis']=[...tokenNoAnalysis]
- return {members,lists,payload:{visit_dimensions:visitDimensions(records),sessions,context_sessions:contextSessions,users:all.size,missing_sessions:missing,single_users:single.size,token_no_analysis_users:tokenNoAnalysis.size,entries:rows,records:records.sort((a,b)=>b.t-a.t).slice(0,1000),records_truncated:records.length>1000}}
+ return {members,lists,payload:{first_screen:firstScreenStats(firstScreens),visit_dimensions:visitDimensions(records),sessions,context_sessions:contextSessions,users:all.size,missing_sessions:missing,single_users:single.size,token_no_analysis_users:tokenNoAnalysis.size,entries:rows,records:records.sort((a,b)=>b.t-a.t).slice(0,1000),records_truncated:records.length>1000}}
 }
 module.exports={safePage,entryPage,pageVisits}
 
@@ -58,4 +61,10 @@ function visitDimensions(records){
   for(const r of records){if(r.record_source!=='页面浏览')continue;const value=key(r);if(!groups.has(value))groups.set(value,{value,visits:0,users:new Set(),duration_visits:0,duration_ms:0});const g=groups.get(value);g.visits++;g.users.add(r.user_id);if(r.duration_ms!=null){g.duration_visits++;g.duration_ms+=Number(r.duration_ms)}}
   return [dimension,[...groups.values()].map(g=>({...g,users:g.users.size,average_duration_ms:g.duration_visits?g.duration_ms/g.duration_visits:null})).sort((a,b)=>b.visits-a.visits)]
  }))
+}
+
+// Missing snapshots remain unknown; zero is a valid measured duration.
+function firstScreenStats(samples){
+ const values=samples.map(s=>s.duration_ms).filter(v=>v!=null&&Number.isFinite(Number(v))&&Number(v)>=0).map(Number).sort((a,b)=>a-b),n=values.length
+ return {sessions:samples.length,duration_sessions:n,unknown_sessions:samples.length-n,average_duration_ms:n?values.reduce((sum,v)=>sum+v,0)/n:null,median_duration_ms:n?(values[Math.floor((n-1)/2)]+values[Math.floor(n/2)])/2:null}
 }

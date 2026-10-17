@@ -101,7 +101,7 @@ async function status(force=false) {
       as_of: new Date(Math.min(Number(row.latest),Date.parse(cutoff))).toISOString(), last_success_at: cutoff,
       latest_event_at: new Date(Number(row.latest)).toISOString(), source_seen_at: row.source_seen,
       event_count: Number(row.n), max_events_raw: 0, timezone: 'Asia/Bangkok', history_complete: false,
-      events_complete_through: null, capabilities: ['north','funnel','retention','segments','referral','paths','trade-monitor','channels'], consistency: 'arrival-cutoff',
+      events_complete_through: null, capabilities: ['login-conversion','invite-conversion','north','funnel','retention','segments','referral','paths','trade-monitor','channels'], consistency: 'arrival-cutoff',
       coverage: { events: { history_complete: false, events_complete_through: null }, trades: {} } }
     await cached(`snapshot:${snapshot}`, async () => value, 15 * 60 * 1000)
     return value

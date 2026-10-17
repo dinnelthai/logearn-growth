@@ -24,13 +24,14 @@ function firstEvent(user, type, asOf = Infinity) {
 }
 
 function buildCohorts(users, { startAt, endAt, asOf, initialEvent = 'chip', sourceFilter = 'all' }) {
-  const n = Math.ceil((endAt - startAt) / DAY)
-  const cohorts = Array.from({ length: n }, (_, i) => ({ start: startAt + i * DAY, users: [] }))
+  const firstDay=midnight(startAt)
+  const n = Math.ceil((endAt - firstDay) / DAY)
+  const cohorts = Array.from({ length: n }, (_, i) => ({ start: firstDay + i * DAY, users: [] }))
   for (const user of users) {
     const first = firstEvent(user, initialEvent, asOf)
     if (!first || first.t < startAt || first.t >= endAt) continue
     if (sourceFilter !== 'all' && first.entry_source !== sourceFilter && user.source !== sourceFilter) continue
-    const index = Math.floor((midnight(first.t) - startAt) / DAY)
+    const index = Math.floor((midnight(first.t) - firstDay) / DAY)
     if (cohorts[index]) cohorts[index].users.push(user)
   }
   return cohorts

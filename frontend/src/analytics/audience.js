@@ -1,5 +1,5 @@
 /** Materialized audience: IDs are fixed for this session, conditions are descriptive. */
-export const AUDIENCE_MODES = new Set(['funnel','paths','retention','segments','channels','trade-monitor','referral'])
+export const AUDIENCE_MODES = new Set(['login-conversion','invite-conversion','funnel','paths','retention','segments','channels','trade-monitor','referral'])
 export function createAudience({title,description,rows,context,query=''}) {
  if(!Number.isFinite(context?.start)||!Number.isFinite(context?.end)||context.start>=context.end)throw Error('人群统计期无效')
  const ids=[...new Set(rows.map(row=>(row.u??row).id).filter(id=>typeof id==='string'&&id))]

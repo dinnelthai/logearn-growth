@@ -1,149 +1,60 @@
-import { fetchRetentionMetrics } from '../api/metrics.js'
-import { fetchDrillUsers, fetchUserTimeline } from '../api/drill.js'
+import {fetchRetentionMetrics} from '../api/metrics.js'
+import {fetchDrillUsers,fetchUserTimeline} from '../api/drill.js'
+import {createChartLifecycle} from './chartLifecycle.js'
+import {retentionPoint,retentionCurveOption,groupDailyRetention} from '../analytics/retentionCurveModel.js'
 
-export function createRetentionAggPage(ctx) {
-  const { $, $$, names, day, date, esc, fmt, pct, table, stat, drawer } = ctx
-  const clearNative = ctx.clear
-  let inflight = 0
-  let previousMetrics = null
-  let previousConfig = null
-  let continuous = false
-  let cacheId = null
-  let daily = []
-
-  function openCached(title, description, listKey) {
-    if (!cacheId || !listKey) return
-    drawer.openRemote({
-      selection:{cache_id:cacheId,list_key:listKey},
-      title,
-      description,
-      fetchPage: ({ offset, limit, q }) =>
-        fetchDrillUsers({ kind: 'cached_list', params: { cache_id: cacheId, list_key: listKey }, offset, limit, q }),
-      fetchTimeline: async (userId, host) => {
-        host.innerHTML = '<p class="a-muted si-loading" role="status">加载时间线…</p>'
-        try {
-          const data = await fetchUserTimeline({ userId, limit: 200, cacheId })
-          host.innerHTML = `<h2>${esc(data.user?.id || userId)}</h2><div class="a-timeline">${(data.events || []).map(e => {
-            const label = (ctx.names && ctx.names[e.event_name]) || e.event_name
-            const t = new Date(e.t + 7 * 3600000).toISOString().slice(5, 16).replace('T', ' ')
-            return `<div class="a-event"><strong>${esc(label)}</strong><div>${esc(t)}</div></div>`
-          }).join('')}</div>`
-        } catch (err) {
-          host.innerHTML = `<p class="a-empty">${esc(err.message || err)}</p>`
-        }
-      },
-    })
-  }
-
-  function renderTable() {
-    const host = $('#as-cohort-table')
-    if (!host) return
-    host.innerHTML = table(
-      ['首次日期', 'D0 人数', ...Array.from({ length: 7 }, (_, i) => (continuous ? '连续 ' : '') + 'D' + (i + 1))],
-      daily.map(co => {
-        const cells = [
-          `<button class="a-tablelink" data-cohort="${esc(co.cohort_date)}">${esc(co.cohort_date)}</button>`,
-          fmt(co.cohort_size),
-        ]
-        for (let p = 1; p <= 7; p++) {
-          const period = co.periods.find(x => x.period === p)
-          if (!period || period.retained_users == null) {
-            cells.push('<span class="a-heat-unavailable">—</span>')
-            continue
-          }
-          const n = continuous ? (period.continuous_retained_users ?? 0) : period.retained_users
-          const rate = continuous ? period.continuous_retention_rate : period.retention_rate
-          const key = continuous ? `retained:${co.cohort_date}:C${p}` : `retained:${co.cohort_date}:D${p}`
-          cells.push(
-            `<button class="a-heat cursor-interaction ${period.complete ? 'is-complete' : 'is-pending'}" data-list="${esc(key)}" style="--heat-intensity:${Math.round((rate || 0) * 75) + 5}%">${pct(n, co.cohort_size)}<small>${n} 人${period.complete ? '' : ' · 进行中'}</small></button>`
-          )
-        }
-        return cells
-      }),
-    )
-    $$('[data-cohort]').forEach(b => b.onclick = () => openCached(`${b.dataset.cohort} · D0`, '批次入组用户', `cohort:${b.dataset.cohort}`))
-    $$('[data-list]').forEach(b => b.onclick = () => openCached('留存用户', b.dataset.list, b.dataset.list))
-  }
-
-  async function draw(c) {
-    clearNative()
-    const reqId = ++inflight
-    $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted si-loading" role="status">正在从 /api/metrics/retention 加载…</p></div>'
-    const configKey = JSON.stringify(c)
-    let metrics
-    try {
-      metrics = await fetchRetentionMetrics({
-        start: c.start,
-        end: c.end,
-        initial: c.initial || 'chip',
-        returning: c.returning || 'chip',
-        source: c.source || 'all',
-        snapshot_id:c.snapshotId,
-        audience_ids: c.audienceIds || null,
-        cohort_id: c.cohortId || null,
-      })
-    } catch (err) {
-      if (reqId !== inflight) return
-      if(previousMetrics && previousConfig===configKey){
-        metrics=previousMetrics
-        $('#as-data-status').textContent='数据更新失败 · 保留上次结果：'+(err.message||err)
-      }else{
-      $('#as-output').innerHTML = `<div class="a-card"><h2>留存加载失败</h2><p>${esc(err.message || err)}</p></div>`
-      return
-      }
-    }
-    if (reqId !== inflight) return
-
-    previousMetrics=metrics;previousConfig=configKey
-
-    daily = metrics.daily || []
-    cacheId = metrics.drill?.cache_id
-    const chosen = [...daily].reverse().find(co => co.periods.every(p => p.complete)) || daily[0]
-
-    $('#as-output').innerHTML = `
-      <div class="a-context"><span class="a-chip">服务端留存 · 自然日</span><span>${date(c.start)}–${date(c.end - day)} · 首次 ${esc(names[c.initial] || c.initial)} / 回访 ${esc(names[c.returning] || c.returning)}</span></div>
-      <div class="a-card"><div class="a-cardhead">
-        <label style="margin:0">当前分析批次
-          <select id="as-cohort-picker">${daily.map(co => `<option value="${esc(co.cohort_date)}" ${chosen && co.cohort_date === chosen.cohort_date ? 'selected' : ''}>${esc(co.cohort_date)} · ${co.cohort_size} 人</option>`).join('')}</select>
-        </label>
-        <div class="a-tabs">
-          <button class="a-tab" data-retmode="daily" aria-pressed="${!continuous}">日留存</button>
-          <button class="a-tab" data-retmode="continuous" aria-pressed="${continuous}">连续留存</button>
-        </div>
-      </div></div>
-      <div class="a-summary" id="as-ret-summary"></div>
-      <div class="a-card"><div class="a-cardhead"><h2>批次表</h2><span class="a-muted">${metrics.truncated ? '候选已截断' : `候选 ${fmt(metrics.candidate_count || 0)}`}</span></div>
-        <div id="as-cohort-table"></div>
-      </div>
-      <p class="a-muted">数字与下钻名单来自同一次 /api/metrics/retention 缓存（15 分钟）。</p>`
-
-    const renderSummary = () => {
-      const dateKey = $('#as-cohort-picker')?.value
-      const co = daily.find(x => x.cohort_date === dateKey) || chosen
-      if (!co) {
-        $('#as-ret-summary').innerHTML = stat('D0', '0', '无批次')
-        return
-      }
-      const d1 = co.periods.find(p => p.period === 1)
-      const d7 = co.periods.find(p => p.period === 7)
-      const n1 = continuous ? d1?.continuous_retained_users : d1?.retained_users
-      const n7 = continuous ? d7?.continuous_retained_users : d7?.retained_users
-      $('#as-ret-summary').innerHTML =
-        stat('当前批次 D0', fmt(co.cohort_size), co.cohort_date)
-        + stat('D1', n1 == null ? '—' : pct(n1, co.cohort_size), n1 == null ? '未到观察期' : `${n1} / ${co.cohort_size}`)
-        + stat(continuous ? '连续 D7' : 'D7', n7 == null || !d7?.complete ? '—' : pct(n7, co.cohort_size), d7?.complete ? `${n7} / ${co.cohort_size}` : '未成熟')
-    }
-
-    renderSummary()
-    renderTable()
-    $('#as-cohort-picker').onchange = () => { renderSummary() }
-    $$('[data-retmode]').forEach(b => b.onclick = () => {
-      continuous = b.dataset.retmode === 'continuous'
-      $$('[data-retmode]').forEach(x => x.setAttribute('aria-pressed', x === b))
-      renderSummary()
-      renderTable()
-    })
-  }
-
-  return { draw, dispose() { inflight++ } }
+export function createRetentionAggPage(ctx){
+ const {$,esc,fmt,table,stat,drawer,names}=ctx,DAY=86400000
+ const time=t=>new Date(t+25200000).toISOString().slice(0,16).replace('T',' ')
+ const date=t=>new Date(t+25200000).toISOString().slice(0,10)
+ const lifecycle=createChartLifecycle(ctx.themeMedia),host=()=>$('#as-output')
+ let generation=0,metrics=null,config=null,previous=null,previousKey=null,horizon=7,grouping='week',continuous=false,selected=[],focus=null,inspectDay=1,chart=null,chartManaged=false,stale=false
+ const groups=()=>metrics?.curve_groups?.[grouping]||[]
+ const chosen=()=>groups().find(g=>g.id===focus)||groups()[0]
+ function focusGroup(id){focus=id;if(!selected.includes(id)){if(selected.length===4)selected.shift();selected.push(id)}}
+ function disposeChart(){lifecycle.dispose();if(!chartManaged)chart?.dispose();chart=null;chartManaged=false}
+ function defaults(){const gs=groups();selected=selected.filter(id=>gs.some(g=>g.id===id));if(!selected.length){const mature=gs.filter(g=>g.enrollment_complete);selected=mature.slice(-3).map(g=>g.id);const pending=gs.filter(g=>!g.enrollment_complete).at(-1);if(pending&&selected.length<4)selected.push(pending.id);if(!selected.length)selected=gs.slice(-4).map(g=>g.id)}if(!gs.some(g=>g.id===focus))focus=[...gs].reverse().find(g=>retentionPoint(g,1,continuous)?.complete)?.id||gs.at(-1)?.id;inspectDay=Math.min(inspectDay,horizon)}
+ function pointText(g,p){const x=retentionPoint(g,p,continuous);return x?.complete&&x.rate!=null?(x.rate*100).toFixed(1)+'%':'—'}
+ function pointNote(g,p){const x=retentionPoint(g,p,continuous);if(!g.enrollment_complete)return '入组中，名单尚未固定';if(x?.unavailable_users)return '数据覆盖不足';if(!x?.complete)return '待成熟 · '+(x?.eligible_users||0)+' / '+g.cohort_size+' 人观察日已结束';return x.retained+' / '+g.cohort_size+' 人 · 完整日'}
+ function openList(g,p,subset='returned'){
+  const x=retentionPoint(g,p,continuous),listKey=subset==='cohort'?g.list_key:x?.prefix+':'+subset;if(!listKey)return
+  const label={cohort:'入组用户',returned:p===0?'完整入组日用户':continuous?'完整窗口内连续回访':'完整观察日已回访',unobserved:continuous?'完整窗口未满足连续回访':'完整观察日未观测回访',pending:'观察未结束／数据待确认'}[subset],title=g.label+' · '+(subset==='cohort'?'D0':(continuous?'连续 ':'')+'D'+p)+' · '+label
+  const description='各用户按自己的D0计算观察日；未观测不等于流失。'+(!g.enrollment_complete?'该批次仍在入组，当前名单尚未固定。':'固定入组名单。')
+  if(ctx.openRetentionList)return ctx.openRetentionList({group:g,period:p,subset,listKey,title,description,continuous})
+  const cacheId=metrics.drill?.cache_id;if(!cacheId)return
+  const snapshotId=metrics.meta?.snapshot_id||metrics.drill?.snapshot_id
+  const profileContext={start:g.enrollment_start,end:Math.min(metrics.as_of+1,g.enrollment_end+(p+1)*DAY),snapshot_id:snapshotId}
+  drawer.openRemote({selection:{cache_id:cacheId,list_key:listKey},profileContext,title,description,
+   fetchPage:({offset,limit,q})=>fetchDrillUsers({kind:'cached_list',params:{cache_id:cacheId,list_key:listKey},offset,limit,q}),
+   fetchTimeline:async(userId,node)=>{node.innerHTML='<p class="a-muted" role="status">加载时间线…</p>';try{const r=await fetchUserTimeline({userId,cacheId,start:profileContext.start,end:profileContext.end,limit:200});if(!node.isConnected)return;node.innerHTML=`<h2>${esc(userId)}</h2>${r.events.map(e=>`<div class="a-event"><strong>${esc(names[e.event_name]||e.event_name)}</strong><div>${time(Number(e.t))}</div></div>`).join('')||'<p class="a-muted">当前窗口没有观测事件。</p>'}`}catch(e){if(node.isConnected)node.textContent=e.message}}})
+ }
+ function paintChart(){const chartHost=$('#as-ret-chart');if(!chartHost)return;const plotted=groups().filter(g=>selected.includes(g.id));if(!globalThis.echarts){chartHost.innerHTML='<p class="a-muted">图表组件暂不可用，可查看下方人数表。</p>';return}
+  chart=globalThis.echarts.init(chartHost,null,{renderer:'svg'})
+  const paint=()=>{if(!chart||!chartHost.isConnected)return;const colors={};if(ctx.root&&typeof getComputedStyle==='function'){for(const [key,token]of [['text','--a-text'],['muted','--a-muted'],['border','--a-border'],['panel','--a-panel']]){const probe=document.createElement('span');probe.style.color='var('+token+')';ctx.root.appendChild(probe);colors[key]=getComputedStyle(probe).color;probe.remove()}}
+   chart.setOption(retentionCurveOption(plotted,{maxPeriods:horizon,continuous,colors,esc}),true)}
+  paint();chart.on('click',event=>{const d=event.data;if(d?.value==null)return;focus=d.group_id;inspectDay=d.period;render();const node=$('#as-ret-inspector');node?.scrollIntoView?.({block:'nearest',behavior:'smooth'})})
+  if(ctx.themeMedia&&typeof ResizeObserver!=='undefined'){lifecycle.attach(chart,chartHost,paint);chartManaged=true}
+ }
+ function render(){disposeChart();defaults();const count=$('#as-stepcount');if(count)count.textContent='D1–D'+horizon;const g=chosen(),gs=groups(),asOf=Number(metrics.as_of),plotted=gs.filter(g=>selected.includes(g.id)),hasPoints=plotted.some(g=>g.periods.some(p=>p.complete)),x=g?retentionPoint(g,inspectDay,continuous):null
+  host().innerHTML=`<div class="retention-page si-page"><section class="a-card si-panel"><div class="si-sectionhead"><div><h2>首次行为后的用户留存</h2><p class="a-muted">按 UTC+7 自然日观察 · ${continuous?'连续留存要求 D1 至 Dn 每天完成回访':'指定日留存可回升，不要求连续回来'}</p></div><span class="a-chip">${ctx.isAgg?'服务端快照':'当前数据快照'}</span></div><div class="retention-toolbar"><label>入组日期（开始含 / 截止不含）<span>${time(config.start)} — ${time(config.end)}</span></label><label>观察长度<select data-ret-horizon>${[7,14,30].map(n=>`<option value="${n}" ${horizon===n?'selected':''}>D0–D${n}</option>`).join('')}</select></label><label>批次分组<select data-ret-grouping>${[['week','首次行为周'],['daily','首次行为日'],['all','所选期间总批次']].map(([k,l])=>`<option value="${k}" ${grouping===k?'selected':''}>${l}</option>`).join('')}</select></label><label>留存定义<select data-ret-definition><option value="daily" ${!continuous?'selected':''}>指定日留存</option><option value="continuous" ${continuous?'selected':''}>连续留存</option></select></label><button class="a-button" data-ret-refresh>重新运行</button></div><p class="a-muted">首次：${esc(names[config.initial||'chip']||config.initial)} · 回访：${esc(names[config.returning||'chip']||config.returning)} · 数据截至 ${time(asOf)}。入组日期仅限制首次行为，后续回访可跨出入组日期。</p>${stale?'<p class="si-error" role="status">数据更新失败，保留相同配置上次结果与原快照。</p>':''}<p class="a-muted">${esc(metrics.coverage_note||'首次为已观测首次；日期成熟不代表采集完整，未观测不等于未使用。')}</p></section>
+  ${g?`<section class="a-card si-panel"><div class="si-sectionhead"><label>当前查看批次<select id="as-cohort-picker">${gs.map(co=>`<option value="${esc(co.id)}" ${co.id===g.id?'selected':''}>${esc(co.label)} · ${fmt(co.cohort_size)}人${co.enrollment_complete?'':' · 入组中'}${co.partial_calendar_group?' · 部分周':''}</option>`).join('')}</select></label><button class="a-tablelink" data-ret-cohort>查看完整入组名单 ↗</button></div><div class="a-summary retention-summary">${stat('当前批次入组用户',fmt(g.cohort_size),g.enrollment_complete?'当前快照内名单固定':'入组中 · 人数仍可能增加')}${[1,7,...(horizon>=14?[14]:[]),...(horizon>=30?[30]:[])].map(p=>stat((continuous?'连续 ':'')+'D'+p,pointText(g,p),pointNote(g,p))).join('')}</div></section>
+  <section class="a-card si-panel"><div class="si-sectionhead"><h2>${continuous?'连续留存':'指定日留存'}曲线</h2><span class="a-muted">最多4条 · 固定名单与分母</span></div><div class="retention-compare"><label>添加对比批次<select data-ret-add><option value="">选择一个批次</option>${gs.filter(co=>!selected.includes(co.id)).map(co=>`<option value="${esc(co.id)}">${esc(co.label)} · ${fmt(co.cohort_size)}人</option>`).join('')}</select></label>${plotted.map(co=>`<button class="a-button" data-ret-remove="${esc(co.id)}" aria-label="移除对比 ${esc(co.label)}">${esc(co.label)} · ${fmt(co.cohort_size)}人${co.enrollment_complete?'':' · 入组中'} ×</button>`).join('')}</div><p data-ret-message class="si-error" role="status"></p><div id="as-ret-chart" class="retention-chart" role="img" aria-label="固定入组批次的用户留存率曲线，未成熟点不绘制"></div>${!hasPoints?'<p class="retention-empty">所选批次仍在入组或数据未覆盖完整观察日，暂不绘制正式留存点。</p>':''}<p class="si-footnote">只绘制完整观察日，未成熟点留空，不补零、不平滑。周批次须所有入组用户到达对应观察日后才出点；“部分周”仅包含所选日期内的用户。点击点可查看对应名单。</p></section>
+  <section class="a-card si-panel" id="as-ret-inspector"><div class="si-sectionhead"><h2>${esc(g.label)} · ${continuous?'连续 ':''}D${inspectDay} 名单</h2><label>查看观察日<select data-ret-inspect>${Array.from({length:horizon+1},(_,p)=>`<option value="${p}" ${p===inspectDay?'selected':''}>D${p}</option>`).join('')}</select></label></div><div class="retention-lists">${[['returned',inspectDay===0?'完整入组日用户':continuous?'完整窗口内连续回访':'完整观察日已回访',x?.observed||0],['unobserved',inspectDay===0?'D0为入组基准':continuous?'完整窗口未满足连续回访':'完整观察日未观测回访',(x?.eligible_users||0)-(x?.observed||0)],['pending','观察未结束／数据待确认',x?.pending_users??g.cohort_size]].map(([key,label,n])=>`<button class="si-kpi" data-ret-subset="${key}" ${n?'':'disabled'}><span>${label} ↗</span><strong>${fmt(n)}</strong></button>`).join('')}</div><p class="a-muted">各用户按自己的首次行为日计算 D${inspectDay}；三类名单互斥。${!g.enrollment_complete?'本批仍在入组，名单只包含当前已观测用户。':''} 未观测名单不直接认定流失，可继续进入分群，结合价值线索和近期未使用条件再创建运营任务。</p></section>
+  <section class="a-card si-panel"><div class="si-sectionhead"><h2>批次留存明细</h2><span class="a-muted">数字与曲线共用名单、快照和口径</span></div><div class="a-scroll">${table(['入组批次','入组人数',...Array.from({length:horizon},(_,i)=>'D'+(i+1))],gs.map(co=>[`<button class="a-tablelink" data-ret-focus="${esc(co.id)}">${esc(co.label)}${!co.enrollment_complete?' · 入组中':''}</button>`,fmt(co.cohort_size),...Array.from({length:horizon},(_,i)=>{const p=i+1,pt=retentionPoint(co,p,continuous);return pt?.complete?`<button class="a-heat is-complete" data-ret-cell="${esc(co.id)}" data-period="${p}" style="--heat-intensity:${Math.round((pt.rate||0)*75)+5}%">${pointText(co,p)}<small>${pt.retained} / ${co.cohort_size}</small></button>`:`<span class="a-heat-unavailable" title="${esc(pointNote(co,p))}">—</span>`})]))}</div></section>`:'<section class="a-card si-panel retention-empty"><h2>当前入组日期没有首次行为用户</h2><p>可扩大入组日期或调整首次行为、人群条件。未生成零值曲线。</p></section>'}
+  <details class="a-card a-details"><summary>留存口径与数据边界</summary><p>Dn：首次行为之后第 n 个 UTC+7 自然日，至少发生一次指定回访行为。指定日留存不要求连续回来；连续留存要求 D1 到 Dn 每天都回来。D0 是入组基准，不等同首次行为和回访行为相同。</p><p>每条线始终使用同一批用户；未成熟用户不从分母中临时剔除。所有观察日完整结束才显示正式点。当前入组尚未结束的批次单独标记，不绘制正式点。</p><p>首次按已观测首次入组；未确认完整历史。VIP历史留存对比、活动后回访与运营召回不混入本图。日期成熟不证明采集完整，比例为已观测留存。缓存过期需重新运行，不展示假空名单。</p></details></div>`
+  bind();if(g)paintChart()
+ }
+ function bind(){host().querySelector('[data-ret-horizon]').onchange=e=>{horizon=Number(e.target.value);draw(config)};host().querySelector('[data-ret-grouping]').onchange=e=>{grouping=e.target.value;selected=[];focus=null;render()};host().querySelector('[data-ret-definition]').onchange=e=>{continuous=e.target.value==='continuous';render()};host().querySelector('[data-ret-refresh]').onclick=()=>draw(config)
+  const picker=$('#as-cohort-picker');if(picker)picker.onchange=e=>{focusGroup(e.target.value);render()}
+  host().querySelector('[data-ret-cohort]')?.addEventListener('click',()=>openList(chosen(),0,'cohort'))
+  const add=host().querySelector('[data-ret-add]');if(add)add.onchange=e=>{if(!e.target.value)return;if(selected.length>=4){host().querySelector('[data-ret-message]').textContent='最多同时对比4个批次，请先移除一个。';return}selected.push(e.target.value);render()}
+  host().querySelectorAll('[data-ret-remove]').forEach(b=>b.onclick=()=>{if(selected.length===1){host().querySelector('[data-ret-message]').textContent='至少保留一个对比批次。';return}selected=selected.filter(id=>id!==b.dataset.retRemove);render()})
+  host().querySelector('[data-ret-inspect]')?.addEventListener('change',e=>{inspectDay=Number(e.target.value);render()});host().querySelectorAll('[data-ret-subset]').forEach(b=>b.onclick=()=>openList(chosen(),inspectDay,b.dataset.retSubset))
+  host().querySelectorAll('[data-ret-focus]').forEach(b=>b.onclick=()=>{focusGroup(b.dataset.retFocus);render()});host().querySelectorAll('[data-ret-cell]').forEach(b=>b.onclick=()=>{focusGroup(b.dataset.retCell);inspectDay=Number(b.dataset.period);render();openList(chosen(),inspectDay)})
+ }
+ async function draw(c){ctx.clear();disposeChart();config={...c};const token=++generation,key=JSON.stringify({...c,maxDailyPeriods:horizon});host().innerHTML='<section class="a-card si-panel"><p class="a-muted" role="status">正在计算固定批次留存曲线…</p></section>'
+  try{const fetcher=ctx.fetchRetention||fetchRetentionMetrics,result=await fetcher({start:c.start,end:c.end,initial:c.initial||'chip',returning:c.returning||'chip',source:c.source||'all',snapshot_id:c.snapshotId,audience_ids:c.audienceIds||null,cohort_id:c.cohortId||null,maxDailyPeriods:horizon});if(token!==generation)return;const asOf=Number(result.as_of??ctx.dataStore?.meta.asOf??ctx.asof??Date.now());metrics={...result,as_of:asOf,curve_groups:result.curve_groups||groupDailyRetention(result.daily||[],{start:c.start,end:c.end,asOf,maxPeriods:horizon})};previous=metrics;previousKey=key;stale=false;render()}
+  catch(e){if(token!==generation)return;if(previous&&previousKey===key){metrics=previous;stale=true;render()}else{host().innerHTML=`<section class="a-card si-panel"><h2>留存加载失败</h2><p class="si-error">${esc(e.message)}</p><button class="a-button" data-ret-retry>重新运行</button></section>`;host().querySelector('[data-ret-retry]').onclick=()=>draw(c)}}
+ }
+ return {draw,dispose(){generation++;disposeChart()}}
 }

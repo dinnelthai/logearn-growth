@@ -3,8 +3,13 @@ const {PATH_TYPES}=require('./eventMap')
 function validatePaths(b){const bounded=Array.isArray(b.audience_ids)||!!b.cohort_id,maxDays=bounded?31:7;if(b.end-b.start>maxDays*86400000||b.path_start&&!['all',...PATH_TYPES].includes(b.path_start)||b.path_stop&&!['none',...PATH_TYPES].includes(b.path_stop)||b.path_depth!=null&&![3,5,7].includes(Number(b.path_depth)))throw Object.assign(new Error(`路径支持最长${maxDays}天、3/5/7步和有效业务起点`),{status:400})}
 function pathInsights(users,body,s){
  const r=computePaths(users,{startAt:body.start,endAt:body.end,asOf:Date.parse(s.as_of),startEvent:body.path_start||'all',stopEvent:body.path_stop||'none',maxSteps:Number(body.path_depth)||5,sourceFilter:body.source||'all',typeSet:new Set(PATH_TYPES),includeDiagnosticSessions:true})
- const visits=require('./pageVisits').pageVisits(users,{start:body.start,end:body.end,asOf:Date.parse(s.as_of)})
- const lists={all:r.user_ids,...visits.lists},members={}
+ const diagnosticOptions={start:body.start,end:body.end,asOf:Date.parse(s.snapshot_cutoff||s.as_of)}
+ const visits=require('./pageVisits').pageVisits(users,diagnosticOptions)
+ const bounce=require('./homeBounce').homeBounce(users,diagnosticOptions)
+ const requests=require('./requestDiagnostics').requestDiagnostics(users,diagnosticOptions)
+ const value=require('./valueDiagnostics').valueDiagnostics(users,diagnosticOptions,requests.analysis_rows)
+ const lists={all:r.user_ids,...visits.lists,...bounce.lists,...requests.lists,...value.lists},members={}
+ for(const u of users){lists['diagnostic:user:'+u.id]=[u.id]}
  for(const u of users)members[u.id]={id:u.id,source:u.source,...visits.members[u.id]}
  const paths=r.paths.slice(0,100)
  for(const p of paths)lists['path:'+p.path_key]=p.user_ids
@@ -33,6 +38,6 @@ function pathInsights(users,body,s){
  }
  for(const [terminal]of Object.entries(r.terminal_counts))diagnostics['terminal:'+terminal]=pathDiagnostics(r.diagnostic_sessions.filter(s=>s.terminal===terminal))
  const graphSessions=graphPaths.reduce((n,p)=>n+p.sessions,0)
- return {members,lists,payload:{path_diagnostics:diagnostics,page_visits:visits.payload,sessions:r.sessions,users:r.users,inferred_sessions:r.inferred_sessions,average_steps:r.average_steps,terminals:Object.fromEntries(Object.entries(r.terminal_counts).map(([k,v])=>[k,{sessions:v.sessions,users:v.user_ids.length,list_key:'terminal:'+k}])),paths:paths.map(({user_ids,...p})=>({...p,list_key:'path:'+p.path_key})),path_count:r.paths.length,other_users:lists.other.length,graph:{sessions:graphSessions,coverage:r.sessions?graphSessions/r.sessions:null,nodes:[...nodes.values()].map(n=>({...n,list_key:'graph:node:'+n.name,users:lists['graph:node:'+n.name].length})),links:[...links.values()].map(l=>({...l,list_key:'graph:link:'+l.link_key,users:lists['graph:link:'+l.link_key].length}))},start:body.start,end:body.end,as_of:Date.parse(s.as_of),context_scope:'full_observed',user_pool:'observed_sessions'}}
+ return {members,lists,payload:{home_bounce:bounce.payload,request_diagnostics:requests.payload,value_diagnostics:value.payload,path_diagnostics:diagnostics,page_visits:visits.payload,sessions:r.sessions,users:r.users,inferred_sessions:r.inferred_sessions,average_steps:r.average_steps,terminals:Object.fromEntries(Object.entries(r.terminal_counts).map(([k,v])=>[k,{sessions:v.sessions,users:v.user_ids.length,list_key:'terminal:'+k}])),paths:paths.map(({user_ids,...p})=>({...p,list_key:'path:'+p.path_key})),path_count:r.paths.length,other_users:lists.other.length,graph:{sessions:graphSessions,coverage:r.sessions?graphSessions/r.sessions:null,nodes:[...nodes.values()].map(n=>({...n,list_key:'graph:node:'+n.name,users:lists['graph:node:'+n.name].length})),links:[...links.values()].map(l=>({...l,list_key:'graph:link:'+l.link_key,users:lists['graph:link:'+l.link_key].length}))},start:body.start,end:body.end,as_of:Date.parse(s.as_of),context_scope:'full_observed',user_pool:'observed_sessions'}}
 }
 module.exports={pathInsights,validatePaths}
