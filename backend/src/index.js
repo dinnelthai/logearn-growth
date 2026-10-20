@@ -24,15 +24,7 @@ require('./db/upgradeKolAccounts').upgradeKolAccounts(db)
 require('./services/activitySchedule').startScheduler()
 require('./services/platformAssets').start()
 
-// 启动每日预聚合刷新任务 (如果启用)
-if (process.env.ENABLE_DAILY_ROLLUP !== 'false') {
-  require('./workers/dailyRollupRefresh').startScheduledRefresh()
-}
-
-// 启动物化视图刷新任务 (如果启用)
-if (process.env.ENABLE_MATERIALIZED_VIEWS === 'true') {
-  require('./workers/materializedViewRefresh').startScheduledRefresh()
-}
+// Experimental rollups were withdrawn because their metrics differ from live analytics.
 
 // Seed default admin if no users exist
 seedAdmin().catch(console.error)
@@ -70,14 +62,9 @@ if (process.env.ANALYTICS_STORAGE === 'hologres') {
   app.use(require('./routes/remoteAnalytics'))
 }
 
-// Batch analytics (优化: 单次请求获取多个指标)
-app.use('/api/batch-analytics', requireAuth, require('./routes/batchAnalytics'))
-
 // System metrics (缓存统计、内存占用等)
-app.use('/api/system/metrics', requireAuth, require('./routes/metrics'))
+app.use('/api/system/metrics', requireAuth, require('./routes/systemMetrics'))
 
-// Rollup analytics (预聚合数据查询，快速访问)
-app.use('/api/rollup', requireAuth, require('./routes/rollup'))
 
 // Protected routes
 app.use('/api/promotions',requireAuth,require('./routes/promotions'))

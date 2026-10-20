@@ -48,3 +48,18 @@ test('legacy child membership is merged once and old links resolve to the root',
  const roster=(await request('/old-child/roster')).body;assert.equal(roster.activity.id,a.id);assert.deepEqual(roster.user_ids,['1','2']);assert.equal(db.prepare('SELECT baseline_first_at FROM growth_activity_members WHERE activity_id=? AND user_id=?').get(a.id,'2').baseline_first_at,null)
  assert(!(await request()).body.activities.some(a=>a.id==='old-child'))
 })
+
+test('cumulative fixed membership stays within 5000 even when tags have been removed',async()=>{
+ const c=await request('',{name:'capacity',user_ids:'1',cutoff_at:Date.now()+3600000}),id=c.body.activity.id
+ const insert=db.prepare('INSERT INTO growth_activity_members VALUES(?,?,NULL)')
+ db.exec('BEGIN');try{for(let i=1000;i<5998;i++)insert.run(id,String(i));db.exec('COMMIT')}catch(e){db.exec('ROLLBACK');throw e}
+ const exact=await request('/'+id+'/batches',{user_ids:'2'});assert.equal(exact.status,201)
+ assert.equal(db.prepare('SELECT COUNT(*) AS n FROM growth_activity_members WHERE activity_id=?').get(id).n,5000)
+ db.prepare('DELETE FROM growth_activity_tags WHERE activity_id=?').run(id)
+ const before=db.prepare('SELECT schedule_version,tag_version FROM growth_activities WHERE id=?').get(id)
+ const overflow=await request('/'+id+'/batches',{user_ids:'3'});assert.equal(overflow.status,422)
+ assert.match(overflow.body.error,/累计参与名单最多5000/)
+ assert.equal(db.prepare('SELECT COUNT(*) AS n FROM growth_activity_members WHERE activity_id=?').get(id).n,5000)
+ assert.equal(db.prepare('SELECT COUNT(*) AS n FROM growth_activity_tags WHERE activity_id=?').get(id).n,0)
+ assert.deepEqual(db.prepare('SELECT schedule_version,tag_version FROM growth_activities WHERE id=?').get(id),before)
+})

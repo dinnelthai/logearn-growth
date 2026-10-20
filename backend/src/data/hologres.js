@@ -98,8 +98,8 @@ async function query(sql, params = []) {
  */
 async function cached(key, fn, ttl = 30000) {
   return multilevelCache.cached(key, fn, {
-    ttl: Math.floor(ttl / 1000),
-    staleWhileRevalidate: key === 'status', // status 启用 SWR
+    ttl: ttl / 1000,
+    staleWhileRevalidate: false, // Keep snapshot freshness and explicit refresh deterministic.
     swr_probability: 0.1,
   })
 }

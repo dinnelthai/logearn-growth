@@ -10,7 +10,8 @@ function start(kind,body,snapshot,audience,owner){
   const key=createHash('sha1').update(JSON.stringify({kind,body,version:snapshot.snapshot_id,audience,owner})).digest('hex')
   const existing=keys.get(key)
   if(existing&&jobs.has(existing)){
-    if(jobs.get(existing).state!=='failed')return jobs.get(existing)
+    const previous=jobs.get(existing)
+    if(['queued','running'].includes(previous.state)||(previous.state==='complete'&&remote.getCached('job:'+existing)!==null))return previous
     jobs.delete(existing);keys.delete(key);remote.deleteCached('job:'+existing)
   }
   if(jobs.size>=128){

@@ -1,4 +1,7 @@
 #!/bin/bash
+# Disabled after business-logic review; do not deploy incompatible rollups.
+printf "%s\n" "Stage 2 deployment withdrawn: daily rollups do not preserve analytics semantics." >&2
+exit 1
 # =====================================================================
 # 阶段 2 快速部署 - 交互式引导
 # =====================================================================

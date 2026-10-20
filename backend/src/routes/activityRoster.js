@@ -35,6 +35,8 @@ module.exports=function mountRoster(router,{db,get,publicActivity,validate}) {
    // Recheck membership after remote validation to prevent concurrent overlapping batches.
    const check=db.prepare('SELECT 1 FROM growth_activity_members m JOIN growth_activities a ON a.id=m.activity_id WHERE a.owner_id=? AND (a.id=? OR a.parent_id=?) AND m.user_id=?')
    if(fresh.some(r=>check.get(a.owner_id,a.id,a.id,r.user_id)))fail('活动名单已更新，请重试',409)
+   const memberCount=db.prepare('SELECT COUNT(DISTINCT m.user_id) AS n FROM growth_activity_members m JOIN growth_activities a ON a.id=m.activity_id WHERE a.owner_id=? AND (a.id=? OR a.parent_id=?)').get(a.owner_id,a.id,a.id).n
+   if(memberCount+fresh.length>5000)fail('活动累计参与名单最多5000人，请创建新活动',422)
    if(new Set([...tagIds(a),...fresh.map(r=>r.user_id)]).size>50000)fail('活动标签最多50000人',422)
    const insert=db.prepare('INSERT INTO growth_activity_members(activity_id,user_id,baseline_first_at) VALUES(?,?,?)'),tag=db.prepare('INSERT OR IGNORE INTO growth_activity_tags(activity_id,user_id,added_at) VALUES(?,?,?)')
    for(const r of fresh){insert.run(a.id,r.user_id,r.baseline_first_at!=null&&Number(r.baseline_first_at)<a.start_at?Number(r.baseline_first_at):null);tag.run(a.id,r.user_id,Date.now())}

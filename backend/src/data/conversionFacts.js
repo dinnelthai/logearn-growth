@@ -15,7 +15,7 @@ async function conversionUsers(s,{start,end,source='all'},audience,{scene='invit
  const rows=await remote.query(`${remote.eventsCte()}, candidates AS (
  SELECT DISTINCT e.user_key FROM e JOIN facts f ON f.user_key=e.user_key WHERE e.client_ts>=$2 AND e.client_ts<$3
  AND e.event_name=ANY($7::text[]) AND ($5::text='all' OR f.source=$5) AND ($6::text[] IS NULL OR e.user_key=ANY($6))
- )${context} SELECT e.user_key,e.user_id,e.anonymous_id,e.event_id,e.event_name,e.client_ts,e.session_id,e.device,e.app_version,e.page,${login?'f':'f'}.source,${projection} AS properties
+ )${context} SELECT e.user_key,e.user_id,e.anonymous_id,e.event_id,e.event_name,e.client_ts,e.session_id,e.device,e.app_version,e.page,${login?'e':'f'}.source,${projection} AS properties
  ${login?'FROM context e WHERE (e.observation_rank=1 OR e.event_name=ANY($8::text[]))':`FROM e JOIN facts f ON f.user_key=e.user_key WHERE e.client_ts<=$4 AND e.event_name=ANY($7::text[])
  AND EXISTS(SELECT 1 FROM candidates c WHERE c.user_key=e.user_key)`} ORDER BY e.user_key,e.client_ts,e.event_id LIMIT 150001`,[s.snapshot_cutoff,start,end,Date.parse(s.snapshot_cutoff),source,audience,EVENTS,...(login?[LOGIN_EVENTS]:[])])
  if(rows.length>150000||Buffer.byteLength(JSON.stringify(rows))>32*1024*1024)throw Object.assign(new Error('转化上下文超过预算，请缩小日期或来源'),{status:422})

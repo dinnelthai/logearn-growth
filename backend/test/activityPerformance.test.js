@@ -1,8 +1,8 @@
 process.env.DB_PATH=':memory:';process.env.ANALYTICS_STORAGE='hologres'
 const {test,after}=require('node:test'),assert=require('node:assert/strict'),{DatabaseSync}=require('node:sqlite'),express=require('express'),db=require('../src/db/connection'),fs=require('node:fs'),remote=require('../src/data/hologres')
 db.exec(fs.readFileSync(require('node:path').join(__dirname,'../src/db/schema.sql'),'utf8'))
-const now=Date.now(),start=now-3*86400000,end=now-2*86400000;let failTrade=false
-remote.status=async()=>({snapshot_id:'p',snapshot_cutoff:new Date(now).toISOString(),as_of:new Date(now).toISOString()});remote.cached=async(_k,fn)=>fn()
+const now=Date.now(),start=now-3*86400000,end=now-2*86400000;let failTrade=false,observedAt=now
+remote.status=async()=>({snapshot_id:'p',snapshot_cutoff:new Date(now).toISOString(),as_of:observedAt==null?null:new Date(observedAt).toISOString()});remote.cached=async(_k,fn)=>fn()
 remote.query=async(sql,p)=>{
  if(sql.includes('trade_groups')){if(failTrade)throw Error('trade offline');return [{account_id:'1',chain:3,transaction_hash:'x',trade_value:25,transaction_time:new Date(start+10).toISOString(),valid:true}]}
  if(sql.includes('SELECT event_id,SUBSTRING'))return [{event_id:'before',user_id:'1',t:start-1},{event_id:'after',user_id:'1',t:start+1},{event_id:'again',user_id:'1',t:start+2},{event_id:'late',user_id:'2',t:end}]
@@ -29,3 +29,20 @@ test('source failures do not freeze unknown trade results, successful settlement
  failTrade=false;assert.equal((await request('/trade/settle',{})).status,200);const before=(await request('/trade/metrics?status=all')).body;failTrade=true;const after=(await request('/trade/metrics?status=all')).body;assert.deepEqual(after.performance,before.performance);assert.equal(after.performance_errors.trade,null)
 })
 test('unknown goals are rejected before reading source or creating activities',async()=>{assert.equal((await request('',{name:'bad',goal:'other',cutoff_at:now+86400000,user_ids:['1']})).status,400)})
+
+test('settlement waits for the observed cutoff and leaves the activity unfrozen on lag or unknown progress',async()=>{
+ activity('lagged','engagement');failTrade=false
+ try{
+  for(const observed of [end-12*3600000,null]){
+   observedAt=observed
+   const r=await request('/lagged/settle',{});assert.equal(r.status,503);assert.match(r.body.error,/观测截至/)
+   const saved=db.prepare('SELECT settled_at,settled_result FROM growth_activities WHERE id=?').get('lagged')
+   assert.equal(saved.settled_at,null);assert.equal(saved.settled_result,null)
+  }
+  observedAt=end
+  assert.equal((await request('/lagged/settle',{})).status,200)
+  assert.ok(db.prepare('SELECT settled_result FROM growth_activities WHERE id=?').get('lagged').settled_result)
+  observedAt=end-12*3600000
+  assert.equal((await request('/lagged/settle',{})).status,200)
+ }finally{observedAt=now;failTrade=false}
+})
