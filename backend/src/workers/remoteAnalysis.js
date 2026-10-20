@@ -4,8 +4,32 @@ const {loadUsers,features,retentionUsers,orderedFunnelUsers}=require('../data/re
 const {computeFunnel}=require('../analytics/funnel')
 async function run({kind,body,snapshot:s,audience,owner}){
   const {start,end}=body,asOf=Date.parse(s.as_of),source=body.source||'all',lists={}
+  if(kind==='tracking-audit'){
+    const {raw,accepted,summary}=await require('../data/trackingAudit').trackingAuditFacts(s,body)
+    return require('../analytics/trackingAudit').trackingAudit(raw,accepted,summary,body,s)
+  }
+  if(kind==='conversion-loss'){
+    const effectiveEnd=Math.min(end,asOf+1)
+    if(effectiveEnd<=start)throw Object.assign(new Error('统计期尚未到达数据截至时间'),{status:400})
+    const users=await require('../data/behaviorPaths').pathUsers(s,{start:start-(effectiveEnd-start),end:effectiveEnd,source},audience,{lossOnly:true})
+    return require('../analytics/conversionLoss').conversionLoss(users,body,s)
+  }
+  if(kind==='value-diagnostics'){
+    const users=await require('../data/behaviorPaths').pathUsers(s,body,audience,{valueOnly:true})
+    const options={start,end,asOf:Date.parse(s.snapshot_cutoff||s.as_of)}
+    const requests=require('../analytics/requestDiagnostics').requestDiagnostics(users,options)
+    const value=require('../analytics/valueDiagnostics').valueDiagnostics(users,options,requests.analysis_rows)
+    const members=Object.fromEntries(users.map(u=>[u.id,{id:u.id,source:u.source}]))
+    return {members,lists:{...requests.lists,...value.lists,...Object.fromEntries(users.map(u=>['diagnostic:user:'+u.id,[u.id]]))},payload:{start,end,as_of:asOf,request_diagnostics:requests.payload,value_diagnostics:value.payload,candidate_count:users.length,truncated:false,context_scope:'full_observed_relevant_events'}}
+  }
+  if(kind==='growth-insights'){
+    const {growthFacts,growthQuality,cohortTrades}=require('../data/growthInsights')
+    const rows=await growthFacts(s,body,audience),quality=await growthQuality(s,body,audience)
+    const trades=await cohortTrades(s,rows,body)
+    return require('../analytics/growthInsights').growthInsights(rows,quality,body,s,trades)
+  }
   if(['login-conversion','invite-conversion'].includes(kind)){
-    const users=await require('../data/conversionFacts').conversionUsers(s,body,audience)
+    const users=await require('../data/conversionFacts').conversionUsers(s,body,audience,{scene:kind==='login-conversion'?'login':'invite'})
     if(kind==='login-conversion')return require('../analytics/loginConversion').loginConversion(users,body,s)
     let relations=[],factsAvailable=true,factsError=null
     try{relations=await require('../data/conversionFacts').invitationRelations(s)}catch(error){if(error.status===422)throw error;factsAvailable=false;factsError='邀请关系事实暂不可用，未将缺失解释为零'}

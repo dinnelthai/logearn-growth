@@ -32,3 +32,10 @@ test('new registration validation is independent from legacy matching and shows 
  const html=inviteSceneMarkup(ctx,m);expect(html).toContain('新增注册邀请校验');expect(html).toContain('历史数据不回算');expect(html).toContain('已有账号，不计新增');expect(html).toContain('实际邀请人与入口码对应账号不一致');expect(html).toContain('注册时间');expect(html).toContain('invite:registration:registered');expect(html).toContain('&lt;flow>')
  m.registration.facts_available=false;expect(inviteSceneMarkup(ctx,m)).toContain('成功数尚无法确认')
 })
+test('registration is the default view and the effective start comes from the backend',()=>{
+ const m={available:false,steps:[],binding_rate:null,mature_flows:0,pending:0,window_hours:24,independent_facts:{available:true,relations:0,users:0,list_key:'facts'},states:[],errors:[],dimensions:{},quality:{},retention:[],records:[],record_total:0,registration:{effective_from:Date.parse('2026-10-18T00:00:00Z'),available:false,facts_available:true,steps:[],states:[],records:[],record_total:0}}
+ const html=inviteSceneMarkup(ctx,m)
+ expect(html).toContain('2026-10-18 07:00:00')
+ expect(html).toContain('历史关联与显式流程（辅助核对）')
+ expect(html).toMatch(/<details class="a-card si-panel" ><summary>历史关联/)
+})

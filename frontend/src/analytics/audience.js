@@ -4,7 +4,7 @@ export function createAudience({title,description,rows,context,query=''}) {
  if(!Number.isFinite(context?.start)||!Number.isFinite(context?.end)||context.start>=context.end)throw Error('人群统计期无效')
  const ids=[...new Set(rows.map(row=>(row.u??row).id).filter(id=>typeof id==='string'&&id))]
  if(!ids.length)throw Error('没有可分析的用户')
- return Object.freeze({title,description,query,ids:Object.freeze(ids),start:context.start,end:context.end,origin:context.mode,source:context.source??'all'})
+ return Object.freeze({title,description,query,fixed_at:new Date().toISOString(),ids:Object.freeze(ids),start:context.start,end:context.end,origin:context.mode,source:context.source??'all'})
 }
 export function audienceUsers(users,audience,mode){
  if(!audience||!AUDIENCE_MODES.has(mode))return users

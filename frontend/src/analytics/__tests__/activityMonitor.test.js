@@ -13,7 +13,7 @@ test('a planned activity renders the scheduling panel without fabricated denomin
 
 test('started activity shows management actions prominently and explains fixed fields',async()=>{
  activityMetrics.mockResolvedValue(m);const t=setup();await t.page.draw()
- for(const label of ['管理名单与标签','复制为新活动','归档活动','本批次名单和目标固定'])expect(t.host.innerHTML).toContain(label)
+ for(const label of ['管理名单与标签','复制为新活动','归档活动','本活动目标固定，可在名单管理中追加成员'])expect(t.host.innerHTML).toContain(label)
  expect(t.host.innerHTML.indexOf('data-activity-archive-top')).toBeLessThan(t.host.innerHTML.indexOf('data-activity-refresh'))
  expect(t.host.innerHTML).not.toContain('data-activity-edit>');expect(t.host.innerHTML).toContain('修改开始时间');expect(t.host.innerHTML).toContain('保存并重新计算')
 })

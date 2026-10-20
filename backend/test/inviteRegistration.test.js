@@ -52,3 +52,32 @@ test('shared flow actors conflict and unknown account registration time stays pe
  const es=events();es.push(event('login_succeeded',4001,{login_type:'manual'},'9'));assert.equal(run(es).payload.records[0].state,'conflict')
  assert.equal(run(events(),[relation],[accounts[1]]).payload.records[0].state,'account_pending')
 })
+test('entry deduplication keeps the earliest observation regardless of input order',()=>{
+ const es=events(),later={...es[0],t:4500,event_id:'later',raw_name:'page_viewed'}
+ const ordered=run([...es,later]).payload,shuffled=run([later,...es]).payload
+ assert.deepEqual(shuffled,ordered)
+ assert.equal(shuffled.success_users,1)
+})
+test('an entry outside the selected period cannot be replaced by its later duplicate',()=>{
+ const es=events(),later={...es[0],t:4500,event_id:'later',raw_name:'page_viewed'}
+ assert.equal(run([later,...es],[relation],accounts,{}, {...b,start:2500}).payload.entries,0)
+})
+test('account identity alone cannot associate an invitation entry with a login visit',()=>{
+ const es=events();for(const e of es){e.session_id=null;e.anonymous_id=null;e.actor_user_id='1'}
+ assert.equal(run(es).payload.success_users,0)
+ assert.equal(run(es).payload.records[0].state,'login_pending')
+})
+test('entry without properties remains a diagnosable record',()=>{
+ const es=events();delete es[0].properties
+ assert.equal(run(es).payload.records[0].link,'unknown')
+})
+test('visit indexes retain session priority and anonymous-only fallback without cross-session logins',()=>{
+ const es=events();es[1].session_id='other'
+ assert.equal(run(es).payload.success_users,0)
+ const anonymousOnly=events();anonymousOnly[0].session_id=null
+ assert.equal(run(anonymousOnly).payload.success_users,1)
+ const sessionOnly=events();sessionOnly[0].anonymous_id=null
+ assert.equal(run(sessionOnly).payload.success_users,1)
+ const wrongAnonymous=events();wrongAnonymous[1].anonymous_id='other'
+ assert.equal(run(wrongAnonymous).payload.success_users,0)
+})

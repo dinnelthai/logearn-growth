@@ -1,6 +1,7 @@
 const {ownAccounts,attachAccounts,invitedAccounts}=require('../analytics/kolAccounts')
 const {relationships}=require('../data/kolMetrics'),remote=require('../data/hologres')
 module.exports=function mount(router,{db,wrap,validate,get}){
+ router.post('/resolve-addresses',wrap(async(req,res)=>{res.json(await require('../data/addressRoster').resolveAddresses(req.body.addresses))}))
  router.post('/import-kol',wrap(async(req,res)=>{
   const {kol_id,scope='tagged'}=req.body,row=db.prepare('SELECT * FROM crm_kols WHERE id=? AND owner_id=?').get(String(kol_id),String(req.user.user_id))
   const kol=row?attachAccounts(db,[row])[0]:null

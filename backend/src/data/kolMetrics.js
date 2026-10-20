@@ -3,6 +3,7 @@ const remote=require('./hologres')
 const {computeReferralInsights}=require('../analytics/referralInsights')
 const {validatePeriod}=require('../analytics/kolMetrics')
 const {memberFacts,memberMetrics,tradeSql,budget}=require('./memberMetrics')
+const {createMemberFactSelector}=require('../analytics/memberFactIndex')
 async function relationships(s) {
   return remote.cached('crm:relationships:'+s.snapshot_id,async()=>{
     const [accounts,relations]=await Promise.all([
@@ -27,7 +28,7 @@ async function kolMetrics(profiles,period,{includeDetails=true}={}) {
   const taggedIds=p=>[...new Set([...(p.user_ids||[]),...ownAccounts(p)].map(String))]
   const invitedMembers=p=>invitedAccounts(p,relation,period.end)
   const targets=profiles.flatMap(p=>[...taggedIds(p),...invitedMembers(p).map(m=>m.id)])
-  const facts=await memberFacts(s,targets,period),aggregate=members=>{const result=memberMetrics(facts,members,period,s);if(!includeDetails&&result){delete result.rows;delete result.daily}return result}
+  const facts=await memberFacts(s,targets,period),selectFacts=createMemberFactSelector(facts),aggregate=members=>{const result=memberMetrics(selectFacts(members),members,period,s);if(!includeDetails&&result){delete result.rows;delete result.daily}return result}
   const errors={...facts.errors,referral:relationResult[0]?.status==='rejected'?relationResult[0].reason.message:null}
   return {start:period.start,end:period.end,as_of:s.snapshot_cutoff,snapshot_id:s.snapshot_id,coverage:'partial',analysis_definition:'observed_events',errors,metrics:profiles.map(p=>{
     const accounts=ownAccounts(p),ownAvailable=accounts.some(id=>facts.known?.has(id))

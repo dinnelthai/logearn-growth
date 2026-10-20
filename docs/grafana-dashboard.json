@@ -1,0 +1,309 @@
+{
+  "dashboard": {
+    "title": "Logearn Analytics 性能监控",
+    "tags": ["performance", "cache", "analytics"],
+    "timezone": "Asia/Bangkok",
+    "panels": [
+      {
+        "id": 1,
+        "title": "缓存命中率 (L1)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(cache_hits_total[5m]) / (rate(cache_hits_total[5m]) + rate(cache_misses_total[5m])) * 100",
+            "legendFormat": "命中率 %"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "命中率 (%)",
+            "min": 0,
+            "max": 100
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 60,
+            "colorMode": "critical",
+            "op": "lt",
+            "fill": true,
+            "line": true
+          },
+          {
+            "value": 80,
+            "colorMode": "custom",
+            "op": "lt",
+            "fillColor": "rgba(255, 193, 7, 0.2)",
+            "lineColor": "rgb(255, 193, 7)"
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 8
+        }
+      },
+      {
+        "id": 2,
+        "title": "查询延迟 (P50, P95, P99)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(query_duration_seconds_bucket[5m]))",
+            "legendFormat": "P50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(query_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(query_duration_seconds_bucket[5m]))",
+            "legendFormat": "P99"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "延迟 (ms)",
+            "format": "ms"
+          }
+        ],
+        "gridPos": {
+          "x": 12,
+          "y": 0,
+          "w": 12,
+          "h": 8
+        }
+      },
+      {
+        "id": 3,
+        "title": "缓存键数 & 待处理请求",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "cache_keys_total",
+            "legendFormat": "缓存键数"
+          },
+          {
+            "expr": "pending_requests_total",
+            "legendFormat": "待处理请求"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "数量",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 8,
+          "w": 12,
+          "h": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "内存占用",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes / 1024 / 1024",
+            "legendFormat": "RSS"
+          },
+          {
+            "expr": "nodejs_heap_size_used_bytes / 1024 / 1024",
+            "legendFormat": "堆内存使用"
+          },
+          {
+            "expr": "nodejs_heap_size_total_bytes / 1024 / 1024",
+            "legendFormat": "堆内存总量"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "内存 (MB)",
+            "format": "decmbytes"
+          }
+        ],
+        "gridPos": {
+          "x": 12,
+          "y": 8,
+          "w": 12,
+          "h": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "慢查询频率 (> 500ms)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(slow_queries_total[5m]) * 60",
+            "legendFormat": "慢查询/分钟"
+          }
+        ],
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "value": 0,
+              "color": "green"
+            },
+            {
+              "value": 5,
+              "color": "yellow"
+            },
+            {
+              "value": 10,
+              "color": "red"
+            }
+          ]
+        },
+        "gridPos": {
+          "x": 0,
+          "y": 16,
+          "w": 6,
+          "h": 4
+        }
+      },
+      {
+        "id": 6,
+        "title": "QPS (每秒查询数)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(queries_total[1m])",
+            "legendFormat": "QPS"
+          }
+        ],
+        "gridPos": {
+          "x": 6,
+          "y": 16,
+          "w": 6,
+          "h": 4
+        }
+      },
+      {
+        "id": 7,
+        "title": "批量查询平均并发数",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "avg(batch_query_concurrency)",
+            "legendFormat": "平均并发"
+          }
+        ],
+        "gridPos": {
+          "x": 12,
+          "y": 16,
+          "w": 6,
+          "h": 4
+        }
+      },
+      {
+        "id": 8,
+        "title": "服务运行时长",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "process_uptime_seconds / 3600",
+            "legendFormat": "运行时长 (小时)"
+          }
+        ],
+        "unit": "h",
+        "gridPos": {
+          "x": 18,
+          "y": 16,
+          "w": 6,
+          "h": 4
+        }
+      },
+      {
+        "id": 9,
+        "title": "Hologres 连接池状态",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "pg_pool_total_connections",
+            "legendFormat": "总连接数"
+          },
+          {
+            "expr": "pg_pool_idle_connections",
+            "legendFormat": "空闲连接"
+          },
+          {
+            "expr": "pg_pool_waiting_count",
+            "legendFormat": "等待连接"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "连接数",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 20,
+          "w": 12,
+          "h": 8
+        }
+      },
+      {
+        "id": 10,
+        "title": "物化视图刷新状态 (阶段 2)",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "materialized_view_refresh_duration_seconds",
+            "legendFormat": "{{view_name}}",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "gridPos": {
+          "x": 12,
+          "y": 20,
+          "w": 12,
+          "h": 8
+        }
+      }
+    ],
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "instance",
+          "type": "query",
+          "query": "label_values(up, instance)",
+          "refresh": 1,
+          "includeAll": false,
+          "multi": false
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "部署",
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "iconColor": "green",
+          "tags": ["deploy"]
+        },
+        {
+          "name": "告警",
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "iconColor": "red",
+          "tags": ["alert"]
+        }
+      ]
+    }
+  }
+}

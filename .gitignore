@@ -10,3 +10,9 @@ backend/.env
 backend/data/
 output/events-audit/remote-events.json
 output/node_modules/
+
+# Mock data files (no longer used)
+frontend/src/api/*.json
+!frontend/src/api/.gitkeep
+
+**/ops-token.key

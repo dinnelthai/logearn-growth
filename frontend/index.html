@@ -6,6 +6,18 @@
     <meta name="theme-color" content="#f4f6f9" />
     <meta name="description" content="LogEarn 数据分析后台交互原型" />
     <title>LogEarn 数据分析后台</title>
+
+    <!-- DNS 预解析和预连接 -->
+    <link rel="preconnect" href="/api">
+    <link rel="dns-prefetch" href="/api">
+
+    <!-- 关键 CSS 内联 (骨架屏) -->
+    <style>
+      body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0B0E14; color: #F8FAFC; }
+      #app { min-height: 100vh; }
+      .loading-skeleton { animation: pulse 1.5s ease-in-out infinite; }
+      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    </style>
   </head>
   <body>
     <div id="app">
@@ -20,12 +32,14 @@
 <nav class="a-subnav" aria-label="总览页面" id="as-section-nav">
 <div data-navigation-section="overview">
 <button class="a-nav-sub cursor-interaction" data-mode="home" aria-pressed="true">平台概况</button>
+<button class="a-nav-sub cursor-interaction" data-mode="growth-insights" aria-pressed="false">增长诊断</button>
 <button class="a-nav-sub cursor-interaction" data-mode="north" aria-pressed="false">北极星指标</button>
 </div>
 <div data-navigation-section="operations" hidden>
 <button class="a-nav-sub cursor-interaction" data-mode="workbench" aria-pressed="false">待办</button>
 <button class="a-nav-sub cursor-interaction" data-mode="crm" aria-pressed="false">KOL CRM</button>
 <button class="a-nav-sub cursor-interaction" data-mode="activities" aria-pressed="false">活动监控</button>
+<button class="a-nav-sub cursor-interaction" data-mode="ops" aria-pressed="false">OPS 工具</button>
 <button class="a-nav-sub cursor-interaction" data-mode="operations-compare" aria-pressed="false">效果对比</button>
 </div>
 <div data-navigation-section="users" hidden>

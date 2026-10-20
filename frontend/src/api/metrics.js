@@ -68,6 +68,19 @@ export function fetchPathsMetrics(body) {
   return metricsFetch('/api/metrics/paths', { method: 'POST', body: JSON.stringify(body) })
 }
 
+export function fetchGrowthInsights(body) {
+  return metricsFetch('/api/metrics/growth-insights', {method:'POST',body:JSON.stringify(body)})
+}
+export function fetchConversionLoss(body) {
+  return metricsFetch('/api/metrics/conversion-loss',{method:'POST',body:JSON.stringify(body)})
+}
+export function fetchTrackingAudit(body) {
+  return metricsFetch('/api/metrics/tracking-audit',{method:'POST',body:JSON.stringify(body)})
+}
+export function fetchValueDiagnostics(body) {
+  return metricsFetch('/api/metrics/value-diagnostics', {method:'POST',body:JSON.stringify(body)})
+}
+
 export function fetchComparisonMetrics(body) {
   return metricsFetch('/api/metrics/comparison', { method: 'POST', body: JSON.stringify(body) })
 }

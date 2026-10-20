@@ -448,3 +448,18 @@ CREATE TABLE IF NOT EXISTS ops_conversion_reports (
  id TEXT PRIMARY KEY,owner_id TEXT NOT NULL,user_key TEXT,report_json TEXT NOT NULL,created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ops_conversion_reports_owner ON ops_conversion_reports(owner_id,created_at);
+
+CREATE TABLE IF NOT EXISTS ops_credentials(owner_id TEXT PRIMARY KEY,ciphertext TEXT NOT NULL,iv TEXT NOT NULL,tag TEXT NOT NULL,updated_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS ops_batches(id TEXT PRIMARY KEY,owner_id TEXT NOT NULL,operation TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'prepared',created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,started_at INTEGER,finished_at INTEGER);
+CREATE INDEX IF NOT EXISTS ops_batches_owner ON ops_batches(owner_id,created_at);
+CREATE TABLE IF NOT EXISTS ops_batch_rows(batch_id TEXT NOT NULL,row_no INTEGER NOT NULL,payload_json TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'pending',result_json TEXT,PRIMARY KEY(batch_id,row_no));
+
+CREATE TABLE IF NOT EXISTS growth_activity_merged_batches (
+ child_id TEXT PRIMARY KEY,root_id TEXT NOT NULL,owner_id TEXT NOT NULL,merged_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS growth_analysis_reports (
+ id TEXT PRIMARY KEY,owner_id TEXT NOT NULL,title TEXT NOT NULL,note TEXT NOT NULL,
+ configuration_json TEXT NOT NULL,result_json TEXT NOT NULL,created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS growth_analysis_reports_owner ON growth_analysis_reports(owner_id,created_at);

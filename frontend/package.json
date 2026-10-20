@@ -18,7 +18,11 @@
     "echarts": "6.1.0"
   },
   "devDependencies": {
+    "terser": "^5.51.2",
     "vite": "^6.0.0",
+    "vite-plugin-compression": "^0.5.1",
+    "vite-plugin-imagemin": "^0.6.1",
+    "vite-plugin-pwa": "^2.0.0",
     "vitest": "^3.2.7"
   }
 }

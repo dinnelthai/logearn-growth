@@ -1,0 +1,25 @@
+{
+  "login_context": {
+    "read_only": true,
+    "window_hours": 1,
+    "output_equal": true,
+    "before": {
+      "median_ms": 831.637107,
+      "users": 21,
+      "events": 5976,
+      "context_json_bytes": 2432323
+    },
+    "after": {
+      "median_ms": 565.7193320000006,
+      "users": 21,
+      "events": 239,
+      "context_json_bytes": 102777
+    }
+  },
+  "trade_query_not_adopted": {
+    "before_median_ms": 452.41720799999996,
+    "after_median_ms": 430.00196500000004,
+    "same_result": true,
+    "reverted": true
+  }
+}

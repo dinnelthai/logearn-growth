@@ -5,7 +5,6 @@ const fs = require('fs')
 const path = require('path')
 const db = require('./db/connection')
 const seedAdmin = require('./db/seed')
-const seedMock = require('./db/seedMock')
 const authRouter = require('./routes/auth')
 const cohortsRouter = require('./routes/cohorts')
 const savedConfigsRouter = require('./routes/savedConfigs')
@@ -20,14 +19,23 @@ db.exec(schema)
 
 require('./db/upgradeActivities').upgradeActivities(db)
 require('./db/upgradeActivities').upgradeCohorts(db)
+require('./db/mergeActivityBatches').mergeActivityBatches(db)
 require('./db/upgradeKolAccounts').upgradeKolAccounts(db)
 require('./services/activitySchedule').startScheduler()
 require('./services/platformAssets').start()
 
+// 启动每日预聚合刷新任务 (如果启用)
+if (process.env.ENABLE_DAILY_ROLLUP !== 'false') {
+  require('./workers/dailyRollupRefresh').startScheduledRefresh()
+}
+
+// 启动物化视图刷新任务 (如果启用)
+if (process.env.ENABLE_MATERIALIZED_VIEWS === 'true') {
+  require('./workers/materializedViewRefresh').startScheduledRefresh()
+}
+
 // Seed default admin if no users exist
 seedAdmin().catch(console.error)
-// Seed analytics mock facts (events / users / referrals / trades)
-try { if (process.env.ANALYTICS_STORAGE !== 'hologres') seedMock() } catch (err) { console.error('seedMock failed:', err) }
 
 const app = express()
 
@@ -45,6 +53,9 @@ app.use(express.json({ limit: '2mb' }))
 // Health check (public)
 app.get('/health', (req, res) => res.json({ ok: true, ts: Date.now() }))
 
+// Prometheus metrics endpoint (public, for monitoring tools)
+app.get('/metrics', require('./monitoring/prometheus').handler)
+
 // Auth routes (login is public, rest require auth internally)
 app.use('/api/auth', authRouter)
 
@@ -59,11 +70,22 @@ if (process.env.ANALYTICS_STORAGE === 'hologres') {
   app.use(require('./routes/remoteAnalytics'))
 }
 
+// Batch analytics (优化: 单次请求获取多个指标)
+app.use('/api/batch-analytics', requireAuth, require('./routes/batchAnalytics'))
+
+// System metrics (缓存统计、内存占用等)
+app.use('/api/system/metrics', requireAuth, require('./routes/metrics'))
+
+// Rollup analytics (预聚合数据查询，快速访问)
+app.use('/api/rollup', requireAuth, require('./routes/rollup'))
+
 // Protected routes
 app.use('/api/promotions',requireAuth,require('./routes/promotions'))
 app.use('/api/operation-tasks', requireAuth, require('./routes/operationTasks'))
 app.use('/api/operations', requireAuth, require('./routes/operationsComparison'))
 app.use('/api/activities', requireAuth, require('./routes/activities'))
+app.use('/api/ops',requireAuth,require('./routes/ops'))
+app.use('/api/growth-reports',requireAuth,require('./routes/growthReports'))
 app.use('/api/crm/kols', requireAuth, require('./routes/crm'))
 app.get('/api/user-tags',requireAuth,(req,res,next)=>{try{res.json({tags:require('./analytics/userTags').userTags(req.user.user_id,{includeMembers:false}).map(({user_ids,...tag})=>tag)})}catch(e){next(e)}})
 app.post('/api/user-tags/audience',requireAuth,async(req,res,next)=>{

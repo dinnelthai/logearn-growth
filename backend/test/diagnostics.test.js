@@ -67,3 +67,23 @@ test('new successful-analysis retention uses mature UTC+7 target days and leaves
  const d=valueDiagnostics(users,{start:0,end:DAY,asOf:3*DAY}).payload.retention
  assert.deepEqual(d[0],{day:1,eligible:1,returned:1,rate:1,pending:0});assert.equal(d[1].eligible,0);assert.equal(d[1].pending,1);assert.equal(d[1].rate,null)
 })
+
+test('page load presented is a completed result with latency separate from data ready',()=>{
+ const users=[u('a',['ready','presented','cancelled'].flatMap((outcome,i)=>[
+  e('page_content_load_started',2000+i*1000,{page_load_id:String(i)}),
+  e('page_content_load_finished',2500+i*1000,{page_load_id:String(i),outcome,duration_ms:100+i*100})
+ ]))]
+ const d=requestDiagnostics(users,O).payload.families.page_load
+ assert.equal(d.counts.presented,1);assert.equal(d.counts.unknown,0);assert.equal(d.success_rate,1);assert.equal(d.terminal_coverage,1)
+ assert.equal(d.latency.find(x=>x.state==='ready').median_ms,100)
+ assert.equal(d.latency.find(x=>x.state==='presented').median_ms,200)
+})
+test('page click rate uses page_viewed unique users, includes clicks without token visit IDs and isolates pages',()=>{
+ const page=(name,t=2000)=>e('page_view',t,{page_name:name},{raw_name:'page_viewed'})
+ const click=(name,t=3000)=>e('token_click',t,{list_type:name},{raw_name:'ranking_token_clicked'})
+ const users=[u('a',[page('signals'),page('signals'),click('signals'),click('signals')]),u('b',[page('signals')]),u('c',[page('trending'),click('signals')]),u('d',[page('signals',200000),click('signals')])]
+ const d=valueDiagnostics(users,O),r=d.payload.page_clicks.rows.find(x=>x.list_type==='signals')
+ assert.equal(r.visitor_users,2);assert.equal(r.clicked_users,1);assert.equal(r.rate,.5);assert.equal(r.clicks,4);assert.equal(r.unmatched_clicks,2)
+ assert.deepEqual(d.lists[r.list_key+':clicked'],['a'])
+ assert.equal(d.payload.page_clicks.rows.find(x=>x.list_type==='trenches').rate,null)
+})

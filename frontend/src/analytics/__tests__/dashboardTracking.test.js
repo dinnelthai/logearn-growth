@@ -36,3 +36,9 @@ test('bounce and request diagnostics escape reported dimensions, preserve unknow
  const html=requestDiagnosticsMarkup(ctx,{families:{page_load:family}})
  expect(html).toContain('diagnostic:page_load:unknown');expect(html).toContain('&lt;bad>');expect(html).not.toContain('NaN');expect(html).toContain('结果未知')
 })
+
+test('ranking click panel renders page visitor denominator without card exposure dependency',async()=>{
+ const {valueDiagnosticsMarkup}=await import('../../pages/diagnostics.js')
+ const html=valueDiagnosticsMarkup(ctx,{page_clicks:{available:true,rows:[{list_type:'signals',page_name:'signals',visitor_users:2,clicked_users:1,rate:.5,unmatched_clicks:1,list_key:'page-click:signals'}]},first_value:{available:false},retention:[]})
+ expect(html).toContain('50.0%');expect(html).toContain('page_viewed');expect(html).toContain('page-click:signals:visitors');expect(html).not.toContain('卡片曝光待接入')
+})

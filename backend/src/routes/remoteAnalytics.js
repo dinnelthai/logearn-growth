@@ -72,11 +72,12 @@ const {resolveAudienceUserIds}=require('../analytics/loadUsers')
 router.post('/api/analytics/audience',wrap(async(req,res)=>{
  const {cache_id,list_key,q}=req.body,{j,value}=jobs.result(cache_id,req.user.user_id)
  const s=await remote.snapshot(j.snapshot),ids=require('../analytics/taskAudience').cachedAudience(value,list_key,q)
- res.json({ids,start:value.payload.start??j.context.start,end:value.payload.end??j.context.end,source:j.context.source,origin:j.context.mode,snapshot_id:j.snapshot,as_of:s.as_of,count:ids.length})
+ const period=value.payload.list_periods?.[list_key]
+ res.json({ids,start:period?.start??value.payload.start??j.context.start,end:period?.end??value.payload.end??j.context.end,source:j.context.source,origin:j.context.mode,snapshot_id:j.snapshot,as_of:s.as_of,count:ids.length})
 }))
 const {ASSOCIATIONS}=require('../analytics/funnel')
 const {TYPE_TO_RAWS}=require('../analytics/eventMap')
-for(const kind of ['funnel','retention','segments','referral','paths','trade-monitor','channels','login-conversion','invite-conversion']){
+for(const kind of ['funnel','retention','segments','referral','paths','trade-monitor','channels','login-conversion','invite-conversion','growth-insights','value-diagnostics','conversion-loss','tracking-audit']){
   router.post('/api/metrics/'+kind,wrap(async(req,res)=>{
     const body={...req.body};delete body.resolving_cohort_rule
     let resolving=null
@@ -88,7 +89,14 @@ for(const kind of ['funnel','retention','segments','referral','paths','trade-mon
     if(kind!=='segments'||body.start!=null||body.end!=null)Object.assign(body,range(body))
     if(['login-conversion','invite-conversion'].includes(kind))require('../analytics/loginConversion').validateConversion(body)
     if(kind==='channels')require('../analytics/channelInsights').validateChannels(body)
+    if(['growth-insights','conversion-loss','tracking-audit'].includes(kind))require('../analytics/growthInsights').validateGrowth(body)
+    if(kind==='tracking-audit'){
+      if(body.source&&body.source!=='all'||body.audience_ids!=null||body.cohort_id)return res.status(400).json({error:'埋点验收按全平台到达记录或event_id核验，不接受人群或来源筛选'})
+      Object.assign(body,require('../analytics/trackingAudit').normalizeAuditInput(body))
+      for(const key of Object.keys(body))if(!['start','end','snapshot_id','event_ids','samples','browser_confirmed','collector_status','collector_business_success'].includes(key))delete body[key]
+    }
     if(kind==='paths')require('../analytics/pathInsights').validatePaths(body)
+    if(kind==='value-diagnostics')require('../analytics/pathInsights').validatePaths(body)
     if(kind==='trade-monitor')require('../analytics/tradeInsights').validateTrade(body)
     if(kind==='referral')require('../analytics/referralInsights').validateReferral(body)
     if(kind==='segments')require('../analytics/segmentInsights').validateOptions(body)

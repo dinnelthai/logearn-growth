@@ -2,7 +2,8 @@ const db=require('../db/connection')
 const IDS={SOL:'solana',BNB:'binancecoin',ETH:'ethereum',USDT:'tether',USDC:'usd-coin',USDG:'global-dollar'}
 let pending=null
 function init(){db.exec('CREATE TABLE IF NOT EXISTS platform_asset_prices(symbol TEXT PRIMARY KEY,usd REAL NOT NULL,quoted_at INTEGER NOT NULL,fetched_at INTEGER NOT NULL)')}
-async function prices(){init();const read=()=>db.prepare('SELECT * FROM platform_asset_prices').all();let rows=read();if(rows.length===6&&rows.every(r=>Date.now()-r.fetched_at<300000))return rows
+function cachedPrices(){init();return db.prepare('SELECT * FROM platform_asset_prices').all()}
+async function prices(){const read=cachedPrices;let rows=read();if(rows.length===6&&rows.every(r=>Date.now()-r.fetched_at<300000))return rows
  if(!pending)pending=(async()=>{try{const response=await fetch('https://api.coingecko.com/api/v3/simple/price?'+new URLSearchParams({ids:Object.values(IDS).join(','),vs_currencies:'usd',include_last_updated_at:'true'}),{signal:AbortSignal.timeout(10000)});if(!response.ok)throw Error();const data=await response.json(),now=Date.now(),quotes=Object.entries(IDS).map(([symbol,id])=>({symbol,usd:data[id]?.usd,quoted_at:Number(data[id]?.last_updated_at)*1000}));if(quotes.some(q=>!Number.isFinite(q.usd)||q.usd<=0||!Number.isFinite(q.quoted_at)||q.quoted_at>now+60000||now-q.quoted_at>3600000))throw Error();db.exec('BEGIN');try{const put=db.prepare('INSERT OR REPLACE INTO platform_asset_prices VALUES(?,?,?,?)');for(const q of quotes)put.run(q.symbol,q.usd,q.quoted_at,now);db.exec('COMMIT')}catch(e){db.exec('ROLLBACK');throw e}}catch{}return read()})().finally(()=>pending=null)
  return pending
 }
@@ -16,5 +17,5 @@ function valueReport(report,quotes,now=Date.now()){
  report.note=report.note.replace('及价格估值','').replace('不含其他代币、DeFi仓位','仅覆盖已配置币种，不含其他代币、DeFi仓位')
  return report
 }
-async function valuate(report){return valueReport(report,await prices())}
-module.exports={valuate,valueReport}
+function valuate(report){return valueReport(report,cachedPrices())}
+module.exports={valuate,valueReport,prices,cachedPrices}

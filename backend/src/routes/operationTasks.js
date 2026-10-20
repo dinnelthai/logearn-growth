@@ -24,13 +24,15 @@ router.post('/',wrap(async(req,res)=>{
  const existing=db.prepare('SELECT * FROM operation_tasks WHERE owner_id=? AND origin_job=?').get(owner,cache)
  if(existing)return res.json({task:expose(existing),existing:true})
  const {j,value}=jobs.result(cache,req.user.user_id)
- if(j.context.mode!=='segments')fail('请从已运行的用户分群结果生成任务')
- const keys=cachedAudience(value,'all')
+ if(!['segments','growth-insights'].includes(j.context.mode))fail('请从已运行的用户分群或增长诊断生成任务')
+ const listKey=j.context.mode==='growth-insights'?'growth:absent:registered':'all'
+ const keys=cachedAudience(value,listKey)
  if(keys.length>5000)fail('任务名单最多5000人，请缩小分群范围',422)
  if(keys.some(id=>!/^user:[1-9]\d{0,19}$/.test(id)))fail('任务只支持已匹配注册账号的用户')
  const ids=keys.map(id=>id.slice(5)),s=await remote.snapshot(j.snapshot),period={start:j.context.start,end:j.context.end}
  const facts=await memberFacts(s,ids,period),baseline=memberMetrics(facts,ids.map(id=>({id})),period,s)
  if(!baseline||Object.values(facts.errors).some(Boolean))fail('基线使用或交易数据未完整取得，请重试',503)
+ if(j.context.mode==='growth-insights'&&baseline.unmatched_users)fail('未回访名单中存在未匹配注册账号，请先核对账号身份',422)
  const at=Date.now(),id='ot_'+randomUUID(),source={...period,scope_label:scopeLabel,source:j.context.source,snapshot_id:j.snapshot,as_of:s.as_of,conditions:j.context.selection||{pool:value.payload.pool,filters:value.payload.filters},summary:value.payload.summary}
  const saved=tx(()=>{const current=db.prepare('SELECT * FROM operation_tasks WHERE owner_id=? AND origin_job=?').get(owner,cache);if(current)return {task:current,existing:true}
   db.prepare('INSERT INTO operation_tasks(id,owner_id,origin_job,title,assignee,priority,status,next_step,due_at,source_json,members_json,baseline_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(id,owner,cache,input.title,input.assignee,input.priority,'open',input.next_step,input.due_at,JSON.stringify(source),JSON.stringify(ids),JSON.stringify({total:baseline.total,requested_users:baseline.requested_users,unmatched_users:baseline.unmatched_users}),at,at)

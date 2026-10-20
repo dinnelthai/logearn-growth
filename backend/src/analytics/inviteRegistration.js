@@ -7,17 +7,30 @@ function inviteRegistration(users,relations,accounts,b,asOf,{factsAvailable=true
  for(const a of accounts)if(a.code_key){if(!codes.has(a.code_key))codes.set(a.code_key,[]);codes.get(a.code_key).push(a.id)}
  const relationsByUser=new Map()
  for(const r of relations){if(!relationsByUser.has(r.invitee))relationsByUser.set(r.invitee,[]);relationsByUser.get(r.invitee).push(r)}
- for(const u of users)for(const e of u.events){
-  if(e.t>asOf||e.t<effectiveFrom||!['invite_link_visited','page_viewed','first_visit_captured'].includes(name(e))||(!e.referral_key&&name(e)!=='invite_link_visited'))continue
-  const id=JSON.stringify([u.id,e.session_id||'',e.anonymous_id||'',e.referral_key])
-  if(flows.has(id))continue
-  const sameVisit=x=>e.session_id?x.session_id===e.session_id&&(!e.anonymous_id||x.anonymous_id===e.anonymous_id):e.anonymous_id?x.anonymous_id===e.anonymous_id:e.actor_user_id!=null&&String(x.actor_user_id)===String(e.actor_user_id)
-  flows.set(id,{id:e.event_id||'entry:'+u.id+':'+e.t,owners:new Set([u.id]),entries:[e],events:u.events.filter(x=>x.t<=asOf&&sameVisit(x)),u})
+ // Deduplicate by chronological entry, before applying the report period.
+ // Database result ordering must not change the entry or its conversion window.
+ for(const u of users){
+  const sorted=u.events.filter(e=>e.t<=asOf).slice().sort((a,b)=>a.t-b.t||String(a.event_id||'').localeCompare(String(b.event_id||'')))
+  const sessions=new Map(),anonymous=new Map(),visits=new Map()
+  const append=(map,key,e)=>{if(!map.has(key))map.set(key,[]);map.get(key).push(e)}
+  for(const e of sorted){
+   if(e.session_id)append(sessions,e.session_id,e)
+   if(e.anonymous_id)append(anonymous,e.anonymous_id,e)
+   if(e.session_id&&e.anonymous_id)append(visits,JSON.stringify([e.session_id,e.anonymous_id]),e)
+  }
+  for(const e of sorted){
+   if(e.t<effectiveFrom||!['invite_link_visited','page_viewed','first_visit_captured'].includes(name(e))||(!e.referral_key&&name(e)!=='invite_link_visited'))continue
+   const id=JSON.stringify([u.id,e.session_id||'',e.anonymous_id||'',e.referral_key])
+   if(flows.has(id))continue
+   // Account identity proves who logged in, not which visit produced the login.
+   const events=(e.session_id?(e.anonymous_id?visits.get(JSON.stringify([e.session_id,e.anonymous_id])):sessions.get(e.session_id)):e.anonymous_id?anonymous.get(e.anonymous_id):[])||[]
+   flows.set(id,{id:e.event_id||'entry:'+u.id+':'+e.t,owners:new Set([u.id]),entries:[e],events,u})
+  }
  }
  for(const f of flows.values()){
   const entries=f.entries
   const entry=entries[0];if(!entry||entry.t<b.start||entry.t>=b.end)continue
-  const end=entry.t+window,p=entry.properties,events=f.events.filter(e=>e.t>=entry.t&&e.t<end).sort((a,b)=>a.t-b.t)
+  const end=entry.t+window,p=entry.properties||{},events=f.events.filter(e=>e.t>=entry.t&&e.t<end).sort((a,b)=>a.t-b.t)
   const logins=events.filter(e=>e.actor_user_id!=null&&(name(e)==='login_attempt_finished'&&e.properties?.outcome==='success'||name(e)==='login_succeeded'&&e.properties?.login_type==='manual'))
   const actorIds=new Set(logins.map(e=>String(e.actor_user_id))),login=logins[0],uid=login?String(login.actor_user_id):null
   const account=uid?accountMap.get(uid):null,owners=entry.referral_key?codes.get(entry.referral_key)||[]:[],inviter=owners.length===1?owners[0]:null

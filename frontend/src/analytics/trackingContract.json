@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "properties": ["diagnostics_version", "analysis_request_id", "analysis_kind", "trigger", "retry_of_request_id", "outcome", "duration_ms", "cache_hit", "token_address", "chain", "token_visit_id", "page_visit_id", "page_name", "view_mode", "login_attempt_id", "login_method", "page_load_id", "load_type", "content_type", "error_stage", "error_code", "cancel_reason", "origin_view_state"],
+  "events": {
+    "analysis_requested": {"required": ["analysis_request_id", "analysis_kind", "trigger", "token_address", "chain"], "enums": {"trigger": ["user_action", "initial_load", "background_refresh"]}},
+    "analysis_request_finished": {"required": ["analysis_request_id", "outcome", "duration_ms"], "enums": {"outcome": ["success", "empty", "failed", "cancelled"]}},
+    "login_attempt_started": {"required": ["login_attempt_id", "login_method"]},
+    "login_attempt_finished": {"required": ["login_attempt_id", "outcome", "duration_ms"], "enums": {"outcome": ["success", "failed", "cancelled"]}},
+    "page_content_load_started": {"required": ["page_load_id", "load_type", "content_type"], "enums": {"load_type": ["document", "spa", "float"]}},
+    "page_content_load_finished": {"required": ["page_load_id", "outcome", "duration_ms"], "enums": {"outcome": ["ready", "presented", "failed", "cancelled"]}}
+  }
+}

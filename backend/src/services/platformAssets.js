@@ -46,13 +46,22 @@ async function collectChain(chain,hour){
   db.prepare('UPDATE platform_asset_runs SET state=?,finished_at=?,error=? WHERE chain=? AND hour=?').run(failed?'failed':'complete',Date.now(),failed?'部分钱包采集失败，未将此批次计入完整走势':null,chain.id,hour)
  }catch(e){db.prepare("UPDATE platform_asset_runs SET state='failed',finished_at=?,error=? WHERE chain=? AND hour=?").run(Date.now(),e.message.includes('RPC链')||e.message.includes('主网')||e.message.includes('目录')?e.message:'余额采集失败，等待自动重试',chain.id,hour)}
 }
-let running=false
-async function tick(){if(running||process.env.ANALYTICS_STORAGE!=='hologres')return;running=true;try{init();const hour=Math.floor(Date.now()/HOUR)*HOUR;await Promise.all(CHAINS.map(c=>collectChain(c,hour)))}finally{running=false}}
-function start(){init();if(process.env.ANALYTICS_STORAGE!=='hologres')return()=>{};tick().catch(()=>{});const timer=setInterval(()=>tick().catch(()=>{}),60000);timer.unref();return()=>clearInterval(timer)}
+let running=false,stopScheduler=null
+function recoverInterruptedRuns(){init();db.prepare("UPDATE platform_asset_runs SET state='failed',started_at=0,finished_at=?,error='服务重启中断采集，等待自动重试' WHERE state='running'").run(Date.now())}
+async function tick(){if(running||process.env.ANALYTICS_STORAGE!=='hologres')return;running=true;try{init();const hour=Math.floor(Date.now()/HOUR)*HOUR;await Promise.all([require('./assetValuation').prices(),...CHAINS.map(c=>collectChain(c,hour))])}finally{running=false}}
+function start(){
+ init();if(process.env.ANALYTICS_STORAGE!=='hologres')return()=>{}
+ if(stopScheduler)return stopScheduler
+ recoverInterruptedRuns()
+ const run=()=>tick().catch(e=>console.error('Platform assets:',e.message))
+ const timer=setInterval(run,60000);timer.unref()
+ stopScheduler=()=>{clearInterval(timer);stopScheduler=null}
+ run();return stopScheduler
+}
 function report(days=7){init();const since=Date.now()-days*24*HOUR;return {interval_hours:1,scope:'注册用户关联的活跃及归档钱包，按链和地址去重；EVM地址在各支持链查询',chains:CHAINS.map(c=>{
  const latest=db.prepare('SELECT * FROM platform_asset_runs WHERE chain=? ORDER BY hour DESC LIMIT 1').get(c.id)||null
  const runs=db.prepare("SELECT * FROM platform_asset_runs WHERE chain=? AND hour>=? ORDER BY hour").all(c.id,since)
  const snapshots=runs.map(run=>{const totals=new Map();if(run.state==='complete')for(const b of db.prepare('SELECT symbol,raw_amount,decimals FROM platform_asset_balances WHERE chain=? AND hour=?').all(c.id,run.hour)){const old=totals.get(b.symbol)||{raw:0n,decimals:b.decimals};old.raw+=BigInt(b.raw_amount);totals.set(b.symbol,old)}return {...run,balances:c.tokens.map(([symbol,decimals])=>({symbol,amount:run.state==='complete'?decimal(totals.get(symbol)?.raw||0n,decimals):null}))}})
  return {id:c.id,name:c.name,configured:!!process.env[c.env],latest,snapshots}
  }),note:'按币种展示链上余额，不含其他代币、DeFi仓位及价格估值；RPC无法区分平台锁定额。Solana为finalized读取，整批存在采集时间差；BSC固定区块读取。失败批次不显示为零。'}}
-module.exports={start,tick,report,decimal,walletBalances,CHAINS}
+module.exports={start,tick,report,decimal,walletBalances,CHAINS,recoverInterruptedRuns}

@@ -1,0 +1,2 @@
+{"label":"operations-comparison","synthetic":true,"scopes":100,"users":5000,"events":100000,"trades":100000,"results":{"baseline":{"median_ms":4331.15},"current":{"median_ms":1209}},"output_equal":true}
+{"label":"invite-dimensions","synthetic":true,"flows":8000,"distinct_links":8000,"distinct_campaigns":8000,"results":{"baseline":{"median_ms":3795.37},"current":{"median_ms":84.21}},"output_equal":true}

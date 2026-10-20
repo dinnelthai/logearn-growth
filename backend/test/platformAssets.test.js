@@ -9,3 +9,12 @@ test('Arc native USDC counts once with 18 decimals; Robinhood separates ETH and 
  const a=await walletBalances(arc,'rpc',address,'0x1',async(_u,m)=>{assert.equal(m,'eth_getBalance');return '0xde0b6b3a7640000'});assert.equal(a.length,1);assert.equal(decimal(a[0].raw_amount,a[0].decimals),'1.000000000000000000')
  const r=await walletBalances(rh,'rpc',address,'0x1',async(_u,m)=>m==='eth_getBalance'?'0x0':'0xf4240');assert.deepEqual(r.map(x=>[x.symbol,decimal(x.raw_amount,x.decimals)]),[['ETH','0.000000000000000000'],['USDG','1.000000']])
 })
+test('restart recovers interrupted runs while preserving completed snapshots',()=>{
+ const db=require('../src/db/connection'),assets=require('../src/services/platformAssets'),hour=Math.floor(Date.now()/3600000)*3600000
+ db.prepare("INSERT INTO platform_asset_runs(chain,hour,state,started_at) VALUES(?,?,'running',?)").run('56',hour,Date.now())
+ db.prepare("INSERT INTO platform_asset_runs(chain,hour,state,started_at) VALUES(?,?,'complete',?)").run('3',hour,Date.now())
+ assets.recoverInterruptedRuns()
+ const interrupted=db.prepare('SELECT * FROM platform_asset_runs WHERE chain=? AND hour=?').get('56',hour)
+ assert.equal(interrupted.state,'failed');assert.equal(interrupted.started_at,0)
+ assert.equal(db.prepare('SELECT state FROM platform_asset_runs WHERE chain=? AND hour=?').get('3',hour).state,'complete')
+})

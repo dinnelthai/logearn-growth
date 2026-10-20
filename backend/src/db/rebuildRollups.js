@@ -4,8 +4,7 @@
  * Usage:
  *   node src/db/rebuildRollups.js
  *
- * Safe to re-run. Intended for demo/scale datasets after generateBusinessData
- * or after importing mock JSON via seedMock.
+ * Safe to re-run. Intended for demo/scale datasets after generateBusinessData.
  */
 const db = require('./connection')
 const fs = require('fs')

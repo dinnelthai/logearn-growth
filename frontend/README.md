@@ -1,8 +1,33 @@
-> 当前默认模式：页面业务数据100%来自 [mock-api JSON](mock-api/README.md)，缺失数据模块不展示。生命周期为本地分析，不再请求发送服务；历史描述以本说明为准。
-
 # LogEarn 数据分析前端
 
-这是从独立 HTML 原型拆分出的 Vite 前端项目，使用原生 JavaScript 驱动界面。
+这是从独立 HTML 原型拆分出的 Vite 前端项目,使用原生 JavaScript 驱动界面。
+
+**重要变更**: 本项目已移除 mock 数据模式,必须配置真实数据源才能运行。
+
+## 数据源配置
+
+前端需要配置后端 API 地址才能正常工作。创建 `.env.local` 文件:
+
+```env
+# 方式1: 使用后端聚合 API (推荐)
+VITE_BACKEND_BASE_URL=http://localhost:3001
+
+# 方式2: 直接连接分析 API (仅开发测试)
+VITE_ANALYTICS_DATA_SOURCE=api
+VITE_ANALYTICS_API_BASE_URL=/api/analytics
+```
+
+后端需要配置 Hologres 连接才能提供真实数据:
+
+```env
+# backend/.env
+ANALYTICS_STORAGE=hologres
+HOLOGRES_HOST=your-hologres-host
+HOLOGRES_PORT=80
+HOLOGRES_USER=your-user
+HOLOGRES_PASSWORD=your-password
+HOLOGRES_DATABASE=your-database
+```
 
 ## 本地运行
 
@@ -24,25 +49,16 @@ npm run preview
 
 - `index.html`：应用入口和仪表盘静态结构
 - `src/styles.css`：仪表盘样式
-- `src/dashboard.js`：指标、模拟数据、图表和交互逻辑
-- `src/tooltips.js`：提示浮层交互
-- `src/main.js`：依赖初始化及应用启动
+- `src/main.js`：数据源初始化及应用启动
+- `src/dashboard.js`：指标、图表和交互逻辑
+- `src/analytics/`：数据处理和分析逻辑
+- `src/pages/`：各功能页面模块
 
-仪表盘目前使用内置的合成演示数据。接入真实数据时，可在应用启动前设置 `globalThis.LOGEARN_ANALYTICS_DATA`，数据结构参照 `src/dashboard.js` 中的 `DATA_CONTRACT`。
+## 配置保存
 
-## 数据模式与配置保存
+"保存配置"将日期长度、漏斗步骤、筛选和留存行为保存到浏览器本地。刷新后点击"载入保存"恢复;日期范围以最新观测截至时间重新计算。浏览器禁止存储时会明确提示保存失败。
 
-默认使用模拟数据，页面顶部会标明数据来源。真实接口模式通过 `.env.local` 配置：
-
-```env
-VITE_ANALYTICS_DATA_SOURCE=api
-VITE_ANALYTICS_API_BASE_URL=/api/analytics
-```
-
-修改环境变量后重启开发服务。API 地址应由同源后端提供，或配置允许前端访问的跨域地址。
-启动时请求最近90天事件；超过该范围的首次行为仍需后端补充完整历史或首访事实。核心用户/事件请求失败会显示重试入口，不会回退成模拟数据。推荐、交易接口缺失或失败时，对应指标显示待获取；渠道和价值闭环仍需额外数据，不推算真实指标。
-
-“保存配置”保存日期长度、漏斗步骤、筛选和留存行为到当前浏览器。刷新后点击“载入保存”恢复；日期范围以最新观测截至时间重新计算。浏览器禁止存储时会明确提示保存失败。
+数据请求失败时会显示重试入口,不会回退到假数据。推荐、交易接口缺失时,对应指标显示待获取。
 
 ## 分析交互
 
@@ -90,17 +106,17 @@ await tracker.track('token_detail_viewed', context)
 
 逐页数据依赖、现有四个接口的 JSON 样例、渠道与价值闭环的待实现契约，以及首次历史、身份、分页和数据水位缺口，见 [API_DATA_CONTRACT.md](docs/API_DATA_CONTRACT.md)。
 
-## 分享与推荐增长
+## 推广与增长
 
-推荐页支持主动邀请按钮、信号分享、倍数分享的点击/完成操作、访问UV、绑定和7天激活，以及按绑定/激活/访问人数排序的链接排行。Mock关系、分享事件和邀请访问已关联到同一链接ID。真实产品需要接入 share_button_clicked、share_completed、invite_link_visited，并在推荐关系返回 referral_link_id 和 share_type；详细格式见对接文档第7节。
+推荐页支持主动邀请按钮、信号分享、倍数分享的点击/完成操作、访问UV、绑定和7天激活,以及按绑定/激活/访问人数排序的链接排行。真实产品需要接入 share_button_clicked、share_completed、invite_link_visited,并在推荐关系返回 referral_link_id 和 share_type;详细格式见对接文档第7节。
 
-用户分群附加标签包括“已绑定 Telegram”“已绑定邮箱”，支持来源筛选及用户下钻。真实users接口分别提供telegram_bound/email_bound布尔值；缺失标为未知。邮箱状态为当前验证绑定状态，解绑后为false；无需返回实际联系方式。无行为注册用户也会并入用户池。
+用户分群附加标签包括”已绑定 Telegram””已绑定邮箱”,支持来源筛选及用户下钻。真实users接口分别提供telegram_bound/email_bound布尔值;缺失标为未知。邮箱状态为当前验证绑定状态,解绑后为false;无需返回实际联系方式。无行为注册用户也会并入用户池。
 
 ## 生命周期触达
 
-用户分群页面下方新增六类生命周期规则、渠道选择、候选用户下钻、模拟执行和发送记录。明确订阅且账号已绑定才可触达；每天一次、同场景7天冷却，多场景按优先级选一条。策略提醒要求同一次运行的结果已生成但未查看。
+用户分群页面下方新增六类生命周期规则、渠道选择、候选用户下钻、模拟执行和发送记录。明确订阅且账号已绑定才可触达;每天一次、同场景7天冷却,多场景按优先级选一条。策略提醒要求同一次运行的结果已生成但未查看。
 
-演示模式保存规则到浏览器，执行只模拟发送，记录保存在当前页面内存。真实模式读取 `/api/analytics/lifecycle`，保存规则及提交服务端预览批次；接口缺失不会发送。服务端适配器见 `src/lifecycle/worker.js`，需接数据库原子预约、实际消息模板、Telegram/邮件供应商及定时调度。详细字段与约束见对接文档第9节；本仓库不包含已上线的发送服务。
+真实模式读取 `/api/analytics/lifecycle`,保存规则及提交服务端预览批次;接口缺失不会发送。服务端适配器见 `src/lifecycle/worker.js`,需接数据库原子预约、实际消息模板、Telegram/邮件供应商及定时调度。详细字段与约束见对接文档第9节;本仓库不包含已上线的发送服务。
 
 ## 通用人群对比
 

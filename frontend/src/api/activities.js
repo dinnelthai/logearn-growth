@@ -20,3 +20,5 @@ export const updateActivityTag=(id,body)=>request('/'+encodeURIComponent(id)+'/t
 export const archiveActivity=(id,archived)=>request('/'+encodeURIComponent(id),{archived},'PATCH')
 
 export const updateActivityStartTime=(id,body)=>request('/'+encodeURIComponent(id)+'/start-time',body,'PATCH')
+
+export const resolveActivityAddresses=addresses=>request('/resolve-addresses',{addresses})

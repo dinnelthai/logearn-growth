@@ -1,33 +1,5 @@
-import * as FloatingUIDOM from "@floating-ui/dom";
-import { BarChart, FunnelChart, LineChart, PieChart, SankeyChart } from "echarts/charts";
-import {
-  AriaComponent,
-  GridComponent,
-  GraphicComponent,
-  LegendComponent,
-  TooltipComponent,
-} from "echarts/components";
-import * as echarts from "echarts/core";
-import { SVGRenderer } from "echarts/renderers";
 import "./styles.css";
 import "./polish.css";
-
-echarts.use([
-  AriaComponent,
-  BarChart,
-  FunnelChart,
-  GridComponent,
-  GraphicComponent,
-  LegendComponent,
-  LineChart,
-  PieChart,
-  SankeyChart,
-  SVGRenderer,
-  TooltipComponent,
-]);
-
-globalThis.FloatingUIDOM = FloatingUIDOM;
-globalThis.echarts = echarts;
 
 async function start() {
   const status=document.getElementById('as-data-status')
@@ -178,10 +150,17 @@ async function start() {
     }
     document.querySelectorAll('#la-studio button, #la-studio select').forEach(b=>b.disabled=false)
   }
-  if(!globalThis.LOGEARN_ANALYTICS_DATA){
-    const {datasetFromJson}=await import('./analytics/jsonDataset.js')
-    globalThis.LOGEARN_ANALYTICS_DATA=datasetFromJson()
+
+  // Ensure data is loaded; if neither backend nor API mode provided data, fail explicitly
+  if (!globalThis.LOGEARN_ANALYTICS_DATA) {
+    badge.textContent = '数据源未配置'
+    status.textContent = '未配置有效的数据源。请设置 VITE_BACKEND_BASE_URL 或 VITE_ANALYTICS_DATA_SOURCE=api。'
+    document.getElementById('as-output').textContent = '分析结果暂不可用。'
+    document.getElementById('as-dirty').textContent = '数据未加载'
+    return
   }
+
+  await import('./chartRuntime.js')
   await import('./dashboard.js')
   await import('./tooltips.js')
   if (globalThis.LOGEARN_ANALYTICS_DATA?.meta.storage === 'hologres') {

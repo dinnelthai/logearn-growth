@@ -73,3 +73,14 @@ test('server binding during authentication can precede the client success callba
  const r=inviteConversion([user('1',es)],[{...facts[0],bound_at:3500}],b,s).payload
  assert.equal(r.steps[2].flows,1);assert.equal(r.steps[3].flows,1);assert.equal(r.quality.unverified_binding_events,0)
 })
+test('grouped invitation dimensions and reasons preserve counts, list IDs and encounter order',()=>{
+ const users=[0,1,2].map(i=>user(String(i),[
+  e('invite_link_visited',2000,flow('f'+i,{referral_link_id:i===1?'other':'shared',campaign_id:i===1?'b':'a'}),null),
+  e('invite_validation_finished',3000,flow('f'+i,{referral_link_id:i===1?'other':'shared',outcome:'failed',reason_code:i===1?'second':'first'}),null)
+ ]))
+ const r=inviteConversion(users,[],b,s)
+ assert.deepEqual(r.payload.dimensions.link.map(d=>[d.value,d.flows,d.list_key]),[['shared',2,'invite:link:0'],['other',1,'invite:link:1']])
+ assert.deepEqual(r.lists['invite:link:0'],['user:0','user:2'])
+ assert.deepEqual(r.payload.errors.map(e=>[e.reason,e.flows,e.list_key]),[['first',2,'invite:reason:0'],['second',1,'invite:reason:1']])
+ assert.deepEqual(r.lists['invite:reason:0'],['user:0','user:2'])
+})
