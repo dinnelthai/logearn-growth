@@ -17,13 +17,19 @@
     "import:events:full": "node src/db/importGrowthEvents.js --import --rebuild",
     "test": "node --test test/*.test.js",
     "test:cache": "node test/test-cache.js",
+    "test:queue": "node test/test-queue.js",
     "test:llm": "node src/ai/llm/test.js",
     "start:remote": "ANALYTICS_STORAGE=hologres node src/index.js",
     "audit:tracking": "node ../scripts/audit-tracking.cjs",
-    "path-index:refresh": "node src/pathIndex/cli.js"
+    "path-index:refresh": "node src/pathIndex/cli.js",
+    "worker:ai": "node src/queues/workers/aiAnalysisWorker.js",
+    "scheduler": "node src/queues/scheduler.js",
+    "queue:dev": "concurrently \"npm run dev\" \"npm run worker:ai\" \"npm run scheduler\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
+    "bull": "^4.16.5",
+    "bullmq": "^6.4.2",
     "cors": "2.8.5",
     "dotenv": "^18.0.6",
     "express": "4.19.2",
