@@ -1,5 +1,5 @@
 // Existing deep links keep their modes while sharing one navigation entry.
-export const navigationMode=mode=>({referral:'channels','my-monitor':'home','login-conversion':'funnel','invite-conversion':'funnel'}[mode]||mode)
+export const navigationMode=mode=>({referral:'channels','my-monitor':'home','login-conversion':'funnel','invite-conversion':'funnel','ai-analysis':'ai-analysis'}[mode]||mode)
 export function mountSectionNavigation(root, navigate) {
   const sections = [...root.querySelectorAll('[data-navigation-section]')];
   const parents = [...root.querySelectorAll('[data-section]')];
