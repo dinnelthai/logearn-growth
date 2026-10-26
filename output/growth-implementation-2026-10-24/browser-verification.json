@@ -1,0 +1,8 @@
+{
+  "isolated_memory_database": true,
+  "assignments": 3,
+  "delivery_records": 2,
+  "immutable_group_rejection": true,
+  "mobile_overflow": false,
+  "page_errors": []
+}

@@ -1,0 +1,54 @@
+(node:9366) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+[Hologres Slow Query] m336t6 took 747ms {
+  sql: 'WITH ranked AS (\n' +
+    '    SELECT *, ROW_NUMBER() OVER (PARTITION BY event_id ORDER BY server_ts, id) AS rn\n' +
+    '    FROM growth_events WHERE server_ts <= $1::timestamptz\n' +
+    '      AND event_id IS NOT NULL AND BTRIM',
+  rows: 318,
+  waitingCount: 0
+}
+[Hologres Slow Query] a56qft took 2331ms {
+  sql: 'WITH ranked AS (\n' +
+    '    SELECT *, ROW_NUMBER() OVER (PARTITION BY event_id ORDER BY server_ts, id) AS rn\n' +
+    '    FROM growth_events WHERE server_ts <= $1::timestamptz\n' +
+    '      AND event_id IS NOT NULL AND BTRIM',
+  rows: 63850,
+  waitingCount: 0
+}
+[Hologres Slow Query] 7epkfm took 560ms {
+  sql: 'WITH ranked AS (\n' +
+    '    SELECT *, ROW_NUMBER() OVER (PARTITION BY event_id ORDER BY server_ts, id) AS rn\n' +
+    '    FROM growth_events WHERE server_ts <= $1::timestamptz\n' +
+    '      AND event_id IS NOT NULL AND BTRIM',
+  rows: 325,
+  waitingCount: 0
+}
+[Hologres Slow Query] hofq3j took 3688ms {
+  sql: 'WITH ranked AS (\n' +
+    '    SELECT *, ROW_NUMBER() OVER (PARTITION BY event_id ORDER BY server_ts, id) AS rn\n' +
+    '    FROM growth_events WHERE server_ts <= $1::timestamptz\n' +
+    '      AND event_id IS NOT NULL AND BTRIM',
+  rows: 128459,
+  waitingCount: 0
+}
+[
+  {
+    graphOnly: true,
+    remote_load_ms: 3670.254157,
+    indexed_load_ms: 1038.50655,
+    remote_events: 63850,
+    indexed_events: 63850,
+    sessions: 1488,
+    parity: true
+  },
+  {
+    graphOnly: false,
+    remote_load_ms: 5140.990237000001,
+    indexed_load_ms: 1917.3787899999988,
+    remote_events: 128459,
+    indexed_events: 128459,
+    sessions: 1488,
+    parity: true
+  }
+]

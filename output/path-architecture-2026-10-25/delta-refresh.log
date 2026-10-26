@@ -1,0 +1,51 @@
+(node:9177) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+[Hologres Slow Query] s90mr1 took 1532ms {
+  sql: 'WITH ranked AS (\n' +
+    '    SELECT *, ROW_NUMBER() OVER (PARTITION BY event_id ORDER BY server_ts, id) AS rn\n' +
+    '    FROM growth_events WHERE server_ts <= $1::timestamptz\n' +
+    '      AND event_id IS NOT NULL AND BTRIM',
+  rows: 711,
+  waitingCount: 0
+}
+[Hologres Slow Query] nkh3ju took 2907ms {
+  sql: 'WITH ranked AS (\n' +
+    '    SELECT *, ROW_NUMBER() OVER (PARTITION BY event_id ORDER BY server_ts, id) AS rn\n' +
+    '    FROM growth_events WHERE server_ts <= $1::timestamptz\n' +
+    '      AND event_id IS NOT NULL AND BTRIM',
+  rows: 20000,
+  waitingCount: 0
+}
+[Hologres Slow Query] itcga1 took 2410ms {
+  sql: 'WITH ranked AS (\n' +
+    '    SELECT *, ROW_NUMBER() OVER (PARTITION BY event_id ORDER BY server_ts, id) AS rn\n' +
+    '    FROM growth_events WHERE server_ts <= $1::timestamptz\n' +
+    '      AND event_id IS NOT NULL AND BTRIM',
+  rows: 20000,
+  waitingCount: 0
+}
+[Hologres Slow Query] 02i3on took 2030ms {
+  sql: 'WITH ranked AS (\n' +
+    '    SELECT *, ROW_NUMBER() OVER (PARTITION BY event_id ORDER BY server_ts, id) AS rn\n' +
+    '    FROM growth_events WHERE server_ts <= $1::timestamptz\n' +
+    '      AND event_id IS NOT NULL AND BTRIM',
+  rows: 20000,
+  waitingCount: 0
+}
+[Hologres Slow Query] ibskg0 took 941ms {
+  sql: 'WITH ranked AS (\n' +
+    '    SELECT *, ROW_NUMBER() OVER (PARTITION BY event_id ORDER BY server_ts, id) AS rn\n' +
+    '    FROM growth_events WHERE server_ts <= $1::timestamptz\n' +
+    '      AND event_id IS NOT NULL AND BTRIM',
+  rows: 2657,
+  waitingCount: 0
+}
+{
+  "generation": 3,
+  "changed_users": 8,
+  "removed_users": 0,
+  "loaded_events": 62657,
+  "written_events": 62649,
+  "total_events": 183740,
+  "ms": 16836.050923
+}

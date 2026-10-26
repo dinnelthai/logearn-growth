@@ -1,0 +1,49 @@
+{
+  "events": 150000,
+  "sessions": 20000,
+  "parity_cases": [
+    {},
+    {
+      "path_start": "chip"
+    },
+    {
+      "path_start": "chip",
+      "path_direction": "before"
+    },
+    {
+      "path_stop": "trade"
+    },
+    {
+      "path_depth": 7
+    },
+    {
+      "source": "x"
+    },
+    {
+      "start": 30000,
+      "end": 60000
+    },
+    {
+      "details": true
+    }
+  ],
+  "timings": {
+    "before": [
+      756.2417500000001,
+      764.720585,
+      651.3022579999997,
+      751.7582109999994
+    ],
+    "after": [
+      528.846524,
+      546.891116,
+      546.4333240000005,
+      477.60948800000006
+    ]
+  },
+  "mean_ms": {
+    "before": 731.0057009999998,
+    "after": 524.9451130000002
+  },
+  "scope": "Synthetic in-process analytics only; excludes database, queue, network and browser"
+}

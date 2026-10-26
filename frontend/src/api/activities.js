@@ -22,3 +22,7 @@ export const archiveActivity=(id,archived)=>request('/'+encodeURIComponent(id),{
 export const updateActivityStartTime=(id,body)=>request('/'+encodeURIComponent(id)+'/start-time',body,'PATCH')
 
 export const resolveActivityAddresses=addresses=>request('/resolve-addresses',{addresses})
+
+export const activityEvidence=(id,params={})=>request('/'+encodeURIComponent(id)+'/evidence?'+new URLSearchParams(params))
+export const assignActivityEvidence=(id,body)=>request('/'+encodeURIComponent(id)+'/evidence/assignments',body)
+export const recordActivityEvidence=(id,body)=>request('/'+encodeURIComponent(id)+'/evidence/records',body)

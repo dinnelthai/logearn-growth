@@ -1,0 +1,47 @@
+process.env.DB_PATH=':memory:'
+const {test,after}=require('node:test'),assert=require('node:assert/strict'),express=require('express'),fs=require('node:fs'),path=require('node:path'),db=require('../src/db/connection'),evidence=require('../src/services/activityEvidence')
+db.exec(fs.readFileSync(path.join(__dirname,'../src/db/schema.sql'),'utf8'))
+// Schema additions are idempotent on existing installations.
+db.exec(fs.readFileSync(path.join(__dirname,'../src/db/schema.sql'),'utf8'))
+const now=Date.now()
+function create(id){db.prepare('INSERT INTO growth_activities(id,owner_id,name,start_at,cutoff_at,baseline_snapshot,import_report) VALUES(?,?,?,?,?,?,?)').run(id,'a','test',now-10000,now+10000,'s','{}');for(const uid of ['1','2','3'])db.prepare('INSERT INTO growth_activity_members VALUES(?,?,?)').run(id,uid,uid==='1'?now-20000:null);return db.prepare('SELECT * FROM growth_activities WHERE id=?').get(id)}
+const app=express(),router=express.Router();app.use(express.json());app.use((req,res,next)=>{req.user={user_id:req.get('x-owner')||'a'};next()})
+const get=(id,owner)=>{const a=db.prepare('SELECT * FROM growth_activities WHERE id=? AND owner_id=?').get(id,owner);if(!a)throw Object.assign(Error('missing'),{status:404});return a}
+require('../src/routes/activityEvidence')(router,{db,get,wrap:fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next)});app.use(router);app.use((e,req,res,next)=>res.status(e.status||500).json({error:e.message}));const server=app.listen(0);after(()=>{server.close();db.close()})
+async function request(url,body,owner='a'){const r=await fetch('http://127.0.0.1:'+server.address().port+url,{method:body?'POST':'GET',headers:{'content-type':'application/json','x-owner':owner},...(body?{body:JSON.stringify(body)}:{})});return {status:r.status,body:await r.json()}}
+const assignment=(ids,version=0,group='treatment')=>({user_ids:ids,group_key:group,expected_version:version})
+const record=(extra={})=>({user_id:'1',kind:'delivered',occurred_at:now,channel:'authorized chat',evidence:'manual receipt',request_id:'request_001',expected_version:1,...extra})
+test('original groups are immutable, atomic, owner scoped and version checked',async()=>{
+ const a=create('groups')
+ assert.equal((await request('/groups/evidence/assignments',assignment('1'), 'b')).status,404)
+ assert.equal((await request('/groups/evidence/assignments',assignment('1\n999'))).status,400)
+ assert.equal(evidence.read(db,a).summary.assigned,0)
+ const saved=await request('/groups/evidence/assignments',assignment('1\n2'))
+ assert.equal(saved.status,201);assert.equal(saved.body.version,1);assert.equal(saved.body.summary.assigned,2)
+ assert.equal((await request('/groups/evidence/assignments',assignment('3'))).status,409)
+ assert.equal((await request('/groups/evidence/assignments',assignment('1',1,'control'))).status,409)
+ assert.equal((await request('/groups/evidence',undefined,'b')).status,404)
+ const c=await request('/groups/evidence/assignments',assignment('3',1,'control'));assert.equal(c.status,201)
+ const row=c.body.rows.find(r=>r.user_id==='1');assert.equal(row.group_key,'treatment');assert.equal(row.baseline_first_at,now-20000)
+})
+test('delivery evidence is append only, deduplicated on retry and contamination does not change assignment',async()=>{
+ const a=create('delivery');evidence.assign(db,a,assignment('1\n2'),'a')
+ let result=await request('/delivery/evidence/records',record());assert.equal(result.status,201);assert.equal(result.body.version,2)
+ const retry=await request('/delivery/evidence/records',record());assert.equal(retry.status,200);assert.equal(retry.body.version,2);assert.equal(retry.body.record_total,1)
+ assert.equal((await request('/delivery/evidence/records',record({evidence:'different'}))).status,409)
+ result=await request('/delivery/evidence/records',record({kind:'cross_exposed',expected_version:2,request_id:'request_002'}));assert.equal(result.status,201)
+ assert.equal(result.body.summary.groups[0].cross_exposed,1);assert.equal(result.body.summary.groups[0].users,2);assert.equal(result.body.summary.groups[0].delivered,1)
+ result=await request('/delivery/evidence/records',record({kind:'not_delivered',occurred_at:now-500,request_id:'request_003',expected_version:3}));assert.equal(result.status,201);assert.equal(result.body.summary.groups[0].delivered,1)
+ assert.equal((await request('/delivery/evidence/records',record({user_id:'999',request_id:'request_004',expected_version:4}))).status,400)
+ assert.equal((await request('/delivery/evidence/records',record({evidence:'',request_id:'request_005',expected_version:4}))).status,400)
+ assert.equal((await request('/delivery/evidence/records',record({occurred_at:Date.now()+100000,request_id:'request_006',expected_version:4}))).status,400)
+ const paged=await request('/delivery/evidence?offset=1&limit=1&q=1');assert.equal(paged.body.total,1);assert.equal(paged.body.record_total,3);assert.equal(paged.body.rows.length,0);assert.equal(paged.body.records.length,1)
+})
+test('frozen outcomes stay intact, archived evidence is read only, and outcomes use original groups',async()=>{
+ let a=create('frozen');evidence.assign(db,a,assignment('1\n2'),'a');db.prepare('UPDATE growth_activities SET settled_at=?,settled_result=? WHERE id=?').run(now,'{"original":true}',a.id);a=get(a.id,'a')
+ assert.throws(()=>evidence.assign(db,a,assignment('3',1),'a'),/结算前/)
+ evidence.record(db,a,record(),'a');assert.equal(db.prepare('SELECT settled_result FROM growth_activities WHERE id=?').get(a.id).settled_result,'{"original":true}')
+ const s=evidence.summary(db,a,[{user_id:'1',status:'prior',analysis_events:2},{user_id:'2',status:'completed',analysis_events:1}]);assert.equal(s.groups[0].outcomes.first_completed,1);assert.equal(s.groups[0].outcomes.analysis_users,2)
+ db.prepare('UPDATE growth_activities SET archived_at=? WHERE id=?').run(now,a.id);a=get(a.id,'a');assert.throws(()=>evidence.record(db,a,record({request_id:'request_new',expected_version:2}),'a'),/只读/)
+ assert.equal(evidence.read(db,a).record_total,1)
+})

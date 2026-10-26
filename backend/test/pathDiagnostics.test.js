@@ -26,3 +26,12 @@ test('stop action includes drilldown, ends at first match, diagnoses the stoppin
  assert.equal(r.payload.terminals.reached.users,1);assert.equal(r.payload.terminals.end.users,0)
  assert.equal(r.payload.path_diagnostics['terminal:reached'].pages[0].url,'Token 详情页')
 })
+
+test('light path results keep identical graph metrics and exact lists while heavy details stay explicitly unloaded',()=>{
+ const users=[{id:'user:1',source:'x',events:[{type:'page_view',t:100,session_id:'s',page_url:'/cn',properties:{}},{type:'token',t:200,session_id:'s',page_url:'/cn/solana/tokens/a',properties:{}},{type:'chip',t:300,session_id:'s',properties:{}}]}],body={start:0,end:1000},s={as_of:new Date(2000000).toISOString()}
+ const full=pathInsights(users,body,s),light=pathInsights(users,{...body,details:false},s)
+ for(const key of ['sessions','users','inferred_sessions','average_steps','terminals','paths','path_count','graph','path_diagnostics'])assert.deepEqual(light.payload[key],full.payload[key])
+ assert.equal(light.payload.details_available,false);assert.equal(light.payload.page_visits,null);assert.equal(light.payload.request_diagnostics,null)
+ for(const key of Object.keys(light.lists))assert.deepEqual(light.lists[key],full.lists[key])
+ assert.throws(()=>require('../src/analytics/pathInsights').validatePaths({...body,details:'false'}))
+})

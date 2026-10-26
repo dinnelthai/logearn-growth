@@ -23,8 +23,11 @@ require('./db/mergeActivityBatches').mergeActivityBatches(db)
 require('./db/upgradeKolAccounts').upgradeKolAccounts(db)
 require('./services/activitySchedule').startScheduler()
 require('./services/platformAssets').start()
+require('./services/xAcquisition').service().start()
 
-// Experimental rollups were withdrawn because their metrics differ from live analytics.
+require('./pathIndex/service').start()
+
+// Daily rollups remain disabled; the versioned path index preserves event semantics.
 
 // Seed default admin if no users exist
 seedAdmin().catch(console.error)
@@ -74,6 +77,7 @@ app.use('/api/activities', requireAuth, require('./routes/activities'))
 app.use('/api/ops',requireAuth,require('./routes/ops'))
 app.use('/api/growth-reports',requireAuth,require('./routes/growthReports'))
 app.use('/api/crm/kols', requireAuth, require('./routes/crm'))
+app.use('/api/x-acquisition', requireAuth, require('./routes/xAcquisition'))
 app.get('/api/user-tags',requireAuth,(req,res,next)=>{try{res.json({tags:require('./analytics/userTags').userTags(req.user.user_id,{includeMembers:false}).map(({user_ids,...tag})=>tag)})}catch(e){next(e)}})
 app.post('/api/user-tags/audience',requireAuth,async(req,res,next)=>{
   try{
@@ -113,4 +117,4 @@ app.use((err, req, res, _next) => {
 })
 
 const PORT = process.env.PORT || 3001
-app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`))
+app.listen(PORT, require('./middleware/localDevLogin').enabled()?'127.0.0.1':undefined, () => console.log(`Backend running on http://localhost:${PORT}`))

@@ -1,0 +1,90 @@
+{
+  "association": "user",
+  "steps": [
+    {
+      "key": "token",
+      "users": 219,
+      "previous_conversion_rate": 1,
+      "total_conversion_rate": 1,
+      "drop_off_users": 139
+    },
+    {
+      "key": "chip",
+      "users": 75,
+      "previous_conversion_rate": 0.3424657534246575,
+      "total_conversion_rate": 0.3424657534246575,
+      "drop_off_users": 0
+    }
+  ],
+  "total_entered": 219,
+  "total_converted": 75,
+  "pending_count": 5,
+  "median_conversion_ms": 127239,
+  "quality": {
+    "missing_start": 0,
+    "incomplete": 0
+  },
+  "by_source": [
+    {
+      "source": "internal",
+      "entered": 24,
+      "converted": 17
+    },
+    {
+      "source": "direct",
+      "entered": 164,
+      "converted": 49
+    },
+    {
+      "source": "x",
+      "entered": 15,
+      "converted": 3
+    },
+    {
+      "source": "referrer:www.google.com",
+      "entered": 3,
+      "converted": 0
+    },
+    {
+      "source": "referrer:ruby-china.org",
+      "entered": 2,
+      "converted": 0
+    },
+    {
+      "source": "seo",
+      "entered": 1,
+      "converted": 1
+    },
+    {
+      "source": "pwa",
+      "entered": 8,
+      "converted": 4
+    },
+    {
+      "source": "referrer:github.com",
+      "entered": 1,
+      "converted": 0
+    },
+    {
+      "source": "referrer:ntp.msn.cn",
+      "entered": 1,
+      "converted": 1
+    }
+  ],
+  "candidate_count": 219,
+  "truncated": false,
+  "meta": {
+    "snapshot_id": "cafd45d98c3ceabe",
+    "history_complete": false,
+    "user_pool": "observed",
+    "facts_as_of": null
+  },
+  "coverage": {
+    "events": "partial",
+    "trades": "unknown"
+  },
+  "drill": {
+    "cache_id": "15a6746dde2110d7fc9ce19afd04b838",
+    "snapshot_id": "cafd45d98c3ceabe"
+  }
+}

@@ -1,0 +1,15 @@
+✔ concurrent analysis attempts retain unique IDs, origin and terminal idempotence (177.366315ms)
+✔ failure, explicit cancellation and retry remain distinct without copying error text (57.215895ms)
+✔ tracking does not mutate business state and ignores background/sniper calls (47.794082ms)
+✔ trade terminals preserve submit-time visit after navigation and do not invent associations (48.715874ms)
+✔ actual drilldown function emits paired success, cache, empty and failure attempts (293.169241ms)
+✔ ambiguous same-token submissions across visits do not fabricate terminal visit context (41.513712ms)
+✔ dispatcher stamps the rollout version while retaining explicit diagnostic versions (38.619329ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 952.089926

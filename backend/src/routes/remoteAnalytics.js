@@ -24,6 +24,11 @@ router.get('/api/metrics/trade-volume',wrap(async(req,res)=>{
  const {start,end}=range(req.query),s=req.query.snapshot_id?await remote.snapshot(String(req.query.snapshot_id)):await remote.status()
  res.json(await remote.cached(JSON.stringify(['trade-volume',s.snapshot_id,start,end]),()=>require('../data/tradeVolume').tradeVolume(s,{start,end})))
 }))
+router.get('/api/metrics/weekly-core',wrap(async(req,res)=>{
+ const s=req.query.snapshot_id?await remote.snapshot(String(req.query.snapshot_id)):await remote.status()
+ const value=await require('../data/weeklyCore').weeklyCoreFacts(s,{end:req.query.end==null?undefined:Number(req.query.end),source:req.query.source||'all'})
+ res.json(value.payload)
+}))
 router.get('/api/metrics/north-star', wrap(async (req, res) => {
   const {start, end} = range(req.query), source = req.query.source && req.query.source !== 'all' ? String(req.query.source) : null
   const s = req.query.snapshot_id?await remote.snapshot(String(req.query.snapshot_id)):await remote.status()
@@ -62,7 +67,9 @@ router.get('/api/metrics/north-star', wrap(async (req, res) => {
       filled.push(item)
     }
     const totals = Object.fromEntries(Object.entries(summary[0]).map(([k,v]) => [k, Number(v)]))
-    return { days: filled, totals: {...totals, days: filled.length, avg_daa: filled.reduce((n,d)=>n+d.active_users,0)/filled.length},
+    let weekly_core
+    try{weekly_core=(await require('../data/weeklyCore').weeklyCoreFacts(s,{end,source:source||'all'})).payload}catch{weekly_core={available:false,error:'周核心分析指标暂不可用，请刷新后重试'}}
+    return { weekly_core, days: filled, totals: {...totals, days: filled.length, avg_daa: filled.reduce((n,d)=>n+d.active_users,0)/filled.length},
       meta: metadata(s), coverage: {events: 'partial', trades: 'unknown'}, drill: {snapshot_id: s.snapshot_id} }
   })
   res.json(result)
@@ -70,10 +77,35 @@ router.get('/api/metrics/north-star', wrap(async (req, res) => {
 const jobs=require('../services/analysisJobs')
 const {resolveAudienceUserIds}=require('../analytics/loadUsers')
 router.post('/api/analytics/audience',wrap(async(req,res)=>{
+ if(req.body.kind==='weekly_core'){
+  const params=req.body.params||{},s=await remote.snapshot(params.snapshot_id)
+  const value=await require('../data/weeklyCore').weeklyCoreFacts(s,{end:params.end,source:params.source||'all'})
+  const ids=require('../analytics/taskAudience').cachedAudience(value,params.group||'core',req.body.q)
+  return res.json({ids,start:value.payload.start,end:value.payload.end,source:value.payload.source,origin:'weekly_core',snapshot_id:s.snapshot_id,as_of:s.as_of,count:ids.length})
+ }
  const {cache_id,list_key,q}=req.body,{j,value}=jobs.result(cache_id,req.user.user_id)
  const s=await remote.snapshot(j.snapshot),ids=require('../analytics/taskAudience').cachedAudience(value,list_key,q)
  const period=value.payload.list_periods?.[list_key]
  res.json({ids,start:period?.start??value.payload.start??j.context.start,end:period?.end??value.payload.end??j.context.end,source:j.context.source,origin:j.context.mode,snapshot_id:j.snapshot,as_of:s.as_of,count:ids.length})
+}))
+// Use authoritative saved segment groups rather than accepting browser membership.
+router.post('/api/metrics/comparison/funnel',wrap(async(req,res)=>{
+ const {j,value}=jobs.result(String(req.body.base_cache_id||''),req.user.user_id)
+ const {body,audience}=require('../analytics/segmentFunnelComparison').prepareComparison(req.body,j,value)
+ const s=await remote.snapshot(j.snapshot)
+ const task=jobs.start('comparison-funnel',body,s,audience,req.user.user_id)
+ if(task.state==='failed')return res.status(task.status).json({error:task.error})
+ if(task.state==='complete')return res.json(jobPayload(task,req.user.user_id))
+ res.status(202).json({job_id:task.id,state:task.state})
+}))
+router.post('/api/metrics/path-details',wrap(async(req,res)=>{
+ const {j:base}=jobs.result(req.body.base_cache_id,req.user.user_id)
+ if(base.context.mode!=='paths'||base.context.path_options?.details!==false)return res.status(400).json({error:'请先运行路径分析，再展开诊断'})
+ const s=await remote.snapshot(base.snapshot),body={start:base.context.start,end:base.context.end,source:base.context.source,...base.context.path_options,details:true}
+ const task=jobs.start('paths',body,s,base.context.audience_snapshot,req.user.user_id)
+ if(task.state==='failed')return res.status(task.status).json({error:task.error})
+ if(task.state==='complete')return res.json(jobPayload(task,req.user.user_id))
+ res.status(202).json({job_id:task.id,state:task.state})
 }))
 const {ASSOCIATIONS}=require('../analytics/funnel')
 const {TYPE_TO_RAWS}=require('../analytics/eventMap')
@@ -163,6 +195,13 @@ router.post('/api/drill/users', wrap(async (req, res) => {
     return res.json({rows:rows.map(({total,...rest})=>({...rest,...require('../analytics/compactDetails').expandDetails(value,rest.id)})),total,offset,limit,meta:metadata(s)})
   }
   const s = await remote.snapshot(params.snapshot_id)
+  if(kind==='weekly_core'){
+    const key=params.group||'core',value=await require('../data/weeklyCore').weeklyCoreFacts(s,{end:params.end,source:params.source||'all'})
+    if(!Object.hasOwn(value.lists,key))return res.status(400).json({error:'未知周核心用户名单'})
+    const offset=Math.min(100000,Math.max(0,Math.floor(Number(req.body.offset)||0))),limit=Math.min(200,Math.max(1,Math.floor(Number(req.body.limit)||50))),search=String(q).slice(0,128).toLowerCase()
+    const rows=value.lists[key].map(id=>value.members[id]).filter(r=>!search||(r.id+' '+r.source).toLowerCase().includes(search))
+    return res.json({rows:rows.slice(offset,offset+limit),total:rows.length,offset,limit,meta:metadata(s)})
+  }
   let start = params.start, end = params.end
   if (params.date) { start = Date.parse(`${params.date}T00:00:00+07:00`); end = start + 86400000 }
   ;({start, end} = range({start, end}))

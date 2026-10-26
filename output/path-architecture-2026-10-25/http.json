@@ -1,0 +1,12 @@
+{
+  "meta_ms": 30.341346999999587,
+  "graph_ms": 1526.0111740000002,
+  "graph_polls": 2,
+  "details_ms": 3787.6134900000006,
+  "details_polls": 5,
+  "repeat_ms": 7.135742000000391,
+  "sessions": 1488,
+  "users": 296,
+  "same_snapshot": true,
+  "scope": "Real HTTP router, 750ms polling, 256MB workers, isolated test owner and in-memory operations DB; excludes login, browser and rendering"
+}

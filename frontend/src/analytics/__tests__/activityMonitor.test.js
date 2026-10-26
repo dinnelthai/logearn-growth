@@ -1,5 +1,6 @@
 import {test,expect,vi,beforeEach} from 'vitest'
 vi.mock('../../api/activities.js',()=>({listActivities:vi.fn(),activityMetrics:vi.fn(),validateActivityIds:vi.fn(),createActivity:vi.fn(),activityTimeline:vi.fn(),settleActivity:vi.fn()}))
+vi.mock('../../pages/activityEvidence.js',()=>({mountActivityEvidence:vi.fn(()=>({dispose(){}}))}))
 vi.mock('../../pages/scheduledActivity.js',()=>({mountScheduledActivity:vi.fn()}))
 import {mountScheduledActivity} from '../../pages/scheduledActivity.js'
 import {listActivities,activityMetrics} from '../../api/activities.js'

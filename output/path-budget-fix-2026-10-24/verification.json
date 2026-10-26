@@ -1,0 +1,41 @@
+{
+  "as_of": "2026-10-24T08:51:08.969Z",
+  "period": {
+    "start": 1792256400000,
+    "end": 1792861200000
+  },
+  "users_loaded": 320,
+  "events_loaded": 118745,
+  "elapsed_ms": 6084,
+  "sessions": 1420,
+  "users": 291,
+  "paths": 155,
+  "terminals": {
+    "reached": {
+      "sessions": 0,
+      "users": 0,
+      "list_key": "terminal:reached"
+    },
+    "end": {
+      "sessions": 873,
+      "users": 242,
+      "list_key": "terminal:end"
+    },
+    "pending": {
+      "sessions": 3,
+      "users": 3,
+      "list_key": "terminal:pending"
+    },
+    "boundary": {
+      "sessions": 0,
+      "users": 0,
+      "list_key": "terminal:boundary"
+    },
+    "more": {
+      "sessions": 544,
+      "users": 122,
+      "list_key": "terminal:more"
+    }
+  },
+  "result_bytes": 2574944
+}

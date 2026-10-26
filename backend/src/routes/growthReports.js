@@ -12,7 +12,7 @@ router.post('/',wrap(async(req,res)=>{
    return res.status(400).json({error:'标题须为1–80字，结论须为4000字以内文本'})
  const {j,value}=jobs.result(cache_id,req.user.user_id)
  if(j.context.mode!=='growth-insights')return res.status(400).json({error:'请先运行增长诊断再保存报告'})
- const id='growth_'+randomUUID(),configuration={...j.context,snapshot_id:j.snapshot,definition_version:1}
+ const id='growth_'+randomUUID(),configuration={...j.context,snapshot_id:j.snapshot,definition_version:2}
  // Save the authoritative result, including the exact lists; never trust a browser's metrics.
  db.prepare('INSERT INTO growth_analysis_reports VALUES(?,?,?,?,?,?,?)').run(id,owner(req),title.trim(),note,JSON.stringify(configuration),JSON.stringify(value),Date.now())
  res.status(201).json({id})

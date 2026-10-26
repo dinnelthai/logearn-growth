@@ -1,0 +1,49 @@
+{
+  "cutoff": "2026-10-25T23:49:04.058Z",
+  "start": "2026-10-25T00:00:00+07:00",
+  "end": "2026-10-26T00:00:00+07:00",
+  "window_complete": true,
+  "rows": [
+    {
+      "event_name": "token_detail_viewed",
+      "version": "2026-10-16.v2",
+      "arrivals": "1",
+      "with_visit": "1",
+      "with_attempt": "0",
+      "with_had_cache": "0"
+    },
+    {
+      "event_name": "token_detail_viewed",
+      "version": "unversioned",
+      "arrivals": "597",
+      "with_visit": "597",
+      "with_attempt": "0",
+      "with_had_cache": "0"
+    },
+    {
+      "event_name": "trade_failed",
+      "version": "unversioned",
+      "arrivals": "3",
+      "with_visit": "0",
+      "with_attempt": "0",
+      "with_had_cache": "0"
+    },
+    {
+      "event_name": "trade_submitted",
+      "version": "unversioned",
+      "arrivals": "1",
+      "with_visit": "0",
+      "with_attempt": "1",
+      "with_had_cache": "0"
+    },
+    {
+      "event_name": "trade_succeeded",
+      "version": "unversioned",
+      "arrivals": "5",
+      "with_visit": "0",
+      "with_attempt": "1",
+      "with_had_cache": "0"
+    }
+  ],
+  "scope": "Read-only raw arrivals grouped by event and release version; not deduplicated normalized facts and not proof of complete collection."
+}

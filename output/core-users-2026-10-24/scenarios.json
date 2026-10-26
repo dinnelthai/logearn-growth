@@ -1,0 +1,23 @@
+{
+  "baseline": 34,
+  "target": 200,
+  "weeks": 5,
+  "assumptions": "Constant weekly core retention and additions; no qualification delay. Scenarios, not forecasts.",
+  "rows": [
+    {
+      "weekly_retention": 1,
+      "weeks": 5,
+      "required_new_core_per_week": 33.2
+    },
+    {
+      "weekly_retention": 0.9,
+      "weeks": 5,
+      "required_new_core_per_week": 43.936250641009984
+    },
+    {
+      "weekly_retention": 0.7368421052631579,
+      "weeks": 5,
+      "required_new_core_per_week": 64.75288105470887
+    }
+  ]
+}

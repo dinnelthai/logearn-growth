@@ -106,3 +106,7 @@ export function fetchMyMonitorMetrics({start,end,snapshot_id}) {
 }
 
 export function fetchConversionMetrics(scene,body){if(!['login','invite'].includes(scene))throw new Error('未知转化场景');return metricsFetch('/api/metrics/'+scene+'-conversion',{method:'POST',body:JSON.stringify(body)})}
+
+export function fetchPathDetails(base_cache_id){
+ return metricsFetch('/api/metrics/path-details',{method:'POST',body:JSON.stringify({base_cache_id})})
+}

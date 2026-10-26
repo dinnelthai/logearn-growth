@@ -1,0 +1,278 @@
+{
+  "generated_at": "2026-10-24T06:42:12.607Z",
+  "as_of": "2026-10-24T06:42:00.835Z",
+  "snapshot_cutoff": "2026-10-24T06:42:11.056Z",
+  "period": {
+    "start": 1792170000000,
+    "end": 1792774800000,
+    "previous_start": 1791565200000
+  },
+  "bands": [
+    {
+      "days": 0,
+      "users": 29
+    },
+    {
+      "days": 1,
+      "users": 22
+    },
+    {
+      "days": 2,
+      "users": 10
+    },
+    {
+      "days": 3,
+      "users": 9
+    },
+    {
+      "days": 4,
+      "users": 5
+    },
+    {
+      "days": 5,
+      "users": 9
+    },
+    {
+      "days": 6,
+      "users": 5
+    },
+    {
+      "days": 7,
+      "users": 15
+    }
+  ],
+  "transitions": [
+    {
+      "current_days": 0,
+      "previous_days": 1,
+      "users": 15,
+      "account_users": 15
+    },
+    {
+      "current_days": 0,
+      "previous_days": 2,
+      "users": 12,
+      "account_users": 12
+    },
+    {
+      "current_days": 0,
+      "previous_days": 3,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 0,
+      "previous_days": 4,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 1,
+      "previous_days": 0,
+      "users": 16,
+      "account_users": 16
+    },
+    {
+      "current_days": 1,
+      "previous_days": 1,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 1,
+      "previous_days": 2,
+      "users": 2,
+      "account_users": 2
+    },
+    {
+      "current_days": 1,
+      "previous_days": 3,
+      "users": 2,
+      "account_users": 2
+    },
+    {
+      "current_days": 1,
+      "previous_days": 6,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 2,
+      "previous_days": 0,
+      "users": 6,
+      "account_users": 6
+    },
+    {
+      "current_days": 2,
+      "previous_days": 3,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 2,
+      "previous_days": 4,
+      "users": 2,
+      "account_users": 2
+    },
+    {
+      "current_days": 2,
+      "previous_days": 6,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 3,
+      "previous_days": 0,
+      "users": 2,
+      "account_users": 2
+    },
+    {
+      "current_days": 3,
+      "previous_days": 2,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 3,
+      "previous_days": 3,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 3,
+      "previous_days": 4,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 3,
+      "previous_days": 5,
+      "users": 3,
+      "account_users": 3
+    },
+    {
+      "current_days": 3,
+      "previous_days": 7,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 4,
+      "previous_days": 3,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 4,
+      "previous_days": 4,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 4,
+      "previous_days": 5,
+      "users": 3,
+      "account_users": 3
+    },
+    {
+      "current_days": 5,
+      "previous_days": 0,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 5,
+      "previous_days": 1,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 5,
+      "previous_days": 3,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 5,
+      "previous_days": 4,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 5,
+      "previous_days": 5,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 5,
+      "previous_days": 6,
+      "users": 2,
+      "account_users": 2
+    },
+    {
+      "current_days": 5,
+      "previous_days": 7,
+      "users": 2,
+      "account_users": 2
+    },
+    {
+      "current_days": 6,
+      "previous_days": 3,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 6,
+      "previous_days": 4,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 6,
+      "previous_days": 7,
+      "users": 3,
+      "account_users": 3
+    },
+    {
+      "current_days": 7,
+      "previous_days": 2,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 7,
+      "previous_days": 4,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 7,
+      "previous_days": 5,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 7,
+      "previous_days": 6,
+      "users": 1,
+      "account_users": 1
+    },
+    {
+      "current_days": 7,
+      "previous_days": 7,
+      "users": 11,
+      "account_users": 11
+    }
+  ],
+  "current_core": 34,
+  "previous_core": 38,
+  "retained_core": 28,
+  "new_to_core": 6,
+  "lost_core": 10,
+  "current_weekly": 75,
+  "core_account_users": 34,
+  "history_complete": false,
+  "events_complete_through": null,
+  "definition": "Observed chip view/drilldown users, >=4 distinct UTC+7 days per complete 7-day period. Account identity does not prove external real users. Historical and continuous coverage unconfirmed."
+}

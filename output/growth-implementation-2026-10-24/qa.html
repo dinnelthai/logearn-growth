@@ -1,0 +1,6 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Growth 本地验收</title><style>body{margin:0;padding:24px;background:#f5f7fb}h1{margin:16px 0}#la-studio{max-width:1440px;margin:auto;padding:20px}</style><div id="la-studio"><h1>Growth 本地验收</h1><p>活动使用隔离演示数据；注册与复访来自只读聚合快照。</p><div class="si-page gi-page"><div data-gi-content id="cohorts"></div><section class="a-card si-panel" data-activity-evidence id="evidence"></section></div></div><script type="module">
+import '/src/styles.css';import '/src/polish.css';
+import {growthCohortsMarkup} from '/src/pages/growthCohorts.js';import {mountActivityEvidence} from '/src/pages/activityEvidence.js';
+const esc=s=>String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;'),ctx={esc,fmt:n=>Number(n).toLocaleString(),table:(h,rs)=>`<div class="a-scroll"><table class="a-table"><thead><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rs.map(r=>`<tr>${r.map(x=>`<td>${x}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`};
+const data=await (await fetch('/growth-qa-data.json')).json();document.querySelector('#cohorts').innerHTML=growthCohortsMarkup(ctx,{cohorts:data.cohorts});window.panel=mountActivityEvidence(document.querySelector('#evidence'),{id:'demo',start_at:Date.now()-60000},ctx);
+</script></html>

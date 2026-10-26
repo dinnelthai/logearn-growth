@@ -1,0 +1,152 @@
+{
+  "as_of": "2026-10-26",
+  "accounts": 8,
+  "total_posts": 144,
+  "note": "候选来自已采集关键词结果，非全网排名。每账号最多一页，样本跨度不同，曝光与互动不能直接当作带客能力。未联系任何账号。",
+  "rows": [
+    {
+      "username": "0xJuly888",
+      "name": "七月",
+      "profile_url": "https://x.com/0xJuly888",
+      "followers": 12900,
+      "fetched_at": "2026-10-26T12:49:45.770Z",
+      "sample_posts": 4,
+      "original_posts": 4,
+      "oldest_sample_original_at": "Mon Oct 19 06:29:45 +0000 2026",
+      "median_original_views": 1960.5,
+      "median_original_likes": 20,
+      "median_original_replies": 5,
+      "latest_original_urls": [
+        "https://x.com/0xJuly888/status/2114620151543021777",
+        "https://x.com/0xJuly888/status/2114328014834335819",
+        "https://x.com/0xJuly888/status/2112771575556833379"
+      ]
+    },
+    {
+      "username": "CryptoCharming",
+      "name": "CryptoCharming 🐟",
+      "profile_url": "https://x.com/CryptoCharming",
+      "followers": 21535,
+      "fetched_at": "2026-10-26T12:49:44.946Z",
+      "sample_posts": 20,
+      "original_posts": 18,
+      "oldest_sample_original_at": "Fri Sep 04 10:32:09 +0000 2026",
+      "median_original_views": 10307.5,
+      "median_original_likes": 93,
+      "median_original_replies": 25.5,
+      "latest_original_urls": [
+        "https://x.com/CryptoCharming/status/2114251529264009669",
+        "https://x.com/CryptoCharming/status/2113651021398597995",
+        "https://x.com/CryptoCharming/status/2113625802441138529"
+      ]
+    },
+    {
+      "username": "Moon1ightSt",
+      "name": "Moonlight🌙月光",
+      "profile_url": "https://x.com/Moon1ightSt",
+      "followers": 112253,
+      "fetched_at": "2026-10-26T12:49:47.168Z",
+      "sample_posts": 20,
+      "original_posts": 15,
+      "oldest_sample_original_at": "Thu Oct 22 07:32:10 +0000 2026",
+      "median_original_views": 33103,
+      "median_original_likes": 60,
+      "median_original_replies": 17,
+      "latest_original_urls": [
+        "https://x.com/Moon1ightSt/status/2114688798974156859",
+        "https://x.com/Moon1ightSt/status/2114687606781083648",
+        "https://x.com/Moon1ightSt/status/2114408788673585412"
+      ]
+    },
+    {
+      "username": "cryptosoha66",
+      "name": "SOHA",
+      "profile_url": "https://x.com/cryptosoha66",
+      "followers": 29220,
+      "fetched_at": "2026-10-26T12:49:45.161Z",
+      "sample_posts": 20,
+      "original_posts": 19,
+      "oldest_sample_original_at": "Mon Oct 12 04:17:19 +0000 2026",
+      "median_original_views": 11033,
+      "median_original_likes": 106,
+      "median_original_replies": 69,
+      "latest_original_urls": [
+        "https://x.com/cryptosoha66/status/2114623727967297561",
+        "https://x.com/cryptosoha66/status/2114364996272763171",
+        "https://x.com/cryptosoha66/status/2114206868742758505"
+      ]
+    },
+    {
+      "username": "laoyingkhq",
+      "name": "Crypto老鹰",
+      "profile_url": "https://x.com/laoyingkhq",
+      "followers": 36349,
+      "fetched_at": "2026-10-26T12:49:44.044Z",
+      "sample_posts": 20,
+      "original_posts": 15,
+      "oldest_sample_original_at": "Sun Oct 25 15:41:57 +0000 2026",
+      "median_original_views": 568,
+      "median_original_likes": 3,
+      "median_original_replies": 2,
+      "latest_original_urls": [
+        "https://x.com/laoyingkhq/status/2114680194288025827",
+        "https://x.com/laoyingkhq/status/2114672046877634647",
+        "https://x.com/laoyingkhq/status/2114663890898325601"
+      ]
+    },
+    {
+      "username": "sanpaoAlpha",
+      "name": "三炮投研（Alpha版）",
+      "profile_url": "https://x.com/sanpaoAlpha",
+      "followers": 18022,
+      "fetched_at": "2026-10-26T12:49:44.051Z",
+      "sample_posts": 20,
+      "original_posts": 20,
+      "oldest_sample_original_at": "Fri Oct 16 11:43:08 +0000 2026",
+      "median_original_views": 10678.5,
+      "median_original_likes": 21,
+      "median_original_replies": 47,
+      "latest_original_urls": [
+        "https://x.com/sanpaoAlpha/status/2114678640910684591",
+        "https://x.com/sanpaoAlpha/status/2114656038603641315",
+        "https://x.com/sanpaoAlpha/status/2114630941465612529"
+      ]
+    },
+    {
+      "username": "sol_jingou",
+      "name": "阿布说币",
+      "profile_url": "https://x.com/sol_jingou",
+      "followers": 51618,
+      "fetched_at": "2026-10-26T12:49:47.589Z",
+      "sample_posts": 20,
+      "original_posts": 7,
+      "oldest_sample_original_at": "Mon Oct 26 05:28:41 +0000 2026",
+      "median_original_views": 627,
+      "median_original_likes": 0,
+      "median_original_replies": 2,
+      "latest_original_urls": [
+        "https://x.com/sol_jingou/status/2114607662403059849",
+        "https://x.com/sol_jingou/status/2114606379566858619",
+        "https://x.com/sol_jingou/status/2114606040146931818"
+      ]
+    },
+    {
+      "username": "xiaoyuxiaoyu02",
+      "name": "小俞-",
+      "profile_url": "https://x.com/xiaoyuxiaoyu02",
+      "followers": 1182,
+      "fetched_at": "2026-10-26T12:49:42.971Z",
+      "sample_posts": 20,
+      "original_posts": 15,
+      "oldest_sample_original_at": "Thu Aug 13 09:41:55 +0000 2026",
+      "median_original_views": 943,
+      "median_original_likes": 5,
+      "median_original_replies": 1,
+      "latest_original_urls": [
+        "https://x.com/xiaoyuxiaoyu02/status/2114660618393526604",
+        "https://x.com/xiaoyuxiaoyu02/status/2113764590245015581",
+        "https://x.com/xiaoyuxiaoyu02/status/2106417153855651903"
+      ]
+    }
+  ]
+}

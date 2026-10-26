@@ -1,0 +1,96 @@
+{
+  "days": [
+    {
+      "date": "2026-10-15",
+      "active_users": 45,
+      "new_users": 5,
+      "returning_users": 40,
+      "login_users": 73,
+      "chip_events": 848,
+      "d7_eligible_users": 0,
+      "d7_users": null
+    },
+    {
+      "date": "2026-10-16",
+      "active_users": 43,
+      "new_users": 5,
+      "returning_users": 38,
+      "login_users": 69,
+      "chip_events": 923,
+      "d7_eligible_users": 0,
+      "d7_users": null
+    },
+    {
+      "date": "2026-10-17",
+      "active_users": 44,
+      "new_users": 9,
+      "returning_users": 35,
+      "login_users": 70,
+      "chip_events": 810,
+      "d7_eligible_users": 40,
+      "d7_users": 24
+    },
+    {
+      "date": "2026-10-18",
+      "active_users": 41,
+      "new_users": 4,
+      "returning_users": 37,
+      "login_users": 69,
+      "chip_events": 985,
+      "d7_eligible_users": 12,
+      "d7_users": 4
+    },
+    {
+      "date": "2026-10-19",
+      "active_users": 46,
+      "new_users": 6,
+      "returning_users": 40,
+      "login_users": 82,
+      "chip_events": 1023,
+      "d7_eligible_users": 7,
+      "d7_users": 2
+    },
+    {
+      "date": "2026-10-20",
+      "active_users": 38,
+      "new_users": 1,
+      "returning_users": 37,
+      "login_users": 73,
+      "chip_events": 1209,
+      "d7_eligible_users": 4,
+      "d7_users": 2
+    },
+    {
+      "date": "2026-10-21",
+      "active_users": 35,
+      "new_users": 3,
+      "returning_users": 32,
+      "login_users": 73,
+      "chip_events": 598,
+      "d7_eligible_users": 6,
+      "d7_users": 0
+    }
+  ],
+  "totals": {
+    "active_users": 82,
+    "new_users": 33,
+    "returning_users": 49,
+    "days": 7,
+    "avg_daa": 41.714285714285715
+  },
+  "meta": {
+    "snapshot_id": "cafd45d98c3ceabe",
+    "as_of": "2026-10-22T00:44:53.943Z",
+    "computed_at": "2026-10-22T00:44:59.057Z",
+    "source_seen_at": "2026-10-22T00:44:52.976Z",
+    "consistency": "arrival-cutoff",
+    "history_complete": false
+  },
+  "coverage": {
+    "events": "partial",
+    "trades": "unknown"
+  },
+  "drill": {
+    "snapshot_id": "cafd45d98c3ceabe"
+  }
+}

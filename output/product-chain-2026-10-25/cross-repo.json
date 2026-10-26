@@ -1,0 +1,32 @@
+{
+  "synthetic_events": 5,
+  "contract_issues": 0,
+  "stages": [
+    {
+      "label": "Token详情",
+      "visits": 1,
+      "users": 1
+    },
+    {
+      "label": "主动发起分析",
+      "visits": 1,
+      "users": 1
+    },
+    {
+      "label": "分析成功",
+      "visits": 1,
+      "users": 1
+    },
+    {
+      "label": "提交交易",
+      "visits": 1,
+      "users": 1
+    },
+    {
+      "label": "至少一笔交易成功",
+      "visits": 1,
+      "users": 1
+    }
+  ],
+  "scope": "Actual product adapters -> existing dashboard contract -> standard event decoder -> path details and conversion chain. Synthetic local fixture; no collectors, production writes, login or trading."
+}

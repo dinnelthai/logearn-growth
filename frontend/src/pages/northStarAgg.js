@@ -1,3 +1,4 @@
+import {weeklyCoreMarkup,bindWeeklyCore} from './weeklyCore.js'
 /**
  * Aggregated north-star renderer (backend-agg mode).
  * Uses /api/metrics/north-star + /api/drill/* — no local users[].events.
@@ -96,6 +97,7 @@ export function createNorthStarAggPage(ctx) {
         ${stat('周期首次分析用户', `<button class="a-tablelink" id="as-north-new" style="font:inherit">${fmt(totals.new_users || 0)}</button>`, 'first_chip 落在本期')}
         ${stat('周期回访分析用户', `<button class="a-tablelink" id="as-north-return" style="font:inherit">${fmt(totals.returning_users || 0)}</button>`, 'first_chip 在本期之前')}
       </div>
+      ${weeklyCoreMarkup(ctx,metrics.weekly_core)}
       <div class="a-card">
         <div class="a-cardhead">
           <h2>每日有效分析用户</h2>
@@ -121,6 +123,7 @@ export function createNorthStarAggPage(ctx) {
         )}
       </details>`
 
+    bindWeeklyCore(ctx,$('#as-output'),metrics.weekly_core)
     const drillBase = { start: c.start, end: c.end, source: c.source && c.source !== 'all' ? c.source : null }
     $('#as-north-yesterday').onclick = () =>
       openDrill('周期有效分析用户', `${date(c.start)}–${date(c.end - 86400000)}`, 'north_star_period', { ...drillBase, cohort: 'active' })

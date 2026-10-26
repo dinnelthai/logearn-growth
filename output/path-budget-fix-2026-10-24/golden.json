@@ -1,0 +1,11 @@
+{
+  "as_of": "2026-10-24T08:54:12.794Z",
+  "old_events": 166470,
+  "new_events": 118760,
+  "sessions": 1420,
+  "users": 291,
+  "compared_payload_sections": 14,
+  "lists_compared": true,
+  "members_compared": true,
+  "differences": []
+}

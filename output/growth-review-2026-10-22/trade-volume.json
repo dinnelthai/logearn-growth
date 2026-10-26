@@ -1,0 +1,72 @@
+{
+  "days": [
+    {
+      "date": "2026-10-15",
+      "transactions": 0,
+      "users": 0,
+      "volume_usd": 0,
+      "missing_values": 0,
+      "negative_values": 0
+    },
+    {
+      "date": "2026-10-16",
+      "transactions": 0,
+      "users": 0,
+      "volume_usd": 0,
+      "missing_values": 0,
+      "negative_values": 0
+    },
+    {
+      "date": "2026-10-17",
+      "transactions": 72,
+      "users": 2,
+      "volume_usd": 0,
+      "missing_values": 0,
+      "negative_values": 0
+    },
+    {
+      "date": "2026-10-18",
+      "transactions": 54,
+      "users": 1,
+      "volume_usd": 0,
+      "missing_values": 0,
+      "negative_values": 0
+    },
+    {
+      "date": "2026-10-19",
+      "transactions": 74,
+      "users": 2,
+      "volume_usd": 41.0722,
+      "missing_values": 0,
+      "negative_values": 0
+    },
+    {
+      "date": "2026-10-20",
+      "transactions": 100,
+      "users": 2,
+      "volume_usd": 344.321,
+      "missing_values": 0,
+      "negative_values": 0
+    },
+    {
+      "date": "2026-10-21",
+      "transactions": 7,
+      "users": 2,
+      "volume_usd": 61.7348,
+      "missing_values": 0,
+      "negative_values": 0
+    }
+  ],
+  "total": {
+    "transactions": 307,
+    "users": 4,
+    "volume_usd": 447.128,
+    "missing_values": 0,
+    "negative_values": 0
+  },
+  "currency": "USD",
+  "source": "trading_transaction",
+  "coverage": "partial",
+  "snapshot_id": "cafd45d98c3ceabe",
+  "as_of": "2026-10-22T00:44:57.918Z"
+}

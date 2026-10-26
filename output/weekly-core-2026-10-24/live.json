@@ -1,0 +1,66 @@
+{
+  "metric": {
+    "available": true,
+    "start": 1792170000000,
+    "end": 1792774800000,
+    "previous_start": 1791565200000,
+    "previous_end": 1792170000000,
+    "timezone": "Asia/Bangkok",
+    "source": "all",
+    "users": 34,
+    "previous_users": 38,
+    "retained": 28,
+    "entered": 6,
+    "lost": 10,
+    "near_users": 19,
+    "delta": -4,
+    "weekly_users": 75,
+    "threshold_days": 4,
+    "window_days": 7,
+    "goal": {
+      "users": 200,
+      "due_date": "2026-11-30",
+      "progress": 0.17
+    },
+    "distribution": [
+      {
+        "days": 1,
+        "users": 22
+      },
+      {
+        "days": 2,
+        "users": 10
+      },
+      {
+        "days": 3,
+        "users": 9
+      },
+      {
+        "days": 4,
+        "users": 5
+      },
+      {
+        "days": 5,
+        "users": 9
+      },
+      {
+        "days": 6,
+        "users": 5
+      },
+      {
+        "days": 7,
+        "users": 15
+      }
+    ],
+    "snapshot_id": "b57e0cc4c978d6cd",
+    "as_of": "2026-10-24T06:51:22.326Z",
+    "history_complete": false,
+    "events_complete_through": null,
+    "definition": "近7个完整UTC+7自然日，至少4天观测到筹码查看或下钻的去重用户；同日多次只计1天。与前7天比较，进入核心不等于新注册。历史与连续采集覆盖未确认；未核实排除员工/测试，不证明用户理解、习惯或付费。"
+  },
+  "independent": {
+    "core": "34",
+    "near": "19"
+  },
+  "lists_reconciled": true
+}

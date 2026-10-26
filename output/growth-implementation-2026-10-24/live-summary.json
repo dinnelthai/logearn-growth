@@ -1,0 +1,112 @@
+[
+  {
+    "period": [
+      "2026-10-17",
+      "2026-10-24"
+    ],
+    "registration": {
+      "users": 22,
+      "eligible": 21,
+      "activated": 9,
+      "pending": 1,
+      "rate": 0.42857142857142855,
+      "list_key": "cohort:registered"
+    },
+    "repeats": [
+      {
+        "id": "other_day",
+        "label": "首次分析后7天内另日分析",
+        "users": 25,
+        "eligible": 2,
+        "returned": 1,
+        "pending": 23,
+        "observed_returned": 9,
+        "rate": 0.5,
+        "list_key": "cohort:repeat:other_day",
+        "window_days": 7
+      },
+      {
+        "id": "after_24h",
+        "label": "首次分析后24小时至7天内再分析",
+        "users": 25,
+        "eligible": 2,
+        "returned": 1,
+        "pending": 23,
+        "observed_returned": 5,
+        "rate": 0.5,
+        "list_key": "cohort:repeat:after_24h",
+        "window_days": 7
+      }
+    ],
+    "coverage": [
+      {
+        "scope": "family",
+        "family": "login",
+        "device": "",
+        "app_version": "",
+        "diagnostics_version": "",
+        "events": 4,
+        "users": 1
+      },
+      {
+        "scope": "family",
+        "family": "analysis",
+        "device": "",
+        "app_version": "",
+        "diagnostics_version": "",
+        "events": 26,
+        "users": 1
+      },
+      {
+        "scope": "family",
+        "family": "page_load",
+        "device": "",
+        "app_version": "",
+        "diagnostics_version": "",
+        "events": 1281,
+        "users": 1
+      }
+    ]
+  },
+  {
+    "period": [
+      "2026-10-10",
+      "2026-10-17"
+    ],
+    "registration": {
+      "users": 153,
+      "eligible": 153,
+      "activated": 11,
+      "pending": 0,
+      "rate": 0.0718954248366013,
+      "list_key": "cohort:registered"
+    },
+    "repeats": [
+      {
+        "id": "other_day",
+        "label": "首次分析后7天内另日分析",
+        "users": 79,
+        "eligible": 79,
+        "returned": 64,
+        "pending": 0,
+        "observed_returned": 64,
+        "rate": 0.810126582278481,
+        "list_key": "cohort:repeat:other_day",
+        "window_days": 7
+      },
+      {
+        "id": "after_24h",
+        "label": "首次分析后24小时至7天内再分析",
+        "users": 79,
+        "eligible": 79,
+        "returned": 53,
+        "pending": 0,
+        "observed_returned": 53,
+        "rate": 0.6708860759493671,
+        "list_key": "cohort:repeat:after_24h",
+        "window_days": 7
+      }
+    ],
+    "coverage": []
+  }
+]

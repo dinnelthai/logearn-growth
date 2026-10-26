@@ -463,3 +463,24 @@ CREATE TABLE IF NOT EXISTS growth_analysis_reports (
  configuration_json TEXT NOT NULL,result_json TEXT NOT NULL,created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS growth_analysis_reports_owner ON growth_analysis_reports(owner_id,created_at);
+
+-- Append-only activity evidence; does not send messages or alter settled metrics.
+CREATE TABLE IF NOT EXISTS growth_activity_evidence_state (
+ activity_id TEXT PRIMARY KEY REFERENCES growth_activities(id), version INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS growth_activity_assignments (
+ activity_id TEXT NOT NULL REFERENCES growth_activities(id), user_id TEXT NOT NULL,
+ group_key TEXT NOT NULL CHECK(group_key IN ('treatment','control')),
+ assigned_at INTEGER NOT NULL, author_id TEXT NOT NULL,
+ activity_start_at INTEGER NOT NULL, activity_cutoff_at INTEGER NOT NULL,
+ baseline_first_at INTEGER, PRIMARY KEY(activity_id,user_id)
+);
+CREATE TABLE IF NOT EXISTS growth_activity_delivery_evidence (
+ id TEXT PRIMARY KEY, activity_id TEXT NOT NULL REFERENCES growth_activities(id), user_id TEXT NOT NULL,
+ kind TEXT NOT NULL CHECK(kind IN ('sent','delivered','not_delivered','cross_exposed','note')),
+ occurred_at INTEGER NOT NULL, channel TEXT NOT NULL, evidence TEXT NOT NULL,
+ recorded_at INTEGER NOT NULL, author_id TEXT NOT NULL, request_id TEXT NOT NULL,
+ UNIQUE(activity_id,request_id),
+ FOREIGN KEY(activity_id,user_id) REFERENCES growth_activity_assignments(activity_id,user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_activity_delivery_evidence ON growth_activity_delivery_evidence(activity_id,occurred_at,recorded_at);

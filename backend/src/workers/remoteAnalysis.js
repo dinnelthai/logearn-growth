@@ -4,6 +4,12 @@ const {loadUsers,features,retentionUsers,orderedFunnelUsers}=require('../data/re
 const {computeFunnel}=require('../analytics/funnel')
 async function run({kind,body,snapshot:s,audience,owner}){
   const {start,end}=body,asOf=Date.parse(s.as_of),source=body.source||'all',lists={}
+  if(kind==='comparison-funnel'){
+    const users=audience.length===0?[]:body.association==='user'
+      ?await orderedFunnelUsers(s,body,audience)
+      :await loadUsers(s,{types:body.steps,start,end:Math.min(asOf+1,end+body.hours*3600000),source,audience})
+    return require('../analytics/segmentFunnelComparison').compareFunnels(users,body,s)
+  }
   if(kind==='tracking-audit'){
     const {raw,accepted,summary}=await require('../data/trackingAudit').trackingAuditFacts(s,body)
     return require('../analytics/trackingAudit').trackingAudit(raw,accepted,summary,body,s)
@@ -18,7 +24,8 @@ async function run({kind,body,snapshot:s,audience,owner}){
     const users=await require('../data/behaviorPaths').pathUsers(s,body,audience,{valueOnly:true})
     const options={start,end,asOf:Date.parse(s.snapshot_cutoff||s.as_of)}
     const requests=require('../analytics/requestDiagnostics').requestDiagnostics(users,options)
-    const value=require('../analytics/valueDiagnostics').valueDiagnostics(users,options,requests.analysis_rows)
+    const tradeFacts=await require('../data/productChainTrades').productChainTrades(s,users,body)
+    const value=require('../analytics/valueDiagnostics').valueDiagnostics(users,options,requests.analysis_rows,tradeFacts)
     const members=Object.fromEntries(users.map(u=>[u.id,{id:u.id,source:u.source}]))
     return {members,lists:{...requests.lists,...value.lists,...Object.fromEntries(users.map(u=>['diagnostic:user:'+u.id,[u.id]]))},payload:{start,end,as_of:asOf,request_diagnostics:requests.payload,value_diagnostics:value.payload,candidate_count:users.length,truncated:false,context_scope:'full_observed_relevant_events'}}
   }
@@ -26,7 +33,9 @@ async function run({kind,body,snapshot:s,audience,owner}){
     const {growthFacts,growthQuality,cohortTrades}=require('../data/growthInsights')
     const rows=await growthFacts(s,body,audience),quality=await growthQuality(s,body,audience)
     const trades=await cohortTrades(s,rows,body)
-    return require('../analytics/growthInsights').growthInsights(rows,quality,body,s,trades)
+    const {registrationFacts,diagnosticCoverage}=require('../data/growthEvidence')
+    const registration=await registrationFacts(s,body,audience),coverage=await diagnosticCoverage(s,body,audience)
+    return require('../analytics/growthInsights').growthInsights(rows,quality,body,s,trades,{registration,coverage})
   }
   if(['login-conversion','invite-conversion'].includes(kind)){
     const users=await require('../data/conversionFacts').conversionUsers(s,body,audience,{scene:kind==='login-conversion'?'login':'invite'})
@@ -38,7 +47,7 @@ async function run({kind,body,snapshot:s,audience,owner}){
     return require('../analytics/inviteConversion').inviteConversion(users,relations,body,s,{factsAvailable,factsError,audience,registrationAccounts,registrationAvailable})
   }
   if(kind==='channels')return require('../analytics/channelInsights').channelInsights(await require('../data/channelFacts').channelFacts(s,body,audience),body,s)
-  if(kind==='paths')return require('../analytics/pathInsights').pathInsights(await require('../data/behaviorPaths').pathUsers(s,body,audience),body,s)
+  if(kind==='paths')return require('../analytics/pathInsights').pathInsights(await require('../data/behaviorPaths').pathUsers(s,body,audience,{graphOnly:body.details===false}),body,s)
   if(kind==='trade-monitor')return require('../analytics/tradeInsights').computeTradeInsights(await require('../data/tradeEvents').tradeEvents(s,body,audience),{start,end,asOf,chain:body.chain||'all'})
   if(kind==='referral'){
     const rows=await features(s)

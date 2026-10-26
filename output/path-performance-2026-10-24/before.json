@@ -1,0 +1,46 @@
+[
+  {
+    "iteration": 1,
+    "query": [
+      {
+        "phase": "scope",
+        "ms": 600.0361010000001,
+        "rows": 320
+      },
+      {
+        "phase": "events",
+        "ms": 3299.929038,
+        "rows": 118832
+      }
+    ],
+    "load_ms": 4735.1334640000005,
+    "compute_ms": 498.774128,
+    "total_ms": 5233.9075920000005,
+    "events": 118832,
+    "payload_bytes": 1180946,
+    "sessions": 1421,
+    "users": 291
+  },
+  {
+    "iteration": 2,
+    "query": [
+      {
+        "phase": "scope",
+        "ms": 561.3015150000001,
+        "rows": 320
+      },
+      {
+        "phase": "events",
+        "ms": 3162.87446,
+        "rows": 118832
+      }
+    ],
+    "load_ms": 4506.217546000001,
+    "compute_ms": 403.7682619999996,
+    "total_ms": 4909.985808,
+    "events": 118832,
+    "payload_bytes": 1180946,
+    "sessions": 1421,
+    "users": 291
+  }
+]

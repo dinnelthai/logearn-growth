@@ -1,0 +1,26 @@
+{
+  "steps": [
+    {
+      "key": "token",
+      "users": 191,
+      "previous_conversion_rate": 1,
+      "total_conversion_rate": 1,
+      "drop_off_users": 115
+    },
+    {
+      "key": "chip",
+      "users": 68,
+      "previous_conversion_rate": 0.35602094240837695,
+      "total_conversion_rate": 0.35602094240837695,
+      "drop_off_users": 0
+    }
+  ],
+  "total_entered": 191,
+  "total_converted": 68,
+  "pending": 8,
+  "quality": {
+    "missing_start": 0,
+    "incomplete": 0
+  },
+  "snapshot_id": "1083bcce25be29d3"
+}

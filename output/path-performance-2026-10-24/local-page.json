@@ -1,0 +1,11 @@
+{
+  "authenticated_local_page": true,
+  "context": "真实会话 · 会话首次行为\n1,421 个会话\n观测截至 2026-10-24 16:05:08 · UTC+7",
+  "graph_ms": 4829.148884,
+  "details_ms": 5836.609683000001,
+  "details_loaded": true,
+  "initial_status": 202,
+  "detail_requests": 1,
+  "same_snapshot": true,
+  "page_errors": []
+}

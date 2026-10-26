@@ -1,0 +1,53 @@
+{
+  "reports": [
+    {
+      "iteration": 1,
+      "query": [
+        {
+          "phase": "scope",
+          "ms": 425.7023250000002,
+          "rows": 313
+        },
+        {
+          "phase": "events",
+          "ms": 1690.5111509999997,
+          "rows": 58904
+        }
+      ],
+      "load_ms": 2428.366239,
+      "compute_ms": 56.63743700000123,
+      "total_ms": 2485.003676000001,
+      "events": 58904,
+      "payload_bytes": 194250,
+      "result_bytes": 467160,
+      "sessions": 1421,
+      "users": 291,
+      "graph_and_lists_match": true
+    },
+    {
+      "iteration": 2,
+      "query": [
+        {
+          "phase": "scope",
+          "ms": 357.29535600000054,
+          "rows": 313
+        },
+        {
+          "phase": "events",
+          "ms": 1550.7404769999994,
+          "rows": 58904
+        }
+      ],
+      "load_ms": 2212.5578860000005,
+      "compute_ms": 54.58662499999991,
+      "total_ms": 2267.1445110000004,
+      "events": 58904,
+      "payload_bytes": 194250,
+      "result_bytes": 467160,
+      "sessions": 1421,
+      "users": 291,
+      "graph_and_lists_match": true
+    }
+  ],
+  "details_match": true
+}

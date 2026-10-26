@@ -1,0 +1,76 @@
+
+> logearn-analytics-dashboard@1.0.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /Users/leon/Documents/work/Logearn-growth/frontend
+
+ ✓ src/analytics/__tests__/segmentCharts.test.js (3 tests) 27ms
+ ✓ src/analytics/__tests__/activityEvidence.test.js (2 tests) 6ms
+ ✓ src/analytics/__tests__/conversionScenes.test.js (8 tests) 10ms
+ ✓ src/analytics/__tests__/conversionLossAudit.test.js (5 tests) 11ms
+ ✓ src/analytics/__tests__/retentionCurves.test.js (7 tests) 29ms
+ ✓ src/analytics/__tests__/inputQuality.test.js (8 tests) 16ms
+ ✓ src/analytics/__tests__/comparison.test.js (5 tests) 25ms
+ ✓ src/analytics/__tests__/growthInsights.test.js (6 tests) 11ms
+ ✓ src/analytics/__tests__/collaborationRevenuePage.test.js (1 test) 113ms
+ ✓ src/analytics/__tests__/userCrm.test.js (4 tests) 111ms
+ ✓ src/analytics/__tests__/rosterImport.test.js (8 tests) 23ms
+ ✓ src/analytics/__tests__/operationsPage.test.js (3 tests) 120ms
+ ✓ src/analytics/__tests__/observedPages.test.js (5 tests) 11ms
+ ✓ src/analytics/__tests__/homeOverview.test.js (4 tests) 45ms
+ ✓ src/analytics/__tests__/dataIntegrity.test.js (8 tests) 26ms
+ ✓ src/analytics/__tests__/funnelAssociation.test.js (6 tests | 1 skipped) 24ms
+ ✓ src/analytics/__tests__/manualRefresh.test.js (3 tests) 12ms
+ ✓ src/analytics/__tests__/coverage.test.js (6 tests) 38ms
+ ✓ src/analytics/__tests__/jsonDataset.test.js (5 tests) 16ms
+ ✓ src/analytics/__tests__/firstVisit.test.js (7 tests) 21ms
+ ✓ src/analytics/__tests__/segmentInsightsPage.test.js (5 tests) 19ms
+ ✓ src/analytics/__tests__/repairRegression.test.js (13 tests) 16ms
+ ✓ src/analytics/__tests__/secondRound.test.js (8 tests) 16ms
+ ✓ src/analytics/__tests__/sharing.test.js (3 tests) 12ms
+ ✓ src/analytics/__tests__/analytics.test.js (22 tests) 17ms
+ ✓ src/analytics/__tests__/tracking.test.js (2 tests) 18ms
+ ✓ src/analytics/__tests__/kolRankingPage.test.js (2 tests) 14ms
+ ✓ src/analytics/__tests__/workbench.test.js (5 tests) 12ms
+ ✓ src/analytics/__tests__/audience.test.js (4 tests) 19ms
+ ✓ src/analytics/__tests__/activityMonitor.test.js (5 tests) 19ms
+ ✓ src/analytics/__tests__/myMonitor.test.js (3 tests) 12ms
+ ✓ src/analytics/__tests__/audienceSelection.test.js (4 tests) 10ms
+ ✓ src/analytics/__tests__/referralInsightsPage.test.js (4 tests) 16ms
+ ✓ src/analytics/__tests__/bindings.test.js (2 tests) 11ms
+ ✓ src/analytics/__tests__/comparisonViews.test.js (3 tests) 10ms
+ ✓ src/analytics/__tests__/weeklyCore.test.js (2 tests) 9ms
+ ✓ src/analytics/__tests__/segmentFunnelComparison.test.js (3 tests) 20ms
+ ✓ src/analytics/__tests__/growthCohorts.test.js (2 tests) 6ms
+ ✓ src/analytics/__tests__/lifecycle.test.js (5 tests) 12ms
+ ✓ src/analytics/__tests__/channelInsightsPage.test.js (3 tests) 9ms
+ ✓ src/analytics/__tests__/tradeIssueTable.test.js (2 tests) 8ms
+ ✓ src/analytics/__tests__/reportPeriod.test.js (3 tests) 9ms
+ ✓ src/analytics/__tests__/opsTools.test.js (4 tests) 13ms
+ ✓ src/analytics/__tests__/lazyPage.test.js (2 tests) 12ms
+ ✓ src/analytics/__tests__/savedCohort.test.js (4 tests) 26ms
+ ✓ src/analytics/__tests__/dashboardRules.test.js (4 tests) 7ms
+ ✓ src/analytics/__tests__/dashboardTracking.test.js (6 tests) 9ms
+ ✓ src/analytics/__tests__/paths.test.js (7 tests) 9ms
+ ✓ src/analytics/__tests__/loginEvidence.test.js (2 tests) 22ms
+ ✓ src/analytics/__tests__/tradeFacts.test.js (3 tests | 1 skipped) 8ms
+ ✓ src/analytics/__tests__/language.test.js (1 test) 6ms
+ ✓ src/analytics/__tests__/referralCharts.test.js (3 tests) 6ms
+ ✓ src/analytics/__tests__/chartLifecycle.test.js (1 test) 9ms
+ ✓ src/analytics/__tests__/analysisTasks.test.js (2 tests) 8ms
+ ✓ src/analytics/__tests__/kolAccounts.test.js (1 test) 5ms
+ ✓ src/channels/rules.test.js (4 tests) 6ms
+ ✓ src/analytics/__tests__/loadJsonDataset.test.js (3 tests | 1 skipped) 10ms
+ ✓ src/analytics/__tests__/browserGroups.test.js (1 test) 5ms
+ ✓ src/channels/analytics.test.js (2 tests) 36ms
+ ✓ src/lifecycle/data.test.js (3 tests) 7ms
+ ✓ src/analytics/__tests__/segmentPoints.test.js (2 tests) 5ms
+ ✓ src/analytics/__tests__/channelCharts.test.js (1 test) 6ms
+ ↓ src/analytics/__tests__/mockCoverage.test.js (1 test | 1 skipped)
+
+ Test Files  62 passed | 1 skipped (63)
+      Tests  262 passed | 4 skipped (266)
+   Start at  15:55:45
+   Duration  3.41s (transform 2.27s, setup 0ms, collect 7.12s, tests 1.21s, environment 16ms, prepare 13.61s)
+

@@ -1,0 +1,26 @@
+{
+  "events": 63808,
+  "sessions": 1488,
+  "users": 296,
+  "load_ms": 4253.6517460000005,
+  "timings": {
+    "before": [
+      99.37350499999957,
+      78.26125600000069,
+      84.12186500000007,
+      71.447948
+    ],
+    "after": [
+      71.30487300000004,
+      63.76583399999981,
+      64.58689999999933,
+      58.833552000000054
+    ]
+  },
+  "mean_ms": {
+    "before": 83.30114350000008,
+    "after": 64.62278974999981
+  },
+  "parity": true,
+  "scope": "Read-only single-snapshot real data; analytics timings exclude database, queue, network and browser"
+}

@@ -1,0 +1,42 @@
+(node:9210) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+[Hologres Slow Query] 61mh99 took 514ms {
+  sql: 'WITH ranked AS (\n' +
+    '    SELECT *, ROW_NUMBER() OVER (PARTITION BY event_id ORDER BY server_ts, id) AS rn\n' +
+    '    FROM growth_events WHERE server_ts <= $1::timestamptz\n' +
+    '      AND event_id IS NOT NULL AND BTRIM',
+  rows: 29,
+  waitingCount: 0
+}
+[Hologres Slow Query] bwt6p2 took 1629ms {
+  sql: 'WITH ranked AS (\n' +
+    '    SELECT *, ROW_NUMBER() OVER (PARTITION BY event_id ORDER BY server_ts, id) AS rn\n' +
+    '    FROM growth_events WHERE server_ts <= $1::timestamptz\n' +
+    '      AND event_id IS NOT NULL AND BTRIM',
+  rows: 711,
+  waitingCount: 0
+}
+[Hologres Slow Query] 1qenwt took 3353ms {
+  sql: 'WITH ranked AS (\n' +
+    '    SELECT *, ROW_NUMBER() OVER (PARTITION BY event_id ORDER BY server_ts, id) AS rn\n' +
+    '    FROM growth_events WHERE server_ts <= $1::timestamptz\n' +
+    '      AND event_id IS NOT NULL AND BTRIM',
+  rows: 8421,
+  waitingCount: 0
+}
+(node:9210) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:9210) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{
+  meta_ms: 30.341346999999587,
+  graph_ms: 1526.0111740000002,
+  graph_polls: 2,
+  details_ms: 3787.6134900000006,
+  details_polls: 5,
+  repeat_ms: 7.135742000000391,
+  sessions: 1488,
+  users: 296,
+  same_snapshot: true,
+  scope: 'Real HTTP router, 750ms polling, 256MB workers, isolated test owner and in-memory operations DB; excludes login, browser and rendering'
+}

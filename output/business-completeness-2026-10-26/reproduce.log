@@ -1,0 +1,44 @@
+{
+  "web_head": "54ac7df2195c6171aeac82f563e7c3259513edb4",
+  "pr": "https://github.com/js-kingdata/logearn-web/pull/29",
+  "reports": [
+    {
+      "case": "TEE exits before order submission",
+      "actual_order_requests": 0,
+      "reported_submission_visits": 1,
+      "expected_submission_visits": 0
+    },
+    {
+      "case": "Success confirmed after 6 minutes",
+      "terminal_emitted": true,
+      "terminal_attempt_id_present": false,
+      "terminal_visit_id_present": false,
+      "submission_visits": 1,
+      "confirmed_trade_visits": 0,
+      "expected_confirmed_trade_visits": 1
+    },
+    {
+      "case": "All details versioned but terminal context missing",
+      "versioned_details": 1,
+      "detail_events": 1,
+      "trades_missing_visit": 1,
+      "shows_100_percent_gap": true,
+      "hides_rate_for_missing_trade_context": false
+    },
+    {
+      "case": "had_cache contract alignment",
+      "sent_had_cache": true,
+      "growth_projection_retains_had_cache": false,
+      "audit_contract_retains_had_cache": false
+    },
+    {
+      "case": "Transport HTTP/application acknowledgment boundary",
+      "http_status": 200,
+      "simulated_business_code": 500,
+      "response_body_checked": false,
+      "retained_outbox_batches": 0,
+      "note": "Collector application-response contract must be verified; this is a local rejection fixture, not evidence that the live collector behaves this way."
+    }
+  ],
+  "scope": "Actual current product functions/adapters and growth modules, isolated local fixtures; no collector calls, source writes, orders, PR edits or operational tasks created."
+}

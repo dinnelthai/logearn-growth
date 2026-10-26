@@ -1,0 +1,764 @@
+{
+  "start": 1791997200000,
+  "end": 1792602000000,
+  "requested_end": 1792602000000,
+  "previous_start": 1791392400000,
+  "previous_end": 1791997200000,
+  "as_of": 1792629893943,
+  "source": "all",
+  "change": {
+    "current": 82,
+    "previous": 69,
+    "fresh": 33,
+    "resumed": 0,
+    "continuing": 49,
+    "absent": 20,
+    "delta": 13,
+    "rate": 0.18840579710144928,
+    "actionable": 20
+  },
+  "dimensions": {
+    "source": [
+      {
+        "value": "direct",
+        "current": 53,
+        "previous": 46,
+        "delta": 7,
+        "list_key": "growth:source:0"
+      },
+      {
+        "value": "internal",
+        "current": 19,
+        "previous": 17,
+        "delta": 2,
+        "list_key": "growth:source:1"
+      },
+      {
+        "value": "pwa",
+        "current": 5,
+        "previous": 3,
+        "delta": 2,
+        "list_key": "growth:source:2"
+      },
+      {
+        "value": "seo",
+        "current": 1,
+        "previous": 0,
+        "delta": 1,
+        "list_key": "growth:source:5"
+      },
+      {
+        "value": "x",
+        "current": 3,
+        "previous": 2,
+        "delta": 1,
+        "list_key": "growth:source:3"
+      },
+      {
+        "value": "referrer:ntp.msn.cn",
+        "current": 1,
+        "previous": 1,
+        "delta": 0,
+        "list_key": "growth:source:4"
+      }
+    ],
+    "device": [
+      {
+        "value": "desktop",
+        "current": 81,
+        "previous": 69,
+        "delta": 12,
+        "list_key": "growth:device:0"
+      },
+      {
+        "value": "mobile",
+        "current": 1,
+        "previous": 0,
+        "delta": 1,
+        "list_key": "growth:device:1"
+      }
+    ],
+    "app_version": [
+      {
+        "value": "unknown",
+        "current": 82,
+        "previous": 69,
+        "delta": 13,
+        "list_key": "growth:app_version:0"
+      }
+    ]
+  },
+  "channels": [
+    {
+      "source": "direct",
+      "users": 212,
+      "eligible": 207,
+      "activated": 14,
+      "pending": 5,
+      "trade": {
+        "available": true,
+        "error": null,
+        "eligible": 1,
+        "unmatched": 7,
+        "pending": 204,
+        "traders": 0,
+        "transactions": 0,
+        "volume_usd": 0,
+        "missing_values": 0,
+        "excluded_trades": 0,
+        "list_key": "quality:source:0:trade"
+      },
+      "activation_rate": 0.06763285024154589,
+      "activation_interval": [
+        0.04071115951879931,
+        0.11031027078717445
+      ],
+      "median_ms": 104164,
+      "d7": {
+        "eligible": 0,
+        "returned": 0,
+        "pending": 212,
+        "rate": null,
+        "interval": null,
+        "list_key": "quality:source:0:d7"
+      },
+      "d30": {
+        "eligible": 0,
+        "returned": 0,
+        "pending": 212,
+        "rate": null,
+        "interval": null,
+        "list_key": "quality:source:0:d30"
+      },
+      "list_key": "quality:source:0"
+    },
+    {
+      "source": "x",
+      "users": 21,
+      "eligible": 20,
+      "activated": 3,
+      "pending": 1,
+      "trade": {
+        "available": true,
+        "error": null,
+        "eligible": 0,
+        "unmatched": 1,
+        "pending": 20,
+        "traders": 0,
+        "transactions": 0,
+        "volume_usd": null,
+        "missing_values": 0,
+        "excluded_trades": 0,
+        "list_key": "quality:source:1:trade"
+      },
+      "activation_rate": 0.15,
+      "activation_interval": [
+        0.05236779195949584,
+        0.36042329588695743
+      ],
+      "median_ms": 687516,
+      "d7": {
+        "eligible": 0,
+        "returned": 0,
+        "pending": 21,
+        "rate": null,
+        "interval": null,
+        "list_key": "quality:source:1:d7"
+      },
+      "d30": {
+        "eligible": 0,
+        "returned": 0,
+        "pending": 21,
+        "rate": null,
+        "interval": null,
+        "list_key": "quality:source:1:d30"
+      },
+      "list_key": "quality:source:1"
+    },
+    {
+      "source": "internal",
+      "users": 7,
+      "eligible": 7,
+      "activated": 1,
+      "pending": 0,
+      "trade": {
+        "available": true,
+        "error": null,
+        "eligible": 0,
+        "unmatched": 1,
+        "pending": 6,
+        "traders": 0,
+        "transactions": 0,
+        "volume_usd": null,
+        "missing_values": 0,
+        "excluded_trades": 0,
+        "list_key": "quality:source:3:trade"
+      },
+      "activation_rate": 0.14285714285714285,
+      "activation_interval": [
+        0.02567895594897479,
+        0.51313450331903
+      ],
+      "median_ms": 69419,
+      "d7": {
+        "eligible": 0,
+        "returned": 0,
+        "pending": 7,
+        "rate": null,
+        "interval": null,
+        "list_key": "quality:source:3:d7"
+      },
+      "d30": {
+        "eligible": 0,
+        "returned": 0,
+        "pending": 7,
+        "rate": null,
+        "interval": null,
+        "list_key": "quality:source:3:d30"
+      },
+      "list_key": "quality:source:3"
+    },
+    {
+      "source": "pwa",
+      "users": 6,
+      "eligible": 6,
+      "activated": 0,
+      "pending": 0,
+      "trade": {
+        "available": true,
+        "error": null,
+        "eligible": 0,
+        "unmatched": 1,
+        "pending": 5,
+        "traders": 0,
+        "transactions": 0,
+        "volume_usd": null,
+        "missing_values": 0,
+        "excluded_trades": 0,
+        "list_key": "quality:source:6:trade"
+      },
+      "activation_rate": 0,
+      "activation_interval": [
+        0,
+        0.3903430336530645
+      ],
+      "median_ms": null,
+      "d7": {
+        "eligible": 0,
+        "returned": 0,
+        "pending": 6,
+        "rate": null,
+        "interval": null,
+        "list_key": "quality:source:6:d7"
+      },
+      "d30": {
+        "eligible": 0,
+        "returned": 0,
+        "pending": 6,
+        "rate": null,
+        "interval": null,
+        "list_key": "quality:source:6:d30"
+      },
+      "list_key": "quality:source:6"
+    },
+    {
+      "source": "referrer:ruby-china.org",
+      "users": 6,
+      "eligible": 4,
+      "activated": 0,
+      "pending": 2,
+      "trade": {
+        "available": true,
+        "error": null,
+        "eligible": 0,
+        "unmatched": 0,
+        "pending": 6,
+        "traders": 0,
+        "transactions": 0,
+        "volume_usd": null,
+        "missing_values": 0,
+        "excluded_trades": 0,
+        "list_key": "quality:source:5:trade"
+      },
+      "activation_rate": 0,
+      "activation_interval": [
+        0,
+        0.48990002040399916
+      ],
+      "median_ms": null,
+      "d7": {
+        "eligible": 0,
+        "returned": 0,
+        "pending": 6,
+        "rate": null,
+        "interval": null,
+        "list_key": "quality:source:5:d7"
+      },
+      "d30": {
+        "eligible": 0,
+        "returned": 0,
+        "pending": 6,
+        "rate": null,
+        "interval": null,
+        "list_key": "quality:source:5:d30"
+      },
+      "list_key": "quality:source:5"
+    },
+    {
+      "source": "referrer:www.google.com",
+      "users": 2,
+      "eligible": 2,
+      "activated": 0,
+      "pending": 0,
+      "trade": {
+        "available": true,
+        "error": null,
+        "eligible": 0,
+        "unmatched": 0,
+        "pending": 2,
+        "traders": 0,
+        "transactions": 0,
+        "volume_usd": null,
+        "missing_values": 0,
+        "excluded_trades": 0,
+        "list_key": "quality:source:4:trade"
+      },
+      "activation_rate": 0,
+      "activation_interval": [
+        0,
+        0.6576280471103807
+      ],
+      "median_ms": null,
+      "d7": {
+        "eligible": 0,
+        "returned": 0,
+        "pending": 2,
+        "rate": null,
+        "interval": null,
+        "list_key": "quality:source:4:d7"
+      },
+      "d30": {
+        "eligible": 0,
+        "returned": 0,
+        "pending": 2,
+        "rate": null,
+        "interval": null,
+        "list_key": "quality:source:4:d30"
+      },
+      "list_key": "quality:source:4"
+    },
+    {
+      "source": "referrer:com.google.android.googlequicksearchbox",
+      "users": 1,
+      "eligible": 1,
+      "activated": 0,
+      "pending": 0,
+      "trade": {
+        "available": true,
+        "error": null,
+        "eligible": 0,
+        "unmatched": 0,
+        "pending": 1,
+        "traders": 0,
+        "transactions": 0,
+        "volume_usd": null,
+        "missing_values": 0,
+        "excluded_trades": 0,
+        "list_key": "quality:source:7:trade"
+      },
+      "activation_rate": 0,
+      "activation_interval": [
+        0,
+        0.7934567085261071
+      ],
+      "median_ms": null,
+      "d7": {
+        "eligible": 0,
+        "returned": 0,
+        "pending": 1,
+        "rate": null,
+        "interval": null,
+        "list_key": "quality:source:7:d7"
+      },
+      "d30": {
+        "eligible": 0,
+        "returned": 0,
+        "pending": 1,
+        "rate": null,
+        "interval": null,
+        "list_key": "quality:source:7:d30"
+      },
+      "list_key": "quality:source:7"
+    },
+    {
+      "source": "referrer:github.com",
+      "users": 1,
+      "eligible": 1,
+      "activated": 0,
+      "pending": 0,
+      "trade": {
+        "available": true,
+        "error": null,
+        "eligible": 0,
+        "unmatched": 0,
+        "pending": 1,
+        "traders": 0,
+        "transactions": 0,
+        "volume_usd": null,
+        "missing_values": 0,
+        "excluded_trades": 0,
+        "list_key": "quality:source:2:trade"
+      },
+      "activation_rate": 0,
+      "activation_interval": [
+        0,
+        0.7934567085261071
+      ],
+      "median_ms": null,
+      "d7": {
+        "eligible": 0,
+        "returned": 0,
+        "pending": 1,
+        "rate": null,
+        "interval": null,
+        "list_key": "quality:source:2:d7"
+      },
+      "d30": {
+        "eligible": 0,
+        "returned": 0,
+        "pending": 1,
+        "rate": null,
+        "interval": null,
+        "list_key": "quality:source:2:d30"
+      },
+      "list_key": "quality:source:2"
+    },
+    {
+      "source": "seo",
+      "users": 1,
+      "eligible": 1,
+      "activated": 1,
+      "pending": 0,
+      "trade": {
+        "available": true,
+        "error": null,
+        "eligible": 0,
+        "unmatched": 0,
+        "pending": 1,
+        "traders": 0,
+        "transactions": 0,
+        "volume_usd": null,
+        "missing_values": 0,
+        "excluded_trades": 0,
+        "list_key": "quality:source:8:trade"
+      },
+      "activation_rate": 1,
+      "activation_interval": [
+        0.20654329147389294,
+        1
+      ],
+      "median_ms": 118492,
+      "d7": {
+        "eligible": 0,
+        "returned": 0,
+        "pending": 1,
+        "rate": null,
+        "interval": null,
+        "list_key": "quality:source:8:d7"
+      },
+      "d30": {
+        "eligible": 0,
+        "returned": 0,
+        "pending": 1,
+        "rate": null,
+        "interval": null,
+        "list_key": "quality:source:8:d30"
+      },
+      "list_key": "quality:source:8"
+    }
+  ],
+  "associations": [
+    {
+      "id": "strategy",
+      "label": "首24小时启动策略",
+      "groups": [
+        {
+          "label": "满足条件",
+          "users": 2,
+          "list_key": "association:strategy:true",
+          "d7": {
+            "eligible": 0,
+            "returned": 0,
+            "pending": 2,
+            "rate": null,
+            "interval": null,
+            "list_key": "association:strategy:true:d7"
+          }
+        },
+        {
+          "label": "未满足条件",
+          "users": 31,
+          "list_key": "association:strategy:false",
+          "d7": {
+            "eligible": 0,
+            "returned": 0,
+            "pending": 31,
+            "rate": null,
+            "interval": null,
+            "list_key": "association:strategy:false:d7"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hours",
+      "label": "首24小时至少3个小时观测到分析",
+      "groups": [
+        {
+          "label": "满足条件",
+          "users": 8,
+          "list_key": "association:hours:true",
+          "d7": {
+            "eligible": 0,
+            "returned": 0,
+            "pending": 8,
+            "rate": null,
+            "interval": null,
+            "list_key": "association:hours:true:d7"
+          }
+        },
+        {
+          "label": "未满足条件",
+          "users": 25,
+          "list_key": "association:hours:false",
+          "d7": {
+            "eligible": 0,
+            "returned": 0,
+            "pending": 25,
+            "rate": null,
+            "interval": null,
+            "list_key": "association:hours:false:d7"
+          }
+        }
+      ]
+    },
+    {
+      "id": "fast",
+      "label": "首次观测后5分钟内分析",
+      "groups": [
+        {
+          "label": "满足条件",
+          "users": 14,
+          "list_key": "association:fast:true",
+          "d7": {
+            "eligible": 0,
+            "returned": 0,
+            "pending": 14,
+            "rate": null,
+            "interval": null,
+            "list_key": "association:fast:true:d7"
+          }
+        },
+        {
+          "label": "未满足条件",
+          "users": 19,
+          "list_key": "association:fast:false",
+          "d7": {
+            "eligible": 0,
+            "returned": 0,
+            "pending": 19,
+            "rate": null,
+            "interval": null,
+            "list_key": "association:fast:false:d7"
+          }
+        }
+      ]
+    }
+  ],
+  "quality": {
+    "events": 107102,
+    "linked_events": 103833,
+    "linked_rate": 0.9694776941607066,
+    "missing_source_events": 0,
+    "source_rate": 1,
+    "history_complete": false,
+    "events_complete_through": null,
+    "latest_event_at": "2026-10-22T00:44:53.943Z",
+    "source_seen_at": "2026-10-22T00:44:52.976Z",
+    "snapshot_cutoff": "2026-10-22T00:44:57.918Z",
+    "lag_ms": 3975,
+    "truncated": false,
+    "families": [
+      {
+        "key": "analysis",
+        "label": "分析请求",
+        "started_events": 13,
+        "finished_events": 13,
+        "missing_id_events": 0,
+        "available": true
+      },
+      {
+        "key": "login",
+        "label": "登录尝试",
+        "started_events": 0,
+        "finished_events": 0,
+        "missing_id_events": 0,
+        "available": false
+      },
+      {
+        "key": "page_load",
+        "label": "页面加载",
+        "started_events": 630,
+        "finished_events": 615,
+        "missing_id_events": 0,
+        "available": true
+      }
+    ],
+    "versions": [
+      {
+        "event_name": "analysis_request_finished",
+        "version": "2026-10-16.v2",
+        "events": 13,
+        "first_at": 1792208899237,
+        "latest_at": 1792513627762
+      },
+      {
+        "event_name": "analysis_requested",
+        "version": "2026-10-16.v2",
+        "events": 13,
+        "first_at": 1792208897368,
+        "latest_at": 1792513618325
+      },
+      {
+        "event_name": "app_opened_unauthenticated",
+        "version": "2026-10-16.v2",
+        "events": 9,
+        "first_at": 1792226734242,
+        "latest_at": 1792589965807
+      },
+      {
+        "event_name": "chip_analysis_drilldown",
+        "version": "2026-10-16.v2",
+        "events": 13,
+        "first_at": 1792208899239,
+        "latest_at": 1792513627764
+      },
+      {
+        "event_name": "chip_analysis_viewed",
+        "version": "2026-10-16.v2",
+        "events": 11,
+        "first_at": 1792208899819,
+        "latest_at": 1792513629795
+      },
+      {
+        "event_name": "invite_link_visited",
+        "version": "2026-10-16.v2",
+        "events": 308,
+        "first_at": 1792208661407,
+        "latest_at": 1792591844564
+      },
+      {
+        "event_name": "login_succeeded",
+        "version": "2026-10-16.v2",
+        "events": 9,
+        "first_at": 1792226734289,
+        "latest_at": 1792589965833
+      },
+      {
+        "event_name": "page_content_load_finished",
+        "version": "2026-10-16.v2",
+        "events": 615,
+        "first_at": 1792208661682,
+        "latest_at": 1792593224737
+      },
+      {
+        "event_name": "page_content_load_started",
+        "version": "2026-10-16.v2",
+        "events": 630,
+        "first_at": 1792208661180,
+        "latest_at": 1792593004655
+      },
+      {
+        "event_name": "page_engaged",
+        "version": "2026-10-16.v2",
+        "events": 454,
+        "first_at": 1792208671385,
+        "latest_at": 1792593014687
+      },
+      {
+        "event_name": "page_viewed",
+        "version": "2026-10-16.v2",
+        "events": 608,
+        "first_at": 1792208661384,
+        "latest_at": 1792593004686
+      },
+      {
+        "event_name": "page_visit_ended",
+        "version": "2026-10-16.v2",
+        "events": 981,
+        "first_at": 1792208674617,
+        "latest_at": 1792593226895
+      },
+      {
+        "event_name": "ranking_token_clicked",
+        "version": "2026-10-16.v2",
+        "events": 171,
+        "first_at": 1792215957114,
+        "latest_at": 1792593004655
+      },
+      {
+        "event_name": "signal_viewed",
+        "version": "2026-10-16.v2",
+        "events": 1461,
+        "first_at": 1792208662072,
+        "latest_at": 1792592554755
+      },
+      {
+        "event_name": "strategy_started",
+        "version": "2026-10-16.v2",
+        "events": 9,
+        "first_at": 1792219952691,
+        "latest_at": 1792516219328
+      },
+      {
+        "event_name": "strategy_stopped",
+        "version": "2026-10-16.v2",
+        "events": 8,
+        "first_at": 1792263650756,
+        "latest_at": 1792460334619
+      },
+      {
+        "event_name": "token_card_exposed",
+        "version": "2026-10-16.v2",
+        "events": 5128,
+        "first_at": 1792208661994,
+        "latest_at": 1792321122352
+      },
+      {
+        "event_name": "token_detail_viewed",
+        "version": "2026-10-16.v2",
+        "events": 500,
+        "first_at": 1792208674793,
+        "latest_at": 1792593004686
+      }
+    ]
+  },
+  "candidate_count": 335,
+  "truncated": false,
+  "user_pool": "observed_growth_users",
+  "definition": "北极星沿用筹码查看或下钻的观测口径。两期按相同时长比较；新增与重新活跃减去本期未观测回访等于人数变化。历史及连续采集覆盖未确认，不能确认真实流失或因果。来源、设备、版本分别拆分，跨维度不相加；设备和版本为首次分析时最早非空观测值。",
+  "meta": {
+    "snapshot_id": "cafd45d98c3ceabe",
+    "history_complete": false,
+    "user_pool": "observed_growth_users",
+    "facts_as_of": null
+  },
+  "coverage": {
+    "events": "partial",
+    "trades": "unknown"
+  },
+  "drill": {
+    "cache_id": "e6ecbbae97b61060e1b411439f0c1b2d",
+    "snapshot_id": "cafd45d98c3ceabe"
+  }
+}

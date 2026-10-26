@@ -1,0 +1,187 @@
+{
+  "generated_at": "2026-10-20T18:17:42.007Z",
+  "snapshot_id": "74796de8bf250ed4",
+  "as_of": "2026-10-20T18:17:04.560Z",
+  "snapshot_cutoff": "2026-10-20T18:17:39.593Z",
+  "behavior_window": {
+    "start": 1791915424561,
+    "end": 1792520224561,
+    "days": 7
+  },
+  "arrival_window": {
+    "start": 1791915459593,
+    "end": 1792520259594
+  },
+  "arrivals": {
+    "received": 104940,
+    "missing_event_ids": 0,
+    "invalid_client_times": 0,
+    "missing_identities": 0,
+    "dirty_user_ids": 0,
+    "duplicate_rows": 380,
+    "included": 100901,
+    "same_id_others": 376,
+    "excluded": 3663,
+    "reconciled": true,
+    "excluded_reasons": [
+      {
+        "reason": "dirty_anonymous_history",
+        "records": 3468
+      },
+      {
+        "reason": "dirty_linked_identity",
+        "records": 195
+      }
+    ]
+  },
+  "schema": {
+    "checked_events": 1083,
+    "invalid_events": 0,
+    "issues": {}
+  },
+  "families": {
+    "analysis": {
+      "available": true,
+      "requests": 13,
+      "users": 1,
+      "counts": {
+        "success": 13,
+        "empty": 0,
+        "failed": 0,
+        "cancelled": 0,
+        "pending": 0,
+        "unknown": 0,
+        "conflict": 0
+      },
+      "quality": {
+        "missing_id_events": 0,
+        "orphan_terminals": 0,
+        "conflicts": 0
+      },
+      "terminal_coverage": 1,
+      "latency": [
+        {
+          "state": "success",
+          "samples": 13,
+          "median_ms": 3670.6000003814697,
+          "p90_ms": 7990.219999885559
+        },
+        {
+          "state": "empty",
+          "samples": 0,
+          "median_ms": null,
+          "p90_ms": null
+        },
+        {
+          "state": "failed",
+          "samples": 0,
+          "median_ms": null,
+          "p90_ms": null
+        },
+        {
+          "state": "cancelled",
+          "samples": 0,
+          "median_ms": null,
+          "p90_ms": null
+        }
+      ]
+    },
+    "login": {
+      "available": false,
+      "requests": 0,
+      "users": 0,
+      "counts": {
+        "success": 0,
+        "failed": 0,
+        "cancelled": 0,
+        "pending": 0,
+        "unknown": 0,
+        "conflict": 0
+      },
+      "quality": {
+        "missing_id_events": 0,
+        "orphan_terminals": 0,
+        "conflicts": 0
+      },
+      "terminal_coverage": null,
+      "latency": [
+        {
+          "state": "success",
+          "samples": 0,
+          "median_ms": null,
+          "p90_ms": null
+        },
+        {
+          "state": "failed",
+          "samples": 0,
+          "median_ms": null,
+          "p90_ms": null
+        },
+        {
+          "state": "cancelled",
+          "samples": 0,
+          "median_ms": null,
+          "p90_ms": null
+        }
+      ]
+    },
+    "page_load": {
+      "available": true,
+      "requests": 532,
+      "users": 1,
+      "counts": {
+        "ready": 467,
+        "presented": 10,
+        "failed": 0,
+        "cancelled": 48,
+        "pending": 0,
+        "unknown": 7,
+        "conflict": 0
+      },
+      "quality": {
+        "missing_id_events": 0,
+        "orphan_terminals": 0,
+        "conflicts": 0
+      },
+      "terminal_coverage": 0.9868421052631579,
+      "latency": [
+        {
+          "state": "ready",
+          "samples": 467,
+          "median_ms": 1309.5999994277954,
+          "p90_ms": 5104.219999694826
+        },
+        {
+          "state": "presented",
+          "samples": 10,
+          "median_ms": 822.5,
+          "p90_ms": 43707.56000041962
+        },
+        {
+          "state": "failed",
+          "samples": 0,
+          "median_ms": null,
+          "p90_ms": null
+        },
+        {
+          "state": "cancelled",
+          "samples": 48,
+          "median_ms": 7160.300000190735,
+          "p90_ms": 127134.46000003823
+        }
+      ]
+    }
+  },
+  "missing_fact_events": [
+    "login_attempt_started",
+    "login_attempt_finished",
+    "login_stage_started",
+    "login_stage_finished",
+    "invite_validation_finished",
+    "invite_binding_finished",
+    "free_trial_started"
+  ],
+  "continuous_coverage_confirmed": false,
+  "end_to_end_verified": false,
+  "definition": "Database-side aggregate evidence only. Families use starts in the behavior window and earlier context; arrivals use server timestamps. No user IDs, event IDs, raw properties or browser/collector proof are exported."
+}

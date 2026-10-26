@@ -1,0 +1,95 @@
+{
+  "association": "user",
+  "steps": [
+    {
+      "key": "daily_visit",
+      "users": 371,
+      "previous_conversion_rate": 1,
+      "total_conversion_rate": 1,
+      "drop_off_users": 291
+    },
+    {
+      "key": "chip",
+      "users": 72,
+      "previous_conversion_rate": 0.1940700808625337,
+      "total_conversion_rate": 0.1940700808625337,
+      "drop_off_users": 0
+    }
+  ],
+  "total_entered": 371,
+  "total_converted": 72,
+  "pending_count": 8,
+  "median_conversion_ms": 209969,
+  "quality": {
+    "missing_start": 0,
+    "incomplete": 0
+  },
+  "by_source": [
+    {
+      "source": "direct",
+      "entered": 286,
+      "converted": 47
+    },
+    {
+      "source": "pwa",
+      "entered": 14,
+      "converted": 3
+    },
+    {
+      "source": "internal",
+      "entered": 35,
+      "converted": 17
+    },
+    {
+      "source": "x",
+      "entered": 22,
+      "converted": 3
+    },
+    {
+      "source": "referrer:ruby-china.org",
+      "entered": 6,
+      "converted": 0
+    },
+    {
+      "source": "referrer:www.google.com",
+      "entered": 4,
+      "converted": 0
+    },
+    {
+      "source": "seo",
+      "entered": 1,
+      "converted": 1
+    },
+    {
+      "source": "referrer:com.google.android.googlequicksearchbox",
+      "entered": 1,
+      "converted": 0
+    },
+    {
+      "source": "referrer:github.com",
+      "entered": 1,
+      "converted": 0
+    },
+    {
+      "source": "referrer:ntp.msn.cn",
+      "entered": 1,
+      "converted": 1
+    }
+  ],
+  "candidate_count": 371,
+  "truncated": false,
+  "meta": {
+    "snapshot_id": "cafd45d98c3ceabe",
+    "history_complete": false,
+    "user_pool": "observed",
+    "facts_as_of": null
+  },
+  "coverage": {
+    "events": "partial",
+    "trades": "unknown"
+  },
+  "drill": {
+    "cache_id": "5db16f455bd293ea81e77ab6351f3f86",
+    "snapshot_id": "cafd45d98c3ceabe"
+  }
+}

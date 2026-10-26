@@ -103,8 +103,8 @@ async function cached(key, fn, ttl = 30000) {
     swr_probability: 0.1,
   })
 }
-// No raw facts are persisted locally. Snapshot cutoff excludes later arrivals;
-// source updates/deletes remain weakly consistent until versioned tables exist.
+// Remote queries exclude later arrivals; source updates/deletes remain weakly
+// consistent. The optional path index pins its projected facts to a generation.
 function eventsCte(cutoffIndex = 1) {
   return `WITH ranked AS (
     SELECT *, ROW_NUMBER() OVER (PARTITION BY event_id ORDER BY server_ts, id) AS rn
@@ -133,7 +133,14 @@ function eventsCte(cutoffIndex = 1) {
     FROM e GROUP BY user_key
   )`
 }
-async function status(force = false) {
+async function status(force = false, {raw = false} = {}) {
+  if (!force && !raw && process.env.ENABLE_PATH_INDEX === 'true') {
+    const indexed = require('../pathIndex/reader').latest()
+    if (indexed) {
+      await multilevelCache.set(`snapshot:${indexed.snapshot_id}`, indexed, 15 * 60)
+      return indexed
+    }
+  }
   if (force) multilevelCache.del('status')
   return cached('status', async () => {
     const cutoff = new Date().toISOString()

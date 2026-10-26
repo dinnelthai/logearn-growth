@@ -1,0 +1,26 @@
+{
+  "steps": [
+    {
+      "key": "daily_visit",
+      "users": 340,
+      "previous_conversion_rate": 1,
+      "total_conversion_rate": 1,
+      "drop_off_users": 268
+    },
+    {
+      "key": "chip",
+      "users": 64,
+      "previous_conversion_rate": 0.18823529411764706,
+      "total_conversion_rate": 0.18823529411764706,
+      "drop_off_users": 0
+    }
+  ],
+  "total_entered": 340,
+  "total_converted": 64,
+  "pending": 8,
+  "quality": {
+    "missing_start": 0,
+    "incomplete": 0
+  },
+  "snapshot_id": "1083bcce25be29d3"
+}

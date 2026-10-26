@@ -5,9 +5,9 @@ const DIAGNOSTIC_LABELS={invite_link_visited:'访问邀请链接',invite_validat
 export const observedChain=c=>({'3':'Solana','56':'BSC','4663':'Robinhood','5042':'Arc'})[c]?({'3':'Solana','56':'BSC','4663':'Robinhood','5042':'Arc'})[c]+' ('+c+')':c
 export const observedTime=t=>t==null?'—':new Date(Number(t)+25200000).toISOString().slice(0,19).replace('T',' ')
 export function conversionTimelineDetails(e,esc){
- const p=e.properties||{};if(!['invite_link_visited','invite_validation_finished','invite_binding_finished','login_attempt_started','login_attempt_finished','login_stage_started','login_stage_finished'].includes(e.event_name))return ''
- const outcomes={success:'成功',failed:'失败',cancelled:'取消',valid:'有效',invalid:'无效',bound:'绑定成立',already_bound:'已有关系',rejected:'拒绝'}
- const parts=[p.stage?'阶段：'+p.stage:null,p.outcome?'结果：'+(outcomes[p.outcome]||p.outcome):null,p.reason_code||p.error_code?'原因：'+(p.reason_code||p.error_code):null,p.invite_flow_id?'邀请流程：'+p.invite_flow_id:null,p.login_attempt_id?'登录尝试：'+p.login_attempt_id:null]
+ const p=e.properties||{};if(!['invite_link_visited','invite_validation_finished','invite_binding_finished','login_attempt_started','login_attempt_finished','login_stage_started','login_stage_finished','analysis_requested','analysis_request_finished','trade_submitted','trade_succeeded','trade_failed'].includes(e.event_name))return ''
+ const outcomes={success:'成功',failed:'失败',cancelled:'取消',empty:'空结果',valid:'有效',invalid:'无效',bound:'绑定成立',already_bound:'已有关系',rejected:'拒绝'}
+ const parts=[p.stage?'阶段：'+p.stage:null,p.outcome?'结果：'+(outcomes[p.outcome]||p.outcome):null,p.reason_code||p.error_code?'原因：'+(p.reason_code||p.error_code):null,p.invite_flow_id?'邀请流程：'+p.invite_flow_id:null,p.login_attempt_id?'登录尝试：'+p.login_attempt_id:null,p.analysis_request_id?'分析尝试：'+p.analysis_request_id:null,p.token_visit_id?'Token访问：'+p.token_visit_id:null,p.trade_attempt_id?'交易尝试：'+p.trade_attempt_id:null,p.trade_id?'订单：'+p.trade_id:null,!e.event_name.startsWith('analysis_')&&p.duration_ms!=null?'耗时：'+p.duration_ms+' ms':null,p.origin_view_state?'原视图：'+({active:'仍在原视图',left:'已离开',unknown:'未知'}[p.origin_view_state]||p.origin_view_state):null]
  return parts.filter(Boolean).map(x=>`<div class="a-muted">${esc(x)}</div>`).join('')
 }
 export function openObservedDrill(ctx,result,title,key,subset=null){

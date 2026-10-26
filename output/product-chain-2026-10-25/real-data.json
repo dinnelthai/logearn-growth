@@ -1,0 +1,46 @@
+{
+  "ms": 3089.675034,
+  "memory_limit_mb": 256,
+  "result_bytes": 2713109,
+  "indexed": true,
+  "sessions": 1488,
+  "users": 296,
+  "stages": [
+    {
+      "label": "Token详情",
+      "visits": 8187,
+      "users": 197
+    },
+    {
+      "label": "主动发起分析",
+      "visits": 8,
+      "users": 1
+    },
+    {
+      "label": "分析成功",
+      "visits": 8,
+      "users": 1
+    },
+    {
+      "label": "提交交易",
+      "visits": 0,
+      "users": 0
+    },
+    {
+      "label": "至少一笔交易成功",
+      "visits": 0,
+      "users": 0
+    }
+  ],
+  "quality": {
+    "detail_events": 8614,
+    "missing_visit_context": 0,
+    "missing_session": 0,
+    "manual_requests": 9,
+    "requests_missing_visit": 0,
+    "trade_events": 623,
+    "trades_missing_visit": 623
+  },
+  "coverage": "partial",
+  "scope": "Existing observed data only; no product actions or collector writes. Missing evidence is preserved."
+}

@@ -2,7 +2,7 @@ const IDLE_MS=30*60000
 import { EVENT_LABELS } from './events.js'
 const TYPES=new Set(Object.keys(EVENT_LABELS))
 /** Counts actual session paths, with stage-indexed nodes so revisits never form cycles. */
-export function computePaths(users,{startAt,endAt,asOf,startEvent='all',stopEvent='none',maxSteps=5,sourceFilter='all'}) {
+export function computePaths(users,{startAt,endAt,asOf,startEvent='all',direction='after',stopEvent='none',maxSteps=5,sourceFilter='all'}) {
   const sessions=[]
   for(const user of users) {
     if(sourceFilter!=='all'&&user.source!==sourceFilter)continue
@@ -19,10 +19,11 @@ export function computePaths(users,{startAt,endAt,asOf,startEvent='all',stopEven
       groups.get(key).push(event)
     }
     for(const [key,group] of groups) {
-      const start=startEvent==='all'?0:group.findIndex(e=>e.type===startEvent)
+      const start=startEvent==='all'?0:group.findIndex(e=>(e.type===startEvent||startEvent==='chip'&&e.type==='chip_drilldown')&&e.t>=startAt&&e.t<endAt)
       if(start<0||group[start].t<startAt||group[start].t>=endAt)continue
-      const context=group.slice(start).filter(e=>e.t<endAt)
-      const stopIndex=stopEvent==='none'?-1:context.findIndex(e=>e.type===stopEvent||stopEvent==='chip'&&e.type==='chip_drilldown')
+      const before=direction==='before'&&startEvent!=='all'
+      const context=(before?group.slice(0,start+1):group.slice(start)).filter(e=>e.t>=startAt&&e.t<endAt)
+      const stopIndex=before||stopEvent==='none'?-1:context.findIndex(e=>e.type===stopEvent||stopEvent==='chip'&&e.type==='chip_drilldown')
       const available=stopIndex<0?context:context.slice(0,stopIndex+1)
       const compact=[]
       // A consecutive token-discovery run occupies at most one click and one detail step.
@@ -38,8 +39,8 @@ export function computePaths(users,{startAt,endAt,asOf,startEvent='all',stopEven
         }
       }
       if(!compact.length)continue
-      const visible=stopIndex>=0?compact:compact.slice(0,maxSteps)
-      const terminal=stopIndex>=0?'reached':compact.length>maxSteps?'more':group.some(e=>e.t>=endAt)?'boundary':asOf-available.at(-1).t<IDLE_MS?'pending':'end'
+      const visible=before?compact.slice(-maxSteps):stopIndex>=0?compact:compact.slice(0,maxSteps)
+      const terminal=before||stopIndex>=0?'reached':compact.length>maxSteps?'more':group.some(e=>e.t>=endAt)?'boundary':asOf-available.at(-1).t<IDLE_MS?'pending':'end'
       sessions.push({u:user,key:user.id+':'+key,events:visible,terminal,inferred:key.startsWith('inferred:')})
     }
   }

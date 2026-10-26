@@ -37,3 +37,7 @@ test('mutable-source differences between raw lookup and metric lookup never pass
  const duplicate=trackingAudit([row('two'),reordered],[row('two')],{},{start:0,end:200,event_ids:['two']},s).payload
  assert.equal(duplicate.rows[0].state,'consistent')
 })
+test('analysis business result requires no request timing or cache metrics',()=>{
+ const checked=contractIssues({event_name:'analysis_request_finished',client_ts:100,properties:{analysis_request_id:'business',outcome:'success'}})
+ assert.deepEqual(checked.issues,[])
+})

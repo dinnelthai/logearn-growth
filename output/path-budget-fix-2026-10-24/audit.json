@@ -1,0 +1,100 @@
+{
+  "snapshot": {
+    "mode": "aggregated",
+    "storage": "hologres",
+    "data_version": "2d4baf088d6364e9",
+    "snapshot_id": "2d4baf088d6364e9",
+    "snapshot_cutoff": "2026-10-24T08:48:44.574Z",
+    "funnel_steps": [
+      "daily_visit",
+      "logged_in_visit",
+      "login_verified",
+      "page_end",
+      "invite_visit",
+      "signal_view",
+      "callout_click",
+      "login",
+      "trade",
+      "token",
+      "page_view",
+      "limit_order",
+      "ai",
+      "invite_page",
+      "chip",
+      "trade_failed",
+      "strategy_stopped",
+      "token_click",
+      "first_visit",
+      "trade_submitted",
+      "app_open",
+      "login_click"
+    ],
+    "sources": [
+      "bitgetwallet",
+      "direct",
+      "internal",
+      "pwa",
+      "referrer:com.google.android.googlequicksearchbox",
+      "referrer:github.com",
+      "referrer:gmgn.ai",
+      "referrer:ntp.msn.cn",
+      "referrer:ruby-china.org",
+      "referrer:www.google.com",
+      "referrer:www.google.com.hk",
+      "seo",
+      "x"
+    ],
+    "strategies": [
+      "pool",
+      "signal",
+      "token_stream"
+    ],
+    "start_at": "2026-10-08T19:06:04.335Z",
+    "as_of": "2026-10-24T08:47:10.824Z",
+    "last_success_at": "2026-10-24T08:48:44.574Z",
+    "latest_event_at": "2026-10-24T08:47:10.824Z",
+    "source_seen_at": "2026-10-24T08:47:22.975Z",
+    "event_count": 173915,
+    "max_events_raw": 0,
+    "timezone": "Asia/Bangkok",
+    "history_complete": false,
+    "events_complete_through": null,
+    "capabilities": [
+      "conversion-loss",
+      "tracking-audit",
+      "growth-insights",
+      "value-diagnostics",
+      "login-conversion",
+      "invite-conversion",
+      "north",
+      "funnel",
+      "retention",
+      "segments",
+      "referral",
+      "paths",
+      "trade-monitor",
+      "channels"
+    ],
+    "consistency": "arrival-cutoff",
+    "coverage": {
+      "events": {
+        "history_complete": false,
+        "events_complete_through": null
+      },
+      "trades": {}
+    }
+  },
+  "period": {
+    "start": 1792256400000,
+    "end": 1792861200000
+  },
+  "aggregate": [
+    {
+      "users": "320",
+      "all_context": "166449",
+      "window_context": "90626",
+      "largest_user_context": "21850",
+      "user_sessions": "2846"
+    }
+  ]
+}

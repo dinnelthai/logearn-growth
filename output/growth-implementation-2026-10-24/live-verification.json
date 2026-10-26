@@ -1,0 +1,185 @@
+[
+  {
+    "period": [
+      "2026-10-17",
+      "2026-10-24"
+    ],
+    "snapshot_id": "919257ee5aadcac0",
+    "as_of": "2026-10-24T06:23:21.809Z",
+    "cohorts": {
+      "observed": {
+        "users": 223,
+        "eligible": 217,
+        "activated": 14,
+        "pending": 6,
+        "rate": 0.06451612903225806,
+        "list_key": "cohort:observed"
+      },
+      "registration": {
+        "available": true,
+        "error": null,
+        "scope": "all",
+        "metrics": {
+          "users": 22,
+          "eligible": 21,
+          "activated": 9,
+          "pending": 1,
+          "rate": 0.42857142857142855,
+          "list_key": "cohort:registered"
+        }
+      },
+      "repeats": [
+        {
+          "id": "other_day",
+          "label": "首次分析后7天内另日分析",
+          "users": 25,
+          "eligible": 2,
+          "returned": 1,
+          "pending": 23,
+          "observed_returned": 9,
+          "rate": 0.5,
+          "list_key": "cohort:repeat:other_day",
+          "window_days": 7
+        },
+        {
+          "id": "after_24h",
+          "label": "首次分析后24小时至7天内再分析",
+          "users": 25,
+          "eligible": 2,
+          "returned": 1,
+          "pending": 23,
+          "observed_returned": 5,
+          "rate": 0.5,
+          "list_key": "cohort:repeat:after_24h",
+          "window_days": 7
+        }
+      ],
+      "definition": "分析沿用筹码查看/下钻观测口径；注册批次按账号创建时间，包含未观测事件账号。24小时激活窗口左闭右开。复访从首次观测分析起168小时内，另日按UTC+7；满168小时才进入复访率分母。日期成熟不等于采集完整。"
+    },
+    "diagnostic_coverage": {
+      "available": true,
+      "rows": [
+        {
+          "scope": "device_version",
+          "family": "page_load",
+          "device": "desktop",
+          "app_version": "unknown",
+          "diagnostics_version": "2026-10-16.v2",
+          "events": 1281,
+          "users": 1
+        },
+        {
+          "scope": "device_version",
+          "family": "login",
+          "device": "desktop",
+          "app_version": "unknown",
+          "diagnostics_version": "2026-10-16.v2",
+          "events": 4,
+          "users": 1
+        },
+        {
+          "scope": "device_version",
+          "family": "analysis",
+          "device": "desktop",
+          "app_version": "unknown",
+          "diagnostics_version": "2026-10-16.v2",
+          "events": 26,
+          "users": 1
+        },
+        {
+          "scope": "family",
+          "family": "login",
+          "device": "",
+          "app_version": "",
+          "diagnostics_version": "",
+          "events": 4,
+          "users": 1
+        },
+        {
+          "scope": "family",
+          "family": "analysis",
+          "device": "",
+          "app_version": "",
+          "diagnostics_version": "",
+          "events": 26,
+          "users": 1
+        },
+        {
+          "scope": "family",
+          "family": "page_load",
+          "device": "",
+          "app_version": "",
+          "diagnostics_version": "",
+          "events": 1281,
+          "users": 1
+        }
+      ],
+      "definition": "当前窗口内诊断事件的去重用户数；设备/应用/诊断版本间用户可重叠，不能相加。不是全站覆盖率或部署证明。"
+    },
+    "list_member_check": true
+  },
+  {
+    "period": [
+      "2026-10-10",
+      "2026-10-17"
+    ],
+    "snapshot_id": "919257ee5aadcac0",
+    "as_of": "2026-10-24T06:23:21.809Z",
+    "cohorts": {
+      "observed": {
+        "users": 401,
+        "eligible": 401,
+        "activated": 66,
+        "pending": 0,
+        "rate": 0.16458852867830423,
+        "list_key": "cohort:observed"
+      },
+      "registration": {
+        "available": true,
+        "error": null,
+        "scope": "all",
+        "metrics": {
+          "users": 153,
+          "eligible": 153,
+          "activated": 11,
+          "pending": 0,
+          "rate": 0.0718954248366013,
+          "list_key": "cohort:registered"
+        }
+      },
+      "repeats": [
+        {
+          "id": "other_day",
+          "label": "首次分析后7天内另日分析",
+          "users": 79,
+          "eligible": 79,
+          "returned": 64,
+          "pending": 0,
+          "observed_returned": 64,
+          "rate": 0.810126582278481,
+          "list_key": "cohort:repeat:other_day",
+          "window_days": 7
+        },
+        {
+          "id": "after_24h",
+          "label": "首次分析后24小时至7天内再分析",
+          "users": 79,
+          "eligible": 79,
+          "returned": 53,
+          "pending": 0,
+          "observed_returned": 53,
+          "rate": 0.6708860759493671,
+          "list_key": "cohort:repeat:after_24h",
+          "window_days": 7
+        }
+      ],
+      "definition": "分析沿用筹码查看/下钻观测口径；注册批次按账号创建时间，包含未观测事件账号。24小时激活窗口左闭右开。复访从首次观测分析起168小时内，另日按UTC+7；满168小时才进入复访率分母。日期成熟不等于采集完整。"
+    },
+    "diagnostic_coverage": {
+      "available": true,
+      "rows": [],
+      "definition": "当前窗口内诊断事件的去重用户数；设备/应用/诊断版本间用户可重叠，不能相加。不是全站覆盖率或部署证明。"
+    },
+    "list_member_check": true
+  }
+]

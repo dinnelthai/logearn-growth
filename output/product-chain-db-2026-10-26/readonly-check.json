@@ -1,0 +1,14 @@
+{
+  "checked_at": "2026-10-26T00:06:28.959Z",
+  "source": "trading_transaction + ledger_v2 + amm_transaction_data_rt_v1_<chain>",
+  "sample_accounts": 3,
+  "known_accounts": 3,
+  "records": 110,
+  "token_resolved": 1,
+  "token_unknown": 109,
+  "chains": [
+    "3"
+  ],
+  "error": null,
+  "coverage": "partial"
+}

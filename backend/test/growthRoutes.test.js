@@ -83,3 +83,39 @@ test('growth review tasks preserve only the server registered absent-user list',
  try{const r=await fetch('http://127.0.0.1:'+taskServer.address().port+'/',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({title:'核对未回访',cache_id:'fixed',audience_ids:['user:99']})}),data=await r.json();assert.equal(r.status,201);assert.equal(data.task.member_count,1);assert.deepEqual(JSON.parse(db.prepare('SELECT members_json FROM operation_tasks WHERE id=?').get(data.task.id).members_json),['1'])}finally{taskServer.close()}
  }finally{jobs.result=oldJob;remote.snapshot=oldSnapshot;member.memberFacts=oldFacts}
 })
+
+test('remote crowd funnels keep the source snapshot, owner and authoritative lists',async()=>{
+ const oldStart=jobs.start,oldResult=jobs.result,oldSnapshot=remote.snapshot,seen=[]
+ try{
+  jobs.result=(id,owner)=>{
+   if(id==='base'){if(owner!=='a')throw Object.assign(Error('expired'),{status:409});return {j:{id:'base',snapshot:'source-snapshot',context:{mode:'segments',source:'x'}},value:{lists:{g0:['user:1'],g1:[]},payload:{start:100,end:200,comparison:[{list_key:'g0',label:'A'},{list_key:'g1',label:'B'}]}}}}
+   return {j:{},value:{payload:{groups:[]}}}
+  }
+  remote.snapshot=async id=>{assert.equal(id,'source-snapshot');return {snapshot_id:id,as_of:new Date(300).toISOString()}}
+  jobs.start=(kind,body,s,audience,owner)=>{seen.push({kind,body,s,audience,owner});return {id:'comparison',snapshot:s.snapshot_id,state:'complete'}}
+  const payload={base_cache_id:'base',group_keys:['g0','g1'],snapshot_id:'forged',start:1,end:2,groups:[{ids:['user:999']}]}
+  const r=await request('/api/metrics/comparison/funnel',payload)
+  assert.equal(r.status,200);assert.equal(r.body.drill.cache_id,'comparison');assert.equal(seen[0].kind,'comparison-funnel')
+  assert.deepEqual(seen[0].audience,['user:1']);assert.equal(seen[0].body.start,100);assert.equal(seen[0].body.source,'x');assert.equal(seen[0].owner,'a')
+  assert.equal((await request('/api/metrics/comparison/funnel',payload,'b')).status,409)
+  assert.equal((await request('/api/metrics/comparison/funnel',{...payload,group_keys:['all','g0']})).status,400)
+  assert.equal((await request('/api/metrics/comparison/funnel',{...payload,hours:12})).status,400)
+  remote.snapshot=async()=>{throw Object.assign(Error('snapshot expired'),{status:409})}
+  assert.equal((await request('/api/metrics/comparison/funnel',payload)).status,409)
+ }finally{jobs.start=oldStart;jobs.result=oldResult;remote.snapshot=oldSnapshot}
+})
+
+test('lazy path details freeze owner, original options, audience and snapshot, ignoring client overrides',async()=>{
+ const oldStart=jobs.start,oldResult=jobs.result,oldSnapshot=remote.snapshot,seen=[]
+ try{
+  jobs.result=(id,owner)=>{if(owner!=='a'||id==='expired')throw Object.assign(Error('expired'),{status:409});if(id==='base')return {j:{snapshot:'original',context:{mode:'paths',start:100,end:200,source:'x',audience_snapshot:[],path_options:{details:false,path_direction:'before',path_start:'token',path_stop:'chip',path_depth:3}}},value:{}};return {j:{context:{mode:'segments'}},value:{payload:{page_visits:{sessions:0}}}}}
+  remote.snapshot=async id=>{assert.equal(id,'original');return {snapshot_id:id,as_of:new Date(300).toISOString()}}
+  jobs.start=(kind,body,s,audience,owner)=>{seen.push({kind,body,s,audience,owner});return {id:'details',snapshot:s.snapshot_id,state:'complete'}}
+  const r=await request('/api/metrics/path-details',{base_cache_id:'base',start:1,end:2,source:'forged',audience_ids:['user:999'],snapshot_id:'forged'})
+  assert.equal(r.status,200);assert.equal(seen[0].kind,'paths');assert.equal(seen[0].body.start,100);assert.equal(seen[0].body.end,200);assert.equal(seen[0].body.source,'x');assert.equal(seen[0].body.details,true);assert.equal(seen[0].body.path_start,'token');assert.equal(seen[0].body.path_direction,'before');assert.deepEqual(seen[0].audience,[]);assert.equal(seen[0].owner,'a');assert.equal(r.body.drill.snapshot_id,'original')
+  assert.equal((await request('/api/metrics/path-details',{base_cache_id:'base'},'b')).status,409)
+  assert.equal((await request('/api/metrics/path-details',{base_cache_id:'expired'})).status,409)
+  assert.equal((await request('/api/metrics/path-details',{base_cache_id:'wrong'})).status,400)
+  remote.snapshot=async()=>{throw Object.assign(Error('snapshot expired'),{status:409})};assert.equal((await request('/api/metrics/path-details',{base_cache_id:'base'})).status,409)
+ }finally{jobs.start=oldStart;jobs.result=oldResult;remote.snapshot=oldSnapshot}
+})

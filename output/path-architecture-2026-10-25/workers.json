@@ -1,0 +1,18 @@
+[
+  {
+    "details": false,
+    "ms": 1219.556691,
+    "sessions": 1488,
+    "users": 296,
+    "result_bytes": 491362,
+    "memory_limit_mb": 256
+  },
+  {
+    "details": true,
+    "ms": 5040.763335,
+    "sessions": 1488,
+    "users": 296,
+    "result_bytes": 2631585,
+    "memory_limit_mb": 256
+  }
+]

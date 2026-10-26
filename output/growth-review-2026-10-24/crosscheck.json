@@ -1,0 +1,10 @@
+{
+  "snapshot_id": "1083bcce25be29d3",
+  "rows": [
+    {
+      "observed_users": "340",
+      "analysis_users": "75"
+    }
+  ],
+  "note": "Independent aggregate query; shares event filtering/identity CTE, not independent proof of collection completeness."
+}

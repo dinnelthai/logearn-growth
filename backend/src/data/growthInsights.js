@@ -28,7 +28,11 @@ async function growthFacts(s, {start, end, source = 'all'}, audience) {
     COUNT(DISTINCT FLOOR(e.client_ts/3600000)) FILTER(WHERE e.event_name IN(${ANALYSIS_SQL})
       AND e.client_ts>=b.first_chip_at AND e.client_ts<b.first_chip_at+86400000) AS first_day_hours,
     BOOL_OR(e.event_name='strategy_started' AND e.client_ts>=b.first_chip_at
-      AND e.client_ts<b.first_chip_at+86400000) AS first_day_strategy
+      AND e.client_ts<b.first_chip_at+86400000) AS first_day_strategy,
+    MIN(e.client_ts) FILTER(WHERE e.event_name IN(${ANALYSIS_SQL})
+      AND FLOOR((e.client_ts+25200000)/86400000)>FLOOR((b.first_chip_at+25200000)/86400000)) AS first_later_day_at,
+    MIN(e.client_ts) FILTER(WHERE e.event_name IN(${ANALYSIS_SQL})
+      AND e.client_ts>=b.first_chip_at+86400000) AS first_after_24h_at
     FROM e JOIN baseline b ON b.user_key=e.user_key WHERE e.client_ts<=$4
     GROUP BY b.user_key,b.first_seen_at,b.first_page_at,b.first_chip_at,b.source,b.device,b.app_version
     HAVING BOOL_OR(e.event_name IN(${ANALYSIS_SQL}) AND e.client_ts>=$7 AND e.client_ts<$3)
@@ -39,6 +43,8 @@ async function growthFacts(s, {start, end, source = 'all'}, audience) {
   return rows.map(r => ({...r, first_seen_at:Number(r.first_seen_at),
     first_page_at:r.first_page_at == null ? null : Number(r.first_page_at),
     first_chip_at:r.first_chip_at == null ? null : Number(r.first_chip_at),
+    first_later_day_at:r.first_later_day_at==null?null:Number(r.first_later_day_at),
+    first_after_24h_at:r.first_after_24h_at==null?null:Number(r.first_after_24h_at),
     chip_days:(r.chip_days || []).map(Number), first_day_hours:Number(r.first_day_hours)}))
 }
 

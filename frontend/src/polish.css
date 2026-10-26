@@ -153,3 +153,35 @@
 #la-studio .gi-page .tracking-audit-form{display:grid;gap:12px}#la-studio .gi-page .tracking-audit-form label.tracking-check{flex-direction:row;align-items:center;gap:8px}#la-studio .gi-page .tracking-check input[type=checkbox]{width:auto;min-height:0;flex:none}
 #la-studio .gi-page [data-tracking-result]{display:flex;flex-direction:column;gap:18px;min-width:0}#la-studio .gi-page [data-tracking-result]>.a-card{padding:22px;margin:0;min-width:0}
 @media(max-width:640px){#la-studio .gi-page [data-tracking-result]>.a-card{padding:16px}}
+
+.conversion-funnel-rows{list-style:none;margin:20px 0 0;padding:0;display:grid;gap:18px}
+.conversion-funnel-heading,.conversion-funnel-caption{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.conversion-funnel-heading strong{font-size:24px;font-variant-numeric:tabular-nums}
+.conversion-funnel-track{height:28px;margin:8px 0;border-radius:6px;background:var(--a-border,#29364b);overflow:hidden}
+.conversion-funnel-bar{height:100%;background:linear-gradient(90deg,#657ad9,#79d6b0);border-radius:6px}
+.conversion-funnel-caption{font-size:13px;color:var(--a-muted,#a6b2c5)}
+
+/* Activity evidence keeps long notes and forms usable on narrow screens. */
+#la-studio [data-activity-evidence] form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}
+#la-studio [data-activity-evidence] form label{display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:0}
+#la-studio [data-activity-evidence] form input,#la-studio [data-activity-evidence] form select,#la-studio [data-activity-evidence] form textarea{width:100%;max-width:100%;box-sizing:border-box}
+#la-studio [data-activity-evidence] textarea{min-height:85px;resize:vertical}
+#la-studio [data-activity-evidence] [data-evidence-record] label:last-of-type{grid-column:1/-1}
+#la-studio [data-activity-evidence] form button{justify-self:start;align-self:end}
+#la-studio [data-activity-evidence] .a-scroll{overflow:auto;max-width:100%}
+#la-studio [data-activity-evidence] table{min-width:650px}
+#la-studio [data-activity-evidence] td{white-space:normal;overflow-wrap:anywhere}
+@media(max-width:640px){#la-studio [data-activity-evidence] form{grid-template-columns:minmax(0,1fr)}}
+
+#la-studio .weekly-core{padding:22px;min-width:0}
+#la-studio .weekly-core-hero{display:flex;align-items:center;gap:28px;flex-wrap:wrap;margin:16px 0}
+#la-studio .weekly-core-hero>strong{font-size:36px;line-height:1.2}
+#la-studio .weekly-core-hero small{font-size:14px;color:var(--a-muted)}
+#la-studio .weekly-core-hero>div{display:grid;gap:7px;min-width:220px;flex:1;max-width:480px}
+#la-studio .weekly-core progress{width:100%;height:12px;accent-color:var(--a-accent)}
+#la-studio .weekly-core-days{display:flex;gap:10px 20px;flex-wrap:wrap;margin:12px 0}
+@media(max-width:640px){#la-studio .weekly-core{padding:16px}#la-studio .weekly-core-hero{gap:16px}#la-studio .weekly-core-hero>div{min-width:0;width:100%;flex-basis:100%}}
+
+#la-studio [data-path-details-result]{display:flex;flex-direction:column;gap:18px;min-width:0;margin-top:16px}
+#la-studio [data-path-details-result]>.a-card{margin:0;padding:22px;min-width:0;background:var(--a-panel);border-radius:14px}
+@media(max-width:640px){#la-studio [data-path-details-result]>.a-card{padding:16px}}

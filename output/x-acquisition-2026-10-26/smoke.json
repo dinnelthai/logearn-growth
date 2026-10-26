@@ -1,0 +1,22 @@
+{
+  "tested_at": "2026-10-26T12:30:19.562Z",
+  "provider": "twitterapi.io",
+  "state": "partial",
+  "rules": 4,
+  "pages": 12,
+  "posts": 240,
+  "new_leads": 191,
+  "error": null,
+  "high_priority_users": 1,
+  "total_posts": 228,
+  "estimated_usd": 0.036,
+  "automatic_monitoring": false,
+  "scoring": "rules-v3",
+  "distinct_users": 191,
+  "final_estimated_usd": 0.036,
+  "followup_records": 0,
+  "connection_probe_posts": 20,
+  "connection_probe_latency_ms": 2856,
+  "connection_probe_estimated_usd": 0.003,
+  "total_test_estimated_usd": 0.039
+}

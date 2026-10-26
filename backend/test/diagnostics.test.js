@@ -23,15 +23,15 @@ const end=(id,state,t=3000,extra={})=>e('analysis_request_finished',t,{analysis_
 test('analysis diagnostics uses attempt cohorts, excludes cancelled/unknown, does not fabricate terminal failures',()=>{
  const users=[u('a',[start('a'),end('a','success',200000,{cache_hit:true})]),u('b',[start('b'),end('b','empty')]),u('c',[start('c'),end('c','failed',3000,{error_code:'network_error',error_stage:'network'})]),u('d',[start('d'),end('d','cancelled',3000,{cancel_reason:'token_changed'})]),u('missing',[start('m')])]
  const r=requestDiagnostics(users,O);const a=r.payload.families.analysis
- assert.equal(a.requests,5);assert.equal(a.counts.success,1);assert.equal(a.success_rate,1/3);assert.equal(a.counts.unknown,1);assert.equal(a.cancelled_while_waiting,1);assert.equal(a.terminal_coverage,.8);assert.equal(a.latency.find(x=>x.state==='success').median_ms,100);assert.deepEqual(r.lists['diagnostic:analysis:failed'],['c']);assert.equal(a.errors[0].code,'network_error')
+ assert.equal(a.requests,5);assert.equal(a.counts.success,1);assert.equal(a.success_rate,1/3);assert.equal(a.counts.unknown,1);assert.equal(a.cancelled_while_waiting,1);assert.equal(a.terminal_coverage,.8);assert.equal(Object.hasOwn(a,'latency'),false);assert.equal(Object.hasOwn(a.dimensions,'cache_hit'),false);assert(a.records.every(r=>!Object.hasOwn(r,'duration_ms')&&!Object.hasOwn(r,'cache_hit')));assert.deepEqual(r.lists['diagnostic:analysis:failed'],['c']);assert.equal(a.errors[0].code,'network_error')
 })
 test('attempt IDs scoped by identity; duplicate outcomes collapse, inconsistent states/chain isolate',()=>{
  const users=[u('a',[start('same'),end('same','success'),end('same','success',4000)]),u('b',[start('same'),end('same','failed')]),u('c',[start('x'),end('x','success'),end('x','empty')]),u('d',[start('y'),end('y','success',4000,{chain:'56'})])]
  const a=requestDiagnostics(users,O).payload.families.analysis;assert.equal(a.requests,4);assert.equal(a.counts.success,1);assert.equal(a.counts.failed,1);assert.equal(a.quality.conflicts,2)
 })
-test('finish-only, invalid outcome, invalid duration and future results remain quality/unknown',()=>{
+test('finish-only, invalid outcome and future results remain quality/unknown without performance fields',()=>{
  const r=requestDiagnostics([u('a',[end('orphan','success'),start('bad'),end('bad','invented'),start('negative'),end('negative','success',4000,{duration_ms:-1}),start('future'),end('future','failed',4000000),e('analysis_requested',3000,{})])],O).payload.families.analysis
- assert.equal(r.quality.orphan_terminals,1);assert.equal(r.quality.missing_id_events,1);assert.equal(r.counts.unknown,2);assert.equal(r.latency[0].samples,0)
+ assert.equal(r.quality.orphan_terminals,1);assert.equal(r.quality.missing_id_events,1);assert.equal(r.counts.unknown,2);assert.equal(Object.hasOwn(r,'latency'),false)
 })
 test('unsupported diagnostic families are unavailable instead of zero usage',()=>{
  const r=requestDiagnostics([u('a',[home()])],O).payload
@@ -86,4 +86,11 @@ test('page click rate uses page_viewed unique users, includes clicks without tok
  assert.equal(r.visitor_users,2);assert.equal(r.clicked_users,1);assert.equal(r.rate,.5);assert.equal(r.clicks,4);assert.equal(r.unmatched_clicks,2)
  assert.deepEqual(d.lists[r.list_key+':clicked'],['a'])
  assert.equal(d.payload.page_clicks.rows.find(x=>x.list_type==='trenches').rate,null)
+})
+test('business-only analysis terminals pair without duration/cache fields and ignore legacy timing-only differences',()=>{
+ const users=[u('a',[start('r'),e('analysis_request_finished',3000,{analysis_request_id:'r',outcome:'success'}),e('analysis_request_finished',3000,{analysis_request_id:'r',outcome:'success',duration_ms:999,cache_hit:true})])]
+ const r=requestDiagnostics(users,O),a=r.payload.families.analysis
+ assert.equal(a.counts.success,1);assert.equal(a.quality.conflicts,0);assert.equal(a.records[0].finished_at,3000)
+ for(const key of ['duration_ms','cache_hit','had_cache'])assert.equal(Object.hasOwn(r.analysis_rows[0],key),false)
+ assert.equal(Object.hasOwn(a,'latency'),false);assert.equal(Object.hasOwn(a.dimensions,'cache_hit'),false)
 })

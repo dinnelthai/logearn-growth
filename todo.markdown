@@ -1,6 +1,8 @@
 # LogEarn 分析框架实施 TODO
 
-当前复查日期：2026-10-20（Asia/Bangkok）。
+当前复查日期：2026-10-21（Asia/Bangkok）。
+
+当前功能状态以 [2026-10-21功能清单](docs/FEATURE_STATUS_2026-10-21.md) 为准。Hologres埋点库已有且持续进数，不再把建库或基础原始接口整体列为外部待办；本轮库侧验收及尚缺事件见 [验收与产品接续](docs/tracking/acceptance-and-handoff-2026-10-21.md)。下方未逐项重写的历史状态不代表当前缺口。
 
 ## 最新变更
 

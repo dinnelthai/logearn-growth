@@ -1,0 +1,10 @@
+{
+  "stored_events": 500000,
+  "selected_users": 1000,
+  "selected_sessions": 4000,
+  "worker_ms": 2164.7348820000007,
+  "build_ms": 22923.758708,
+  "memory_limit_mb": 256,
+  "result_bytes": 314456,
+  "scope": "Synthetic local index and real analysis worker; excludes source refresh and browser"
+}

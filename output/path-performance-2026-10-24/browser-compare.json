@@ -1,0 +1,18 @@
+[
+  {
+    "mode": "eager_full",
+    "elapsed_ms": 7849.524549999999,
+    "context": "真实会话 · 会话首次行为\n1,422 个会话\n观测截至 2026-10-24 16:06:07 · UTC+7",
+    "initial_dom_elements": 4724,
+    "snapshot_id": "c86d0a05c38f90b3",
+    "reused_job_result": false
+  },
+  {
+    "mode": "graph_first",
+    "elapsed_ms": 3398.722842000001,
+    "context": "真实会话 · 会话首次行为\n1,422 个会话\n观测截至 2026-10-24 16:06:07 · UTC+7",
+    "initial_dom_elements": 318,
+    "snapshot_id": "c86d0a05c38f90b3",
+    "reused_job_result": false
+  }
+]

@@ -1,0 +1,179 @@
+
+> logearn-analytics-dashboard@1.0.0 build
+> vite build
+
+vite v6.4.3 building for production...
+transforming...
+✓ 736 modules transformed.
+Generated an empty chunk: "echarts-charts".
+Generated an empty chunk: "echarts-components".
+Generated an empty chunk: "echarts-renderers".
+rendering chunks...
+computing gzip size...
+dist/registerSW.js                                      0.13 kB
+dist/manifest.webmanifest                               0.38 kB
+dist/index.html                                         8.49 kB │ gzip:   3.00 kB
+dist/assets/index-BjQle7PM.css                        114.61 kB │ gzip:  20.03 kB
+dist/assets/echarts-charts-l0sNRNKZ.js                  0.00 kB │ gzip:   0.02 kB
+dist/assets/echarts-components-l0sNRNKZ.js              0.00 kB │ gzip:   0.02 kB
+dist/assets/echarts-renderers-l0sNRNKZ.js               0.00 kB │ gzip:   0.02 kB
+dist/assets/chartRuntime-CLGrPkWt.js                    0.30 kB │ gzip:   0.22 kB
+dist/assets/page-chartLifecycle-D4VEohrN.js             0.31 kB │ gzip:   0.22 kB
+dist/assets/page-loadingState-Dg2xNVj7.js               0.71 kB │ gzip:   0.46 kB
+dist/assets/page-lazyPage-D-5AEqwb.js                   0.76 kB │ gzip:   0.52 kB
+dist/assets/page-loginBreakdown-C4_a4FfF.js             0.79 kB │ gzip:   0.56 kB
+dist/assets/remoteRefresh-DXyiG_aX.js                   0.79 kB │ gzip:   0.55 kB
+dist/assets/page-tradeIssueTable-qfgrsqlu.js            1.04 kB │ gzip:   0.67 kB
+dist/assets/lifecycle-rules-D68C_mHu.js                 1.21 kB │ gzip:   0.64 kB
+dist/assets/page-onlineTradeCharts-CktI27gq.js          1.37 kB │ gzip:   0.71 kB
+dist/assets/echarts-core-C8yuB62o.js                    1.40 kB │ gzip:   0.77 kB
+dist/assets/page-channelCharts-BmtoEYWI.js              1.40 kB │ gzip:   0.71 kB
+dist/assets/page-pathDetails-DI3lReU-.js                1.61 kB │ gzip:   1.01 kB
+dist/assets/page-pathDiagnostics-DPpCW-gZ.js            1.82 kB │ gzip:   1.07 kB
+dist/assets/page-activityTargets-D5_0CzRf.js            1.85 kB │ gzip:   1.09 kB
+dist/assets/page-pathCrossDay-BtEPZHwJ.js               1.96 kB │ gzip:   1.10 kB
+dist/assets/page-retention-BEoMZhJr.js                  2.02 kB │ gzip:   1.16 kB
+dist/assets/loginPage-DCH1P8M6.js                       2.04 kB │ gzip:   1.03 kB
+dist/assets/page-referralCharts-BWdiQCAO.js             2.11 kB │ gzip:   0.88 kB
+dist/assets/page-memberPerformance-CyMIyXwa.js          2.13 kB │ gzip:   1.18 kB
+dist/assets/page-inputQuality-BUMpFPDL.js               2.26 kB │ gzip:   1.27 kB
+dist/assets/page-homeCharts-DNaeLSHY.js                 2.70 kB │ gzip:   1.21 kB
+dist/assets/page-segmentUserList-9m-ptpx-.js            2.71 kB │ gzip:   1.47 kB
+dist/assets/page-referralAgg-BNCUwHTq.js                2.82 kB │ gzip:   1.55 kB
+dist/assets/page-homeGrowth-Bitqt2xm.js                 2.87 kB │ gzip:   1.68 kB
+dist/assets/page-segmentPoints-D1gLThic.js              2.89 kB │ gzip:   1.47 kB
+dist/assets/page-growthCohorts-DGKwR9XD.js              2.95 kB │ gzip:   1.62 kB
+dist/assets/page-analysisTasks-CA77O89f.js              3.08 kB │ gzip:   1.62 kB
+dist/assets/page-productChain-DvfEqbq0.js               3.13 kB │ gzip:   1.74 kB
+dist/assets/page-activityRoster-BDn5Zoyr.js             3.14 kB │ gzip:   1.50 kB
+dist/assets/page-operationTaskForm-BB-chR6M.js          3.32 kB │ gzip:   1.88 kB
+dist/assets/page-channelsAgg-23tJy8Pa.js                3.35 kB │ gzip:   1.67 kB
+dist/assets/page-tradeMonitorAgg-DiEdmBO2.js            3.37 kB │ gzip:   1.80 kB
+dist/assets/page-segmentCharts-BIDA3pZO.js              3.38 kB │ gzip:   1.48 kB
+dist/assets/channels-BYIG_Zgx.js                        3.39 kB │ gzip:   1.34 kB
+dist/assets/page-conversionLoss-CroS80p6.js             3.51 kB │ gzip:   1.88 kB
+dist/assets/tooltips-C37yWsTE.js                        3.61 kB │ gzip:   1.72 kB
+dist/assets/page-weeklyCore-BKzxzdQ6.js                 3.72 kB │ gzip:   1.96 kB
+dist/assets/page-promotionLinks-B6WyHCfF.js             4.34 kB │ gzip:   2.15 kB
+dist/assets/page-referral-U4qhyrqn.js                   4.68 kB │ gzip:   2.29 kB
+dist/assets/page-userQuickActions-De6ij4p7.js           4.73 kB │ gzip:   2.25 kB
+dist/assets/page-deviceDiagnostics-CI7AInUO.js          5.14 kB │ gzip:   2.51 kB
+dist/assets/page-tagAudience-BjOoHeTu.js                5.25 kB │ gzip:   2.40 kB
+dist/assets/page-paths-B9u1IlkD.js                      5.28 kB │ gzip:   2.92 kB
+dist/assets/page-scheduledActivity-DsD2la5F.js          5.30 kB │ gzip:   2.55 kB
+dist/assets/page-workbench-CZDcAtH7.js                  5.46 kB │ gzip:   2.50 kB
+dist/assets/page-myMonitor-BnMvr5vW.js                  5.53 kB │ gzip:   2.96 kB
+dist/assets/page-activityEvidence-DnI7haQ-.js           5.63 kB │ gzip:   2.69 kB
+dist/assets/page-tradeMonitor-DwwJXIDR.js               6.13 kB │ gzip:   2.91 kB
+dist/assets/page-observedDrill-98Pvyp5R.js              6.28 kB │ gzip:   3.06 kB
+dist/assets/page-pathsAgg-CwYPxWBI.js                   6.32 kB │ gzip:   3.30 kB
+dist/assets/userMenu-CS2gAOAT.js                        6.76 kB │ gzip:   2.45 kB
+dist/assets/page-channelInsights-BVn23RYb.js            6.78 kB │ gzip:   3.15 kB
+dist/assets/page-funnelAgg-BpkL12Ej.js                  7.59 kB │ gzip:   3.58 kB
+dist/assets/page-pageVisits-BOqmPtDF.js                 7.62 kB │ gzip:   3.48 kB
+dist/assets/page-segmentOperations-_UhKgLWV.js          8.01 kB │ gzip:   3.22 kB
+dist/assets/page-behaviorPaths-DynOZjzz.js              8.16 kB │ gzip:   4.05 kB
+dist/assets/index-QVTVnm3k.js                           8.67 kB │ gzip:   3.47 kB
+dist/assets/page-platformAssets-BYIEQAPY.js             8.76 kB │ gzip:   3.88 kB
+dist/assets/page-diagnostics-D0hZpgVv.js                9.15 kB │ gzip:   4.18 kB
+dist/assets/page-cohortManager-BxLf3Sx3.js              9.29 kB │ gzip:   3.88 kB
+dist/assets/page-funnel-cgf-Nb5N.js                     9.36 kB │ gzip:   4.37 kB
+dist/assets/page-trackingAudit-83FIs8qY.js              9.36 kB │ gzip:   4.34 kB
+dist/assets/page-northStarAgg-CPVxYlpQ.js               9.57 kB │ gzip:   3.64 kB
+dist/assets/page-segmentFunnelComparison-CXsE6PaD.js    9.63 kB │ gzip:   3.78 kB
+dist/assets/page-onlineTradeMonitor-Djn2ksn3.js         9.82 kB │ gzip:   4.28 kB
+dist/assets/page-userProfile-m9q-Eggs.js               10.45 kB │ gzip:   4.59 kB
+dist/assets/page-homeMonitor-BPtQpVV2.js               10.65 kB │ gzip:   4.50 kB
+dist/assets/page-rosterImport-hp3_-F9g.js              10.69 kB │ gzip:   4.02 kB
+dist/assets/page-opsTools-CNFq5h-A.js                  11.48 kB │ gzip:   5.03 kB
+dist/assets/page-segmentsAgg-CzRTXPxf.js               13.15 kB │ gzip:   5.25 kB
+dist/assets/page-retentionAgg-DkAsqnSi.js              13.69 kB │ gzip:   5.70 kB
+dist/assets/page-operationTaskDetail-Cb5wkE90.js       14.33 kB │ gzip:   5.67 kB
+dist/assets/page-kolCollaborations-CVlSa4zW.js         15.30 kB │ gzip:   5.77 kB
+dist/assets/page-northStar-CRyAv_JR.js                 16.23 kB │ gzip:   5.99 kB
+dist/assets/page-referralInsights-Xa_2bdT_.js          16.56 kB │ gzip:   6.76 kB
+dist/assets/page-operationsComparison-TrPFwI1C.js      17.38 kB │ gzip:   6.32 kB
+dist/assets/page-conversionScenes-6PaS_VyU.js          20.05 kB │ gzip:   7.82 kB
+dist/assets/floating-ui-GyW7zyrs.js                    21.79 kB │ gzip:   8.27 kB
+dist/assets/page-userCrm-Bk2DuEWN.js                   22.28 kB │ gzip:   7.74 kB
+dist/assets/page-growthInsights-BrsXR6IF.js            23.70 kB │ gzip:   9.35 kB
+dist/assets/page-kolCrm-P2PvipDu.js                    24.46 kB │ gzip:   8.81 kB
+dist/assets/page-activityMonitor-BQ5yUiZB.js           25.04 kB │ gzip:   8.59 kB
+dist/assets/page-segmentInsights-FUFkQIbP.js           27.84 kB │ gzip:  10.02 kB
+dist/assets/page-segments-D-UNytAg.js                  29.96 kB │ gzip:  11.88 kB
+dist/assets/dashboard-CbORB3vo.js                      68.04 kB │ gzip:  22.62 kB
+dist/assets/analytics-core-BmTNiqT9.js                 70.80 kB │ gzip:  23.49 kB
+dist/assets/echarts-lib-Dp78Q3wj.js                   622.95 kB │ gzip: 210.79 kB
+
+(!) Some chunks are larger than 300 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.95s
+
+PWA v2.0.0
+mode      generateSW
+precache  94 entries (1475.07 KiB)
+files generated
+  dist/sw.js
+  dist/workbox-dcde9eb3.js
+
+✨ [vite-plugin-imagemin]- compressed image resource successfully: 
+
+
+
+✨ [vite-plugin-compression]:algorithm=gzip - compressed file successfully: 
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-activityMonitor-BQ5yUiZB.js.gz        24.45kb / gzip: 8.38kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/floating-ui-GyW7zyrs.js.gz                 21.28kb / gzip: 8.08kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-conversionScenes-6PaS_VyU.js.gz       19.58kb / gzip: 7.63kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-growthInsights-BrsXR6IF.js.gz         23.14kb / gzip: 9.12kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-homeMonitor-BPtQpVV2.js.gz            10.40kb / gzip: 4.39kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-kolCollaborations-CVlSa4zW.js.gz      14.94kb / gzip: 5.63kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-kolCrm-P2PvipDu.js.gz                 23.89kb / gzip: 8.60kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-northStar-CRyAv_JR.js.gz              15.85kb / gzip: 5.84kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-operationTaskDetail-Cb5wkE90.js.gz    14.00kb / gzip: 5.54kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-operationsComparison-TrPFwI1C.js.gz   16.97kb / gzip: 6.17kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-opsTools-CNFq5h-A.js.gz               11.21kb / gzip: 4.91kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-rosterImport-hp3_-F9g.js.gz           10.44kb / gzip: 3.93kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-referralInsights-Xa_2bdT_.js.gz       16.17kb / gzip: 6.61kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-retentionAgg-DkAsqnSi.js.gz           13.37kb / gzip: 5.56kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-segmentsAgg-CzRTXPxf.js.gz            12.84kb / gzip: 5.12kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-segmentInsights-FUFkQIbP.js.gz        27.19kb / gzip: 9.78kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-userCrm-Bk2DuEWN.js.gz                21.75kb / gzip: 7.55kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-segments-D-UNytAg.js.gz               29.26kb / gzip: 11.60kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-userProfile-m9q-Eggs.js.gz            10.20kb / gzip: 4.48kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/workbox-dcde9eb3.js.gz                            20.93kb / gzip: 7.14kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/dashboard-CbORB3vo.js.gz                   66.44kb / gzip: 22.04kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/analytics-core-BmTNiqT9.js.gz              69.14kb / gzip: 22.93kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/index-BjQle7PM.css.gz                      111.92kb / gzip: 19.38kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/echarts-lib-Dp78Q3wj.js.gz                 608.35kb / gzip: 205.32kb
+
+
+
+✨ [vite-plugin-compression]:algorithm=brotliCompress - compressed file successfully: 
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/floating-ui-GyW7zyrs.js.br                 21.28kb / brotliCompress: 7.29kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-conversionScenes-6PaS_VyU.js.br       19.58kb / brotliCompress: 6.42kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-growthInsights-BrsXR6IF.js.br         23.14kb / brotliCompress: 7.71kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-activityMonitor-BQ5yUiZB.js.br        24.45kb / brotliCompress: 7.18kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-homeMonitor-BPtQpVV2.js.br            10.40kb / brotliCompress: 3.66kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-kolCollaborations-CVlSa4zW.js.br      14.94kb / brotliCompress: 4.70kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-northStar-CRyAv_JR.js.br              15.85kb / brotliCompress: 4.99kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-kolCrm-P2PvipDu.js.br                 23.89kb / brotliCompress: 7.37kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-operationTaskDetail-Cb5wkE90.js.br    14.00kb / brotliCompress: 4.61kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-operationsComparison-TrPFwI1C.js.br   16.97kb / brotliCompress: 5.15kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-opsTools-CNFq5h-A.js.br               11.21kb / brotliCompress: 4.13kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-retentionAgg-DkAsqnSi.js.br           13.37kb / brotliCompress: 4.76kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-rosterImport-hp3_-F9g.js.br           10.44kb / brotliCompress: 3.32kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-referralInsights-Xa_2bdT_.js.br       16.17kb / brotliCompress: 5.58kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-segmentsAgg-CzRTXPxf.js.br            12.84kb / brotliCompress: 4.31kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-segmentInsights-FUFkQIbP.js.br        27.19kb / brotliCompress: 8.42kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-segments-D-UNytAg.js.br               29.26kb / brotliCompress: 9.99kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-userProfile-m9q-Eggs.js.br            10.20kb / brotliCompress: 3.71kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/page-userCrm-Bk2DuEWN.js.br                21.75kb / brotliCompress: 6.44kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/workbox-dcde9eb3.js.br                            20.93kb / brotliCompress: 6.48kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/dashboard-CbORB3vo.js.br                   66.44kb / brotliCompress: 18.56kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/analytics-core-BmTNiqT9.js.br              69.14kb / brotliCompress: 19.70kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/index-BjQle7PM.css.br                      111.92kb / brotliCompress: 16.97kb
+dist//Users/leon/Documents/work/Logearn-growth/frontend/assets/echarts-lib-Dp78Q3wj.js.br                 608.35kb / brotliCompress: 172.28kb
+
+

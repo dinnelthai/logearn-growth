@@ -1,0 +1,90 @@
+{
+  "mode": "aggregated",
+  "storage": "hologres",
+  "data_version": "1083bcce25be29d3",
+  "snapshot_id": "1083bcce25be29d3",
+  "snapshot_cutoff": "2026-10-24T05:49:28.621Z",
+  "funnel_steps": [
+    "daily_visit",
+    "logged_in_visit",
+    "login_verified",
+    "page_end",
+    "invite_visit",
+    "trade",
+    "token",
+    "trade_submitted",
+    "token_click",
+    "invite_page",
+    "limit_order",
+    "app_open",
+    "chip",
+    "signal_view",
+    "callout_click",
+    "strategy_stopped",
+    "trade_failed",
+    "login",
+    "first_visit",
+    "page_view",
+    "ai",
+    "login_click"
+  ],
+  "sources": [
+    "bitgetwallet",
+    "direct",
+    "internal",
+    "pwa",
+    "referrer:com.google.android.googlequicksearchbox",
+    "referrer:github.com",
+    "referrer:gmgn.ai",
+    "referrer:ntp.msn.cn",
+    "referrer:ruby-china.org",
+    "referrer:www.google.com",
+    "referrer:www.google.com.hk",
+    "seo",
+    "x"
+  ],
+  "strategies": [
+    "pool",
+    "signal",
+    "token_stream"
+  ],
+  "start_at": "2026-10-08T19:06:04.335Z",
+  "as_of": "2026-10-24T05:49:25.776Z",
+  "last_success_at": "2026-10-24T05:49:28.621Z",
+  "latest_event_at": "2026-10-24T05:49:25.776Z",
+  "source_seen_at": "2026-10-24T05:49:27.976Z",
+  "event_count": 172406,
+  "max_events_raw": 0,
+  "timezone": "Asia/Bangkok",
+  "history_complete": false,
+  "events_complete_through": null,
+  "capabilities": [
+    "conversion-loss",
+    "tracking-audit",
+    "growth-insights",
+    "value-diagnostics",
+    "login-conversion",
+    "invite-conversion",
+    "north",
+    "funnel",
+    "retention",
+    "segments",
+    "referral",
+    "paths",
+    "trade-monitor",
+    "channels"
+  ],
+  "consistency": "arrival-cutoff",
+  "coverage": {
+    "events": {
+      "history_complete": false,
+      "events_complete_through": null
+    },
+    "trades": {}
+  },
+  "review_period": {
+    "start": 1792170000000,
+    "end": 1792774800000,
+    "source": "all"
+  }
+}

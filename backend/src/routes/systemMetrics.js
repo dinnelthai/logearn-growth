@@ -29,6 +29,7 @@ router.get('/', (req, res) => {
       total_sets: cacheStats.total.sets,
       pending_requests: cacheStats.total.pendingRequests,
     },
+    path_index: process.env.ENABLE_PATH_INDEX === 'true' ? require('../pathIndex/service').stats() : {state:'disabled'},
     memory: {
       rss_mb: Math.round(memUsage.rss / 1024 / 1024),
       heap_used_mb: Math.round(memUsage.heapUsed / 1024 / 1024),

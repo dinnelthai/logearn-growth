@@ -1,0 +1,11 @@
+{
+  "task_before_ms": 5071.9467,
+  "task_after_ms": 2376.074093500001,
+  "payload_before_bytes": 1180946,
+  "payload_after_bytes": 194250,
+  "ui_before_ms": 7849.524549999999,
+  "ui_after_ms": 3398.722842000001,
+  "ui_reduction": 0.5670154516556036,
+  "graph_and_lists_match": true,
+  "details_match": true
+}

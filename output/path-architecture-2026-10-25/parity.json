@@ -1,0 +1,20 @@
+[
+  {
+    "graphOnly": true,
+    "remote_load_ms": 3670.254157,
+    "indexed_load_ms": 1038.50655,
+    "remote_events": 63850,
+    "indexed_events": 63850,
+    "sessions": 1488,
+    "parity": true
+  },
+  {
+    "graphOnly": false,
+    "remote_load_ms": 5140.990237000001,
+    "indexed_load_ms": 1917.3787899999988,
+    "remote_events": 128459,
+    "indexed_events": 128459,
+    "sessions": 1488,
+    "parity": true
+  }
+]

@@ -1,0 +1,16 @@
+{
+  "period": {
+    "start": 1792256400000,
+    "end": 1792861200000,
+    "path_start": "all",
+    "path_stop": "none",
+    "path_depth": 5,
+    "source": "all"
+  },
+  "as_of": "2026-10-24T08:53:51.824Z",
+  "worker_heap_mb": 256,
+  "elapsed_ms": 5464,
+  "sessions": 1420,
+  "users": 291,
+  "result_bytes": 2575089
+}

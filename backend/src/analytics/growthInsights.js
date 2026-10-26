@@ -11,7 +11,7 @@ function interval(n, total) {
   const z=1.96,p=n/total,d=1+z*z/total,c=(p+z*z/(2*total))/d,h=z*Math.sqrt(p*(1-p)/total+z*z/(4*total*total))/d
   return [Math.max(0,c-h),Math.min(1,c+h)]
 }
-function growthInsights(rows, qualityRows, b, s, tradeFacts={known:null,trades:[],error:'交易事实尚未接入'}) {
+function growthInsights(rows, qualityRows, b, s, tradeFacts={known:null,trades:[],error:'交易事实尚未接入'}, evidence={}) {
   const asOf=Date.parse(s.as_of),end=Math.min(b.end,asOf+1),start=b.start
   if(end<=start)throw Object.assign(new Error('统计期尚未到达数据截至时间，请选择更早的日期'),{status:400})
   const previousStart=start-(end-start),lists={},members={}
@@ -74,13 +74,18 @@ function growthInsights(rows, qualityRows, b, s, tradeFacts={known:null,trades:[
     const selected=qualityRows.filter(r=>r.event_name===a||r.event_name===z),count=name=>selected.filter(r=>r.event_name===name).reduce((n,r)=>n+Number(r.events),0)
     return {key,label,started_events:count(a),finished_events:count(z),missing_id_events:selected.reduce((n,r)=>n+Number(r.missing_id_events),0),available:selected.length>0}
   })
+  const registration=evidence.registration||{available:false,rows:[],error:'该结果未包含注册事实'}
+  for(const r of registration.rows)if(!members[r.user_key])members[r.user_key]={id:r.user_key,source:r.source||'未知'}
+  const cohorts=require('./growthCohorts').growthCohorts(rows,registration,{start,end,asOf},put)
+  const coverage=evidence.coverage||{available:false,rows:[]}
+  for(const f of families){const row=coverage.rows.find(r=>r.scope==='family'&&r.family===f.key);f.users=coverage.available?(row?.users||0):null}
   const events=qualityRows.reduce((n,r)=>n+Number(r.events),0),linked=qualityRows.reduce((n,r)=>n+Number(r.linked_events),0),missingSource=qualityRows.reduce((n,r)=>n+Number(r.missing_source_events),0)
   const quality={events,linked_events:linked,linked_rate:events?linked/events:null,missing_source_events:missingSource,source_rate:events?(events-missingSource)/events:null,
     history_complete:s.history_complete===true,events_complete_through:s.events_complete_through||null,latest_event_at:s.latest_event_at||s.as_of,source_seen_at:s.source_seen_at||null,
     snapshot_cutoff:s.snapshot_cutoff,lag_ms:Math.max(0,Date.parse(s.snapshot_cutoff)-Date.parse(s.latest_event_at||s.as_of)),
-    truncated:false,families,versions:qualityRows.filter(r=>r.version!=='未知').map(r=>({event_name:r.event_name,version:r.version,events:Number(r.events),first_at:Number(r.first_at),latest_at:Number(r.latest_at)}))}
+    truncated:false,families,diagnostic_coverage:{...coverage,definition:'当前窗口内诊断事件的去重用户数；设备/应用/诊断版本间用户可重叠，不能相加。不是全站覆盖率或部署证明。'},versions:qualityRows.filter(r=>r.version!=='未知').map(r=>({event_name:r.event_name,version:r.version,events:Number(r.events),first_at:Number(r.first_at),latest_at:Number(r.latest_at)}))}
   return {lists,members,payload:{start,end,requested_end:b.end,previous_start:previousStart,previous_end:start,as_of:asOf,source:b.source||'all',change,
-    dimensions:{source:dimensionRows('source'),device:dimensionRows('device'),app_version:dimensionRows('app_version')},channels,associations,quality,
+    dimensions:{source:dimensionRows('source'),device:dimensionRows('device'),app_version:dimensionRows('app_version')},channels,associations,cohorts,quality,
     candidate_count:rows.length,truncated:false,user_pool:'observed_growth_users',definition:'北极星沿用筹码查看或下钻的观测口径。两期按相同时长比较；新增与重新活跃减去本期未观测回访等于人数变化。历史及连续采集覆盖未确认，不能确认真实流失或因果。来源、设备、版本分别拆分，跨维度不相加；设备和版本为首次分析时最早非空观测值。'}}
 }
 module.exports={growthInsights,validateGrowth,interval}
