@@ -149,6 +149,85 @@ CREATE TABLE IF NOT EXISTS trades_meta (
   value TEXT NOT NULL
 );
 
+-- AI 使用日志 (成本追踪)
+CREATE TABLE IF NOT EXISTS ai_usage_logs (
+  id             SERIAL PRIMARY KEY,
+  model          TEXT NOT NULL,
+  provider       TEXT NOT NULL,
+  input_tokens   INTEGER NOT NULL,
+  output_tokens  INTEGER NOT NULL,
+  total_tokens   INTEGER NOT NULL,
+  cost           DECIMAL(10, 6) NOT NULL,
+  duration       INTEGER NOT NULL,
+  created_at     TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_usage_logs_created ON ai_usage_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_logs_model ON ai_usage_logs(model);
+
+-- AI 每日发现 (异常检测结果)
+CREATE TABLE IF NOT EXISTS ai_findings (
+  id               SERIAL PRIMARY KEY,
+  date             DATE NOT NULL,
+  metric           TEXT NOT NULL,
+  change_percent   DECIMAL(10, 2) NOT NULL,
+  current_value    DECIMAL(20, 2),
+  previous_value   DECIMAL(20, 2),
+  anomaly_score    DECIMAL(10, 4),
+  status           TEXT NOT NULL DEFAULT 'new',
+  evidence         JSONB,
+  created_at       TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_findings_date ON ai_findings(date);
+CREATE INDEX IF NOT EXISTS idx_ai_findings_status ON ai_findings(status);
+
+-- AI 调查记录 (维度拆解)
+CREATE TABLE IF NOT EXISTS ai_investigations (
+  id               SERIAL PRIMARY KEY,
+  finding_id       INTEGER NOT NULL REFERENCES ai_findings(id) ON DELETE CASCADE,
+  dimension        TEXT NOT NULL,
+  breakdown        JSONB NOT NULL,
+  insights         TEXT,
+  created_at       TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_investigations_finding ON ai_investigations(finding_id);
+
+-- AI 建议 (增长建议)
+CREATE TABLE IF NOT EXISTS ai_suggestions (
+  id               SERIAL PRIMARY KEY,
+  finding_id       INTEGER NOT NULL REFERENCES ai_findings(id) ON DELETE CASCADE,
+  hypothesis       TEXT NOT NULL,
+  action           TEXT NOT NULL,
+  priority         TEXT NOT NULL,
+  expected_impact  TEXT,
+  status           TEXT NOT NULL DEFAULT 'pending',
+  executed_at      TIMESTAMP,
+  result           TEXT,
+  created_at       TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_suggestions_finding ON ai_suggestions(finding_id);
+CREATE INDEX IF NOT EXISTS idx_ai_suggestions_status ON ai_suggestions(status);
+
+-- AI 追踪记录 (效果复查)
+CREATE TABLE IF NOT EXISTS ai_tracking (
+  id               SERIAL PRIMARY KEY,
+  suggestion_id    INTEGER NOT NULL REFERENCES ai_suggestions(id) ON DELETE CASCADE,
+  check_date       DATE NOT NULL,
+  metric_value     DECIMAL(20, 2),
+  is_resolved      BOOLEAN NOT NULL DEFAULT false,
+  notes            TEXT,
+  created_at       TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_tracking_suggestion ON ai_tracking(suggestion_id);
+CREATE INDEX IF NOT EXISTS idx_ai_tracking_check_date ON ai_tracking(check_date
+);
+
 -- ── Scale path (P2-04): first-touch facts + daily rollups ────────────────────
 -- user_facts holds all-time firsts so metrics can classify new vs returning
 -- without scanning the full events history outside the selected window.

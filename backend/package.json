@@ -21,11 +21,13 @@
     "path-index:refresh": "node src/pathIndex/cli.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
     "cors": "2.8.5",
     "dotenv": "^18.0.6",
     "express": "4.19.2",
     "node-cache": "^5.1.2",
     "node-cron": "^3.0.3",
+    "openai": "^4.77.0",
     "pg": "^8.23.1"
   },
   "optionalDependencies": {
