@@ -16,6 +16,8 @@
     "import:events": "node src/db/importGrowthEvents.js",
     "import:events:full": "node src/db/importGrowthEvents.js --import --rebuild",
     "test": "node --test test/*.test.js",
+    "test:cache": "node test/test-cache.js",
+    "test:llm": "node src/ai/llm/test.js",
     "start:remote": "ANALYTICS_STORAGE=hologres node src/index.js",
     "audit:tracking": "node ../scripts/audit-tracking.cjs",
     "path-index:refresh": "node src/pathIndex/cli.js"

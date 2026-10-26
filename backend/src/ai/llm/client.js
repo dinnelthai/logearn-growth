@@ -7,6 +7,7 @@ const { getConfig, getModelInfo, LLM_PROVIDERS } = require('./config');
 const OpenAIProvider = require('./providers/openai');
 const AnthropicProvider = require('./providers/anthropic');
 const CostTracker = require('./costTracker');
+const { llmCache, rateLimit } = require('../../cache');
 const logger = require('../../utils/logger');
 
 class LLMClient {
@@ -35,10 +36,42 @@ class LLMClient {
     const startTime = Date.now();
 
     try {
-      // 检查成本限制
+      // 1. 检查速率限制
+      const userId = options.userId || 'anonymous';
+      const rateLimitKey = `llm:${userId}`;
+      const rateCheck = await rateLimit.checkLimit(
+        rateLimitKey,
+        parseInt(process.env.AI_RATE_LIMIT_PER_HOUR || '100', 10),
+        3600 // 1 小时
+      );
+
+      if (!rateCheck.allowed) {
+        throw new Error(
+          `Rate limit exceeded. ${rateCheck.resetIn}s until reset.`
+        );
+      }
+
+      // 2. 检查缓存（除非明确跳过）
+      if (!options.skipCache) {
+        const cached = await llmCache.get(messages, this.model, options);
+        if (cached) {
+          logger.info('LLM response from cache', {
+            model: this.model,
+            savedCost: cached.cost
+          });
+
+          return {
+            ...cached.response,
+            fromCache: true,
+            cached: true
+          };
+        }
+      }
+
+      // 3. 检查成本限制
       await this.costTracker.checkDailyLimit(this.config.maxDailyCost);
 
-      // 调用对应的 provider
+      // 4. 调用对应的 provider
       const response = await this.provider.chat({
         model: this.model,
         messages,
@@ -50,11 +83,23 @@ class LLMClient {
         responseFormat: options.responseFormat
       });
 
-      // 记录使用情况
+      // 5. 缓存响应（除非明确跳过）
+      if (!options.skipCache) {
+        await llmCache.set(messages, this.model, response, {
+          ttl: options.cacheTTL || 86400, // 默认 24 小时
+          metadata: options.metadata
+        });
+      }
+
+      // 6. 记录使用情况
       const duration = Date.now() - startTime;
       await this.trackUsage(response, duration);
 
-      return response;
+      return {
+        ...response,
+        fromCache: false,
+        cached: false
+      };
     } catch (error) {
       logger.error('LLM chat error:', error);
       throw error;

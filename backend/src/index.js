@@ -81,6 +81,9 @@ app.use('/api/x-acquisition', requireAuth, require('./routes/xAcquisition'))
 
 // AI Configuration and Management
 app.use('/api/ai', require('./routes/aiConfig'))
+
+// Cache Management
+app.use('/api/cache', require('./routes/cache'))
 app.get('/api/user-tags',requireAuth,(req,res,next)=>{try{res.json({tags:require('./analytics/userTags').userTags(req.user.user_id,{includeMembers:false}).map(({user_ids,...tag})=>tag)})}catch(e){next(e)}})
 app.post('/api/user-tags/audience',requireAuth,async(req,res,next)=>{
   try{
