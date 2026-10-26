@@ -21,6 +21,7 @@
     "test:websocket": "node test/test-websocket.js",
     "test:llm": "node src/ai/llm/test.js",
     "test:rag": "node test/test-rag.js",
+    "test:ai-data": "node test/test-ai-data-integration.js",
     "start:remote": "ANALYTICS_STORAGE=hologres node src/index.js",
     "audit:tracking": "node ../scripts/audit-tracking.cjs",
     "path-index:refresh": "node src/pathIndex/cli.js",
