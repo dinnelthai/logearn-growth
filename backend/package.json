@@ -18,6 +18,7 @@
     "test": "node --test test/*.test.js",
     "test:cache": "node test/test-cache.js",
     "test:queue": "node test/test-queue.js",
+    "test:websocket": "node test/test-websocket.js",
     "test:llm": "node src/ai/llm/test.js",
     "start:remote": "ANALYTICS_STORAGE=hologres node src/index.js",
     "audit:tracking": "node ../scripts/audit-tracking.cjs",
@@ -36,7 +37,9 @@
     "node-cache": "^5.1.2",
     "node-cron": "^3.0.3",
     "openai": "^4.77.0",
-    "pg": "^8.23.1"
+    "pg": "^8.23.1",
+    "socket.io": "^4.8.4",
+    "uuid": "^11.1.1"
   },
   "optionalDependencies": {
     "ioredis": "^5.11.1"

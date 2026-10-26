@@ -9,6 +9,23 @@ const AnthropicProvider = require('./providers/anthropic');
 const CostTracker = require('./costTracker');
 const { llmCache, rateLimit } = require('../../cache');
 const logger = require('../../utils/logger');
+const { v4: uuidv4 } = require('uuid');
+
+// WebSocket handlers for streaming
+let llmStream;
+try {
+  const websocket = require('../../websocket');
+  llmStream = websocket.llmStream;
+} catch (error) {
+  // Fallback for when WebSocket is not available
+  llmStream = {
+    emitStart: () => {},
+    emitToken: () => {},
+    emitComplete: () => {},
+    emitError: () => {},
+    emitThinking: () => {}
+  };
+}
 
 class LLMClient {
   constructor(options = {}) {
@@ -192,6 +209,135 @@ class LLMClient {
     this.model = modelName;
     this.modelInfo = newModelInfo;
     logger.info(`Switched to model: ${this.model}`);
+  }
+
+  /**
+   * Stream LLM response (like ChatGPT)
+   * @param {Array} messages - Chat messages
+   * @param {Object} options - Options
+   * @param {string} options.streamId - Stream ID (auto-generated if not provided)
+   * @param {string} options.userId - User ID for rate limiting
+   * @param {boolean} options.skipCache - Skip cache check
+   * @returns {Promise<{streamId: string, content: string, usage: Object}>}
+   */
+  async chatStream(messages, options = {}) {
+    const streamId = options.streamId || uuidv4();
+    const startTime = Date.now();
+
+    try {
+      // 1. Check rate limit
+      const userId = options.userId || 'anonymous';
+      const rateLimitKey = `llm:${userId}`;
+      const rateCheck = await rateLimit.checkLimit(
+        rateLimitKey,
+        parseInt(process.env.AI_RATE_LIMIT_PER_HOUR || '100', 10),
+        3600
+      );
+
+      if (!rateCheck.allowed) {
+        const error = new Error(`Rate limit exceeded. ${rateCheck.resetIn}s until reset.`);
+        llmStream.emitError(streamId, error);
+        throw error;
+      }
+
+      // 2. Check cache (streaming skips cache by default unless explicitly enabled)
+      if (options.useCache) {
+        const cached = await llmCache.get(messages, this.model, options);
+        if (cached) {
+          // Emit cached response as if it's streaming
+          llmStream.emitStart(streamId, { model: this.model, fromCache: true });
+
+          // Split content into chunks and emit slowly for effect
+          const content = cached.response.content;
+          const chunkSize = 10; // characters per chunk
+          for (let i = 0; i < content.length; i += chunkSize) {
+            const chunk = content.slice(i, i + chunkSize);
+            llmStream.emitToken(streamId, chunk);
+            // Small delay to simulate streaming
+            await new Promise(resolve => setTimeout(resolve, 50));
+          }
+
+          llmStream.emitComplete(streamId, content, {
+            usage: cached.response.usage,
+            cost: cached.cost,
+            fromCache: true
+          });
+
+          return {
+            streamId,
+            content,
+            usage: cached.response.usage,
+            fromCache: true
+          };
+        }
+      }
+
+      // 3. Check cost limit
+      await this.costTracker.checkDailyLimit(this.config.maxDailyCost);
+
+      // 4. Emit stream start
+      llmStream.emitStart(streamId, { model: this.model });
+      llmStream.emitThinking(streamId, 'Processing your request...');
+
+      // 5. Call provider with streaming
+      const response = await this.provider.chat({
+        model: this.model,
+        messages,
+        temperature: options.temperature ?? 0.7,
+        maxTokens: options.maxTokens,
+        stream: true
+      });
+
+      let fullContent = '';
+      let usage = null;
+
+      // 6. Stream tokens to WebSocket
+      for await (const chunk of response) {
+        const delta = chunk.choices[0]?.delta;
+
+        if (delta?.content) {
+          fullContent += delta.content;
+          llmStream.emitToken(streamId, delta.content);
+        }
+
+        // Last chunk usually contains usage
+        if (chunk.usage) {
+          usage = chunk.usage;
+        }
+      }
+
+      // 7. Emit completion
+      const cost = usage ? this.calculateCost(usage) : 0;
+      llmStream.emitComplete(streamId, fullContent, { usage, cost });
+
+      // 8. Cache the result
+      if (!options.skipCache) {
+        await llmCache.set(messages, this.model, {
+          content: fullContent,
+          usage
+        }, {
+          ttl: options.cacheTTL || 86400,
+          metadata: options.metadata
+        });
+      }
+
+      // 9. Track usage
+      const duration = Date.now() - startTime;
+      if (usage) {
+        await this.trackUsage({ content: fullContent, usage }, duration);
+      }
+
+      return {
+        streamId,
+        content: fullContent,
+        usage,
+        fromCache: false
+      };
+    } catch (error) {
+      logger.error('LLM stream error:', error);
+      llmStream.emitError(streamId, error);
+      throw error;
+    }
   }
 }
 

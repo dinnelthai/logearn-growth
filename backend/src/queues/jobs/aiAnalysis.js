@@ -4,13 +4,33 @@
 
 const { createClient } = require('../../ai/llm');
 
+// WebSocket handlers for real-time updates
+let jobProgress;
+try {
+  const websocket = require('../../websocket');
+  jobProgress = websocket.jobProgress;
+} catch (error) {
+  // Fallback for when WebSocket is not available
+  jobProgress = {
+    emitProgress: () => {}
+  };
+}
+
+/**
+ * Helper: Update both Bull job progress and WebSocket
+ */
+async function updateProgress(job, progress, step) {
+  await job.progress(progress);
+  jobProgress.emitProgress(job.id, progress, { step });
+}
+
 /**
  * 异常检测任务
  */
 async function anomalyDetection(job) {
   const { date, metrics } = job.data;
 
-  job.progress(10);
+  await updateProgress(job, 10, 'Starting anomaly detection');
 
   // TODO: 实际的异常检测逻辑
   // 这里先模拟
@@ -19,7 +39,7 @@ async function anomalyDetection(job) {
   for (let i = 0; i < metrics.length; i++) {
     const metric = metrics[i];
 
-    job.progress(20 + (i / metrics.length) * 60);
+    await updateProgress(job, 20 + (i / metrics.length) * 60, `Checking ${metric}`);
 
     // 模拟检测
     const hasAnomaly = Math.random() > 0.7;
@@ -34,7 +54,7 @@ async function anomalyDetection(job) {
     }
   }
 
-  job.progress(80);
+  await updateProgress(job, 80, 'Analyzing anomalies with AI');
 
   // 如果有异常，调用 LLM 分析
   if (anomalies.length > 0) {
@@ -65,7 +85,7 @@ async function anomalyDetection(job) {
 
     const results = await Promise.all(analysisPromises);
 
-    job.progress(100);
+    await updateProgress(job, 100, 'Analysis complete');
 
     return {
       date,
@@ -74,7 +94,7 @@ async function anomalyDetection(job) {
     };
   }
 
-  job.progress(100);
+  await updateProgress(job, 100, 'No anomalies found');
 
   return {
     date,

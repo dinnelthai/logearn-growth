@@ -87,6 +87,9 @@ app.use('/api/cache', require('./routes/cache'))
 
 // Queue Management
 app.use('/api/queue', requireAuth, require('./routes/queue'))
+
+// WebSocket Management
+app.use('/api/websocket', requireAuth, require('./routes/websocket'))
 app.get('/api/user-tags',requireAuth,(req,res,next)=>{try{res.json({tags:require('./analytics/userTags').userTags(req.user.user_id,{includeMembers:false}).map(({user_ids,...tag})=>tag)})}catch(e){next(e)}})
 app.post('/api/user-tags/audience',requireAuth,async(req,res,next)=>{
   try{
@@ -126,4 +129,18 @@ app.use((err, req, res, _next) => {
 })
 
 const PORT = process.env.PORT || 3001
-app.listen(PORT, require('./middleware/localDevLogin').enabled()?'127.0.0.1':undefined, () => console.log(`Backend running on http://localhost:${PORT}`))
+
+// Create HTTP server to support WebSocket
+const http = require('http');
+const server = http.createServer(app);
+
+// Initialize WebSocket server
+try {
+  const { createServer: createWSServer } = require('./websocket');
+  createWSServer(server);
+  console.log('WebSocket server initialized');
+} catch (error) {
+  console.warn('WebSocket initialization skipped:', error.message);
+}
+
+server.listen(PORT, require('./middleware/localDevLogin').enabled()?'127.0.0.1':undefined, () => console.log(`Backend (HTTP + WebSocket) running on http://localhost:${PORT}`));

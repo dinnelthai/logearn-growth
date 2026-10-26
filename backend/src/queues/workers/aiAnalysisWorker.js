@@ -14,6 +14,22 @@ const { queues } = require('../queues');
 const aiAnalysisJobs = require('../jobs/aiAnalysis');
 const logger = console;
 
+// WebSocket handlers for real-time updates
+let jobProgress;
+try {
+  const websocket = require('../../websocket');
+  jobProgress = websocket.jobProgress;
+} catch (error) {
+  logger.warn('WebSocket not initialized in worker (running standalone)');
+  // Create no-op handlers for standalone mode
+  jobProgress = {
+    emitStarted: () => {},
+    emitProgress: () => {},
+    emitCompleted: () => {},
+    emitFailed: () => {}
+  };
+}
+
 const CONCURRENCY = parseInt(process.env.AI_WORKER_CONCURRENCY || '5', 10);
 
 logger.info('Starting AI Analysis Worker...', {
@@ -31,22 +47,41 @@ queues.aiAnalysis.process(CONCURRENCY, async (job) => {
     maxAttempts: job.opts.attempts
   });
 
+  // Emit job started event
+  jobProgress.emitStarted(job.id, {
+    type: job.name,
+    data: job.data
+  });
+
   const handler = aiAnalysisJobs[job.name];
 
   if (!handler) {
-    throw new Error(`Unknown job type: ${job.name}`);
+    const error = new Error(`Unknown job type: ${job.name}`);
+    jobProgress.emitFailed(job.id, error);
+    throw error;
   }
 
   try {
+    // Update progress at job start
+    await job.progress(5);
+    jobProgress.emitProgress(job.id, 5, { step: 'initialized' });
+
     const result = await handler(job);
 
     logger.info(`Job ${job.id} completed successfully`);
+
+    // Emit completion event
+    await job.progress(100);
+    jobProgress.emitCompleted(job.id, result);
 
     return result;
   } catch (error) {
     logger.error(`Job ${job.id} failed:`, error);
 
-    // 记录错误，让 Bull 处理重试
+    // Emit failure event
+    jobProgress.emitFailed(job.id, error);
+
+    // 记录错误,让 Bull 处理重试
     throw error;
   }
 });
