@@ -90,6 +90,10 @@ app.use('/api/queue', requireAuth, require('./routes/queue'))
 
 // WebSocket Management
 app.use('/api/websocket', requireAuth, require('./routes/websocket'))
+
+// RAG Vector Retrieval
+app.use('/api/rag', requireAuth, require('./routes/rag'))
+
 app.get('/api/user-tags',requireAuth,(req,res,next)=>{try{res.json({tags:require('./analytics/userTags').userTags(req.user.user_id,{includeMembers:false}).map(({user_ids,...tag})=>tag)})}catch(e){next(e)}})
 app.post('/api/user-tags/audience',requireAuth,async(req,res,next)=>{
   try{
