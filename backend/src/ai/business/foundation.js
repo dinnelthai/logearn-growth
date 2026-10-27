@@ -12,7 +12,27 @@ function createFoundation(db,registry){
   async function investigate(query){const {tool,input}=query;if(typeof tool!=='string')throw Error('请从能力目录选择调查工具');return registry.executeTool(tool,input||{},base);}
   return {context,validate,investigate,traceStore};
  }
- return {prepare,contextStore,traceStore};
+ // Uses the exact already-persisted context, without fetching a new report or
+ // recomputing a new baseline snapshot after a process crash.
+ function resume(context,{ownerId,runId}){
+  if(!context||context.ownerId!==ownerId||context.runId!==runId||
+     !context.business?.scope||!context.period||!Array.isArray(context.evidence))
+    throw Error('恢复上下文与任务身份不一致');
+  const base={ownerId,runId,scope:context.business.scope,period:context.period};
+  function validate(analysis){
+   analysis.claims=validateClaims(analysis.claims,base,evidenceStore);
+   for(const s of analysis.suggestions){
+    if(!Array.isArray(s.evidence?.evidenceIds)||!s.evidence.evidenceIds.length)throw Error('建议必须引用证据ID');
+    for(const id of s.evidence.evidenceIds)evidenceStore.get(id,base);
+   }
+  }
+  const investigate=query=>{
+   if(typeof query?.tool!=='string')throw Error('仅允许恢复已声明的只读调查工具');
+   return registry.executeTool(query.tool,query.input||{},base);
+  };
+  return {context,validate,investigate,traceStore};
+ }
+ return {prepare,resume,contextStore,traceStore};
 }
 function defaultFoundation(){const db=require('../../db/connection');return createFoundation(db,require('./tools/registry').defaultRegistry());}
 module.exports={createFoundation,defaultFoundation};
