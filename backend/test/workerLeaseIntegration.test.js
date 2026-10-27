@@ -35,6 +35,18 @@ test('Postgres fencing and real Bull/Redis duplicate delivery', {skip:!enabled},
   assert.equal(await records.renewAnalysisLease(id,owner,oldToken),false);
   await assert.rejects(records.assertAnalysisLease(id,owner,oldToken),/失效/);
   await assert.rejects(records.updateAnalysisSnapshot(id,{invalid:true},owner,oldToken),/失效/);
+  assert.equal(await records.hasAnalysisPaidCalls(id,owner),false);
+  await records.beginAnalysisPaidCall(id,owner,active.execution_token,0);
+  assert.equal(await records.hasAnalysisPaidCalls(id,owner),true);
+  await assert.rejects(records.beginAnalysisPaidCall(id,owner,active.execution_token,0),/重复付费/);
+  await assert.rejects(records.beginAnalysisPaidCall(id,owner,oldToken,1),/重复付费/);
+  await records.finishAnalysisPaidCall(id,owner,active.execution_token,0,'received');
+  await assert.rejects(
+    require('../src/ai/business/workerStart').claimSafeAnalysis({
+      analysisId:id,ownerId:owner,records,
+      traceStore:{list(){throw Error('should not trust local journal')}}
+    }),/共享模型调用/
+  );
   assert.equal(await records.renewAnalysisLease(id,owner,active.execution_token),true);
   await records.assertAnalysisLease(id,owner,active.execution_token);
   await assert.rejects(
