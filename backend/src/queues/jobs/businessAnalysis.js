@@ -100,7 +100,8 @@ async function recoverValidatedAnalysis(job) {
   if(record.status==='completed')return record.result;
   if(record.status!=='processing'||!record.lease_expires_at||Number(record.lease_expires_at)>=Date.now())
     throw Error('分析仍在运行或不是可恢复的过期任务');
-  const compact=record.data_snapshot;
+  // JSONB can reorder object keys; fingerprint against the exact model input.
+  const compact=record.context_payload ? JSON.parse(record.context_payload) : record.data_snapshot;
   if(!compact?.business?.scope?.source||!Array.isArray(compact.evidence))
     throw Error('原始调查快照不完整，禁止恢复');
   const guards=await records.listAnalysisPaidCalls(analysisId,ownerId);
@@ -146,7 +147,8 @@ async function resumeIncompleteAnalysis(job){
   if(record.status!=='processing'||record.cancel_requested||
      !record.lease_expires_at||Number(record.lease_expires_at)>=Date.now())
     throw Error('只能恢复未取消且已过期的调查');
-  const compact=record.data_snapshot;
+  // JSONB can reorder object keys; fingerprint against the exact model input.
+  const compact=record.context_payload ? JSON.parse(record.context_payload) : record.data_snapshot;
   if(!compact?.business?.scope?.source||!Array.isArray(compact.evidence))throw Error('缺少固定的原始业务快照');
   const guards=await records.listAnalysisPaidCalls(analysisId,ownerId);
   const store=require('../../ai/business/trace').createTraceStore(require('../../db/connection'));
