@@ -1,0 +1,69 @@
+-- 已废弃：用户要求远程只读，不新建分析表。本文件仅保留历史参考，不包含可执行DDL。
+-- -- Run by a database administrator. API account currently has no CREATE privilege.
+-- -- New namespace only; never alters public.growth_events.
+-- -- This is table DDL, not an executable ingestion job. Build and validate the
+-- -- canonical events/identity mapping before enabling the read-model configuration.
+-- CREATE SCHEMA IF NOT EXISTS logearn_analytics;
+-- 
+-- BEGIN;
+-- CREATE TABLE IF NOT EXISTS logearn_analytics.event_facts (
+--   event_id TEXT NOT NULL,
+--   user_key TEXT NOT NULL,
+--   event_name TEXT NOT NULL,
+--   user_id TEXT,
+--   anonymous_id TEXT,
+--   client_ts BIGINT NOT NULL,
+--   server_ts TIMESTAMPTZ NOT NULL,
+--   session_id TEXT,
+--   first_entry_source TEXT,
+--   chain TEXT,
+--   lang TEXT,
+--   properties JSONB NOT NULL,
+--   date TEXT NOT NULL,
+--   PRIMARY KEY (user_key,event_id)
+-- );
+-- CALL set_table_property('logearn_analytics.event_facts','orientation','column');
+-- CALL set_table_property('logearn_analytics.event_facts','distribution_key','user_key');
+-- CALL set_table_property('logearn_analytics.event_facts','clustering_key','user_key,client_ts');
+-- CALL set_table_property('logearn_analytics.event_facts','event_time_column','client_ts');
+-- COMMIT;
+-- 
+-- BEGIN;
+-- CREATE TABLE IF NOT EXISTS logearn_analytics.user_facts (
+--   user_key TEXT PRIMARY KEY,
+--   first_chip BIGINT,
+--   source TEXT,
+--   computed_at TIMESTAMPTZ NOT NULL,
+--   source_cutoff TIMESTAMPTZ NOT NULL
+-- );
+-- CALL set_table_property('logearn_analytics.user_facts','distribution_key','user_key');
+-- COMMIT;
+-- 
+-- BEGIN;
+-- CREATE TABLE IF NOT EXISTS logearn_analytics.user_day (
+--   user_key TEXT NOT NULL,
+--   date TEXT NOT NULL,
+--   analysis_count BIGINT NOT NULL,
+--   logged_in_visit BOOLEAN NOT NULL,
+--   first_analysis_at BIGINT,
+--   last_analysis_at BIGINT,
+--   source_cutoff TIMESTAMPTZ NOT NULL,
+--   PRIMARY KEY(user_key,date)
+-- );
+-- CALL set_table_property('logearn_analytics.user_day','orientation','column');
+-- CALL set_table_property('logearn_analytics.user_day','distribution_key','user_key');
+-- CALL set_table_property('logearn_analytics.user_day','clustering_key','date,user_key');
+-- COMMIT;
+-- 
+-- -- Ingestion requirements:
+-- -- 1. Resolve event_id duplicates and anonymous identity conflicts before insert.
+-- -- 2. Keep business-chain raw values; properties.chain remains authoritative.
+-- -- 3. Late arrivals update affected user/day and first-chip facts.
+-- -- 4. Canonical event_id must map to exactly one user_key; PK alone does not enforce
+-- --    this. Identity changes require removing obsolete membership rows.
+-- -- 5. Publish source_cutoff only after events, facts and user_day are consistent;
+-- --    unknown complete coverage remains null. Preserve previous published data on
+-- --    failure. Do not truncate tables while the API is reading them.
+-- -- 6. Begin with a shadow namespace and compare lists/timestamps, not just counts.
+-- -- 7. API gets SELECT only; refresh worker gets restricted DML on this namespace.
+-- --    Retention/feature queries can then use user_day instead of raw-history scans.

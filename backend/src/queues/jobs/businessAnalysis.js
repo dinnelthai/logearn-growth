@@ -1,0 +1,60 @@
+const {runTask,validateAnalysis} = require('../../ai/business/runner');
+const {definitions,rankEvidence,validateRange,validateScope} = require('../../ai/business/policy');
+const {fetchNorthStar,fetchGrowthInsights,fetchWeeklyCore} = require('./dataFetcher');
+const records = require('../../db/aiRecords');
+const remote = require('../../data/hologres');
+const reportsService = require('../../services/businessReport').createService({remote,evidence:{fetchNorthStar,fetchGrowthInsights,fetchWeeklyCore}});
+
+const prompt=`你是LogEarn业务增长分析师。依据业务目标和真实观测证据排序任务，考虑目标差距、影响人数、证据强度、实施成本。
+筹码查看/下钻是行为代理，不代表成功、理解或付费；未观测不等于流失。历史及采集覆盖未知时降低结论强度。
+检查所有相关证据，必要时请求补查并由当前单模型深入调查；不能为节省费用省略必要任务。不得以相关性证明因果。
+参考历史行动、拒绝原因和复盘；重复建议必须解释新证据。业务范围以请求为准。
+最终输出必须包含claims数组，每项为{id,kind:"fact|hypothesis|recommendation",text,evidenceIds,values:[{evidenceId,value}],uncertainties}。事实和建议必须引用提供的证据ID；引用数值写在values中。建议evidence对象必须包含evidenceIds数组。补查可返回investigations:[{tool:"能力目录中的ID",input:{}}]。
+输出JSON：{"summary":"摘要","keyFindings":["发现"],"suggestions":[{"problem":"问题","evidence":{"metrics":["可核对数值"],"dataPoints":["证据"]},"hypothesis":"假设","uncertainties":["未知"],"action":"具体行动","priority":"P0或P1或P2","priorityReason":"数据影响、实施成本及排序依据","scope":{"source":"请求来源"},"expectedImpact":"有依据的预期或未知","impactBasis":"依据","validationMetrics":{"primary":"active_users/new_users/returning_users 或明确业务指标ID","secondary":[]},"reviewConditions":["验证条件与观察期"]}]}。
+可不提出建议，但必须解释原因；指标不存在时不能自行造数。不得自行承诺收益。`;
+async function businessAnalysis(job) {
+  const {analysisId,ownerId,dateRangeStart:start,dateRangeEnd:end,userQuestion,focusGoal='activation',modelMode='auto'}=job.data;
+  const scope=validateScope(job.data.businessScope);
+  validateRange(start,end);
+  const existing=await records.getAnalysisRecord(analysisId,ownerId);
+  if (!existing) throw Error('分析记录不存在或无权限');
+  if (existing.status==='completed') return existing.result;
+  if(existing.status==='processing')throw Error('任务此前已开始执行，需核查调用轨迹后恢复，禁止盲重放');
+  try {
+    await records.updateAnalysisStatus(analysisId,'processing');await job.progress(10);
+    const duration=end-start,source=scope.source;
+    let compact;
+    if(job.data.evidenceReportId){
+      const store=require('../../db/businessReports').createStore(require('../../db/connection'));
+      const report=store.get(job.data.evidenceReportId,ownerId);
+      if(!report)throw Error('原始业务报告不存在或无权访问');
+      if(report.period.start!==start||report.period.end!==end||report.business.scope.source!==source||report.focusGoal!==focusGoal)throw Error('AI分析范围与业务报告不一致');
+      compact={...report,manualActions:store.actions(report.id,ownerId).map(({review,...action})=>({...action,review:review?{periods:review.periods,metricChanges:review.metricChanges,conclusion:review.conclusion,warnings:review.warnings}:null})),manualHistory:store.history(ownerId,source)};
+    }else{
+      compact=await reportsService.build({start,end,businessScope:scope,focusGoal,question:userQuestion});
+    }
+    compact={...compact,business:{...compact.business,question:userQuestion||compact.business.question},memory:await records.getAnalysisMemory(ownerId,source)};
+    const session=require('../../ai/business/foundation').defaultFoundation().prepare(compact,{ownerId,runId:analysisId,goalRef:job.data.goalRef});
+    compact=session.context;
+    const snapshot={snapshot_id:compact.snapshot.id,snapshot_cutoff:compact.snapshot.cutoff,as_of:compact.snapshot.asOf,
+      history_complete:compact.snapshot.historyComplete,events_complete_through:compact.snapshot.eventsCompleteThrough};
+    await records.updateAnalysisSnapshot(analysisId,compact);await job.progress(40);
+    const investigate=async query=>{
+      if(query.tool)return session.investigate(query);
+      const ids={north:['active_users','new_users','returning_users'],growth:['activation_rate','d7','registered_users'],weekly:['weekly_core']}[query.kind];
+      if(!ids)throw Error('未实现该调查工具：'+query.kind);
+      return session.investigate({tool:'query_metrics',input:{metrics:ids,scope:{source:query.source||source},start:query.start??start,end:query.end??end}});
+    };
+    const result=await runTask({context:compact,prompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,validate:value=>{validateAnalysis(value);session.validate(value);}});
+    const {analysis}=result;
+    await job.progress(85);
+    const suggestions=analysis.suggestions.map(s=>({analysisId,ownerId,businessProblem:s.problem,dataEvidence:s.evidence,
+      hypothesis:s.hypothesis,uncertainties:s.uncertainties,action:s.action,priority:s.priority,priorityReason:s.priorityReason,
+      applicableScope:{...s.scope,source},expectedImpact:s.expectedImpact,impactBasis:s.impactBasis,validationMetrics:s.validationMetrics,reviewConditions:s.reviewConditions}));
+    const saved={summary:analysis.summary,keyFindings:analysis.keyFindings,suggestionsCount:analysis.suggestions.length,
+      claims:analysis.claims,evidenceIds:compact.evidence.map(e=>e.id),goalVersion:compact.goal?.version||null,candidates:compact.candidates,routing:result.routing,calls:result.calls,additionalEvidence:result.evidence,cost:result.cost,analysisId};
+    await records.completeAnalysis(analysisId,ownerId,suggestions,saved,result);await job.progress(100);
+    return saved;
+  }catch(error){await records.updateAnalysisStatus(analysisId,'failed',null,error.message);throw error;}
+}
+module.exports={businessAnalysis};

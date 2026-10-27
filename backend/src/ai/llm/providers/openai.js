@@ -10,7 +10,9 @@ class OpenAIProvider {
     this.client = new OpenAI({
       apiKey: config.apiKey,
       baseURL: config.baseURL,
-      organization: config.organization
+      organization: config.organization,
+      timeout: Number(process.env.AI_TIMEOUT || 120000),
+      maxRetries: 0
     });
   }
 

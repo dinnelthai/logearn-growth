@@ -1,0 +1,61 @@
+const groupRows=(rows,key)=>{const groups=new Map();for(const row of rows){const value=key(row);if(!groups.has(value))groups.set(value,[]);groups.get(value).push(row)}return groups}
+const DAY=86400000,day=t=>Math.floor((t+25200000)/DAY),name=e=>e.raw_name||e.type,uniq=a=>[...new Set(a)],str=x=>x==null?null:String(x)
+function verifiedRelations(rows,asOf){
+ const groups=new Map(),quality={invalid:0,conflicts:0,cycles:0}
+ for(const r of rows){if(!r.valid||!r.inviter||r.inviter==='0'||r.inviter===r.invitee||!Number.isFinite(r.bound_at)||r.bound_at>asOf||!Number.isFinite(r.account_created_at)||r.account_created_at>r.bound_at||!r.inviter_exists){quality.invalid++;continue}if(!groups.has(r.invitee))groups.set(r.invitee,[]);groups.get(r.invitee).push(r)}
+ const chosen=new Map()
+ for(const [id,rs]of groups){const time=rs.reduce((n,r)=>Math.min(n,r.bound_at),Infinity),first=rs.filter(r=>r.bound_at===time);if(new Set(first.map(r=>r.inviter)).size>1){quality.conflicts+=rs.length;continue}chosen.set(id,first.sort((a,b)=>a.id.localeCompare(b.id))[0])}
+ const cyclic=new Set(),done=new Set();for(const id of chosen.keys()){if(done.has(id))continue;const path=[],seen=new Map();let next=id;while(chosen.has(next)&&!seen.has(next)&&!done.has(next)){seen.set(next,path.length);path.push(next);next=chosen.get(next).inviter}if(seen.has(next))path.slice(seen.get(next)).forEach(x=>cyclic.add(x));path.forEach(x=>done.add(x))}for(const id of cyclic){chosen.delete(id);quality.cycles++}
+ const byId=new Map(),duplicateIds=new Set();for(const r of chosen.values()){if(byId.has(r.id))duplicateIds.add(r.id);else byId.set(r.id,r)}for(const id of duplicateIds){byId.delete(id);quality.conflicts++}
+ return {rows:[...byId.values()],byId,quality}
+}
+function inviteConversion(users,relations,b,s,{factsAvailable=true,factsError=null,audience=null,registrationAccounts=[],registrationAvailable=false,registrationEffectiveFrom}={}){
+ const asOf=Date.parse(s.snapshot_cutoff||s.as_of),window=Number(b.hours||24)*3600000,proof=verifiedRelations(relations,asOf),groups=new Map(),members={},lists={},available=new Set(),quality={missing_flow_events:0,orphan_flows:0,conflicting_flows:0,unverified_binding_events:0}
+ for(const u of users){members[u.id]={id:u.id,source:u.source};for(const e of u.events){if(e.t>asOf)continue;const n=name(e);available.add(n);const p=e.properties||{};if(!['invite_link_visited','invite_validation_finished','invite_binding_finished','login_attempt_started','login_attempt_finished','login_succeeded'].includes(n))continue;if(!p.invite_flow_id){if(n.startsWith('invite_')&&e.t>=b.start&&e.t<b.end)quality.missing_flow_events++;continue}const key=JSON.stringify([u.id,String(p.invite_flow_id)]);if(!groups.has(key))groups.set(key,{u,id:String(p.invite_flow_id),events:[]});groups.get(key).events.push(e)}}
+ const flowOwners=new Map();for(const g of groups.values()){if(!flowOwners.has(g.id))flowOwners.set(g.id,new Set());flowOwners.get(g.id).add(g.u.id)}
+ const rows=[]
+ for(const g of groups.values()){
+  const es=g.events.sort((a,b)=>a.t-b.t),visit=es.find(e=>name(e)==='invite_link_visited')
+  if(!visit){if(es.some(e=>e.t>=b.start&&e.t<b.end))quality.orphan_flows++;continue}if(visit.t<b.start||visit.t>=b.end)continue
+  const events=es.filter(e=>e.t>=visit.t&&e.t<visit.t+window),v=visit.properties,valid=events.find(e=>name(e)==='invite_validation_finished'&&e.properties.outcome==='valid')
+  const linkIds=uniq(events.map(e=>str(e.properties.referral_link_id)).filter(Boolean))
+  const validations=new Map(),bindingAttempts=new Map();let conflict=linkIds.length>1||flowOwners.get(g.id).size>1
+  for(const e of events.filter(e=>name(e)==='invite_validation_finished')){const p=e.properties,key=p.validation_attempt_id;if(!key)continue;if(!validations.has(key))validations.set(key,new Set());validations.get(key).add(p.outcome)}
+  for(const e of events.filter(e=>name(e)==='invite_binding_finished')){const p=e.properties;if(p.binding_attempt_id){if(!bindingAttempts.has(p.binding_attempt_id))bindingAttempts.set(p.binding_attempt_id,new Set());bindingAttempts.get(p.binding_attempt_id).add(p.outcome)}}
+  if([...validations.values(),...bindingAttempts.values()].some(x=>x.size>1))conflict=true
+  const login=valid?events.find(e=>((name(e)==='login_succeeded'&&['manual','auto_restore'].includes(e.properties.login_type))||(name(e)==='login_attempt_finished'&&e.properties.outcome==='success'))&&e.actor_user_id):null
+  const already=!!visit.actor_user_id,account=valid&&(already||!!login)
+  let bound=null
+  for(const e of events.filter(e=>name(e)==='invite_binding_finished'&&e.properties.outcome==='bound')){
+   const p=e.properties,r=proof.byId.get(str(p.relation_id)),invitee=str(p.invitee_user_id),inviter=str(p.inviter_user_id)
+   if(!factsAvailable||!r||r.invitee!==invitee||r.inviter!==inviter||g.u.id!=='user:'+r.invitee||!account||r.bound_at<visit.t||r.bound_at>=visit.t+window||valid.properties.inviter_user_id!=null&&str(valid.properties.inviter_user_id)!==r.inviter){quality.unverified_binding_events++;continue}
+   if(bound&&bound.id!==r.id){conflict=true;continue}bound=r
+  }
+  const analysis=bound?g.u.events.filter(e=>['chip_analysis_viewed','chip_analysis_drilldown'].includes(name(e))&&e.t>=bound.bound_at&&e.t<visit.t+window&&e.t<=asOf).sort((a,b)=>a.t-b.t)[0]:null
+  const latestValidation=events.filter(e=>name(e)==='invite_validation_finished').at(-1),latestBinding=events.filter(e=>name(e)==='invite_binding_finished').at(-1),latestLogin=events.filter(e=>name(e)==='login_attempt_finished').at(-1)
+  const state=conflict?'conflict':analysis?'analysed':bound?'bound':latestBinding?.properties.outcome==='already_bound'?'already_bound':latestBinding?.properties.outcome==='rejected'?'binding_rejected':latestBinding?.properties.outcome==='failed'?'binding_failed':!valid&&latestValidation?.properties.outcome==='invalid'?'invalid':!valid&&latestValidation?.properties.outcome==='failed'?'validation_failed':!account&&latestLogin?.properties.outcome==='failed'?'login_failed':!account&&latestLogin?.properties.outcome==='cancelled'?'login_cancelled':asOf<visit.t+window?'pending':'unknown'
+  if(conflict)quality.conflicting_flows++
+  const inviter=bound?.inviter||str(valid?.properties.inviter_user_id)||'unknown',link=linkIds[0]||'unknown',campaign=str(v.campaign_id??v.activity_id)||'unknown'
+  if(b.inviter&&b.inviter!=='all'&&inviter!==b.inviter.replace(/^user:/,''))continue
+  if(b.link&&b.link!=='all'&&link!==b.link||b.campaign&&b.campaign!=='all'&&campaign!==b.campaign)continue
+  rows.push({id:g.id,user_id:g.u.id,source:g.u.source,visited_at:visit.t,validated:!!valid&&!conflict,account_confirmed:!!account&&!conflict,account_evidence:already?'already_logged_in':login?'login_success':'unknown',bound:!!bound&&!conflict,analysed:!!analysis&&!conflict,relation_id:bound?.id??null,bound_at:bound?.bound_at??null,analysis_at:analysis?.t??null,inviter,link,campaign,state,mature:asOf>=visit.t+window,reason_code:str(latestBinding?.properties.reason_code??latestValidation?.properties.reason_code??latestLogin?.properties.reason_code??latestLogin?.properties.error_code??latestLogin?.properties.cancel_reason)||'unknown'})
+ }
+ const put=(key,rs)=>{lists[key]=uniq(rs.map(r=>r.user_id));return lists[key].length}
+ const flowEvents=new Set([...groups.values()].flatMap(g=>g.events.map(name)))
+ const steps=[['visited','邀请链接访问',true,r=>true],['validated','邀请校验有效',flowEvents.has('invite_validation_finished'),r=>r.validated],['account_confirmed','账号确认（已有登录态 / 登录成功）',flowEvents.has('login_succeeded')||flowEvents.has('login_attempt_finished')||rows.some(r=>r.account_evidence==='already_logged_in'),r=>r.account_confirmed],['bound','本次正式绑定',factsAvailable&&flowEvents.has('invite_binding_finished'),r=>r.bound],['analysed','绑定后分析',factsAvailable&&flowEvents.has('invite_binding_finished')&&(available.has('chip_analysis_viewed')||available.has('chip_analysis_drilldown')),r=>r.analysed]].map(([key,label,supported,filter],i)=>{const selected=rows.filter(filter),list_key='invite:step:'+key;return {key,label,available:available.has('invite_link_visited')&&(key==='visited'||supported),flows:selected.length,users:put(list_key,selected),list_key}})
+ const mature=rows.filter(r=>r.mature&&r.state!=='conflict'),matureBound=mature.filter(r=>r.bound),states=[...groupRows(rows,r=>r.state)].map(([state,ss])=>{const list_key='invite:state:'+state;return {state,flows:ss.length,users:put(list_key,ss),list_key}})
+ const dimensions=Object.fromEntries(['source','inviter','link','campaign'].map(dim=>[dim,[...groupRows(rows,r=>r[dim])].map(([value,ss],i)=>{const list_key='invite:'+dim+':'+i;return {value,flows:ss.length,bound:ss.filter(r=>r.bound).length,analysed:ss.filter(r=>r.analysed).length,users:put(list_key,ss),list_key}}).sort((a,b)=>b.flows-a.flows)]))
+ const allowed=new Set(audience||[]),factRows=proof.rows.filter(r=>r.bound_at>=b.start&&r.bound_at<b.end&&(!audience||allowed.has('user:'+r.invitee))&&(!b.inviter||b.inviter==='all'||r.inviter===b.inviter.replace(/^user:/,''))&&(!b.source||b.source==='all'||members['user:'+r.invitee]?.source===b.source))
+ for(const r of factRows){const id='user:'+r.invitee;members[id]||={id,source:'未知'}}
+ lists['invite:facts']=uniq(factRows.map(r=>'user:'+r.invitee))
+ const cohorts=new Map();for(const r of rows.filter(r=>r.bound))if(!cohorts.has(r.user_id)||cohorts.get(r.user_id).bound_at>r.bound_at)cohorts.set(r.user_id,r)
+ const usersById=new Map();for(const u of users)if(!usersById.has(u.id))usersById.set(u.id,u)
+ const retention=[1,7].map(d=>{const eligible=[...cohorts.values()].filter(r=>day(asOf)>day(r.bound_at)+d),returned=eligible.filter(r=>{const user=usersById.get(r.user_id);return user&&user.events.some(e=>['chip_analysis_viewed','chip_analysis_drilldown'].includes(name(e))&&day(e.t)===day(r.bound_at)+d&&e.t<=asOf)}),key='invite:d'+d;put(key+':eligible',eligible);put(key+':returned',returned);return {day:d,eligible:eligible.length,returned:returned.length,rate:eligible.length?returned.length/eligible.length:null,pending:cohorts.size-eligible.length,list_key:key+':returned'}})
+ for(const u of Object.keys(members))lists['conversion:user:'+u]=[u]
+ const errors=[...groupRows(rows.filter(r=>['invalid','validation_failed','login_failed','binding_rejected','binding_failed','login_cancelled'].includes(r.state)),r=>JSON.stringify([r.state,r.reason_code]))].map(([x,selected],i)=>{const [state,reason]=JSON.parse(x),list_key='invite:reason:'+i;return {state,reason,flows:selected.length,users:put(list_key,selected),list_key}})
+ const association=require('./inviteAssociation').inviteAssociation(users,proof.rows,b,asOf,{factsAvailable});Object.assign(lists,association.lists)
+ const registration=require('./inviteRegistration').inviteRegistration(users,relations,registrationAccounts,b,asOf,{factsAvailable,registrationAvailable,effectiveFrom:registrationEffectiveFrom});Object.assign(lists,registration.lists)
+ const records=rows.filter(r=>!b.status||b.status==='all'||r.state===b.status).sort((a,b)=>b.visited_at-a.visited_at)
+ return {members,lists,payload:{scene:'invite',registration:registration.payload,association:association.payload,start:b.start,end:b.end,as_of:asOf,available:available.has('invite_link_visited'),steps,states,dimensions,errors,quality,flow_count:rows.length,users:uniq(rows.map(r=>r.user_id)).length,mature_flows:mature.length,binding_rate:steps[3].available&&mature.length?matureBound.length/mature.length:null,pending:rows.filter(r=>!r.mature).length,independent_facts:{available:factsAvailable,relations:factRows.length,users:lists['invite:facts'].length,list_key:'invite:facts',error:factsError,quality:proof.quality,ignores_link_and_campaign_filters:true},retention_available:steps[4].available,retention,records:records.slice(0,100),records_truncated:records.length>100,record_total:records.length,window_hours:Number(b.hours||24),history_complete:false,filters:{inviter:b.inviter||'',link:b.link||'',campaign:b.campaign||'',status:b.status||'all'}}}
+}
+module.exports={inviteConversion,verifiedRelations}

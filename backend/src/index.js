@@ -79,20 +79,34 @@ app.use('/api/growth-reports',requireAuth,require('./routes/growthReports'))
 app.use('/api/crm/kols', requireAuth, require('./routes/crm'))
 app.use('/api/x-acquisition', requireAuth, require('./routes/xAcquisition'))
 
+// Optional AI modules initialize only on explicit AI requests. Business pages do not need Redis, AI storage or keys.
+function optionalRouter(modulePath) {
+  let router;
+  return (req,res,next)=>{
+    try { router ||= require(modulePath); return router(req,res,next); }
+    catch(error) { return res.status(503).json({error:'可选 AI 服务未就绪：'+error.message}); }
+  };
+}
+app.use('/api/growth-agent', requireAuth, require('./routes/growthAgent').defaultRouter())
+app.use('/api/business-analysis', requireAuth, require('./routes/businessAnalysis'))
+
 // AI Configuration and Management
-app.use('/api/ai', require('./routes/aiConfig'))
+app.use('/api/ai', requireAuth, optionalRouter('./routes/aiConfig'))
 
 // Cache Management
-app.use('/api/cache', require('./routes/cache'))
+app.use('/api/cache', requireAuth, optionalRouter('./routes/cache'))
 
 // Queue Management
-app.use('/api/queue', requireAuth, require('./routes/queue'))
+app.use('/api/queue', requireAuth, (req, res) => res.status(410).json({error: '请使用 /api/ai-analysis 主动分析接口'}))
+
+// AI Analysis (用户主动触发的业务分析和复盘)
+app.use('/api/ai-analysis', requireAuth, optionalRouter('./routes/aiAnalysis'))
 
 // WebSocket Management
-app.use('/api/websocket', requireAuth, require('./routes/websocket'))
+app.use('/api/websocket', requireAuth, optionalRouter('./routes/websocket'))
 
 // RAG Vector Retrieval
-app.use('/api/rag', requireAuth, require('./routes/rag'))
+app.use('/api/rag', requireAuth, optionalRouter('./routes/rag'))
 
 app.get('/api/user-tags',requireAuth,(req,res,next)=>{try{res.json({tags:require('./analytics/userTags').userTags(req.user.user_id,{includeMembers:false}).map(({user_ids,...tag})=>tag)})}catch(e){next(e)}})
 app.post('/api/user-tags/audience',requireAuth,async(req,res,next)=>{
@@ -140,6 +154,7 @@ const server = http.createServer(app);
 
 // Initialize WebSocket server
 try {
+  if (process.env.AI_WEBSOCKET_ENABLED !== 'true') throw new Error('使用任务轮询；WebSocket 默认关闭');
   const { createServer: createWSServer } = require('./websocket');
   createWSServer(server);
   console.log('WebSocket server initialized');

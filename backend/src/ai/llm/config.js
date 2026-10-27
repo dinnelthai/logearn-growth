@@ -5,54 +5,16 @@
 
 const LLM_PROVIDERS = {
   OPENAI: 'openai',
-  ANTHROPIC: 'anthropic'
+  ANTHROPIC: 'anthropic',
+  DOMESTIC: 'domestic'
 };
 
 const LLM_MODELS = {
-  // OpenAI models
-  'gpt-4o': {
+  'claude-sonnet-4-6': {
     provider: LLM_PROVIDERS.OPENAI,
-    maxTokens: 128000,
-    costPer1kInput: 0.0025,
-    costPer1kOutput: 0.01,
-    supportsStructuredOutput: true
-  },
-  'gpt-4o-mini': {
-    provider: LLM_PROVIDERS.OPENAI,
-    maxTokens: 128000,
-    costPer1kInput: 0.00015,
-    costPer1kOutput: 0.0006,
-    supportsStructuredOutput: true
-  },
-  'gpt-4-turbo': {
-    provider: LLM_PROVIDERS.OPENAI,
-    maxTokens: 128000,
-    costPer1kInput: 0.01,
-    costPer1kOutput: 0.03,
-    supportsStructuredOutput: true
-  },
-
-  // Anthropic models
-  'claude-opus-4': {
-    provider: LLM_PROVIDERS.ANTHROPIC,
-    maxTokens: 200000,
-    costPer1kInput: 0.015,
-    costPer1kOutput: 0.075,
-    supportsStructuredOutput: true
-  },
-  'claude-sonnet-4': {
-    provider: LLM_PROVIDERS.ANTHROPIC,
-    maxTokens: 200000,
-    costPer1kInput: 0.003,
-    costPer1kOutput: 0.015,
-    supportsStructuredOutput: true
-  },
-  'claude-haiku-4': {
-    provider: LLM_PROVIDERS.ANTHROPIC,
-    maxTokens: 200000,
-    costPer1kInput: 0.0003,
-    costPer1kOutput: 0.0015,
-    supportsStructuredOutput: true
+    costPer1kInput: 0,
+    costPer1kOutput: 0,
+    supportsStructuredOutput: false
   }
 };
 
@@ -62,19 +24,13 @@ const LLM_MODELS = {
 function getConfig() {
   return {
     // 默认使用的模型
-    defaultModel: process.env.AI_DEFAULT_MODEL || 'gpt-4o-mini',
+    defaultModel: process.env.AI_DEFAULT_MODEL || 'claude-sonnet-4-6',
 
     // OpenAI 配置
     openai: {
       apiKey: process.env.OPENAI_API_KEY,
-      baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+      baseURL: process.env.OPENAI_BASE_URL || 'https://api.derouter.network/openai/v1',
       organization: process.env.OPENAI_ORGANIZATION
-    },
-
-    // Anthropic 配置
-    anthropic: {
-      apiKey: process.env.ANTHROPIC_API_KEY,
-      baseURL: process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com'
     },
 
     // 通用配置
@@ -96,10 +52,18 @@ function getConfig() {
  * 获取模型信息
  */
 function getModelInfo(modelName) {
-  const model = LLM_MODELS[modelName];
-  if (!model) {
-    throw new Error(`Unknown model: ${modelName}`);
+  const configuredModel = getConfig().defaultModel;
+  if (modelName !== configuredModel) throw new Error(`Unknown model: ${modelName}`);
+  const input = Number(process.env.AI_RELAY_COST_PER_1K_INPUT || 0);
+  const output = Number(process.env.AI_RELAY_COST_PER_1K_OUTPUT || 0);
+  if (![input, output].every(n => Number.isFinite(n) && n >= 0)) {
+    throw new Error('模型价格必须为非负数');
   }
+  const model = {
+    ...LLM_MODELS['claude-sonnet-4-6'],
+    costPer1kInput: input,
+    costPer1kOutput: output
+  };
   return model;
 }
 
@@ -112,10 +76,6 @@ function validateConfig() {
 
   if (model.provider === LLM_PROVIDERS.OPENAI && !config.openai.apiKey) {
     throw new Error('OPENAI_API_KEY is required for OpenAI models');
-  }
-
-  if (model.provider === LLM_PROVIDERS.ANTHROPIC && !config.anthropic.apiKey) {
-    throw new Error('ANTHROPIC_API_KEY is required for Anthropic models');
   }
 
   return true;

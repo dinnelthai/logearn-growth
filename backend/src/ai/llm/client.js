@@ -5,7 +5,6 @@
 
 const { getConfig, getModelInfo, LLM_PROVIDERS } = require('./config');
 const OpenAIProvider = require('./providers/openai');
-const AnthropicProvider = require('./providers/anthropic');
 const CostTracker = require('./costTracker');
 const { llmCache, rateLimit } = require('../../cache');
 const logger = require('../../utils/logger');
@@ -34,14 +33,8 @@ class LLMClient {
     this.modelInfo = getModelInfo(this.model);
     this.costTracker = new CostTracker();
 
-    // 初始化对应的 provider
-    if (this.modelInfo.provider === LLM_PROVIDERS.OPENAI) {
-      this.provider = new OpenAIProvider(this.config.openai);
-    } else if (this.modelInfo.provider === LLM_PROVIDERS.ANTHROPIC) {
-      this.provider = new AnthropicProvider(this.config.anthropic);
-    } else {
-      throw new Error(`Unsupported provider: ${this.modelInfo.provider}`);
-    }
+    if (!this.config.openai.apiKey) throw new Error('请在 backend/.env 配置 DeRouter 的 OPENAI_API_KEY');
+    this.provider = new OpenAIProvider(this.config.openai);
 
     logger.info(`LLM client initialized: ${this.model} (${this.modelInfo.provider})`);
   }
@@ -51,6 +44,7 @@ class LLMClient {
    */
   async chat(messages, options = {}) {
     const startTime = Date.now();
+    options = {...options, cacheScope: options.userId || 'anonymous', endpoint: this.provider.client.baseURL};
 
     try {
       // 1. 检查速率限制
@@ -79,6 +73,7 @@ class LLMClient {
 
           return {
             ...cached.response,
+            model: this.model, provider: this.modelInfo.provider, cost: 0, costKnown: true,
             fromCache: true,
             cached: true
           };
@@ -86,7 +81,7 @@ class LLMClient {
       }
 
       // 3. 检查成本限制
-      await this.costTracker.checkDailyLimit(this.config.maxDailyCost);
+      await this.costTracker.checkDailyLimit(this.config.maxDailyCost, userId);
 
       // 4. 调用对应的 provider
       const response = await this.provider.chat({
@@ -100,20 +95,18 @@ class LLMClient {
         responseFormat: options.responseFormat
       });
 
-      // 5. 缓存响应（除非明确跳过）
+      // Record the actual provider usage once before publishing a reusable response.
+      const duration = Date.now() - startTime;
+      const usage = await this.trackUsage(response, duration, options);
       if (!options.skipCache) {
         await llmCache.set(messages, this.model, response, {
-          ttl: options.cacheTTL || 86400, // 默认 24 小时
-          metadata: options.metadata
+          ...options, ttl: options.cacheTTL || 86400, metadata: options.metadata
         });
       }
 
-      // 6. 记录使用情况
-      const duration = Date.now() - startTime;
-      await this.trackUsage(response, duration);
-
       return {
         ...response,
+        model: this.model, provider: this.modelInfo.provider, cost: usage.cost, costKnown: usage.costKnown,
         fromCache: false,
         cached: false
       };
@@ -154,14 +147,18 @@ class LLMClient {
   /**
    * 记录使用情况和成本
    */
-  async trackUsage(response, duration) {
+  async trackUsage(response, duration, options = {}) {
     const usage = {
+      ownerId: options.userId,
+      operationType: options.operationType || 'analysis',
+      operationId: options.operationId || options.metadata?.analysisId || options.metadata?.suggestionId || 'legacy',
       model: this.model,
       provider: this.modelInfo.provider,
       inputTokens: response.usage.inputTokens,
       outputTokens: response.usage.outputTokens,
       totalTokens: response.usage.totalTokens,
       cost: this.calculateCost(response.usage),
+      costKnown: this.modelInfo.costPer1kInput > 0 && this.modelInfo.costPer1kOutput > 0,
       duration,
       timestamp: new Date()
     };
@@ -197,14 +194,6 @@ class LLMClient {
   switchModel(modelName) {
     const newModelInfo = getModelInfo(modelName);
 
-    // 如果 provider 变了，重新初始化
-    if (newModelInfo.provider !== this.modelInfo.provider) {
-      if (newModelInfo.provider === LLM_PROVIDERS.OPENAI) {
-        this.provider = new OpenAIProvider(this.config.openai);
-      } else if (newModelInfo.provider === LLM_PROVIDERS.ANTHROPIC) {
-        this.provider = new AnthropicProvider(this.config.anthropic);
-      }
-    }
 
     this.model = modelName;
     this.modelInfo = newModelInfo;
@@ -273,7 +262,7 @@ class LLMClient {
       }
 
       // 3. Check cost limit
-      await this.costTracker.checkDailyLimit(this.config.maxDailyCost);
+      await this.costTracker.checkDailyLimit(this.config.maxDailyCost, userId);
 
       // 4. Emit stream start
       llmStream.emitStart(streamId, { model: this.model });

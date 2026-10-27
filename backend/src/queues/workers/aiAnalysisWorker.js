@@ -11,8 +11,15 @@
 
 require('dotenv').config();
 const { queues } = require('../queues');
-const aiAnalysisJobs = require('../jobs/aiAnalysis');
+const { businessAnalysis } = require('../jobs/businessAnalysis');
+const { retrospectiveAnalysis } = require('../jobs/retrospective');
 const logger = console;
+
+// 任务处理器映射
+const taskHandlers = {
+  'business-analysis': businessAnalysis,
+  'retrospective': retrospectiveAnalysis
+};
 
 // WebSocket handlers for real-time updates
 let jobProgress;
@@ -38,53 +45,40 @@ logger.info('Starting AI Analysis Worker...', {
 });
 
 /**
- * 处理 AI 分析任务
+ * 处理 AI 分析任务 - 注册所有任务类型的处理器
  */
-queues.aiAnalysis.process(CONCURRENCY, async (job) => {
-  logger.info(`Processing job ${job.id}:`, {
-    type: job.name,
-    attempts: job.attemptsMade + 1,
-    maxAttempts: job.opts.attempts
+// 为每个任务类型注册独立的处理器
+Object.entries(taskHandlers).forEach(([taskName, handler]) => {
+  queues.aiAnalysis.process(taskName, CONCURRENCY, async (job) => {
+    logger.info(`Processing job ${job.id}:`, {
+      type: job.name,
+      attempts: job.attemptsMade + 1,
+      maxAttempts: job.opts.attempts
+    });
+
+    // Emit job started event
+    jobProgress.emitStarted(job.id, {
+      type: job.name,
+      data: job.data
+    });
+
+    try {
+      const result = await handler(job);
+
+      // Emit completion
+      jobProgress.emitCompleted(job.id, result);
+
+      logger.info(`Job ${job.id} completed successfully`);
+      return result;
+    } catch (error) {
+      logger.error(`Job ${job.id} failed:`, error);
+      jobProgress.emitFailed(job.id, error);
+      throw error;
+    }
   });
-
-  // Emit job started event
-  jobProgress.emitStarted(job.id, {
-    type: job.name,
-    data: job.data
-  });
-
-  const handler = aiAnalysisJobs[job.name];
-
-  if (!handler) {
-    const error = new Error(`Unknown job type: ${job.name}`);
-    jobProgress.emitFailed(job.id, error);
-    throw error;
-  }
-
-  try {
-    // Update progress at job start
-    await job.progress(5);
-    jobProgress.emitProgress(job.id, 5, { step: 'initialized' });
-
-    const result = await handler(job);
-
-    logger.info(`Job ${job.id} completed successfully`);
-
-    // Emit completion event
-    await job.progress(100);
-    jobProgress.emitCompleted(job.id, result);
-
-    return result;
-  } catch (error) {
-    logger.error(`Job ${job.id} failed:`, error);
-
-    // Emit failure event
-    jobProgress.emitFailed(job.id, error);
-
-    // 记录错误,让 Bull 处理重试
-    throw error;
-  }
 });
+
+logger.info('Registered task handlers:', Object.keys(taskHandlers));
 
 /**
  * Worker 事件监听

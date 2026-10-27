@@ -1,0 +1,44 @@
+async function runAnalysis(kind,body,snapshot,audience,owner){
+ const jobs=require('../../../services/analysisJobs'),{waitForJob}=require('../../../data/businessEvidence');
+ const job=jobs.start(kind,body,snapshot,audience,owner);return waitForJob(job.id,owner,32000);
+}
+async function metrics(body,snapshot,ids,context){
+ const evidence=require('../../../data/businessEvidence'),values={};
+ const metrics=ids.map(id=>require('../metricRegistry').describeMetric(id));
+ if(metrics.some(m=>!['north','growth','weekly'].includes(m.queryAdapter)))throw Object.assign(Error('该指标需要专用工具'),{status:400});
+ let north,growth,weekly;
+ if(metrics.some(m=>m.queryAdapter==='north'))north=await evidence.fetchNorthStar(body.start,body.end,body.source,snapshot);
+ if(metrics.some(m=>m.queryAdapter==='growth'))growth=await evidence.fetchGrowthInsights({...body,snapshot});
+ if(metrics.some(m=>m.queryAdapter==='weekly'))weekly=await evidence.fetchWeeklyCore({...body,snapshot});
+ const entries=metrics.map(m=>{
+  if(m.queryAdapter==='north')return {metricId:m.id,value:north.totals[m.id]??null};
+  if(m.queryAdapter==='weekly')return {metricId:m.id,value:weekly.available?weekly.users:null,warnings:weekly.available?[]:['周核心指标不可用']};
+  if(m.id==='registered_users')return {metricId:m.id,value:null,warnings:['注册聚合尚未适配，不用首次观测替代']};
+  const channels=growth.channels||[],rows=channels.map(c=>m.id==='d7'?c.d7:{eligible:c.eligible,returned:c.activated});
+  const known=rows.length>0&&rows.every(r=>Number.isFinite(r?.eligible)&&Number.isFinite(r?.returned));
+  const numerator=known?rows.reduce((n,r)=>n+r.returned,0):null,denominator=known?rows.reduce((n,r)=>n+r.eligible,0):null;
+  return {metricId:m.id,value:denominator>0?numerator/denominator:null,numerator,denominator,sampleSize:denominator,warnings:denominator>0?[]:['没有成熟分母或成熟覆盖未知']};
+ });
+ return {metrics:entries,coverage:{events:'partial',registrations:'unknown',trades:'unknown'}};
+}
+async function economics(body,context){
+ const db=require('../../../db/connection');
+ if(body.source!=='all')throw Object.assign(Error('合作账本尚无完整来源归因，仅支持全来源范围'),{status:400});
+ const collaborations=db.prepare('SELECT id FROM crm_collaborations WHERE owner_id=? AND start_at>=? AND start_at<? LIMIT 101').all(String(context.ownerId),body.start,body.end);
+ if(collaborations.length>100)throw Object.assign(Error('合作数量超出预算，请缩小期间'),{status:422});
+ const costs=[],revenues=[];
+ for(const c of collaborations){costs.push(...db.prepare('SELECT * FROM crm_collaboration_costs WHERE collaboration_id=?').all(c.id));revenues.push(...db.prepare('SELECT * FROM crm_collaboration_revenue WHERE collaboration_id=? AND occurred_at>=? AND occurred_at<?').all(c.id,body.start,body.end));}
+ return {byCurrency:require('../../../analytics/collaborationRevenue').revenueTotals(costs,revenues),coverage:{finance:'manual_records_only',revenue:revenues.length?'recorded':'unknown'},warnings:['各币种独立，不汇总币种；成本为期间开始合作批次账本，收入为期内流水，不代表全平台财务覆盖']};
+}
+async function activities(body,snapshot,audience,context){
+ const db=require('../../../db/connection');
+ const a=db.prepare('SELECT * FROM growth_activities WHERE id=? AND owner_id=?').get(context.scope.activityId,String(context.ownerId));
+ if(!a)throw Object.assign(Error('活动不存在或无权限'),{status:404});
+ const members=db.prepare('SELECT * FROM growth_activity_members WHERE activity_id=?').all(a.id).filter(m=>audience.includes(String(m.user_id)));
+ const {memberFacts,memberMetrics}=require('../../../data/memberMetrics');
+ const period={start:Math.max(body.start,a.start_at),end:Math.min(body.end,a.cutoff_at)};
+ if(period.start>=period.end)throw Object.assign(Error('活动与查询期间无交集'),{status:400});
+ const facts=await memberFacts(snapshot,members.map(m=>m.user_id),period);
+ return {...memberMetrics(facts,members.map(m=>({id:m.user_id})),period,snapshot),coverage:facts.errors,warnings:['活动原始固定名单与查询期间交集；基线和分组仍以活动报告为准']};
+}
+module.exports={runAnalysis,metrics,economics,activities};

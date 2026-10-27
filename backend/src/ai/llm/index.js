@@ -17,9 +17,9 @@ function createClient(options) {
  * 获取可用的模型列表
  */
 function getAvailableModels() {
-  return Object.keys(LLM_MODELS).map(name => ({
+  return [getConfig().defaultModel].map(name => ({
     name,
-    ...LLM_MODELS[name]
+    ...getModelInfo(name)
   }));
 }
 

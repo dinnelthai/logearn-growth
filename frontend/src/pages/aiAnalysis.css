@@ -337,3 +337,11 @@
     background: var(--bg-code-dark, #1a202c);
   }
 }
+
+.ai-analysis-page form { display: grid; gap: 12px; margin: 16px 0; }
+.ai-analysis-page label { display: grid; gap: 5px; }
+.ai-analysis-page input, .ai-analysis-page select, .ai-analysis-page textarea { width: 100%; max-width: 780px; padding: 9px; box-sizing: border-box; color: inherit; background: transparent; border: 1px solid #8994a5; border-radius: 6px; }
+.ai-analysis-page textarea { min-height: 85px; }
+.ai-analysis-page pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 480px; overflow: auto; }
+.ai-suggestion { border-top: 1px solid #8994a5; padding: 18px 0; }
+.ai-analysis-page [data-ai-message] { color: #ad5724; }

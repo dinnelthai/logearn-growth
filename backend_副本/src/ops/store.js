@@ -1,0 +1,11 @@
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),db=require('../db/connection')
+const fail=message=>{throw Object.assign(Error(message),{status:400})}
+function key(){
+ if(process.env.OPS_TOKEN_ENCRYPTION_KEY){const k=Buffer.from(process.env.OPS_TOKEN_ENCRYPTION_KEY,'hex');if(!/^[a-fA-F0-9]{64}$/.test(process.env.OPS_TOKEN_ENCRYPTION_KEY))fail('OPS_TOKEN_ENCRYPTION_KEY 须为64位十六进制密钥');return k}
+ const file=path.join(path.dirname(process.env.DB_PATH||path.join(__dirname,'../../data/analytics.db')),'ops-token.key')
+ try{return fs.readFileSync(file)}catch(e){if(e.code!=='ENOENT')throw e;const k=crypto.randomBytes(32);try{fs.writeFileSync(file,k,{mode:0o600,flag:'wx'});return k}catch(e){if(e.code==='EEXIST')return fs.readFileSync(file);throw e}}
+}
+function saveToken(owner,token){if(typeof token!=='string'||!token.trim()||token.length>4096||/[\r\n]/.test(token))fail('Token 格式无效');const iv=crypto.randomBytes(12),cipher=crypto.createCipheriv('aes-256-gcm',key(),iv);cipher.setAAD(Buffer.from(String(owner)));const encrypted=Buffer.concat([cipher.update(token.trim(),'utf8'),cipher.final()]);db.prepare('INSERT INTO ops_credentials(owner_id,ciphertext,iv,tag,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(owner_id) DO UPDATE SET ciphertext=excluded.ciphertext,iv=excluded.iv,tag=excluded.tag,updated_at=excluded.updated_at').run(String(owner),encrypted.toString('base64'),iv.toString('base64'),cipher.getAuthTag().toString('base64'),Date.now())}
+function token(owner){const row=db.prepare('SELECT * FROM ops_credentials WHERE owner_id=?').get(String(owner));if(!row)throw Object.assign(Error('请先配置当前账号的 logearn_token'),{status:409});try{const cipher=crypto.createDecipheriv('aes-256-gcm',key(),Buffer.from(row.iv,'base64'));cipher.setAAD(Buffer.from(String(owner)));cipher.setAuthTag(Buffer.from(row.tag,'base64'));return Buffer.concat([cipher.update(Buffer.from(row.ciphertext,'base64')),cipher.final()]).toString('utf8')}catch{throw Object.assign(Error('Token 解密失败，请重新配置'),{status:409})}}
+function credential(owner){const r=db.prepare('SELECT updated_at FROM ops_credentials WHERE owner_id=?').get(String(owner));return {configured:!!r,updated_at:r?.updated_at??null}}
+module.exports={saveToken,token,credential}

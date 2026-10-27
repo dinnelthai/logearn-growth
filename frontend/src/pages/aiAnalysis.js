@@ -1,591 +1,103 @@
-/**
- * AI 分析监控页面
- * 包含异常检测、每日简报、实时进度显示
- */
-
 import './aiAnalysis.css';
-import { loadingState } from './loadingState.js';
-import {
-  createAnomalyDetection,
-  createDailyReport,
-  getRecentJobs,
-  getQueueStats,
-  getJobStatus,
-  getTodayUsage
-} from '../api/aiAnalysis.js';
-import { formatDate } from '../analytics/reportPeriod.js';
-
-// WebSocket 连接（如果可用）
-let ws = null;
-let jobProgressListeners = {};
-
-/**
- * 初始化 WebSocket 连接
- */
-function initWebSocket() {
-  if (ws?.readyState === WebSocket.OPEN) return;
-
-  const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3001';
-  ws = new WebSocket(`${wsUrl}/ws`);
-
-  ws.onopen = () => {
-    console.log('WebSocket connected');
-  };
-
-  ws.onmessage = (event) => {
-    try {
-      const message = JSON.parse(event.data);
-      if (message.type === 'job:progress') {
-        const { jobId, progress, data } = message;
-        const listener = jobProgressListeners[jobId];
-        if (listener) {
-          listener(progress, data);
-        }
-      }
-    } catch (error) {
-      console.error('WebSocket message parse error:', error);
-    }
-  };
-
-  ws.onerror = (error) => {
-    console.error('WebSocket error:', error);
-  };
-
-  ws.onclose = () => {
-    console.log('WebSocket closed');
-    // 5秒后重连
-    setTimeout(initWebSocket, 5000);
-  };
-}
-
-/**
- * 注册任务进度监听
- */
-function onJobProgress(jobId, callback) {
-  jobProgressListeners[jobId] = callback;
-}
-
-/**
- * 取消任务进度监听
- */
-function offJobProgress(jobId) {
-  delete jobProgressListeners[jobId];
-}
-
-/**
- * 轮询任务状态
- */
-async function pollJobStatus(jobId, onProgress) {
-  const maxAttempts = 120; // 最多 10 分钟
-  let attempts = 0;
-
-  const poll = async () => {
-    try {
-      const status = await getJobStatus(jobId);
-
-      if (onProgress) {
-        onProgress(status.progress || 0, status);
-      }
-
-      // 任务完成或失败
-      if (status.state === 'completed' || status.state === 'failed') {
-        offJobProgress(jobId);
-        return status;
-      }
-
-      // 继续轮询
-      attempts++;
-      if (attempts < maxAttempts) {
-        setTimeout(poll, 5000);
-      } else {
-        offJobProgress(jobId);
-        throw new Error('任务执行超时');
-      }
-    } catch (error) {
-      offJobProgress(jobId);
-      throw error;
-    }
-  };
-
-  return poll();
-}
-
-/**
- * 格式化时间戳
- */
-function formatTimestamp(ts) {
-  if (!ts) return '—';
-  const date = new Date(ts);
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
-}
-
-/**
- * 格式化持续时间
- */
-function formatDuration(ms) {
-  if (!ms) return '—';
-  const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds}秒`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}分${seconds % 60}秒`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}小时${minutes % 60}分`;
-}
-
-/**
- * 获取任务状态标签
- */
-function getStatusBadge(state) {
-  const badges = {
-    waiting: '<span class="status-badge status-waiting">等待中</span>',
-    active: '<span class="status-badge status-active">执行中</span>',
-    completed: '<span class="status-badge status-completed">已完成</span>',
-    failed: '<span class="status-badge status-failed">失败</span>',
-    delayed: '<span class="status-badge status-delayed">延迟</span>',
-    paused: '<span class="status-badge status-paused">暂停</span>'
-  };
-  return badges[state] || state;
-}
-
-/**
- * 创建 AI 分析页面
- */
-export function createAIAnalysis(ctx) {
-  const { $, esc, fmt } = ctx;
-  let request = 0;
-
-  async function draw() {
-    const id = ++request;
-    const host = $('#as-output');
-    host.innerHTML = loadingState('正在加载 AI 分析面板…');
-
-    try {
-      // 并行获取数据
-      const [recentJobs, queueStats, todayUsage] = await Promise.all([
-        getRecentJobs('ai-analysis', 'completed', 20).catch(() => ({ jobs: [] })),
-        getQueueStats('ai-analysis').catch(() => null),
-        getTodayUsage().catch(() => null)
-      ]);
-
-      if (id !== request) return;
-
-      host.innerHTML = renderPage(recentJobs, queueStats, todayUsage);
-      bindEvents(host);
-    } catch (e) {
-      if (id === request) {
-        host.innerHTML = `<p class="a-empty">加载失败：${esc(e.message)}</p>`;
-      }
-    }
-  }
-
-  /**
-   * 渲染页面
-   */
-  function renderPage(recentJobs, queueStats, todayUsage) {
-    return `
-      <div class="si-page ai-analysis-page">
-        <!-- 页面标题 -->
-        <section class="a-card">
-          <div class="si-sectionhead">
-            <div>
-              <h1>AI 增长分析</h1>
-              <p>自动异常检测、每日简报与增长洞察</p>
-            </div>
-          </div>
-        </section>
-
-        <!-- 队列统计 -->
-        ${queueStats ? renderQueueStats(queueStats) : ''}
-
-        <!-- 今日使用统计 -->
-        ${todayUsage ? renderUsageStats(todayUsage) : ''}
-
-        <!-- 快速操作 -->
-        <section class="a-card">
-          <h2>快速开始</h2>
-          <div class="ai-actions">
-            <button class="a-button" data-action="anomaly-detection">
-              🔍 异常检测
-            </button>
-            <button class="a-button" data-action="daily-report">
-              📊 每日简报
-            </button>
-          </div>
-        </section>
-
-        <!-- 执行中的任务 -->
-        <section class="a-card" id="active-jobs">
-          <!-- 动态更新 -->
-        </section>
-
-        <!-- 最近完成的任务 -->
-        <section class="a-card">
-          <div class="si-sectionhead">
-            <h2>最近完成的分析</h2>
-            <span class="a-muted">最近 20 条</span>
-          </div>
-          ${renderRecentJobs(recentJobs)}
-        </section>
-      </div>
-    `;
-  }
-
-  /**
-   * 渲染队列统计
-   */
-  function renderQueueStats(stats) {
-    return `
-      <section class="a-card">
-        <h2>队列状态</h2>
-        <div class="ai-stats-grid">
-          <div class="ai-stat">
-            <span>等待中</span>
-            <strong>${fmt(stats.waiting || 0)}</strong>
-          </div>
-          <div class="ai-stat">
-            <span>执行中</span>
-            <strong>${fmt(stats.active || 0)}</strong>
-          </div>
-          <div class="ai-stat">
-            <span>已完成</span>
-            <strong>${fmt(stats.completed || 0)}</strong>
-          </div>
-          <div class="ai-stat">
-            <span>失败</span>
-            <strong class="${stats.failed > 0 ? 'text-error' : ''}">${fmt(stats.failed || 0)}</strong>
-          </div>
-        </div>
-      </section>
-    `;
-  }
-
-  /**
-   * 渲染使用统计
-   */
-  function renderUsageStats(usage) {
-    return `
-      <section class="a-card">
-        <h2>今日使用</h2>
-        <div class="ai-stats-grid">
-          <div class="ai-stat">
-            <span>总调用次数</span>
-            <strong>${fmt(usage.totalCalls || 0)}</strong>
-          </div>
-          <div class="ai-stat">
-            <span>总 Tokens</span>
-            <strong>${fmt(usage.totalTokens || 0)}</strong>
-          </div>
-          <div class="ai-stat">
-            <span>总成本</span>
-            <strong>$${(usage.totalCost || 0).toFixed(4)}</strong>
-          </div>
-        </div>
-      </section>
-    `;
-  }
-
-  /**
-   * 渲染最近任务列表
-   */
-  function renderRecentJobs(recentJobs) {
-    if (!recentJobs.jobs || recentJobs.jobs.length === 0) {
-      return '<p class="a-empty">暂无分析记录</p>';
-    }
-
-    const rows = recentJobs.jobs.map(job => {
-      const duration = job.finishedOn && job.processedOn
-        ? formatDuration(job.finishedOn - job.processedOn)
-        : '—';
-
-      const resultPreview = renderJobResult(job);
-
-      return `
-        <div class="ai-job-card" data-job-id="${esc(job.id)}">
-          <div class="ai-job-header">
-            <div>
-              <strong>${getJobTypeName(job.name)}</strong>
-              ${getStatusBadge(job.state || 'completed')}
-            </div>
-            <span class="a-muted">${formatTimestamp(job.finishedOn || job.timestamp)}</span>
-          </div>
-          <div class="ai-job-meta">
-            <span>耗时: ${duration}</span>
-            <span>尝试: ${job.attempts || 1} 次</span>
-          </div>
-          ${resultPreview}
-        </div>
-      `;
-    }).join('');
-
-    return `<div class="ai-jobs-list">${rows}</div>`;
-  }
-
-  /**
-   * 获取任务类型名称
-   */
-  function getJobTypeName(name) {
-    const types = {
-      'anomaly-detection': '异常检测',
-      'daily-report': '每日简报',
-      'weekly-trends': '周趋势分析'
-    };
-    return types[name] || name;
-  }
-
-  /**
-   * 渲染任务结果预览
-   */
-  function renderJobResult(job) {
-    if (!job.returnvalue) return '';
-
-    const result = job.returnvalue;
-
-    // 异常检测结果
-    if (job.name === 'anomaly-detection') {
-      if (result.anomalyCount === 0) {
-        return '<div class="ai-job-result success">✓ 未检测到异常</div>';
-      }
-
-      const anomalies = result.findings?.slice(0, 3).map(finding => `
-        <div class="anomaly-item">
-          <strong>${finding.metric}</strong>
-          <span class="anomaly-change ${finding.direction === 'increase' ? 'positive' : 'negative'}">
-            ${finding.direction === 'increase' ? '↑' : '↓'} ${finding.change.toFixed(1)}%
-          </span>
-        </div>
-      `).join('') || '';
-
-      return `
-        <div class="ai-job-result">
-          <div class="anomaly-summary">
-            检测到 ${result.anomalyCount} 个异常
-          </div>
-          ${anomalies}
-          ${result.anomalyCount > 3 ? '<button class="a-link" data-view-details>查看全部 →</button>' : ''}
-        </div>
-      `;
-    }
-
-    // 每日简报结果
-    if (job.name === 'daily-report') {
-      const summary = result.summary || result.report || '';
-      return `
-        <div class="ai-job-result">
-          <div class="report-summary">${esc(summary.slice(0, 200))}${summary.length > 200 ? '...' : ''}</div>
-          ${summary.length > 200 ? '<button class="a-link" data-view-details>查看完整简报 →</button>' : ''}
-        </div>
-      `;
-    }
-
-    return '';
-  }
-
-  /**
-   * 绑定事件
-   */
-  function bindEvents(host) {
-    // 异常检测按钮
-    const anomalyBtn = host.querySelector('[data-action="anomaly-detection"]');
-    if (anomalyBtn) {
-      anomalyBtn.onclick = () => runAnomalyDetection();
-    }
-
-    // 每日简报按钮
-    const reportBtn = host.querySelector('[data-action="daily-report"]');
-    if (reportBtn) {
-      reportBtn.onclick = () => runDailyReport();
-    }
-
-    // 查看详情按钮
-    host.querySelectorAll('[data-view-details]').forEach(btn => {
-      btn.onclick = () => {
-        const jobCard = btn.closest('[data-job-id]');
-        if (jobCard) {
-          const jobId = jobCard.dataset.jobId;
-          viewJobDetails(jobId);
-        }
+import {loadingState} from './loadingState.js';
+import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence} from '../api/aiAnalysis.js';
+const DAY=86400000,OFFSET=7*3600000;
+const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
+const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
+export function createAIAnalysis(ctx){
+  const {$,esc}=ctx;
+  let generation=0,timer=null,selected=null,busy=false,polling=false;
+  const defaults={start:day(Date.now()-7*DAY),end:day(Date.now()-DAY)};
+  const statusText={pending:'等待执行',processing:'分析中',completed:'已完成',failed:'失败',adopted:'已采纳',executed:'已执行',executing:'执行中',rejected:'已拒绝',invalid:'已失效'};
+  const label=s=>statusText[s]||s;
+  const json=v=>esc(JSON.stringify(v,null,2));
+  function dispose(){generation++;clearTimeout(timer);timer=null;polling=false;}
+  function message(text){const target=$('#as-output')?.querySelector('[data-ai-message]');if(target)target.textContent=text;}
+  async function draw(){
+    ctx.clear?.();
+    const token=++generation;clearTimeout(timer);polling=false;
+    const host=$('#as-output');host.innerHTML=loadingState('正在加载主动业务分析…');
+    try{
+      const [list,reviews,costs]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats()]);
+      if(token!==generation)return;
+      host.innerHTML=`<div class="si-page ai-analysis-page">
+        <section class="a-card"><h1>AI 业务增长助手</h1><p>主动发起分析，按业务证据排优先级；记录行动后主动复盘。所有分析与复盘均使用同一 DeRouter 模型。</p>
+        <p>累计调用 ${esc(costs.total_calls)} 次 · Token ${esc(costs.total_tokens??0)} · 估算费用 $${esc(costs.total_cost??0)}（${esc(costs.unknown_cost_calls??0)} 次调用费率未配置，金额不代表免费）</p>
+        <form data-ai-form><label>分析标题<input name="title" required maxlength="200" value="业务增长分析"></label>
+        <label>开始日期<input name="start" type="date" required value="${defaults.start}"></label>
+        <label>结束日期（含当日）<input name="end" type="date" required value="${defaults.end}"></label>
+        <label>来源<input name="source" value="all" maxlength="200" placeholder="all 或业务来源值"></label>
+        <label>业务目标<select name="goal"><option value="activation">提升激活</option><option value="retention">提升留存</option><option value="conversion">提升转化</option><option value="revenue">收入策略</option></select></label>
+        <label>分析方式<select name="modelMode"><option value="auto">自动调查（单模型）</option><option value="complex">深度调查（同一模型）</option></select></label>
+        <label>业务背景与问题<textarea name="question" maxlength="5000" placeholder="当前目标、资源约束、近期活动、产品改动，以及你想解决的问题"></textarea></label>
+        <button class="a-button" type="submit" ${busy?'disabled':''}>开始分析</button></form>
+        <p>时间按 UTC+7，最多31天。当前支持来源范围；不会把活动或用户群当作已筛选。</p>
+        <button class="a-button" type="button" data-health>检查运行状态</button><pre data-health-result></pre><p data-ai-message role="status"></p></section>
+        <section class="a-card"><h2>历史分析</h2><button class="a-button" data-refresh>刷新</button>
+        ${list.records.length?list.records.map(r=>`<p><button class="a-button" data-analysis="${esc(r.id)}">${esc(r.title)}</button> · ${esc(label(r.status))} · 建议 ${esc(r.suggestion_count)} 条</p>`).join(''):'<p>尚无分析，点击开始后才会调用模型。</p>'}</section>
+        <section class="a-card" data-detail><p>选择一条分析查看证据和建议。</p></section>
+        <section class="a-card"><h2>复盘记录</h2>${reviews.retrospectives.map(r=>`<article><h3>${esc(r.analysis_title)}</h3><p>${esc(r.conclusion)}</p><p>置信度：${esc(r.confidence)} · ${r.has_causality?'有因果证据':'观测变化，未证明因果'}</p><p>经验：${esc(r.lessons_learned||'尚无结论')}</p></article>`).join('')||'<p>记录行动后，可主动发起复盘。</p>'}</section></div>`;
+      host.querySelector('[data-health]').onclick=async()=>{try{const state=await getAgentHealth();if(token===generation)host.querySelector('[data-health-result]').textContent=JSON.stringify(state,null,2);}catch(error){if(token===generation)message(error.message);}};
+      host.querySelector('[data-refresh]').onclick=()=>draw();
+      host.querySelectorAll('[data-analysis]').forEach(b=>b.onclick=()=>open(b.dataset.analysis));
+      host.querySelector('[data-ai-form]').onsubmit=async e=>{
+        e.preventDefault();if(busy)return;busy=true;const button=e.target.querySelector('button');button.disabled=true;
+        const form=new FormData(e.target),requestKey=crypto.randomUUID();
+        defaults.start=form.get('start');defaults.end=form.get('end');
+        try{
+          const result=await createBusinessAnalysis({requestKey,title:form.get('title'),dateRangeStart:timestamp(defaults.start),dateRangeEnd:timestamp(defaults.end)+DAY,
+            businessScope:{source:form.get('source').trim()||'all'},focusGoal:form.get('goal'),userQuestion:form.get('question'),modelMode:form.get('modelMode')});
+          if(token!==generation)return;
+          selected=result.analysisId;await draw();
+        }catch(error){if(token===generation)message(error.message);}
+        finally{busy=false;if(button.isConnected)button.disabled=false;const current=$('#as-output')?.querySelector('[data-ai-form] button');if(current)current.disabled=false;}
       };
-    });
+      if(selected)await open(selected);
+    }catch(error){if(token===generation)host.innerHTML=`<section class="a-card"><p>${esc(error.message)}</p><button class="a-button" data-retry>重新加载</button></section>`;host.querySelector('[data-retry]')?.addEventListener('click',draw);}
   }
-
-  /**
-   * 运行异常检测
-   */
-  async function runAnomalyDetection() {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const date = yesterday.toISOString().split('T')[0];
-
-    const confirmed = confirm(`运行异常检测？\n\n日期：${date}\n指标：活跃用户、新用户、回访用户`);
-    if (!confirmed) return;
-
-    try {
-      const result = await createAnomalyDetection({
-        date,
-        metrics: ['active_users', 'new_users', 'returning_users'],
-        threshold: 15
+  async function open(id){
+    selected=id;clearTimeout(timer);const token=generation;
+    try{
+      const r=await getAnalysisDetail(id);if(token!==generation||selected!==id)return;
+      const panel=$('#as-output').querySelector('[data-detail]');if(!panel)return;
+      panel.innerHTML=`<h2>${esc(r.title)} · ${esc(label(r.status))}</h2>
+      ${r.error_message?`<p role="alert">${esc(r.error_message)}</p>`:''}
+      ${r.status==='failed'?'<button class="a-button" data-retry-analysis>重试分析</button>':''}
+      <p>${esc(r.result?.summary||'任务已排队；请确认 AI Worker 正在运行。')}</p>
+      ${(r.result?.keyFindings||[]).map(f=>`<p>${esc(f)}</p>`).join('')}
+      ${r.result?.routing?`<p>调查方式：${esc(r.result.routing.reason)}</p>`:''}
+      ${(r.result?.evidenceIds||[]).map(eid=>`<button class="a-button" data-evidence="${esc(eid)}">查看证据 ${esc(eid.slice(0,8))}</button>`).join('')}<pre data-evidence-result></pre>
+      ${(r.suggestions||[]).map(s=>`<article class="ai-suggestion"><h3>${esc(s.priority)} · ${esc(s.business_problem)}</h3><p>${esc(s.action)}</p><p>排序依据：${esc(s.priority_reason)}</p><p>假设：${esc(s.hypothesis)}</p><p>不确定性：${esc((s.uncertainties||[]).join('；'))}</p>
+        <details><summary>数据证据与验证条件</summary><pre>${json({evidence:s.data_evidence,scope:s.applicable_scope,validation:s.validation_metrics,review:s.review_conditions,impact:s.expected_impact,basis:s.impact_basis})}</pre></details>
+        <p>状态：${esc(label(s.user_status))}</p><form data-suggestion="${esc(s.id)}">
+        <label>实际行动 / 拒绝原因<textarea name="note" maxlength="5000">${esc(s.actual_action||s.rejection_reason||'')}</textarea></label>
+        <label>实际执行时间（UTC+7）<input name="executedAt" type="datetime-local" value="${s.executed_at?new Date(Number(s.executed_at)+OFFSET).toISOString().slice(0,16):''}"></label>
+        <button class="a-button" name="status" value="adopted">采纳</button><button class="a-button" name="status" value="executed">记录已执行</button><button class="a-button" name="status" value="rejected">拒绝</button></form>
+        ${s.user_status==='executed'?`<button class="a-button" data-review="${esc(s.id)}">复盘执行效果</button>`:''}</article>`).join('')}
+      <details><summary>业务快照、目标优先级及模型调用记录</summary><pre>${json({snapshot:r.data_snapshot,calls:r.result?.calls})}</pre></details>`;
+      panel.querySelectorAll('[data-evidence]').forEach(button=>button.onclick=async()=>{try{const evidence=await getEvidence(button.dataset.evidence);if(token===generation&&selected===id)panel.querySelector('[data-evidence-result]').textContent=JSON.stringify(evidence,null,2);}catch(error){message(error.message);}});
+      panel.querySelector('[data-retry-analysis]')?.addEventListener('click',async()=>{if(busy)return;busy=true;try{await retryAnalysis(id);if(token===generation)await open(id);}catch(error){message(error.message);}finally{busy=false;}});
+      panel.querySelectorAll('[data-suggestion]').forEach(form=>form.onsubmit=async e=>{
+        e.preventDefault();if(busy)return;busy=true;
+        const data=new FormData(form),state=e.submitter.value,note=data.get('note'),at=data.get('executedAt');
+        try{await updateSuggestionStatus(form.dataset.suggestion,{userStatus:state,actualAction:state==='executed'?note:undefined,rejectionReason:state==='rejected'?note:undefined,executedAt:state==='executed'&&at?Date.parse(at+':00+07:00'):undefined});if(token===generation)await open(id);}
+        catch(error){message(error.message);}finally{busy=false;}
       });
-
-      showJobProgress(result.jobId, '异常检测');
-    } catch (error) {
-      alert(`创建任务失败：${error.message}`);
-    }
-  }
-
-  /**
-   * 运行每日简报
-   */
-  async function runDailyReport() {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const date = yesterday.toISOString().split('T')[0];
-
-    const confirmed = confirm(`生成每日简报？\n\n日期：${date}`);
-    if (!confirmed) return;
-
-    try {
-      const result = await createDailyReport({
-        date,
-        metrics: ['active_users', 'new_users', 'returning_users', 'engagement_rate']
+      panel.querySelectorAll('[data-review]').forEach(button=>button.onclick=async()=>{
+        if(busy)return;busy=true;button.disabled=true;
+        try{const result=await createRetrospective(button.dataset.review,crypto.randomUUID());if(token!==generation)return;message('复盘已启动，任务完成后刷新记录。');pollReview(result.jobId,token);}
+        catch(error){message(error.message);}finally{busy=false;if(button.isConnected)button.disabled=false;}
       });
-
-      showJobProgress(result.jobId, '每日简报');
-    } catch (error) {
-      alert(`创建任务失败：${error.message}`);
-    }
+      if(['pending','processing'].includes(r.status)&&!polling)timer=setTimeout(()=>open(id),3000);
+    }catch(error){if(token===generation)message(error.message);}
   }
-
-  /**
-   * 显示任务进度
-   */
-  function showJobProgress(jobId, taskName) {
-    const activeJobsSection = $('#active-jobs');
-    const progressCard = document.createElement('div');
-    progressCard.className = 'ai-job-progress';
-    progressCard.dataset.jobId = jobId;
-    progressCard.innerHTML = `
-      <div class="progress-header">
-        <strong>${esc(taskName)}</strong>
-        ${getStatusBadge('active')}
-      </div>
-      <div class="progress-bar-container">
-        <div class="progress-bar" style="width: 0%"></div>
-      </div>
-      <div class="progress-info">
-        <span class="progress-step">初始化中...</span>
-        <span class="progress-percent">0%</span>
-      </div>
-    `;
-
-    activeJobsSection.appendChild(progressCard);
-
-    // 初始化 WebSocket（如果可用）
-    initWebSocket();
-
-    // 注册进度监听
-    onJobProgress(jobId, (progress, data) => {
-      updateProgress(progressCard, progress, data);
-    });
-
-    // 开始轮询
-    pollJobStatus(jobId, (progress, status) => {
-      updateProgress(progressCard, progress, status);
-
-      // 任务完成
-      if (status.state === 'completed' || status.state === 'failed') {
-        setTimeout(() => {
-          progressCard.remove();
-          draw(); // 刷新列表
-        }, 3000);
-      }
-    }).catch(error => {
-      progressCard.innerHTML = `
-        <div class="progress-header">
-          <strong>${esc(taskName)}</strong>
-          ${getStatusBadge('failed')}
-        </div>
-        <div class="progress-error">${esc(error.message)}</div>
-      `;
-      setTimeout(() => progressCard.remove(), 5000);
-    });
+  async function pollReview(id,token){
+    polling=true;
+    try{const job=await getJobStatus(id);if(token!==generation)return;
+      if(job.state==='completed'){polling=false;await draw();return;}
+      if(job.state==='failed')throw Error(job.error||'复盘失败');
+      message(`复盘进度 ${job.progress||0}%`);timer=setTimeout(()=>pollReview(id,token),3000);
+    }catch(error){polling=false;if(token===generation)message(error.message);}
   }
-
-  /**
-   * 更新进度显示
-   */
-  function updateProgress(card, progress, data) {
-    const bar = card.querySelector('.progress-bar');
-    const step = card.querySelector('.progress-step');
-    const percent = card.querySelector('.progress-percent');
-
-    if (bar) {
-      bar.style.width = `${progress}%`;
-    }
-
-    if (percent) {
-      percent.textContent = `${Math.round(progress)}%`;
-    }
-
-    if (step && data?.step) {
-      step.textContent = data.step;
-    }
-  }
-
-  /**
-   * 查看任务详情
-   */
-  async function viewJobDetails(jobId) {
-    try {
-      const status = await getJobStatus(jobId);
-
-      const details = JSON.stringify(status.result || status.returnvalue, null, 2);
-
-      ctx.drawer?.open({
-        title: `任务详情 - ${jobId}`,
-        content: `
-          <div class="job-details">
-            <div class="detail-section">
-              <h3>基本信息</h3>
-              <table class="si-table">
-                <tr><td>任务 ID</td><td>${esc(jobId)}</td></tr>
-                <tr><td>任务类型</td><td>${getJobTypeName(status.name)}</td></tr>
-                <tr><td>状态</td><td>${getStatusBadge(status.state)}</td></tr>
-                <tr><td>创建时间</td><td>${formatTimestamp(status.timestamp)}</td></tr>
-                <tr><td>完成时间</td><td>${formatTimestamp(status.finishedOn)}</td></tr>
-              </table>
-            </div>
-            <div class="detail-section">
-              <h3>执行结果</h3>
-              <pre class="code-block">${esc(details)}</pre>
-            </div>
-          </div>
-        `
-      });
-    } catch (error) {
-      alert(`获取详情失败：${error.message}`);
-    }
-  }
-
-  // 初始化
-  draw();
-
-  return {
-    draw,
-    cleanup: () => {
-      request++;
-      if (ws) {
-        ws.close();
-        ws = null;
-      }
-      jobProgressListeners = {};
-    }
-  };
+  return {draw,dispose};
 }
-

@@ -21,9 +21,9 @@ router.get('/models', requireAuth, async (req, res) => {
     res.json({
       models,
       currentModel: config.defaultModel,
+      complexModel: config.defaultModel,
       providers: {
-        openai: !!config.openai.apiKey,
-        anthropic: !!config.anthropic.apiKey
+        openai: !!config.openai.apiKey
       }
     });
   } catch (error) {
@@ -36,7 +36,7 @@ router.get('/models', requireAuth, async (req, res) => {
  */
 router.get('/usage/today', requireAuth, async (req, res) => {
   try {
-    const stats = await costTracker.getTodayStats();
+    const stats = await costTracker.getTodayStats(req.user.user_id);
 
     const summary = {
       totalCalls: 0,
@@ -77,7 +77,7 @@ router.get('/usage/history', requireAuth, async (req, res) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - parseInt(days));
 
-    const stats = await costTracker.getStats(startDate, endDate);
+    const stats = await costTracker.getStats(startDate, endDate, req.user.user_id);
 
     res.json({
       startDate,
@@ -100,7 +100,7 @@ router.get('/usage/compare', requireAuth, async (req, res) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - parseInt(days));
 
-    const comparison = await costTracker.compareModels(startDate, endDate);
+    const comparison = await costTracker.compareModels(startDate, endDate, req.user.user_id);
 
     res.json({
       startDate,

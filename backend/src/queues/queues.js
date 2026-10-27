@@ -33,7 +33,7 @@ const queues = {};
 /**
  * AI 分析队列
  */
-queues.aiAnalysis = new Bull('ai-analysis', QUEUE_OPTIONS);
+queues.aiAnalysis = new Bull('ai-analysis', {...QUEUE_OPTIONS,settings:{...QUEUE_OPTIONS.settings,maxStalledCount:0}});
 
 /**
  * 数据处理队列

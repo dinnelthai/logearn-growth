@@ -1,0 +1,56 @@
+const {randomUUID}=require('node:crypto'),db=require('../db/connection'),{CURRENCIES,parseAmount,costTotals,amountText}=require('../analytics/collaborationCosts'),{activities,costs,financials,collaborationReview}=require('../data/collaborationReview')
+module.exports=function mount(router,{getKol,wrap}){
+ const fail=(message,status=400)=>{throw Object.assign(new Error(message),{status})},owner=req=>String(req.user.user_id)
+ const get=(req)=>{getKol(req.params.id,owner(req));const c=db.prepare('SELECT * FROM crm_collaborations WHERE id=? AND kol_id=? AND owner_id=?').get(req.params.collabId,req.params.id,owner(req));if(!c)fail('合作批次不存在',404);return c}
+ const check=(req,c)=>{if(req.body.expected_revision!==c.revision)fail('合作记录已更新，请刷新后重试',409)}
+ const editable=c=>{if(['completed','cancelled'].includes(c.status))fail('已完成或取消的合作需先重新打开再修改投入和活动',409)}
+ const tx=fn=>{db.exec('BEGIN');try{const result=fn();db.exec('COMMIT');return result}catch(e){db.exec('ROLLBACK');throw e}}
+ function record(c,summary,before,after){db.prepare('INSERT INTO crm_collaboration_history VALUES(?,?,?,?,?,?)').run('ch_'+randomUUID(),c.id,summary,before==null?null:JSON.stringify(before),JSON.stringify(after),Date.now())}
+ function touch(c){const r=db.prepare('UPDATE crm_collaborations SET revision=revision+1,updated_at=? WHERE id=? AND owner_id=? AND revision=?').run(Math.max(Date.now(),c.updated_at+1),c.id,c.owner_id,c.revision);if(!r.changes)fail('合作记录已更新，请刷新后重试',409)}
+ function validate(body,current={}){const v={};for(const [key,max]of Object.entries({name:80,goal:1000,deliverables:2000,assignee:80,review:4000,status:20})){const x=body[key]??current[key]??(key==='status'?'planned':'');if(typeof x!=='string'||x.length>max)fail('合作字段长度或格式无效');v[key]=x.trim()}
+  v.start_at=body.start_at??current.start_at;v.end_at=body.end_at??current.end_at
+  if(!v.name||!['planned','active','completed','cancelled'].includes(v.status)||![v.start_at,v.end_at].every(x=>Number.isSafeInteger(x)&&x>=0&&x<=4102444800000)||v.end_at<=v.start_at||v.end_at-v.start_at>366*86400000)fail('请填写名称、有效状态与最长366天的合作周期')
+  return v
+ }
+ function cost(body,current={}){const v={};for(const [k,max]of Object.entries({category:20,currency:8,state:20,description:1000})){const value=body[k]??current[k]??'';if(typeof value!=='string'||value.length>max)fail('成本字段格式或长度无效');v[k]=value.trim()}
+  if(!['content','service','reward','other'].includes(v.category)||!['planned','actual','void'].includes(v.state)||!v.description)fail('请填写成本类别、状态和说明')
+  v.amount_minor=parseAmount(body.amount,v.currency);v.occurred_at=body.occurred_at??current.occurred_at
+  if(!Number.isSafeInteger(v.occurred_at)||v.occurred_at<0||v.occurred_at>4102444800000)fail('成本日期无效');return v
+ }
+ router.get('/:id/collaborations',wrap((req,res)=>{getKol(req.params.id,owner(req));const rows=db.prepare('SELECT * FROM crm_collaborations WHERE kol_id=? AND owner_id=? ORDER BY created_at DESC,id').all(req.params.id,owner(req));res.json({collaborations:rows.map(c=>({...c,cost_totals:costTotals(costs(c))})),currencies:CURRENCIES})}))
+ router.post('/:id/collaborations',wrap((req,res)=>{getKol(req.params.id,owner(req));const v=validate(req.body);if(['completed','cancelled'].includes(v.status))fail('请先创建计划中或进行中的合作，再记录结果');const id='collab_'+randomUUID(),at=Date.now();tx(()=>{db.prepare('INSERT INTO crm_collaborations(id,kol_id,owner_id,name,start_at,end_at,goal,deliverables,assignee,status,review,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').run(id,req.params.id,owner(req),v.name,v.start_at,v.end_at,v.goal,v.deliverables,v.assignee,v.status,v.review,at,at);record({id},'创建合作批次',null,v)});res.status(201).json({collaboration:db.prepare('SELECT * FROM crm_collaborations WHERE id=?').get(id)})}))
+ router.get('/:id/collaborations/:collabId',wrap((req,res)=>{const c=get(req);res.json({...financials(c),collaboration:c,activities:activities(c).map(({settled_result,...a})=>a),costs:costs(c),cost_totals:costTotals(costs(c)),currencies:CURRENCIES,reports:db.prepare('SELECT id,version,created_at FROM crm_collaboration_reports WHERE collaboration_id=? ORDER BY version DESC').all(c.id),history:db.prepare('SELECT id,summary,created_at,before_json,after_json FROM crm_collaboration_history WHERE collaboration_id=? ORDER BY created_at DESC,id DESC LIMIT 200').all(c.id).map(h=>{const decode=text=>{if(!text)return null;const v=JSON.parse(text);if(v.currency&&Number.isSafeInteger(v.amount_minor))v.amount=v.currency+' '+amountText(v.amount_minor,v.currency);return v};return {id:h.id,summary:h.summary,created_at:h.created_at,before:decode(h.before_json),after:decode(h.after_json)}})})}))
+ router.patch('/:id/collaborations/:collabId',wrap(async(req,res)=>{
+  const c=get(req);check(req,c);const v=validate(req.body,c),complete=v.status==='completed'&&c.status!=='completed'
+  if(c.status==='completed'&&v.status==='completed')fail('请先重新打开合作，再修改冻结复盘',409)
+  if(complete&&!v.review)fail('完成合作前请填写复盘结果')
+  let report=null;if(complete){report=await collaborationReview({...c,...v});if(report.pending||report.available&&(!report.performance?.union||Object.values(report.errors||{}).some(Boolean)))fail('表现数据尚未完整取得，无法冻结复盘，请稍后重试',503)}
+  tx(()=>{touch(c);db.prepare('UPDATE crm_collaborations SET name=?,start_at=?,end_at=?,goal=?,deliverables=?,assignee=?,status=?,review=? WHERE id=?').run(v.name,v.start_at,v.end_at,v.goal,v.deliverables,v.assignee,v.status,v.review,c.id)
+   if(report){const version=db.prepare('SELECT COALESCE(MAX(version),0)+1 AS n FROM crm_collaboration_reports WHERE collaboration_id=?').get(c.id).n;report.collaboration={...c,...v,revision:c.revision+1};db.prepare('INSERT INTO crm_collaboration_reports VALUES(?,?,?,?,?)').run('cr_'+randomUUID(),c.id,version,JSON.stringify(report),Date.now())}
+   record(c,complete?'完成合作并保存复盘版本':c.status==='completed'?'重新打开合作，保留原复盘版本':'更新合作配置与复盘',c,v)
+  });res.json({collaboration:get(req)})
+ }))
+ router.post('/:id/collaborations/:collabId/activities',wrap((req,res)=>{const c=get(req);check(req,c);editable(c);const activityId=req.body.activity_id;if(typeof activityId!=='string'||!db.prepare('SELECT id FROM growth_activities WHERE id=? AND owner_id=?').get(activityId,owner(req)))fail('活动不存在',404)
+  if(!db.prepare('SELECT 1 FROM crm_collaboration_activities WHERE collaboration_id=? AND activity_id=?').get(c.id,activityId)&&db.prepare('SELECT COUNT(*) AS n FROM crm_collaboration_activities WHERE collaboration_id=?').get(c.id).n>=50)fail('每个合作批次最多关联50个活动',422)
+  tx(()=>{touch(c);db.prepare('INSERT OR IGNORE INTO crm_collaboration_activities VALUES(?,?,?)').run(c.id,activityId,Date.now());db.prepare('INSERT OR IGNORE INTO crm_activity_links VALUES(?,?,?)').run(c.kol_id,activityId,Date.now());record(c,'关联合作活动',null,{activity_id:activityId})});res.json({ok:true})
+ }))
+ router.delete('/:id/collaborations/:collabId/activities/:activityId',wrap((req,res)=>{const c=get(req);check(req,c);editable(c);tx(()=>{touch(c);db.prepare('DELETE FROM crm_collaboration_activities WHERE collaboration_id=? AND activity_id=?').run(c.id,req.params.activityId);record(c,'移除合作活动关联',{activity_id:req.params.activityId},{removed:true})});res.json({ok:true})}))
+ router.post('/:id/collaborations/:collabId/costs',wrap((req,res)=>{const c=get(req);check(req,c);editable(c);if(db.prepare('SELECT COUNT(*) AS n FROM crm_collaboration_costs WHERE collaboration_id=?').get(c.id).n>=500)fail('每个合作批次最多500条成本记录',422);const v=cost(req.body),id='cost_'+randomUUID(),at=Date.now();tx(()=>{touch(c);db.prepare('INSERT INTO crm_collaboration_costs VALUES(?,?,?,?,?,?,?,?,?,?)').run(id,c.id,v.category,v.currency,v.amount_minor,v.state,v.description,v.occurred_at,at,at);record(c,'登记成本 · '+v.currency+' '+req.body.amount,null,v)});res.status(201).json({ok:true,id})}))
+ router.patch('/:id/collaborations/:collabId/costs/:costId',wrap((req,res)=>{const c=get(req);check(req,c);editable(c);const old=db.prepare('SELECT * FROM crm_collaboration_costs WHERE id=? AND collaboration_id=?').get(req.params.costId,c.id);if(!old)fail('成本记录不存在',404);const v=cost(req.body,old);tx(()=>{touch(c);db.prepare('UPDATE crm_collaboration_costs SET category=?,currency=?,amount_minor=?,state=?,description=?,occurred_at=?,updated_at=? WHERE id=? AND collaboration_id=?').run(v.category,v.currency,v.amount_minor,v.state,v.description,v.occurred_at,Date.now(),old.id,c.id);record(c,v.state==='void'?'作废成本记录':'修订成本记录',old,v)});res.json({ok:true})}))
+ router.post('/:id/collaborations/:collabId/revenues',wrap((req,res)=>saveRevenue(req,res)))
+ router.patch('/:id/collaborations/:collabId/revenues/:revenueId',wrap((req,res)=>saveRevenue(req,res)))
+ function saveRevenue(req,res){
+  const c=get(req);check(req,c);editable(c)
+  const old=req.params.revenueId?db.prepare('SELECT * FROM crm_collaboration_revenue WHERE id=? AND collaboration_id=?').get(req.params.revenueId,c.id):null
+  if(req.params.revenueId&&!old)fail('收益记录不存在',404)
+  if(!old&&db.prepare('SELECT COUNT(*) AS n FROM crm_collaboration_revenue WHERE collaboration_id=?').get(c.id).n>=500)fail('收益账本最多500条',422)
+  const b={...old,...req.body},v={currency:b.currency,amount_minor:parseAmount(b.amount,b.currency),kind:b.kind,state:b.state,reference:b.reference,description:b.description,occurred_at:b.occurred_at}
+  if(!['income','refund'].includes(v.kind)||!['received','void'].includes(v.state)||typeof v.reference!=='string'||!v.reference.trim()||v.reference.length>200||typeof v.description!=='string'||!v.description.trim()||v.description.length>1000||!Number.isSafeInteger(v.occurred_at)||v.occurred_at<0||v.occurred_at>Date.now()+60000)fail('请填写实收/退款金额、凭证编号、说明和已发生日期')
+  v.reference=v.reference.trim();const duplicate=db.prepare('SELECT id FROM crm_collaboration_revenue WHERE collaboration_id=? AND reference=?').get(c.id,v.reference);if(duplicate&&duplicate.id!==old?.id)fail('凭证编号重复，请修订原流水',409)
+  const id=old?.id||'rev_'+randomUUID(),at=Date.now()
+  tx(()=>{touch(c);if(old)db.prepare('UPDATE crm_collaboration_revenue SET currency=?,amount_minor=?,kind=?,state=?,reference=?,description=?,occurred_at=?,updated_at=? WHERE id=? AND collaboration_id=?').run(...Object.values(v),at,id,c.id);else db.prepare('INSERT INTO crm_collaboration_revenue VALUES(?,?,?,?,?,?,?,?,?,?,?)').run(id,c.id,...Object.values(v),at,at);record(c,v.state==='void'?'作废收益流水':old?'修订收益流水':'登记实收 / 退款',old,v)})
+  res.status(old?200:201).json({ok:true,id})
+ }
+ router.get('/:id/collaborations/:collabId/reports/:version',wrap((req,res)=>{const c=get(req),version=Number(req.params.version);if(!Number.isInteger(version)||version<1)fail('复盘版本无效');const r=db.prepare('SELECT * FROM crm_collaboration_reports WHERE collaboration_id=? AND version=?').get(c.id,version);if(!r)fail('复盘版本不存在',404);res.json({version:r.version,created_at:r.created_at,report:JSON.parse(r.report_json)})}))
+ router.get('/:id/collaborations/:collabId/review',wrap(async(req,res)=>{const c=get(req);if(c.status==='completed'){const saved=db.prepare('SELECT * FROM crm_collaboration_reports WHERE collaboration_id=? ORDER BY version DESC LIMIT 1').get(c.id);if(saved)return res.json({...JSON.parse(saved.report_json),frozen:true,version:saved.version,frozen_at:saved.created_at})}const report=await collaborationReview(c);if(get(req).revision!==c.revision)fail('计算期间合作记录已更新，请刷新',409);res.json({...report,frozen:false})}))
+}

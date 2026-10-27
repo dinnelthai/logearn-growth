@@ -13,6 +13,10 @@ function generateHash(prompt, model, options = {}) {
     prompt: typeof prompt === 'string' ? prompt : JSON.stringify(prompt),
     model,
     temperature: options.temperature,
+    cacheScope: options.cacheScope,
+    endpoint: options.endpoint,
+    tools: options.tools,
+    responseFormat: options.responseFormat,
     maxTokens: options.maxTokens
   });
 

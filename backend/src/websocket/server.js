@@ -43,7 +43,7 @@ function createServer(httpServer) {
       }
 
       // Verify JWT token
-      const user = await verifyToken(token);
+      const user = await verifyToken(token, socket.request);
       socket.user = user;
 
       logger.info(`[WebSocket] Auth success: user ${user.id}`);
@@ -81,17 +81,12 @@ function createServer(httpServer) {
 }
 
 /**
- * Verify JWT token (simplified version - use your actual auth logic)
+ * Verify JWT token
  */
-async function verifyToken(token) {
-  // TODO: Implement actual JWT verification using your auth middleware
-  // For now, return a mock user to allow development
-
-  // In production, use:
-  // const { verifyToken } = require('../middleware/requireAuth');
-  // return await verifyToken(token);
-
-  return { id: 'user-123', name: 'Test User' };
+async function verifyToken(token, req) {
+  const user = require('../middleware/sessionUser')(token, req);
+  if (!user) throw new Error('Authentication failed');
+  return {...user, id: user.user_id};
 }
 
 /**
@@ -103,8 +98,12 @@ function setupEventHandlers(socket) {
   const alerts = require('./handlers/alerts');
 
   // Subscribe to job progress
-  socket.on('subscribe:job', (jobId) => {
-    jobProgress.subscribe(socket, jobId);
+  socket.on('subscribe:job', async (jobId) => {
+    try {
+      const status = await require('../queues/queues').getJobStatus('aiAnalysis', String(jobId));
+      if (status.data?.ownerId !== socket.user.id) return socket.emit('error', {message: 'Access denied'});
+      jobProgress.subscribe(socket, jobId);
+    } catch { socket.emit('error', {message: 'Job unavailable'}); }
   });
 
   socket.on('unsubscribe:job', (jobId) => {
@@ -113,7 +112,7 @@ function setupEventHandlers(socket) {
 
   // Subscribe to LLM streaming
   socket.on('subscribe:llm-stream', (streamId) => {
-    llmStream.subscribe(socket, streamId);
+    socket.emit('error', {message: '请使用已认证任务状态接口获取分析结果'});
   });
 
   // Subscribe to alerts

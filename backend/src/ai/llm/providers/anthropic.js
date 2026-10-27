@@ -8,8 +8,11 @@ const logger = require('../../../utils/logger');
 class AnthropicProvider {
   constructor(config) {
     this.client = new Anthropic({
-      apiKey: config.apiKey,
-      baseURL: config.baseURL
+      apiKey: config.authToken ? null : config.apiKey,
+      authToken: config.authToken || null,
+      baseURL: config.baseURL,
+      timeout: Number(process.env.AI_TIMEOUT || 120000),
+      maxRetries: 0
     });
   }
 
@@ -19,7 +22,8 @@ class AnthropicProvider {
   async chat(options) {
     const params = {
       model: options.model,
-      messages: this.convertMessages(options.messages),
+      messages: this.convertMessages(options.messages.filter(m => m.role !== 'system')),
+      system: options.messages.filter(m => m.role === 'system').map(m => m.content).join('\n'),
       temperature: options.temperature,
       max_tokens: options.maxTokens || 4096,
       stream: options.stream
@@ -77,13 +81,13 @@ class AnthropicProvider {
    * 标准化响应格式
    */
   normalizeResponse(response) {
-    const content = response.content[0];
+    const content = response.content.find(c => c.type === 'text') || response.content[0];
 
     let textContent = '';
     let toolCalls = null;
 
     if (content.type === 'text') {
-      textContent = content.text;
+      textContent = response.content.filter(c => c.type === 'text').map(c => c.text).join('\n');
     } else if (content.type === 'tool_use') {
       toolCalls = [{
         id: content.id,

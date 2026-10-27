@@ -149,84 +149,8 @@ CREATE TABLE IF NOT EXISTS trades_meta (
   value TEXT NOT NULL
 );
 
--- AI 使用日志 (成本追踪)
-CREATE TABLE IF NOT EXISTS ai_usage_logs (
-  id             SERIAL PRIMARY KEY,
-  model          TEXT NOT NULL,
-  provider       TEXT NOT NULL,
-  input_tokens   INTEGER NOT NULL,
-  output_tokens  INTEGER NOT NULL,
-  total_tokens   INTEGER NOT NULL,
-  cost           DECIMAL(10, 6) NOT NULL,
-  duration       INTEGER NOT NULL,
-  created_at     TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_ai_usage_logs_created ON ai_usage_logs(created_at);
-CREATE INDEX IF NOT EXISTS idx_ai_usage_logs_model ON ai_usage_logs(model);
-
--- AI 每日发现 (异常检测结果)
-CREATE TABLE IF NOT EXISTS ai_findings (
-  id               SERIAL PRIMARY KEY,
-  date             DATE NOT NULL,
-  metric           TEXT NOT NULL,
-  change_percent   DECIMAL(10, 2) NOT NULL,
-  current_value    DECIMAL(20, 2),
-  previous_value   DECIMAL(20, 2),
-  anomaly_score    DECIMAL(10, 4),
-  status           TEXT NOT NULL DEFAULT 'new',
-  evidence         JSONB,
-  created_at       TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at       TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_ai_findings_date ON ai_findings(date);
-CREATE INDEX IF NOT EXISTS idx_ai_findings_status ON ai_findings(status);
-
--- AI 调查记录 (维度拆解)
-CREATE TABLE IF NOT EXISTS ai_investigations (
-  id               SERIAL PRIMARY KEY,
-  finding_id       INTEGER NOT NULL REFERENCES ai_findings(id) ON DELETE CASCADE,
-  dimension        TEXT NOT NULL,
-  breakdown        JSONB NOT NULL,
-  insights         TEXT,
-  created_at       TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_ai_investigations_finding ON ai_investigations(finding_id);
-
--- AI 建议 (增长建议)
-CREATE TABLE IF NOT EXISTS ai_suggestions (
-  id               SERIAL PRIMARY KEY,
-  finding_id       INTEGER NOT NULL REFERENCES ai_findings(id) ON DELETE CASCADE,
-  hypothesis       TEXT NOT NULL,
-  action           TEXT NOT NULL,
-  priority         TEXT NOT NULL,
-  expected_impact  TEXT,
-  status           TEXT NOT NULL DEFAULT 'pending',
-  executed_at      TIMESTAMP,
-  result           TEXT,
-  created_at       TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at       TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_ai_suggestions_finding ON ai_suggestions(finding_id);
-CREATE INDEX IF NOT EXISTS idx_ai_suggestions_status ON ai_suggestions(status);
-
--- AI 追踪记录 (效果复查)
-CREATE TABLE IF NOT EXISTS ai_tracking (
-  id               SERIAL PRIMARY KEY,
-  suggestion_id    INTEGER NOT NULL REFERENCES ai_suggestions(id) ON DELETE CASCADE,
-  check_date       DATE NOT NULL,
-  metric_value     DECIMAL(20, 2),
-  is_resolved      BOOLEAN NOT NULL DEFAULT false,
-  notes            TEXT,
-  created_at       TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_ai_tracking_suggestion ON ai_tracking(suggestion_id);
-CREATE INDEX IF NOT EXISTS idx_ai_tracking_check_date ON ai_tracking(check_date
-);
+-- AI 表定义已移至 migrations/001_ai_tables.sql
+-- 请运行迁移脚本来创建 AI 相关表
 
 -- ── Scale path (P2-04): first-touch facts + daily rollups ────────────────────
 -- user_facts holds all-time firsts so metrics can classify new vs returning
@@ -563,3 +487,27 @@ CREATE TABLE IF NOT EXISTS growth_activity_delivery_evidence (
  FOREIGN KEY(activity_id,user_id) REFERENCES growth_activity_assignments(activity_id,user_id)
 );
 CREATE INDEX IF NOT EXISTS idx_activity_delivery_evidence ON growth_activity_delivery_evidence(activity_id,occurred_at,recorded_at);
+
+-- Human-readable business reports and operator actions are independent of AI storage.
+CREATE TABLE IF NOT EXISTS business_analysis_reports (
+ id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, title TEXT NOT NULL,
+ report_json TEXT NOT NULL, created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS business_reports_owner ON business_analysis_reports(owner_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS business_analysis_actions (
+ id TEXT PRIMARY KEY, report_id TEXT NOT NULL REFERENCES business_analysis_reports(id),
+ owner_id TEXT NOT NULL, candidate_id TEXT NOT NULL, title TEXT NOT NULL,
+ priority TEXT NOT NULL CHECK(priority IN ('P0','P1','P2')),
+ status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','executing','executed','rejected')),
+ note TEXT NOT NULL DEFAULT '', executed_at INTEGER, review_json TEXT,
+ created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS business_actions_owner ON business_analysis_actions(owner_id,report_id,updated_at DESC);
+CREATE TABLE IF NOT EXISTS agent_goals (owner_id TEXT NOT NULL,id TEXT NOT NULL,version INTEGER NOT NULL,body TEXT NOT NULL,PRIMARY KEY(owner_id,id,version));
+CREATE TABLE IF NOT EXISTS agent_run_goals (owner_id TEXT NOT NULL,run_id TEXT NOT NULL,goal_id TEXT NOT NULL,goal_version INTEGER NOT NULL,PRIMARY KEY(owner_id,run_id),FOREIGN KEY(owner_id,goal_id,goal_version) REFERENCES agent_goals(owner_id,id,version));
+CREATE TABLE IF NOT EXISTS agent_changes (owner_id TEXT NOT NULL,id TEXT NOT NULL,body TEXT NOT NULL,PRIMARY KEY(owner_id,id));
+CREATE TABLE IF NOT EXISTS agent_evidence (id TEXT PRIMARY KEY,owner_id TEXT NOT NULL,body TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_agent_evidence_owner ON agent_evidence(owner_id);
+CREATE TABLE IF NOT EXISTS agent_prompts(hash TEXT PRIMARY KEY,role TEXT NOT NULL,content TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS agent_calls(owner_id TEXT NOT NULL,run_id TEXT NOT NULL,trace_id TEXT NOT NULL,round INTEGER NOT NULL,status TEXT NOT NULL,prompts TEXT NOT NULL,result TEXT,started_at INTEGER NOT NULL,finished_at INTEGER,PRIMARY KEY(owner_id,trace_id,round));
+CREATE INDEX IF NOT EXISTS idx_agent_calls_run ON agent_calls(owner_id,run_id,status);

@@ -41,7 +41,7 @@ router.post('/ai-analysis', async (req, res) => {
 
     const job = await addAIAnalysisJob(type, {
       ...data,
-      userId: req.user?.id
+      userId: req.user?.user_id
     }, {
       priority: priority || 1
     });
@@ -65,16 +65,25 @@ router.post('/ai-analysis', async (req, res) => {
  * 获取任务状态
  *
  * GET /api/queue/jobs/:queueName/:jobId
+ * 注意：此接口已废弃，建议使用新的 /api/ai-analysis/:id 接口
  */
 router.get('/jobs/:queueName/:jobId', async (req, res) => {
   try {
     const { queueName, jobId } = req.params;
+    const userId = req.user?.user_id;
 
     const status = await getJobStatus(queueName, jobId);
 
     if (!status.exists) {
       return res.status(404).json({
         error: 'Job not found'
+      });
+    }
+
+    // 用户隔离检查：验证任务所有者
+    if (!userId || status.data?.ownerId !== userId) {
+      return res.status(403).json({
+        error: 'Access denied: you do not own this job'
       });
     }
 
@@ -249,7 +258,7 @@ router.get('/:queueName/jobs', async (req, res) => {
         });
     }
 
-    const jobData = jobs.map(job => ({
+    const jobData = jobs.filter(job => job.data.ownerId === req.user?.user_id).map(job => ({
       id: job.id,
       name: job.name,
       data: job.data,
