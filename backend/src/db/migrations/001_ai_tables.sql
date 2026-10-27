@@ -530,3 +530,6 @@ CREATE TABLE IF NOT EXISTS ai_growth_autonomy_paid_allocations (
 );
 CREATE INDEX IF NOT EXISTS idx_growth_autonomy_paid_owner_day
  ON ai_growth_autonomy_paid_allocations(owner_id,bangkok_day);
+
+-- Bounded, no-paid-call retry for autonomous daily jobs; existing records remain at zero.
+ALTER TABLE ai_analysis_records ADD COLUMN IF NOT EXISTS autonomy_safe_retries INTEGER NOT NULL DEFAULT 0;
