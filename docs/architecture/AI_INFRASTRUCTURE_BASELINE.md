@@ -159,3 +159,11 @@ Accept a new component only when it:
 - The CI test suite was extended to include the restart simulation. **Both** latest push and PR workflows passed at commit `5e345353` (GitHub Actions runs `40504688281`, `40504696464`).
 - Local original uploaded backend ZIP AI baseline tests also passed **14/14**, but are **not** evidence of the PR branch; prefer the GitHub CI runs above.
 - Remaining limitations: SQLite reconnect is not a killed OS worker process or fully resumed investigation. No automatic runtime continuation was enabled. Source consistency, paid-call unknowns, and reconstructed transcript limits still apply. A true worker-kill end-to-end acceptance test and operational review remain required before enabling automatic resume.
+
+## Implementation checkpoint 12 — hard-killed child process (2026-10-27)
+
+- Added `backend/test/agentKilledWorker.test.js`, which spawns a genuine Node.js child process, creates a durable SQLite trace, acknowledges a successful write, then is terminated by the parent with `SIGKILL` while its database connection remains open.
+- A fresh Node.js parent process reads the same file after termination and verifies exact persisted received-response/tool-evidence contents, owner isolation and read-only transcript reconstruction.
+- The second scenario kills the child after a paid-call `started` journal entry, then verifies recovery is blocked and a new attempt cannot begin blindly. No real LLM calls or production resources are used.
+- Added this crash simulation to the GitHub Actions PR/push test suite. **Both GitHub checks succeeded** on commit `31e7b617`: push run `40505380107` and PR run `40505389095`.
+- **Scope:** this tests a hard-killed Node subprocess writing the same trace store as the AI runner. It is **not** the deployed Bull worker with Redis/Postgres/DeRouter, and does not implement automatic continuation. Keep `canAutoResume:false`; only a later complete multi-service E2E test can support enabling that feature.
