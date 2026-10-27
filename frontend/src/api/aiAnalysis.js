@@ -47,3 +47,17 @@ export const changeGrowthAlert=(id,expectedVersion,action,extra={})=>aiFetch(
     method:'POST',body:JSON.stringify({action,expectedVersion,...extra})
   });
 export const getGrowthAlertHistory=id=>aiFetch('/api/ai-analysis/growth-alerts/'+encodeURIComponent(id)+'/history');
+
+export const getGrowthBudget=()=>aiFetch('/api/ai-analysis/growth-budget');
+export const getGrowthInvestigations=()=>aiFetch('/api/ai-analysis/growth-investigations');
+export const decideGrowthInvestigation=(id,expectedVersion,action)=>aiFetch(
+  '/api/ai-analysis/growth-investigations/'+encodeURIComponent(id)+'/action',
+  {method:'POST',body:JSON.stringify({action,expectedVersion})}
+);
+export const getGrowthNotifications=(unreadOnly=false)=>aiFetch(
+  '/api/ai-analysis/growth-notifications'+(unreadOnly?'?unread=1':'')
+);
+export const markGrowthNotificationRead=id=>aiFetch(
+  '/api/ai-analysis/growth-notifications/'+encodeURIComponent(id)+'/read',
+  {method:'POST',body:'{}'}
+);
