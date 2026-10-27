@@ -1,0 +1,50 @@
+name: AI infrastructure checks
+
+on:
+  pull_request:
+    paths:
+      - 'backend/src/ai/**'
+      - 'backend/src/routes/aiAnalysis.js'
+      - 'backend/test/**'
+      - 'backend/package*.json'
+      - '.github/workflows/ai-infrastructure.yml'
+  push:
+    branches:
+      - 'chore/ai-infrastructure-baseline-20261027'
+    paths:
+      - 'backend/src/ai/**'
+      - 'backend/src/routes/aiAnalysis.js'
+      - 'backend/test/**'
+      - 'backend/package*.json'
+      - '.github/workflows/ai-infrastructure.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  ai-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Check JavaScript syntax
+        run: |
+          node --check src/ai/business/trace.js
+          node --check src/ai/business/runner.js
+          node --check src/ai/business/checkpointState.js
+          node --check src/ai/business/transcriptRecovery.js
+          node --check src/routes/aiAnalysis.js
+      - name: Run offline agent contract tests
+        env:
+          NODE_ENV: test
+        run: |
+          node --test             test/agentFollowupCheckpoint.test.js             test/agentFollowupRunner.test.js             test/agentTrace.test.js             test/agentResponseCheckpoint.test.js             test/agentInvestigationCheckpoint.test.js             test/checkpointState.test.js             test/transcriptRecovery.test.js             test/checkpointHttp.test.js             test/jobStatus.test.js             test/jobStatusHttp.test.js             test/retrySafety.test.js             test/retrySafetyHttp.test.js
