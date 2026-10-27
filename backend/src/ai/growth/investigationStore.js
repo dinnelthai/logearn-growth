@@ -59,7 +59,7 @@ function createInvestigationStore(query=(sql,args)=>pool.query(sql,args)){
    throw Error('调查审批操作无效');
   const status=action==='approve'?'approved':'dismissed';
   const result=await query(`UPDATE ai_growth_investigation_proposals p
-     SET status=$4,version=version+1,updated_at=$5
+     SET status=$4,version=p.version+1,updated_at=$5
     FROM ai_growth_alerts a
     WHERE p.owner_id=$1 AND p.id=$2 AND p.version=$3 AND p.status='proposed'
       AND a.id=p.alert_id AND a.owner_id=p.owner_id
