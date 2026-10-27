@@ -32,8 +32,14 @@ async function tickAutonomousOwner({
    // Failed runs are NOT blindly replayed: remote paid-call state may be unknown.
    const existing=analyses.find(a=>a.filter_conditions?.focusGoal===goal);
    if(existing&&existing.status!=='pending'){
-    if(existing.status==='failed')enqueued.push({goal,status:'failed-needs-safe-retry-review',analysisId:existing.id});
-    continue;
+    if(existing.status==='failed'){
+     const retry=typeof records.claimDailySafeRetry==='function'
+       ?await records.claimDailySafeRetry(existing.id,ownerId):null;
+     if(!retry){
+      enqueued.push({goal,status:'failed-needs-safe-retry-review',analysisId:existing.id});
+      continue;
+     }
+    }else continue;
    }
    const item=await dispatchDaily({ownerId,now,goal,source,records,enqueue});
    enqueued.push({goal,status:item.status,analysisId:item.analysisId});
