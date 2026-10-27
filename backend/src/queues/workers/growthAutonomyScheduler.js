@@ -52,6 +52,10 @@ async function tick({now=Date.now(),dryRun=false,runOwner=tickAutonomousOwner,
      results.push({ownerId,backfillDaysAgo:lag,status:'error',reason:error.message});
     }
    }
+   if(process.env.AI_PROMPT_AUTO_ROLLBACK_ENABLED==='1'&&!leaseLost){
+    try{const outcome=require('../../ai/optimization/canarySafety').checkCanary(require('../../db/connection'),ownerId,{now});results.push({ownerId,status:'canary-safety',canaryAction:outcome.action,canaryStatus:outcome.status});}
+    catch(error){results.push({ownerId,status:'error',reason:'canary-safety: '+error.message});}
+   }
    if(process.env.AI_RESEARCH_DISCOVERY_ENABLED==='1'&&!leaseLost){
     try{
      const db=require('../../db/connection');
