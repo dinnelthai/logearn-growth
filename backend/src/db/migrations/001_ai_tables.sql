@@ -503,3 +503,19 @@ ALTER TABLE ai_growth_notifications ADD CONSTRAINT ai_growth_notifications_kind_
 -- Immutable structured model hypothesis, only when a suggestion cites
 -- observed evidence. Null means no numeric prediction was issued.
 ALTER TABLE ai_suggestions ADD COLUMN IF NOT EXISTS forecast JSONB;
+
+-- Scheduler readiness must be verified from actual durable worker heartbeats,
+-- not inferred from an env flag in the web server.
+CREATE TABLE IF NOT EXISTS ai_growth_agent_scheduler_health (
+ name TEXT PRIMARY KEY,
+ run_token TEXT,
+ lease_until BIGINT,
+ last_started_at BIGINT,
+ last_heartbeat_at BIGINT,
+ last_finished_at BIGINT,
+ last_status TEXT NOT NULL DEFAULT 'never-run'
+   CHECK(last_status IN ('never-run','running','succeeded','partial','failed')),
+ last_summary JSONB,
+ last_error TEXT,
+ run_count BIGINT NOT NULL DEFAULT 0 CHECK(run_count>=0)
+);
