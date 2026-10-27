@@ -58,6 +58,7 @@ function createResearchQuestions(db){
     FROM agent_research_questions WHERE owner_id=? AND status=?
     ORDER BY priority DESC,occurred_at DESC LIMIT ?`).all(ownerId,status,limit);
  }
+ function get(ownerId,id){validateOwner(ownerId);return db.prepare('SELECT * FROM agent_research_questions WHERE owner_id=? AND id=?').get(ownerId,id)||null}
  function decide(ownerId,id,action){
   validateOwner(ownerId);
   if(typeof id!=='string'||!id||!['approve','dismiss'].includes(action))
@@ -67,6 +68,6 @@ function createResearchQuestions(db){
    WHERE owner_id=? AND id=? AND status='awaiting-review'`).run(status,ownerId,id);
   return {changed:changed.changes===1,status,requiresHumanExecution:true};
  }
- return {plan,list,decide};
+ return {plan,list,get,decide};
 }
 module.exports={questionFor,createResearchQuestions};
