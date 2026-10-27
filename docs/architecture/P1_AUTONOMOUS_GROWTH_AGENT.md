@@ -84,3 +84,18 @@ Codex must independently verify API owner fencing, migration upgrade/rollback, r
 **Important rollout caveat:** Adding the optional forecast instruction to the model prompt changes the prompt fingerprint. Drain/finish in-flight model work before rolling out this change, or let the existing recovery mechanism fail closed when prompt evidence differs. Never bypass the paid-call journal to force old checkpoints to replay.
 
 This feature is a *bounded adaptive decision support system*, not autonomous code rewriting or proven causal optimization. It records failure and absence of evidence as first-class outcomes so the next investigation can become more targeted without distorting source metrics.
+
+
+## Durable scheduler health and frozen historical briefs
+
+A production configuration flag does **not** prove a scheduler process is running. The autonomous worker now uses a shared PostgreSQL `ai_growth_agent_scheduler_health` row to prevent concurrently active replicas, renew a lease every 20 seconds, and store a last-known run outcome. `GET /growth-agent/status` returns actual, owner-authorized heartbeat information instead of an unverified string.
+
+- `schedulerRunning=true` only means the worker has a **currently valid lease and recent heartbeat**. A process between cron ticks will usually have `schedulerRunning=false` with a recent `schedulerHealth.status='succeeded'`, which is normal.
+- `schedulerHealth.stale=true` means neither an active heartbeat nor a completed run within the last 90 minutes was observed. Alert on this only after the worker has been enabled, and account for a custom cron interval.
+- `schedulerHealth.status='partial'` means one or more owner runs or webhook deliveries failed, even if the worker itself remained running. Inspect `lastSummary.errors` and `lastError`; these never contain the underlying user data or tokens.
+- A lost lease cannot be renewed or finalized by the old worker. Old worker operations must still be independently idempotent; daily paid analysis is fenced by existing PostgreSQL request keys and Bull job IDs.
+- The status endpoint exposes shared scheduler state only to users explicitly named in `AI_AUTONOMY_OWNER_IDS`; unrelated signed-in users do not see the global worker summary.
+
+Official (`ready`) daily briefs are **immutable audit snapshots**. Re-running the summarizer or changing a future target must not overwrite an already published score, model summary or strategy version. `blocked` and `partial` reports can advance as original analysis evidence matures; `partial` cannot regress to `blocked`. If an operator legitimately needs a historic correction, it requires a separately designed, explicitly audited revision workflow rather than silent mutation.
+
+Independent staging verification should additionally cover two scheduler replicas contending for one run, heartbeat expiry and fencing, a crash after an external webhook accepts a payload, and historic goal edits that leave original daily grades unchanged. Deployment remains a separate Codex-managed task; this change did not start production workers or enable any automatic model spending.
