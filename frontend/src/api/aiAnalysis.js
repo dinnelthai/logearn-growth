@@ -21,3 +21,4 @@ export const retryAnalysis=id=>aiFetch('/api/ai-analysis/'+encodeURIComponent(id
 
 export const getAgentHealth=()=>aiFetch('/api/growth-agent/health');
 export const getEvidence=id=>aiFetch('/api/growth-agent/evidence/'+encodeURIComponent(id));
+export const getJobCheckpoint=id=>aiFetch('/api/ai-analysis/jobs/'+encodeURIComponent(id)+'/checkpoint');
