@@ -117,7 +117,7 @@ function createSeoStore(db=pool){
  }
  async function get(ownerId,id){
   if(!ownerId||typeof id!=='string'||!id)fail('SEO 快照查询参数无效');
-  const r=await db.query('SELECT * FROM ai_growth_seo_imports WHERE owner_id=$1 AND id=$2',
+  const r=await db.query('SELECT id,owner_id,site_url,start_date::text,end_date::text,source,coverage,row_count,rows,checksum,imported_at FROM ai_growth_seo_imports WHERE owner_id=$1 AND id=$2',
    [ownerId,id]);return r.rows[0]||null;
  }
  async function latestCovering(ownerId,{siteUrl,startDate,endDate}){
@@ -131,7 +131,7 @@ function createSeoStore(db=pool){
   if(!url&&sites.rows.length>1)fail('存在多个 Search Console 站点，请明确指定 siteUrl');
   const selected=url||sites.rows[0]?.site_url;
   if(!selected)return null;
-  const r=await db.query(`SELECT * FROM ai_growth_seo_imports
+  const r=await db.query(`SELECT id,owner_id,site_url,start_date::text,end_date::text,source,coverage,row_count,rows,checksum,imported_at FROM ai_growth_seo_imports
     WHERE owner_id=$1 AND site_url=$2 AND start_date<=$3::date AND end_date>=$4::date
     ORDER BY imported_at DESC,id DESC LIMIT 1`,[ownerId,selected,startDate,endDate]);
   return r.rows[0]||null;
