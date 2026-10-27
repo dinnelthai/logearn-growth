@@ -121,6 +121,38 @@ router.get('/cost-stats',handle(async(req,res)=>{
   for(const value of [startTime,endTime])if(value!=null&&(!Number.isSafeInteger(Number(value))||Number(value)<0))return res.status(400).json({error:'成本统计时间无效'});
   res.json(await records.getUserCostStats(req.user.user_id,startTime?Number(startTime):null,endTime?Number(endTime):null));
 }));
+router.get('/growth-alerts',handle(async(req,res)=>{
+  const store=require('../ai/growth/alertStore').createAlertStore();
+  const includeResolved=req.query.resolved==='1';
+  const alerts=await store.list(req.user.user_id,{limit:100,includeResolved});
+  res.json({version:'growth-alerts-v1',alerts,paidCalls:0,externalActions:0});
+}));
+router.post('/growth-alerts/scan',handle(async(req,res)=>{
+  // Explicit no-LLM scan, restricted to the authenticated owner.
+  const ownerId=req.user.user_id,goal=req.body?.goal||'activation',
+    source=req.body?.source||'all';
+  require('../ai/growth/daily').dailyRequest({ownerId,goal,source});
+  const result=await require('../ai/growth/monitor').scanDailyAlerts({
+    ownerId,goal,source,store:require('../ai/growth/alertStore').createAlertStore()
+  });
+  res.json({...result,paidCalls:0,externalActions:0});
+}));
+router.get('/growth-alerts/:id/history',handle(async(req,res)=>{
+  const store=require('../ai/growth/alertStore').createAlertStore();
+  const alerts=await store.list(req.user.user_id,{limit:100,includeResolved:true});
+  if(!alerts.some(alert=>alert.id===req.params.id))
+    return res.status(404).json({error:'告警不存在或无权限'});
+  res.json({events:await store.history(req.user.user_id,req.params.id)});
+}));
+router.post('/growth-alerts/:id/action',handle(async(req,res)=>{
+  const result=await require('../ai/growth/alertStore').createAlertStore().transition(
+    req.user.user_id,req.params.id,{
+      action:req.body?.action,expectedVersion:req.body?.expectedVersion,
+      snoozeUntil:req.body?.snoozeUntil??null,note:req.body?.note??null
+    });
+  if(!result)return res.status(409).json({error:'告警状态已变化、无权限或操作不允许，请刷新后重试'});
+  res.json({alert:result,externalActions:0,paidCalls:0});
+}));
 router.get('/growth-inbox',handle(async(req,res)=>{
   const ownerId=req.user.user_id;
   const [analyses,suggestions,reviewRows]=await Promise.all([
