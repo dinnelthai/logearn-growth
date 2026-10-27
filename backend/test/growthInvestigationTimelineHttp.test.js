@@ -33,13 +33,13 @@ test('investigation timeline HTTP is owner-scoped and never creates paid work',a
  const server=app.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));
  const endpoint='http://127.0.0.1:'+server.address().port+'/api/ai-analysis/growth-investigations/';
  try{
-  let response=await fetch(endpoint+'p');assert.equal(response.status,200);
+  let response=await fetch(endpoint+'p/timeline');assert.equal(response.status,200);
   let body=await response.json();assert.equal(body.stage,'awaiting-retrospective');
   assert.equal(body.originalObservation.baseline,100);
   assert.equal(body.readOnly,true);assert.equal(body.paidCalls,0);
-  response=await fetch(endpoint+'p',{headers:{'x-owner':'bob'}});
+  response=await fetch(endpoint+'p/timeline',{headers:{'x-owner':'bob'}});
   assert.equal(response.status,404);
-  response=await fetch(endpoint+'missing');assert.equal(response.status,404);
+  response=await fetch(endpoint+'missing/timeline');assert.equal(response.status,404);
   assert.equal(detailCalls,3);assert.equal(paidCalls,0);
  }finally{await new Promise(resolve=>server.close(resolve))}
 });
