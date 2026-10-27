@@ -37,6 +37,10 @@ test('Postgres fencing and real Bull/Redis duplicate delivery', {skip:!enabled},
   await assert.rejects(records.updateAnalysisSnapshot(id,{invalid:true},owner,oldToken),/失效/);
   assert.equal(await records.renewAnalysisLease(id,owner,active.execution_token),true);
   await records.assertAnalysisLease(id,owner,active.execution_token);
+  await assert.rejects(
+    records.completeAnalysis(id,owner,[],{summary:'stale'},{provider:'mock',model:'mock',cost:0},oldToken),
+    /租约失效/
+  );
   assert.equal(await records.failClaimedAnalysis(id,owner,oldToken,'stale worker'),false);
   assert.equal((await records.getAnalysisRecord(id,owner)).status,'processing');
   assert.equal(await records.failClaimedAnalysis(id,owner,active.execution_token,'test shutdown'),true);
