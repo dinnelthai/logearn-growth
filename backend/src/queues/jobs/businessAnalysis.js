@@ -91,7 +91,11 @@ async function businessAnalysis(job) {
     };
     const result=await runTask({context:compact,prompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
       paidCalls:{
-        begin:round=>records.beginAnalysisPaidCall(analysisId,ownerId,token,round),
+        begin:round=>executionClaim.record.filter_conditions?.proposalId
+          ?require('../../ai/growth/budget').beginBudgetedPaidCall({
+             analysisId,ownerId,token,round
+           })
+          :records.beginAnalysisPaidCall(analysisId,ownerId,token,round),
         finish:(round,status)=>records.finishAnalysisPaidCall(analysisId,ownerId,token,round,status)
       },
       validate:value=>{validateAnalysis(value);session.validate(value);}});
@@ -198,7 +202,11 @@ async function resumeIncompleteAnalysis(job){
       operationType:'analysis',mode:record.filter_conditions?.modelMode||'auto',
       resumeRows:rows,investigate,traceStore:session.traceStore,beforeStep,
       paidCalls:{
-        begin:round=>records.beginAnalysisPaidCall(analysisId,ownerId,token,round),
+        begin:round=>record.filter_conditions?.proposalId
+          ?require('../../ai/growth/budget').beginBudgetedPaidCall({
+             analysisId,ownerId,token,round
+           })
+          :records.beginAnalysisPaidCall(analysisId,ownerId,token,round),
         finish:(round,status)=>records.finishAnalysisPaidCall(analysisId,ownerId,token,round,status)
       },validate:value=>{validateAnalysis(value);session.validate(value);}});
     await beforeStep();
