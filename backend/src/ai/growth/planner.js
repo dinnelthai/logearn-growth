@@ -4,7 +4,7 @@ const {listToolIds}=require('../business/tools/registry');
 const {summarizeExperience}=require('./experienceFeedback');
 const supportedTools=new Set(listToolIds());
 const goalMap={activation:['growth-overview','activation-funnel'],retention:['growth-overview','retention'],conversion:['growth-overview','channel-growth','trade-conversion'],revenue:['growth-overview','revenue']};
-function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[],focusSkillId=null,strategy=null}={}){
+function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[],focusSkillId=null,strategy=null,availableSpecialties=[]}={}){
  if(!Object.hasOwn(goalMap,goal))throw Object.assign(Error('未知增长目标'),{status:400});
  if(!Number.isInteger(maxSkills)||maxSkills<1||maxSkills>6)throw Error('技能数量限制无效');
  if(!report||typeof report!=='object'||!report.business?.scope||!report.period)
@@ -29,12 +29,16 @@ function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[
  const alertIds=new Set(triage.signals.map(signal=>signal.candidateId));
  const priority=(report.candidates||[]).filter(c=>c&&typeof c.metric==='string').slice(0,20);
  const ranked=[...priority].sort((a,b)=>Number(alertIds.has(b.id))-Number(alertIds.has(a.id)));
- const available=[...(focusSkillId?[getSkill(focusSkillId)]:[]),...goalMap[goal].filter(id=>id!==focusSkillId).map(getSkill)];
+ if(!Array.isArray(availableSpecialties)||availableSpecialties.some(id=>!['content-growth','follower-quality'].includes(id)))throw Error('每日专项证据输入无效');
+ const additional=goal==='conversion'&&report.business.scope.source==='all'?availableSpecialties:[];
+ const defaultIds=[...new Set([...additional,...goalMap[goal]])];
+ const available=[...(focusSkillId?[getSkill(focusSkillId)]:[]),...defaultIds.filter(id=>id!==focusSkillId).map(getSkill)];
  const ordered=available.map((skill,i)=>({
   skill,match:ranked.findIndex(c=>skill.signals.includes(c.metric)),order:i,
   attention:experience.filter(e=>skill.signals.includes(e.metric)).reduce((n,e)=>n+e.ineffectiveReviews,0),
   strategyFocus:skill.signals.some(m=>focus.has(m))?1:0
  })).sort((a,b)=>(a.skill.id===focusSkillId?0:1)-(b.skill.id===focusSkillId?0:1)||
+   Number(additional.includes(b.skill.id))-Number(additional.includes(a.skill.id))||
    b.strategyFocus-a.strategyFocus||
    (a.match<0?999:a.match)-(b.match<0?999:b.match)||b.attention-a.attention||a.order-b.order);
  const selected=ordered.slice(0,maxSkills);
