@@ -30,6 +30,36 @@ function createRouter({db,registry}){
    .decide(String(req.user.user_id),req.params.id,req.body?.action);
   res.status(result.changed?200:409).json(result);
  }));
+ router.get('/prompts/candidates',handle(async(req,res)=>{
+  const registry=require('../ai/optimization/promptRegistry').createPromptRegistry(db);
+  res.json({candidates:registry.list(String(req.user.user_id),{
+   limit:req.query.limit==null?30:Number(req.query.limit)})});
+ }));
+ router.get('/prompts/candidates/:id',handle(async(req,res)=>{
+  const item=require('../ai/optimization/promptRegistry').createPromptRegistry(db)
+   .getWithContents(String(req.user.user_id),req.params.id);
+  res.status(item?200:404).json(item||{error:'候选不存在'});
+ }));
+ router.post('/prompts/candidates',handle(async(req,res)=>{
+  const item=require('../ai/optimization/promptRegistry').createPromptRegistry(db)
+   .propose(String(req.user.user_id),req.body);
+  res.status(201).json(item);
+ }));
+ router.post('/prompts/candidates/:id/approve',handle(async(req,res)=>{
+  const item=require('../ai/optimization/promptRegistry').createPromptRegistry(db)
+   .approve(String(req.user.user_id),req.params.id,req.body?.expectedVersion);
+  res.json(item);
+ }));
+ router.post('/prompts/candidates/:id/activate',handle(async(req,res)=>{
+  const item=require('../ai/optimization/promptRegistry').createPromptRegistry(db)
+   .activate(String(req.user.user_id),req.params.id,req.body?.expectedVersion);
+  res.json(item);
+ }));
+ router.post('/prompts/rollback',handle(async(req,res)=>{
+  const item=require('../ai/optimization/promptRegistry').createPromptRegistry(db)
+   .rollback(String(req.user.user_id),req.body?.role,req.body?.expectedVersion);
+  res.json(item);
+ }));
  router.get('/runs/:id/trace',handle(async(req,res)=>res.json({calls:require('../ai/business/trace').createTraceStore(db).list(req.user.user_id,req.params.id)})));
  return router;
 }

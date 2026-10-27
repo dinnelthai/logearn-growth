@@ -522,3 +522,22 @@ CREATE TABLE IF NOT EXISTS agent_research_questions (
  PRIMARY KEY(owner_id,id),UNIQUE(owner_id,change_id,source));
 CREATE INDEX IF NOT EXISTS idx_agent_research_questions_owner
  ON agent_research_questions(owner_id,status,priority DESC,occurred_at DESC);
+
+-- Isolated prompt evaluation candidates: no model can directly modify the active alias.
+CREATE TABLE IF NOT EXISTS agent_prompt_candidates (
+ owner_id TEXT NOT NULL,id TEXT NOT NULL,role TEXT NOT NULL,
+ baseline_hash TEXT NOT NULL REFERENCES agent_prompts(hash),
+ candidate_hash TEXT NOT NULL REFERENCES agent_prompts(hash),
+ reason TEXT NOT NULL,trace_ids TEXT NOT NULL,
+ status TEXT NOT NULL CHECK(status IN ('proposed','rejected','evaluated','approved','active')),
+ version INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,
+ evaluated_at INTEGER,approved_at INTEGER,approved_by TEXT,evaluation TEXT,suite_hash TEXT,
+ PRIMARY KEY(owner_id,id));
+CREATE INDEX IF NOT EXISTS idx_agent_prompt_candidates_owner
+ ON agent_prompt_candidates(owner_id,status,created_at DESC);
+CREATE TABLE IF NOT EXISTS agent_active_prompts (
+ owner_id TEXT NOT NULL,role TEXT NOT NULL,
+ candidate_hash TEXT NOT NULL REFERENCES agent_prompts(hash),
+ previous_hash TEXT NOT NULL REFERENCES agent_prompts(hash),
+ version INTEGER NOT NULL DEFAULT 1,updated_at INTEGER NOT NULL,
+ PRIMARY KEY(owner_id,role));
