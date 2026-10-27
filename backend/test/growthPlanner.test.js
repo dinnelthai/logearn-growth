@@ -31,3 +31,11 @@ test('planner rejects invalid goal, missing report and excessive skills',()=>{
  assert.throws(()=>planGrowthInvestigation({goal:'activation'}),/现有业务报告/);
  assert.throws(()=>planGrowthInvestigation({goal:'activation',report,maxSkills:99}),/技能数量/);
 });
+
+test('single-source skill plan excludes global-only tools without changing business scope',()=>{
+ const sourceReport={...report,business:{scope:{source:'twitter'}}};
+ const plan=planGrowthInvestigation({goal:'revenue',report:sourceReport});
+ assert.equal(plan.scope.source,'twitter');
+ assert.ok(plan.steps.every(step=>!step.tools.includes('check_data_quality')));
+ assert.ok(plan.steps.every(step=>!step.tools.includes('get_channel_economics')));
+});
