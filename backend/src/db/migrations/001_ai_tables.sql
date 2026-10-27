@@ -499,3 +499,7 @@ CREATE INDEX IF NOT EXISTS idx_growth_agent_judgements_owner
 ALTER TABLE ai_growth_notifications DROP CONSTRAINT IF EXISTS ai_growth_notifications_kind_check;
 ALTER TABLE ai_growth_notifications ADD CONSTRAINT ai_growth_notifications_kind_check
  CHECK(kind IN ('alert','proposal','daily-brief'));
+
+-- Immutable structured model hypothesis, only when a suggestion cites
+-- observed evidence. Null means no numeric prediction was issued.
+ALTER TABLE ai_suggestions ADD COLUMN IF NOT EXISTS forecast JSONB;
