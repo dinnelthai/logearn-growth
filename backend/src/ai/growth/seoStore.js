@@ -138,4 +138,4 @@ function createSeoStore(db=pool){
  }
  return {importSnapshot,list,get,latestCovering};
 }
-module.exports={createSeoStore,validateImport,summarizeSeo,normalizedSite};
+module.exports={createSeoStore,validateImport,summarizeSeo,normalizedSite,dateMs};
