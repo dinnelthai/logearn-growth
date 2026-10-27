@@ -15,7 +15,7 @@ function inspectCheckpoint(rows, expectedPromptHash) {
     if (expectedPromptHash && row.prompts?.analysis!==expectedPromptHash && row.prompts?.review!==expectedPromptHash)
       return {...summary,state:'blocked',reason:'prompt-version-mismatch'};
     let parsed;
-    try {parsed=JSON.parse(row.result.responseContent.trim().replace(/^\`\`\`(?:json)?\\s*/,'').replace(/\\s*\`\`\`$/,''));}
+    try {parsed=JSON.parse(row.result.responseContent.trim().replace(/^\x60{3}(?:json)?\s*/,'').replace(/\s*\x60{3}$/,''));}
     catch {summary.completedRounds++;continue;}
     if (!parsed || typeof parsed!=='object'||Array.isArray(parsed))
       return {...summary,state:'blocked',reason:'invalid-response-shape'};
