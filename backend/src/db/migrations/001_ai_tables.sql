@@ -230,3 +230,6 @@ CREATE TABLE IF NOT EXISTS ai_analysis_call_guard (
   PRIMARY KEY (analysis_id,round)
 );
 CREATE INDEX IF NOT EXISTS idx_ai_call_guard_owner ON ai_analysis_call_guard(owner_id,analysis_id,status);
+
+-- Cooperative cancellation: requests never erase paid-call evidence.
+ALTER TABLE ai_analysis_records ADD COLUMN IF NOT EXISTS cancel_requested BOOLEAN NOT NULL DEFAULT false;
