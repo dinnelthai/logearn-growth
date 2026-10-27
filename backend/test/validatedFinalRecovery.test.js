@@ -40,6 +40,7 @@ function prepared(){
 }
 test('validated final response can be settled after crash without any new LLM or tool call',async()=>{
  const journal=prepared();
+ journal.savePrompt('analysis',buildSystemPrompt(analysisPrompt));
  journal.begin(traceContext,0);
  journal.finish(traceContext,0,{responseContent:JSON.stringify(output),contextHash:createHash('sha256').update(JSON.stringify(base)).digest('hex'),
   model:'mock',provider:'mock',cost:0.03,tokens:12});

@@ -182,6 +182,7 @@ async function resumeIncompleteAnalysis(job){
   const guards=await records.listAnalysisPaidCalls(analysisId,ownerId);
   const store=require('../../ai/business/trace').createTraceStore(require('../../db/connection'));
   const rows=store.list(ownerId,analysisId);
+  if(rows.length!==guards.length)throw Error('无法安全恢复调查：journal-count-mismatch');
   const originalPrompt=store.promptForRun(ownerId,analysisId,'analysis');
   if(!originalPrompt)throw Error('缺少原始提示词，禁止在恢复时使用最新版本');
   const plan=require('../../ai/business/resumePlan').planInvestigationResume({
