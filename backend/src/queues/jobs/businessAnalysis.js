@@ -134,4 +134,4 @@ async function recoverValidatedAnalysis(job) {
     throw error;
   }
 }
-module.exports={businessAnalysis,recoverValidatedAnalysis};
+module.exports={businessAnalysis,recoverValidatedAnalysis,analysisPrompt:prompt};
