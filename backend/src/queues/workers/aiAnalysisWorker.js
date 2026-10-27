@@ -11,7 +11,7 @@
 
 require('dotenv').config();
 const { queues } = require('../queues');
-const { businessAnalysis,recoverValidatedAnalysis } = require('../jobs/businessAnalysis');
+const { businessAnalysis,recoverValidatedAnalysis,resumeIncompleteAnalysis } = require('../jobs/businessAnalysis');
 const { retrospectiveAnalysis } = require('../jobs/retrospective');
 const logger = console;
 
@@ -19,6 +19,7 @@ const logger = console;
 const taskHandlers = {
   'business-analysis': businessAnalysis,
   'finalize-validated': recoverValidatedAnalysis,
+  'resume-investigation': resumeIncompleteAnalysis,
   'retrospective': retrospectiveAnalysis
 };
 
@@ -96,8 +97,8 @@ if(process.env.AI_LEASE_MONITOR_ENABLED==='1'||process.env.AI_RECOVERY_FINALIZE_
         // SQLite journals. It never calls a provider or business tool.
         for(const item of expired){
           await require('../queues').addAIAnalysisJob(
-            'finalize-validated',{analysisId:item.id,ownerId:item.owner_id},
-            {jobId:'finalize-'+item.id+'-'+Math.floor(Date.now()/60000),attempts:1}
+            'resume-investigation',{analysisId:item.id,ownerId:item.owner_id},
+            {jobId:'resume-'+item.id+'-'+Math.floor(Date.now()/60000),attempts:1}
           );
         }
       }
