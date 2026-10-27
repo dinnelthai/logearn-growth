@@ -8,3 +8,18 @@ test('prompt content is immutable and unresolved paid attempts block replay acro
  store.begin(context,1);store.unknown(context,1);assert.throws(()=>store.begin({...context,traceId:'again'},0),/核查/);
  }finally{db.close()}
 });
+
+test('received model content survives a fresh trace store instance',()=>{
+ const db=new DatabaseSync(':memory:');db.exec(fs.readFileSync(require.resolve('../src/db/schema.sql'),'utf8'));
+ try{
+  const ctx={ownerId:'alice',runId:'recover-run',traceId:'recover-trace',promptVersions:{analysis:'hash'}};
+  const responseContent=JSON.stringify({summary:'保存的原始响应',keyFindings:[],suggestions:[]});
+  createTraceStore(db).begin(ctx,0);
+  createTraceStore(db).finish(ctx,0,{tokens:18,cost:0.002,responseContent});
+  const recovered=createTraceStore(db).list('alice','recover-run');
+  assert.equal(recovered.length,1);
+  assert.equal(recovered[0].status,'received');
+  assert.equal(recovered[0].result.responseContent,responseContent);
+  assert.equal(createTraceStore(db).list('bob','recover-run').length,0);
+ }finally{db.close()}
+});
