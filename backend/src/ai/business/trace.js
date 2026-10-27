@@ -73,6 +73,19 @@ function createTraceStore(db){
  }
  function unknown(context,round){db.prepare("UPDATE agent_calls SET status='unknown',finished_at=? WHERE owner_id=? AND trace_id=? AND round=?").run(Date.now(),owner(context),context.traceId,round);}
  function list(ownerId,runId){return db.prepare('SELECT trace_id,round,status,prompts,result,started_at,finished_at FROM agent_calls WHERE owner_id=? AND run_id=? ORDER BY started_at,round,trace_id').all(owner({ownerId}),runId).map(r=>({...r,prompts:JSON.parse(r.prompts),result:r.result?JSON.parse(r.result):null}));}
- return {savePrompt,begin,finish,appendInvestigation,saveFollowup,saveValidatedAnalysis,unknown,list};
+ function promptForRun(ownerId,runId,role){
+  owner({ownerId});
+  if(!['analysis','review'].includes(role)||typeof runId!=='string'||!runId)
+   throw Error('原始提示词定位参数无效');
+  const row=db.prepare(`SELECT p.hash,p.content FROM agent_calls c
+   JOIN agent_prompts p ON p.hash=json_extract(c.prompts, '$.' || ?)
+   WHERE c.owner_id=? AND c.run_id=? AND c.status='received'
+   ORDER BY c.started_at,c.round LIMIT 1`).get(role,ownerId,runId);
+  if(!row)return null;
+  if(createHash('sha256').update(row.content).digest('hex')!==row.hash)
+   throw Error('原始提示词内容哈希不一致');
+  return row.content;
+ }
+ return {savePrompt,begin,finish,appendInvestigation,saveFollowup,saveValidatedAnalysis,unknown,list,promptForRun};
 }
 module.exports={createTraceStore};

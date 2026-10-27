@@ -27,9 +27,12 @@ function validateReview(a) {
     || typeof a.conclusion!=='string' || !Array.isArray(a.confoundingFactors)) throw Error('复盘结果结构不完整');
   return a;
 }
-async function runTask({context,prompt,ownerId,operationId,operationType,mode='auto',investigate,validate=validateAnalysis,clientFactory=createClient,traceStore,beforeStep=async()=>{},paidCalls=null,resumeRows=[]}) {
+async function runTask({context,prompt,ownerId,operationId,operationType,mode='auto',investigate,validate=validateAnalysis,clientFactory=createClient,traceStore,beforeStep=async()=>{},paidCalls=null,resumeRows=[],systemPromptOverride=null}) {
   let routing=routeTask(context,mode);
-  const systemPrompt=buildSystemPrompt(prompt);
+  if(systemPromptOverride!=null&&(!Array.isArray(resumeRows)||!resumeRows.length||
+    typeof systemPromptOverride!=='string'||systemPromptOverride.length>60000))
+    throw Error('只允许为已有模型断点恢复使用原始提示词');
+  const systemPrompt=systemPromptOverride??buildSystemPrompt(prompt);
   const runId=operationId||randomUUID(),traceId=randomUUID();
   const promptVersions={[operationType==='retrospective'?'review':'analysis']:createHash('sha256').update(systemPrompt).digest('hex')};
   const traceContext={ownerId,runId,traceId,promptVersions};

@@ -98,7 +98,10 @@ async function businessAnalysis(job) {
       if(!ids)throw Error('未实现该调查工具：'+query.kind);
       return session.investigate({tool:'query_metrics',input:{metrics:ids,scope:{source:query.source||source},start:query.start??start,end:query.end??end}});
     };
-    const result=await runTask({context:compact,prompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
+    const currentPrompt=require('../../ai/optimization/promptRegistry')
+      .createPromptRegistry(require('../../db/connection'))
+      .resolve(ownerId,'analysis',prompt,{runId:analysisId});
+    const result=await runTask({context:compact,prompt:currentPrompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
       paidCalls:{
         begin:round=>executionClaim.record.filter_conditions?.proposalId
           ?require('../../ai/growth/budget').beginBudgetedPaidCall({
@@ -137,9 +140,10 @@ async function recoverValidatedAnalysis(job) {
   const rows=journal.list(ownerId,analysisId);
   if(rows.length!==guards.length || guards.some((g,i)=>Number(g.round)!==rows[i].round||rows[i].status!=='received'))
     throw Error('共享付费日志与详细调查记录不一致，禁止恢复');
-  const {buildSystemPrompt}=require('../../ai/business/runner');
+  const originalPrompt=journal.promptForRun(ownerId,analysisId,'analysis');
+  if(!originalPrompt)throw Error('缺少本次执行归档的原始提示词，禁止改变提示词版本后重放');
   const rebuilt=require('../../ai/business/transcriptRecovery').reconstructTranscript({
-    rows,systemPrompt:buildSystemPrompt(prompt),context:compact,operationType:'analysis'
+    rows,systemPrompt:originalPrompt,context:compact,operationType:'analysis'
   });
   if(rebuilt.state!=='reconstructed')throw Error('调查上下文不能安全恢复：'+rebuilt.reason);
   const finalRow=rows.at(-1);
@@ -180,9 +184,10 @@ async function resumeIncompleteAnalysis(job){
   const guards=await records.listAnalysisPaidCalls(analysisId,ownerId);
   const store=require('../../ai/business/trace').createTraceStore(require('../../db/connection'));
   const rows=store.list(ownerId,analysisId);
-  const {buildSystemPrompt}=require('../../ai/business/runner');
+  const originalPrompt=store.promptForRun(ownerId,analysisId,'analysis');
+  if(!originalPrompt)throw Error('缺少原始提示词，禁止在恢复时使用最新版本');
   const plan=require('../../ai/business/resumePlan').planInvestigationResume({
-    rows,guards,context:compact,systemPrompt:buildSystemPrompt(prompt)
+    rows,guards,context:compact,systemPrompt:originalPrompt
   });
   if(!plan.allowed)throw Error('无法安全恢复调查：'+plan.reason);
   const foundation=require('../../ai/business/foundation').defaultFoundation();
@@ -213,7 +218,8 @@ async function resumeIncompleteAnalysis(job){
     await beforeStep();
     const result=await runTask({context:compact,prompt,ownerId,operationId:analysisId,
       operationType:'analysis',mode:record.filter_conditions?.modelMode||'auto',
-      resumeRows:rows,investigate,traceStore:session.traceStore,beforeStep,
+      resumeRows:rows,systemPromptOverride:originalPrompt,
+      investigate,traceStore:session.traceStore,beforeStep,
       paidCalls:{
         begin:round=>record.filter_conditions?.proposalId
           ?require('../../ai/growth/budget').beginBudgetedPaidCall({
