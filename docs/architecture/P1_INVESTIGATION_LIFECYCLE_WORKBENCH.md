@@ -36,3 +36,13 @@ These tests are included in `.github/workflows/ai-infrastructure.yml`. GitHub CI
 ## Next work
 
 Unify operational diagnostics around the timeline, then add evidence-backed SEO and KOL-specific data adapters only after confirming source contracts. Dollar cost caps are explicitly out of scope until middle-provider metering is reliable. External notifications, production deployment and auto-paid investigations remain disabled.
+
+## Operator inbox consolidation and review query performance
+
+- The owner-scoped `growth-inbox` endpoint now reads the current latest-period investigation proposals in addition to original owner-scoped alerts, analyses, and action suggestions. A current proposal replaces a duplicate untriaged alert; only a `proposed` case requires approval. An `approved` proposal with no attached analysis signals a **dispatch-review** task rather than asking the operator to reapprove it.
+- Dismissed or stale proposals remain available in the original proposals list/audit trail, but do not generate new work from an obsolete business period. Inactive, acknowledged or snoozed alarms do not request new approvals.
+- Each inbox case task can open the same read-only timeline. Manual approval and any provider work still go through their existing guarded routes.
+- Retrospectives for an analysis are now loaded in **one** owner-scoped SQL query via `listRetrospectivesByAnalysis`, replacing up to 100 repeated per-suggestion queries. Returned rows are verified against the authenticated owner's analysis and known suggestion IDs before rendering. More than 100 suggestions yield an explicit error rather than silently truncating linked reviews.
+- Added API/inbox regression tests for owner separation, duplicate suppression, dispatch-retry alerts, frozen evidence and no paid calls.
+
+No changes were made to the underlying Growth metric SQL or trading/attribution business logic. Dollar-cost caps remain deferred.
