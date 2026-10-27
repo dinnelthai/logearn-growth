@@ -49,8 +49,10 @@ test('paid opt-in only enqueues missing goals and reuses durable source analysis
  assert.equal(fixture.state.queued,1);
  assert.equal(fixture.state.records,1);
  result=await tickAutonomousOwner(input);
- assert.equal(result.enqueued.length,0);
- assert.equal(fixture.state.queued,1);
+ assert.equal(result.enqueued.length,1);
+ assert.equal(result.enqueued[0].status,'queued');
+ assert.equal(fixture.state.queued,2);
+ assert.equal(fixture.state.records,2);
  assert.equal(result.automaticPaidAllowed,true);
 });
 test('scheduler goals and paid flags require explicit authorization',()=>{
