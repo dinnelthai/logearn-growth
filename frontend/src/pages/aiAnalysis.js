@@ -72,6 +72,12 @@ export function createAIAnalysis(ctx){
              观测符合：${esc(agentLearning.assessment?.observedSupported??0)} ·
              观测不符：${esc(agentLearning.assessment?.observedContradicted??0)} ·
              证据不足：${esc(agentLearning.assessment?.insufficient??0)}</p>
+          <p>结构化预测：可比较 ${esc(agentLearning.assessment?.forecastComparable??0)} ·
+             观察命中 ${esc(agentLearning.assessment?.forecastHits??0)} ·
+             观察未命中 ${esc(agentLearning.assessment?.forecastMisses??0)} ·
+             同周期观察命中率 ${agentLearning.assessment?.observedForecastHitRate==null?'证据不足':
+                esc((agentLearning.assessment.observedForecastHitRate*100).toFixed(1)+'%')}。
+             预测窗口或数据不匹配时不纳入统计；不是行动的因果效果。</p>
           <p>历史一致率 ${agentLearning.assessment?.observableAgreementRate==null?'证据不足':
             esc((agentLearning.assessment.observableAgreementRate*100).toFixed(1)+'%')}。
             这是已执行建议与成熟观察结果的符合情况，并非 AI 预测准确率或因果效果。</p>
