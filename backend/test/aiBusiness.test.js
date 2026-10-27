@@ -3,7 +3,7 @@ const policy=require('../src/ai/business/policy');
 function load(relative,mocks={}){
   const filename=path.join(__dirname,'../src',relative),module={exports:{}};
   const requireMock=name=>name in mocks?mocks[name]:require(require.resolve(name,{paths:[path.dirname(filename)]}));
-  vm.runInNewContext(fs.readFileSync(filename,'utf8'),{require:requireMock,module,exports:module.exports,process,console,Buffer,Date,setTimeout,clearTimeout},{filename});return module.exports;
+  vm.runInNewContext(fs.readFileSync(filename,'utf8'),{require:requireMock,module,exports:module.exports,process,console,Buffer,Date,setTimeout,clearTimeout,setInterval,clearInterval},{filename});return module.exports;
 }
 const good={summary:'渠道激活有缺口',keyFindings:['样本需补充'],suggestions:[{problem:'激活',evidence:{metrics:['10人']},hypothesis:'入口摩擦',uncertainties:['覆盖未知'],action:'核对入口',priority:'P1',priorityReason:'影响人数与低执行成本',validationMetrics:{primary:'active_users'},reviewConditions:['观察7天']}]};
 function runner(){return load('ai/business/runner.js',{'../llm':{getConfig:()=>({defaultModel:'claude-sonnet-4-6'}),createClient:()=>{throw Error('Network forbidden')}}});}
@@ -44,14 +44,16 @@ test('business analysis persists snapshot, history, priorities and structured su
   const events=[],base={totals:{active_users:100,new_users:20,returning_users:80},meta:{snapshot_id:'s'}};
   const records={getAnalysisRecord:async()=>({status:'pending'}),updateAnalysisStatus:async(...a)=>events.push(['status',...a]),
     updateAnalysisSnapshot:async(...a)=>events.push(['snapshot',...a]),getAnalysisMemory:async()=>[{user_status:'rejected',rejection_reason:'成本高'}],
-    completeAnalysis:async(id,owner,s,result)=>{events.push(['suggestions',s]);events.push(['status',id,'completed',result])}};
+    completeAnalysis:async(id,owner,s,result)=>{events.push(['suggestions',s]);events.push(['status',id,'completed',result])}, assertAnalysisLease:async()=>{}, renewAnalysisLease:async()=>true, failClaimedAnalysis:async(_id,_owner,_token,message)=>events.push(['failed',message])};
   const handler=load('queues/jobs/businessAnalysis.js',{
     '../../ai/business/runner':{validateAnalysis:x=>x,runTask:async opts=>{assert.equal(opts.context.memory[0].rejection_reason,'成本高');assert.equal(opts.context.weekly.users,5);assert.equal(opts.context.candidates.length,0);return {analysis:good,cost:0.01,model:'routine',provider:'domestic',calls:[],evidence:[],routing:{tier:'routine'}}}},
     '../../ai/business/foundation':{defaultFoundation:()=>({prepare:report=>({context:{...report,evidence:[]},validate:()=>{},traceStore:undefined})})},
-    '../../db/aiRecords':records,'../../data/hologres':{status:async()=>({snapshot_id:'s',as_of:'2026-10-20T00:00:00Z'})},
+    '../../ai/business/trace':{createTraceStore:()=>({})}, '../../db/connection':{}, '../../ai/business/workerStart':{claimSafeAnalysis:async()=> records.getAnalysisRecord().then(r=>r.status==='completed'?{action:'completed',result:r.result}:{action:'claimed',token:'token'})}, '../../db/aiRecords':records,'../../data/hologres':{status:async()=>({snapshot_id:'s',as_of:'2026-10-20T00:00:00Z'})},
     './dataFetcher':{fetchNorthStar:async()=>base,fetchGrowthInsights:async()=>({change:{},channels:[],quality:{history_complete:false}}),fetchWeeklyCore:async()=>({available:true,users:5})}});
   const job={data:{analysisId:'a',ownerId:'alice',dateRangeStart:Date.parse('2026-10-01'),dateRangeEnd:Date.parse('2026-10-08'),businessScope:{source:'twitter'}},progress:async()=>{}};
   await handler.businessAnalysis(job);assert.ok(events.some(e=>e[0]==='snapshot'));assert.equal(events.find(e=>e[0]==='suggestions')[1][0].applicableScope.source,'twitter');assert.equal(events.at(-1)[2],'completed');
+  records.completeAnalysis=async()=>{throw Error('storage failure')};
+  await assert.rejects(handler.businessAnalysis(job),/storage failure/); assert.ok(events.some(e=>e[0]==='failed'&&e[1]==='storage failure'));
   records.getAnalysisRecord=async()=>({status:'completed',result:{summary:'saved'}});assert.equal((await handler.businessAnalysis(job)).summary,'saved');
 });
 test('batch suggestions use the transaction client and rollback on partial failure',async()=>{
@@ -87,9 +89,9 @@ test('LLM client logs real token usage once with owner and operation; cache rema
   assert.equal(result.cost,0.0014);assert.equal(result.provider,'openai');assert.equal(options[0].cacheScope,'alice');assert.equal(limits[0][1],'alice');
 });
 test('completion atomically commits suggestions and final record, and a failed insert cannot mark analysis complete',async()=>{
-  const calls=[];const client={query:async(sql)=>{calls.push(sql);if(sql.includes('SELECT status,result'))return {rows:[{status:'processing'}]};if(sql.includes('INSERT INTO ai_suggestions'))throw Error('insert failed');return {rows:[]}},release:()=>{}};
+  const calls=[];const client={query:async(sql)=>{calls.push(sql);if(sql.includes('SELECT status,result'))return {rows:[{status:'processing',execution_token:'token',lease_expires_at:Date.now()+60000}]};if(sql.includes('INSERT INTO ai_suggestions'))throw Error('insert failed');return {rows:[]}},release:()=>{}};
   const db=load('db/aiRecords.js',{'./aiPool':{connect:async()=>client}});
-  await assert.rejects(()=>db.completeAnalysis('a','alice',[{analysisId:'a'}],{summary:'x'},{provider:'domestic',model:'x',cost:0}),/insert failed/);
+  await assert.rejects(()=>db.completeAnalysis('a','alice',[{analysisId:'a'}],{summary:'x'},{provider:'domestic',model:'x',cost:0},'token'),/insert failed/);
   assert.ok(calls.includes('ROLLBACK'));assert.ok(!calls.some(c=>c.includes("SET status='completed'")));assert.ok(!calls.includes('COMMIT'));
 });
 test('create-analysis API validates scopes and passes authenticated ownership with exactly one paid-task attempt',async()=>{

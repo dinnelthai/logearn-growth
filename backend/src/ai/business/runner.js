@@ -76,7 +76,7 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
         await paidCalls?.finish?.(round,'unknown');
         throw error;
       }
-      calls.push({runId,traceId,promptVersions,model,provider:calls.at(-1)?.provider,
+      calls.push({runId,traceId,promptVersions,model,provider:response.provider||client.modelInfo?.provider,
         cost:response.cost||0,costKnown:response.costKnown!==false,
         tokens:response.fromCache?0:response.usage?.totalTokens||0,fromCache:!!response.fromCache,reason:routing.reason});
       traceStore?.finish(traceContext,round,{...calls.at(-1),responseContent:response.content,contextHash});
@@ -107,7 +107,7 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
       else traceStore?.saveFollowup?.(callTrace,round,correction,'validation-error');messages.push({role:'user',content:correction});continue;}
     if(saved?.result?.validatedAnalysis && JSON.stringify(saved.result.validatedAnalysis)!==JSON.stringify(value))throw Error('已验证的最终输出不一致');
     if(!saved?.result?.validatedAnalysis)traceStore?.saveValidatedAnalysis?.(callTrace,round,value);
-    return {analysis:value,calls,evidence,routing,cost:calls.reduce((n,c)=>n+c.cost,0),model,provider:response.provider||client.modelInfo?.provider};
+    return {analysis:value,calls,evidence,routing,cost:calls.reduce((n,c)=>n+c.cost,0),model,provider:response.provider||calls.at(-1)?.provider};
   }
   throw Error('分析未完成：已达到调查调用上限。'+(lastError?.message||'请提高预算或缩小问题范围'));
 }

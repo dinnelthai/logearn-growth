@@ -63,3 +63,13 @@ test('unknown, mismatched context and wrong prompt are blocked before paid calls
  await assert.rejects(invoke([{...row({}),prompts:{analysis:'other'}}]),/断点未确认/);
  assert.equal(billed,0);
 });
+test('provider metadata is saved and a legacy final checkpoint resumes without it',async()=>{
+ let checkpoint;
+ const first=await runTask({...inputs,clientFactory:()=>({chat:async()=>({content:JSON.stringify(final),provider:'openai',usage:{totalTokens:3}})}),
+ traceStore:{savePrompt(){},begin(){},finish(_ctx,_round,result){checkpoint=result},saveValidatedAnalysis(){}}});
+ assert.equal(first.calls[0].provider,'openai');
+ assert.equal(checkpoint.provider,'openai');
+ delete checkpoint.provider;
+ const result=await runTask({...inputs,resumeRows:[{round:0,trace_id:'old',status:'received',prompts:{analysis:promptHash},result:checkpoint}],clientFactory:()=>{throw Error('no paid replay')}});
+ assert.equal(result.analysis.summary,'verified');
+});

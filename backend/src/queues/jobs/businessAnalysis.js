@@ -86,7 +86,7 @@ async function businessAnalysis(job) {
       },
       validate:value=>{validateAnalysis(value);session.validate(value);}});
     await beforeStep();
-    return persistValidatedResult({job,analysisId,ownerId,token,compact,result});
+    return await persistValidatedResult({job,analysisId,ownerId,token,compact,result});
   }catch(error){await records.failClaimedAnalysis(analysisId,ownerId,token,error.message);throw error;}
   finally{clearInterval(heartbeat);}
 }
