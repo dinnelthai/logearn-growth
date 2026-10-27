@@ -38,6 +38,14 @@ router.post('/analyze',handle(async(req,res)=>{
   } catch(error) { await records.updateAnalysisStatus(record.id,'failed',null,error.message);throw error; }
   res.status(202).json({analysisId:record.id,jobId:job.id,status:'pending'});
 }));
+router.post('/:id/cancel',handle(async(req,res)=>{
+  const updated=await records.requestAnalysisCancellation(req.params.id,req.user.user_id);
+  if(!updated)return res.status(409).json({error:'任务不存在、无权限或已经结束'});
+  // Cooperative cancellation does not revoke an already-dispatched provider call.
+  // All subsequent paid calls and final writes are fenced by DB status/token.
+  res.json({analysisId:updated.id,status:updated.status,cancelRequested:updated.cancel_requested,
+    notice:'取消请求已记录；正在进行的模型请求可能仍会产生费用'});
+}));
 router.post('/:id/retry',handle(async(req,res)=>{
   const ownerId=req.user.user_id;
   const existing=await records.getAnalysisRecord(req.params.id,ownerId);
