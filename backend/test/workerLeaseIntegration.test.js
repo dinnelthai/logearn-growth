@@ -31,6 +31,11 @@ test('Postgres fencing and real Bull/Redis duplicate delivery', {skip:!enabled},
   assert.equal(success,1);assert.equal(rejected,1);
   const active=await records.getAnalysisRecord(id,owner);
   assert.equal(active.status,'processing');assert.equal(typeof active.execution_token,'string');
+  const originalContext={z:1,a:{start:1,end:2},events:[{id:'e1'}]};
+  await records.updateAnalysisSnapshot(id,originalContext,owner,active.execution_token);
+  const persisted=await records.getAnalysisRecord(id,owner);
+  assert.equal(persisted.context_payload,JSON.stringify(originalContext));
+  assert.deepEqual(persisted.data_snapshot,originalContext);
   const oldToken='other-lease-token';
   assert.equal(await records.renewAnalysisLease(id,owner,oldToken),false);
   await assert.rejects(records.assertAnalysisLease(id,owner,oldToken),/失效/);
