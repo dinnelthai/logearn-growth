@@ -94,3 +94,21 @@ test('completed retrospective strategy can propose a review-only prompt candidat
   else process.env.AI_PROMPT_CANDIDATE_PROPOSAL_ENABLED=prev;
  }
 });
+
+test('failed daily runs are retried only after an explicit zero-paid-call claim',async()=>{
+ const f=fake(),record={id:'failed-one',status:'failed',filter_conditions:{focusGoal:'activation'},
+  date_range_start:now-86400000,date_range_end:now,business_scope:{source:'all'},
+  user_question:'retry',created_at:now};
+ f.state.rows.push(record);
+ const input={ownerId:'alice',now,goals:['activation'],allowPaidDispatch:true,
+  store:f.store,records:f.records,enqueue:f.enqueue};
+ let value=await tickAutonomousOwner(input);
+ assert.equal(value.enqueued[0].status,'failed-needs-safe-retry-review');
+ assert.equal(f.state.queued,0);
+ f.records.claimDailySafeRetry=async(id,owner)=>{assert.equal(id,'failed-one');assert.equal(owner,'alice');
+  record.status='pending';return record};
+ f.records.createAnalysisRecord=async()=>record;
+ value=await tickAutonomousOwner(input);
+ assert.equal(value.enqueued[0].status,'queued');
+ assert.equal(f.state.queued,1);
+});
