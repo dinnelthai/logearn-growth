@@ -62,7 +62,8 @@ export function createAIAnalysis(ctx){
         <section class="a-card"><h2>复盘记录</h2>${reviews.retrospectives.map(r=>`<article><h3>${esc(r.analysis_title)}</h3><p>${esc(r.conclusion)}</p><p>置信度：${esc(r.confidence)} · ${r.has_causality?'有因果证据':'观测变化，未证明因果'}</p><p>经验：${esc(r.lessons_learned||'尚无结论')}</p></article>`).join('')||'<p>记录行动后，可主动发起复盘。</p>'}</section></div>`;
       host.querySelector('[data-health]').onclick=async()=>{try{const state=await getAgentHealth();if(token===generation)host.querySelector('[data-health-result]').textContent=JSON.stringify(state,null,2);}catch(error){if(token===generation)message(error.message);}};
       host.querySelector('[data-refresh]').onclick=()=>draw();
-      host.querySelector('[data-scan-growth-alerts]').onclick=async e=>{
+      const scanGrowthButton=host.querySelector('[data-scan-growth-alerts]');
+      if(scanGrowthButton)scanGrowthButton.onclick=async e=>{
         if(busy)return;busy=true;const button=e.currentTarget;button.disabled=true;
         try{
           const result=await scanGrowthAlerts();
