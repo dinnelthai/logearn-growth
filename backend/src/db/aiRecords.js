@@ -601,6 +601,34 @@ async function failClaimedAnalysis(id,ownerId,token,errorMessage) {
     [id,ownerId,token,String(errorMessage),Date.now(),Date.now()]);
   return !!result.rows.length;
 }
+// Shared fail-closed paid-call journal. The SQLite trace keeps detailed content;
+// this PostgreSQL fence lets every Worker see whether a charge might have begun.
+async function hasAnalysisPaidCalls(id,ownerId){
+  const result=await read('SELECT 1 FROM ai_analysis_call_guard WHERE analysis_id=$1 AND owner_id=$2 LIMIT 1',[id,ownerId]);
+  return result.rows.length>0;
+}
+async function beginAnalysisPaidCall(id,ownerId,token,round){
+  if(!Number.isSafeInteger(round)||round<0)throw Error('无效的模型调用序号');
+  const now=Date.now();
+  const result=await write(`INSERT INTO ai_analysis_call_guard
+    (analysis_id,owner_id,round,execution_token,status,started_at)
+    SELECT id,owner_id,$4,$3,'started',$5 FROM ai_analysis_records
+    WHERE id=$1 AND owner_id=$2 AND execution_token=$3 AND status='processing'
+      AND lease_expires_at>$5
+      AND NOT EXISTS (SELECT 1 FROM ai_analysis_call_guard
+        WHERE analysis_id=$1 AND status IN ('started','unknown'))
+    ON CONFLICT (analysis_id,round) DO NOTHING RETURNING analysis_id`,
+    [id,ownerId,token,round,now]);
+  if(!result.rows.length)throw Object.assign(Error('模型调用已开始或执行租约失效，禁止重复付费'),{status:409});
+}
+async function finishAnalysisPaidCall(id,ownerId,token,round,status){
+  if(!['received','unknown'].includes(status))throw Error('无效的模型调用状态');
+  const result=await write(`UPDATE ai_analysis_call_guard SET status=$5,finished_at=$6
+    WHERE analysis_id=$1 AND owner_id=$2 AND execution_token=$3 AND round=$4
+      AND status='started' RETURNING analysis_id`,
+    [id,ownerId,token,round,status,Date.now()]);
+  if(!result.rows.length)throw Error('模型调用状态未能确认，禁止继续执行');
+}
 async function claimAnalysisRetry(id, ownerId) {
   const result=await write(`UPDATE ai_analysis_records SET status='pending',error_message=NULL,started_at=NULL,completed_at=NULL
     WHERE id=$1 AND owner_id=$2 AND status='failed' RETURNING *`,[id,ownerId]);
@@ -628,7 +656,7 @@ async function getRetrospective(id, ownerId) {
 }
 
 module.exports = {
-  completeAnalysis, claimAnalysisRetry, claimAnalysisExecution, renewAnalysisLease, assertAnalysisLease, failClaimedAnalysis, updateAnalysisSnapshot, getAnalysisMemory, getRetrospective,
+  completeAnalysis, claimAnalysisRetry, claimAnalysisExecution, renewAnalysisLease, assertAnalysisLease, failClaimedAnalysis, hasAnalysisPaidCalls, beginAnalysisPaidCall, finishAnalysisPaidCall, updateAnalysisSnapshot, getAnalysisMemory, getRetrospective,
   // 分析记录
   createAnalysisRecord,
   updateAnalysisStatus,
