@@ -109,8 +109,6 @@ async function businessAnalysis(job) {
            })
           :executionClaim.record.filter_conditions?.dailySchedule==='v1'
             ?require('../../ai/growth/autonomyBudget').beginAutonomyPaidCall({analysisId,ownerId,token,round})
-            :record.filter_conditions?.dailySchedule==='v1'
-            ?require('../../ai/growth/autonomyBudget').beginAutonomyPaidCall({analysisId,ownerId,token,round})
             :records.beginAnalysisPaidCall(analysisId,ownerId,token,round),
         finish:(round,status)=>records.finishAnalysisPaidCall(analysisId,ownerId,token,round,status)
       },
@@ -225,7 +223,9 @@ async function resumeIncompleteAnalysis(job){
           ?require('../../ai/growth/budget').beginBudgetedPaidCall({
              analysisId,ownerId,token,round
            })
-          :records.beginAnalysisPaidCall(analysisId,ownerId,token,round),
+          :record.filter_conditions?.dailySchedule==='v1'
+            ?require('../../ai/growth/autonomyBudget').beginAutonomyPaidCall({analysisId,ownerId,token,round})
+            :records.beginAnalysisPaidCall(analysisId,ownerId,token,round),
         finish:(round,status)=>records.finishAnalysisPaidCall(analysisId,ownerId,token,round,status)
       },validate:value=>{validateAnalysis(value);session.validate(value);}});
     await beforeStep();
