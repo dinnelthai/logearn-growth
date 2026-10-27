@@ -307,3 +307,17 @@ CREATE TABLE IF NOT EXISTS ai_growth_notifications (
 );
 CREATE INDEX IF NOT EXISTS idx_ai_growth_notifications_owner
   ON ai_growth_notifications(owner_id,created_at DESC);
+
+-- Conservative paid-call admission for human-approved anomaly investigations.
+-- A reservation is never refunded automatically: an ambiguous provider
+-- request may already have incurred a charge. Counts calls, NOT USD.
+CREATE TABLE IF NOT EXISTS ai_growth_paid_call_allocations (
+  analysis_id TEXT NOT NULL REFERENCES ai_analysis_records(id) ON DELETE CASCADE,
+  round INTEGER NOT NULL CHECK(round >= 0),
+  owner_id TEXT NOT NULL,
+  bangkok_day TEXT NOT NULL,
+  reserved_at BIGINT NOT NULL,
+  PRIMARY KEY(analysis_id,round)
+);
+CREATE INDEX IF NOT EXISTS idx_growth_paid_allocations_owner_day
+  ON ai_growth_paid_call_allocations(owner_id,bangkok_day);
