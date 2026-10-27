@@ -83,7 +83,7 @@ Object.entries(taskHandlers).forEach(([taskName, handler]) => {
 logger.info('Registered task handlers:', Object.keys(taskHandlers));
 // Optional read-only lease watchdog. It never steals work or issues LLM calls.
 let leaseWatchdog=null,leaseWatchdogBusy=false;
-if(process.env.AI_LEASE_MONITOR_ENABLED==='1'||process.env.AI_RECOVERY_FINALIZE_ENABLED==='1'){
+if(process.env.AI_LEASE_MONITOR_ENABLED==='1'||process.env.AI_RECOVERY_FINALIZE_ENABLED==='1'||process.env.AI_RECOVERY_RESUME_ENABLED==='1'){
   leaseWatchdog=setInterval(async()=>{
     if(leaseWatchdogBusy)return;
     leaseWatchdogBusy=true;
@@ -92,14 +92,16 @@ if(process.env.AI_LEASE_MONITOR_ENABLED==='1'||process.env.AI_RECOVERY_FINALIZE_
       if(expired.length)logger.warn('[AI recovery] expired processing leases require review',{
         count:expired.length,oldestLeaseExpiredAt:expired[0].lease_expires_at
       });
-      if(process.env.AI_RECOVERY_FINALIZE_ENABLED==='1'){
-        // Only the finalization handler validates full shared paid-call and
-        // SQLite journals. It never calls a provider or business tool.
+      const allowFullResume=process.env.AI_RECOVERY_RESUME_ENABLED==='1';
+      const allowFinalOnly=process.env.AI_RECOVERY_FINALIZE_ENABLED==='1';
+      if(allowFullResume||allowFinalOnly){
+        // Full continuation may start NEW paid rounds and is separately opt-in.
+        // Final-only handler never calls the provider or business tools.
+        const name=allowFullResume?'resume-investigation':'finalize-validated';
         for(const item of expired){
-          await require('../queues').addAIAnalysisJob(
-            'resume-investigation',{analysisId:item.id,ownerId:item.owner_id},
-            {jobId:'resume-'+item.id+'-'+Math.floor(Date.now()/60000),attempts:1}
-          );
+          await require('../queues').addAIAnalysisJob(name,
+            {analysisId:item.id,ownerId:item.owner_id},
+            {jobId:name+'-'+item.id+'-'+Math.floor(Date.now()/60000),attempts:1});
         }
       }
     }catch(error){logger.error('[AI recovery] lease monitor unavailable',error.message);}
