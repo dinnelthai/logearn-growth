@@ -1,6 +1,6 @@
 import './aiAnalysis.css';
 import {loadingState} from './loadingState.js';
-import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint} from '../api/aiAnalysis.js';
+import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis} from '../api/aiAnalysis.js';
 const DAY=86400000,OFFSET=7*3600000;
 const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
@@ -64,6 +64,8 @@ export function createAIAnalysis(ctx){
       ${r.error_message?`<p role="alert">${esc(r.error_message)}</p>`:''}
       <p data-checkpoint-result role="status">正在读取调查检查点…</p>
       ${r.status==='failed'?'<button class="a-button" data-retry-analysis>重试分析</button>':''}
+      ${['pending','processing'].includes(r.status)&&!r.cancel_requested?'<button class="a-button" type="button" data-cancel-analysis>取消任务</button>':''}
+      ${r.cancel_requested?'<p role="status">任务已取消，不会继续新的模型调用；先前发出的请求仍可能计费。</p>':''}
       <p>${esc(r.result?.summary||'任务已排队；请确认 AI Worker 正在运行。')}</p>
       ${(r.result?.keyFindings||[]).map(f=>`<p>${esc(f)}</p>`).join('')}
       ${r.result?.routing?`<p>调查方式：${esc(r.result.routing.reason)}</p>`:''}
@@ -100,6 +102,15 @@ export function createAIAnalysis(ctx){
         }
       });
       panel.querySelectorAll('[data-evidence]').forEach(button=>button.onclick=async()=>{try{const evidence=await getEvidence(button.dataset.evidence);if(token===generation&&selected===id)panel.querySelector('[data-evidence-result]').textContent=JSON.stringify(evidence,null,2);}catch(error){message(error.message);}});
+      panel.querySelector('[data-cancel-analysis]')?.addEventListener('click',async e=>{
+        if(busy)return;
+        busy=true;e.currentTarget.disabled=true;
+        try{
+          await cancelAnalysis(id);
+          if(token===generation&&selected===id)await open(id);
+        }catch(error){message(error.message);if(e.currentTarget.isConnected)e.currentTarget.disabled=false;}
+        finally{busy=false;}
+      });
       panel.querySelector('[data-retry-analysis]')?.addEventListener('click',async()=>{if(busy)return;busy=true;try{await retryAnalysis(id);if(token===generation)await open(id);}catch(error){message(error.message);}finally{busy=false;}});
       panel.querySelectorAll('[data-suggestion]').forEach(form=>form.onsubmit=async e=>{
         e.preventDefault();if(busy)return;busy=true;
