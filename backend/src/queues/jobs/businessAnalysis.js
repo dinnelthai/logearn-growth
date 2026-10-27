@@ -19,10 +19,10 @@ async function businessAnalysis(job) {
   // This gate is intentionally before report-building, tool execution and LLM calls.
   // A duplicate delivery must not mark the other Worker's analysis as failed.
   const traceStore=require('../../ai/business/trace').createTraceStore(require('../../db/connection'));
-  const start=await require('../../ai/business/workerStart').claimSafeAnalysis({
+  const executionClaim=await require('../../ai/business/workerStart').claimSafeAnalysis({
     analysisId,ownerId,records,traceStore
   });
-  if(start.action==='completed')return start.result;
+  if(executionClaim.action==='completed')return executionClaim.result;
   try {
     await job.progress(10);
     const duration=end-start,source=scope.source;
