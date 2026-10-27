@@ -235,11 +235,12 @@ router.post('/growth-alerts/:id/action',handle(async(req,res)=>{
 }));
 router.get('/growth-inbox',handle(async(req,res)=>{
   const ownerId=req.user.user_id;
-  const [analyses,suggestions,reviewRows,alerts]=await Promise.all([
+  const [analyses,suggestions,reviewRows,alerts,proposals]=await Promise.all([
     records.listAnalysisRecords(ownerId,{limit:100,offset:0}),
     records.listSuggestions(ownerId,{limit:200,offset:0}),
     records.listPendingReviewSuggestions(ownerId,{limit:200}),
-    require('../ai/growth/alertStore').createAlertStore().list(ownerId,{limit:100})
+    require('../ai/growth/alertStore').createAlertStore().list(ownerId,{limit:100}),
+    require('../ai/growth/investigationStore').createInvestigationStore().list(ownerId,{limit:100})
   ]);
   let reviewEntries=[],watermarkWarning=null;
   try{
@@ -255,7 +256,7 @@ router.get('/growth-inbox',handle(async(req,res)=>{
     watermarkWarning='业务数据水位暂不可用，未显示复盘到期任务';
   }
   const inbox=require('../ai/growth/inbox').buildGrowthInbox({
-    analyses,suggestions,reviewEntries,alerts,now:Date.now()
+    analyses,suggestions,reviewEntries,alerts,proposals,now:Date.now()
   });
   if(watermarkWarning)inbox.warnings.push(watermarkWarning);
   res.json(inbox);
