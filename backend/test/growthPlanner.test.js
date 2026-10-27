@@ -39,3 +39,18 @@ test('single-source skill plan excludes global-only tools without changing busin
  assert.ok(plan.steps.every(step=>!step.tools.includes('check_data_quality')));
  assert.ok(plan.steps.every(step=>!step.tools.includes('get_channel_economics')));
 });
+
+test('reviewed strategy focus changes only read-only investigation order, not source metric rankings',()=>{
+ const original=JSON.stringify(report);
+ const strategy={version:3,policy:{focusMetrics:['activation_rate'],
+  instructions:'核查旧建议的新证据'},
+  evidence:{judgementCount:4}};
+ const plan=planGrowthInvestigation({goal:'conversion',report,strategy});
+ assert.equal(plan.learningStrategy.version,3);
+ assert.deepEqual(plan.learningStrategy.focusMetrics,['activation_rate']);
+ assert.equal(plan.steps[0].skillId,'channel-growth');
+ assert.equal(plan.requiresApprovalForActions,true);
+ assert.equal(JSON.stringify(report),original);
+ assert.throws(()=>planGrowthInvestigation({goal:'conversion',report,
+  strategy:{policy:{focusMetrics:['write-to-product-db']}}}),/未授权/);
+});
