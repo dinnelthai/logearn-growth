@@ -50,8 +50,29 @@ function createTraceStore(db){
    db.exec('COMMIT');
   }catch(e){db.exec('ROLLBACK');throw e;}
  }
+ function saveValidatedAnalysis(context,round,analysis){
+  const ownerId=owner(context);
+  db.exec('BEGIN IMMEDIATE');
+  try{
+   const row=db.prepare("SELECT result FROM agent_calls WHERE owner_id=? AND run_id=? AND trace_id=? AND round=? AND status='received'").get(ownerId,context.runId,context.traceId,round);
+   if(!row?.result)throw Error('缺少已接收的模型响应，禁止保存完成检查点');
+   const saved=JSON.parse(row.result);
+   if(typeof saved.responseContent!=='string'||saved.followup||saved.investigations?.length)
+     throw Error('该模型轮次不是可确认的最终分析');
+   if(!analysis||typeof analysis.summary!=='string'||!Array.isArray(analysis.suggestions))
+     throw Error('校验后分析结构无效');
+   const value=JSON.stringify(analysis);
+   if(saved.validatedAnalysis){
+    if(JSON.stringify(saved.validatedAnalysis)!==value)throw Error('已验证分析记录冲突');
+   }else{
+    saved.validatedAnalysis=analysis;
+    db.prepare("UPDATE agent_calls SET result=? WHERE owner_id=? AND run_id=? AND trace_id=? AND round=? AND status='received'").run(JSON.stringify(saved),ownerId,context.runId,context.traceId,round);
+   }
+   db.exec('COMMIT');
+  }catch(e){db.exec('ROLLBACK');throw e;}
+ }
  function unknown(context,round){db.prepare("UPDATE agent_calls SET status='unknown',finished_at=? WHERE owner_id=? AND trace_id=? AND round=?").run(Date.now(),owner(context),context.traceId,round);}
  function list(ownerId,runId){return db.prepare('SELECT trace_id,round,status,prompts,result,started_at,finished_at FROM agent_calls WHERE owner_id=? AND run_id=? ORDER BY started_at,round,trace_id').all(owner({ownerId}),runId).map(r=>({...r,prompts:JSON.parse(r.prompts),result:r.result?JSON.parse(r.result):null}));}
- return {savePrompt,begin,finish,appendInvestigation,saveFollowup,unknown,list};
+ return {savePrompt,begin,finish,appendInvestigation,saveFollowup,saveValidatedAnalysis,unknown,list};
 }
 module.exports={createTraceStore};
