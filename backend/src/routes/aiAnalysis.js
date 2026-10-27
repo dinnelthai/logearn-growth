@@ -39,7 +39,15 @@ router.post('/analyze',handle(async(req,res)=>{
   res.status(202).json({analysisId:record.id,jobId:job.id,status:'pending'});
 }));
 router.post('/:id/retry',handle(async(req,res)=>{
-  const record=await records.claimAnalysisRetry(req.params.id,req.user.user_id);
+  const ownerId=req.user.user_id;
+  const existing=await records.getAnalysisRecord(req.params.id,ownerId);
+  if(!existing||existing.status!=='failed')return res.status(409).json({error:'仅能重试自己已失败的分析'});
+  // The trace journal is the authority on whether paid work may already exist.
+  // If it is unavailable, the request fails without changing persistent status.
+  const calls=require('../ai/business/trace').createTraceStore(require('../db/connection')).list(ownerId,existing.id);
+  const verdict=require('../ai/business/retrySafety').assessRetry(existing,calls);
+  if(!verdict.allowed)return res.status(409).json({error:'已有模型调用记录，禁止从头重试以免重复计费；需要人工核查后创建新的分析',reason:verdict.reason});
+  const record=await records.claimAnalysisRetry(req.params.id,ownerId);
   if(!record)return res.status(409).json({error:'仅能重试自己已失败的分析'});
   try {
     const job=await addAIAnalysisJob('business-analysis',{analysisId:record.id,ownerId:req.user.user_id,
