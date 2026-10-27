@@ -13,9 +13,11 @@ const definitions={
  get_segments:{metric:'segments',adapter:'segments',description:'固定人群的现有分群分析'},
  get_activity:{metric:'activities',adapter:'activities',description:'活动固定名单和既有成员事实'},
  get_channel_economics:{metric:'trade_revenue',adapter:'economics',scopes:['source'],description:'owner合作账本，按币种分别统计，未记录收入为未知'},
- check_data_quality:{metric:'quality',adapter:'tracking-audit',scopes:['source'],description:'埋点覆盖诊断，不将水位ID解释成强一致快照'}
+ check_data_quality:{metric:'quality',adapter:'tracking-audit',scopes:['source'],description:'埋点覆盖诊断，不将水位ID解释成强一致快照'},
+ get_seo_performance:{metric:'seo_search',adapter:'seo-performance',scopes:['source'],description:'只读查询用户导入的 Search Console 行；非实时 Google API、覆盖可不完整'},
+ get_kol_performance:{metric:'kol_performance',adapter:'kol-performance',scopes:['source'],description:'复用已有 KOL CRM 归组和真实观察行为；不等于因果归因'}
 };
-const fields=['scope','start','end','metrics','dimensions','filters','steps','hours','initial','returning','limit','cursor'];
+const fields=['scope','start','end','metrics','dimensions','filters','steps','hours','initial','returning','limit','cursor','siteUrl'];
 const inputSchema={type:'object',additionalProperties:false,properties:Object.fromEntries(fields.map(k=>[k,{type:['start','end','hours','limit'].includes(k)?'integer':['metrics','dimensions','steps'].includes(k)?'array':['scope','filters'].includes(k)?'object':'string'}]))};
 function createToolRegistry(deps){
  const budgets=new Map(),maxQueries=deps.maxQueries??20,maxConcurrent=deps.maxConcurrent??2,maxResultBytes=deps.maxResultBytes??200000,timeoutMs=deps.timeoutMs??35000;
@@ -24,12 +26,12 @@ function createToolRegistry(deps){
   owner(context);if(!Object.hasOwn(definitions,id))fail('未知调查工具');
   if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(k=>!fields.includes(k)))fail('工具输入字段无效');
   const tool=definitions[id];
-  const specific=id==='get_funnel'?['steps','hours']:id==='get_retention'?['initial','returning']:id==='query_metrics'?['metrics','dimensions']:[];
+  const specific=id==='get_funnel'?['steps','hours']:id==='get_retention'?['initial','returning']:id==='query_metrics'?['metrics','dimensions']:id==='get_seo_performance'?['siteUrl']:[];
   if(Object.keys(input).some(k=>!['scope','start','end','filters','limit','cursor',...specific].includes(k)))fail('该工具不支持这些输入字段');
   const limit=input.limit??20;if(!Number.isSafeInteger(limit)||limit<1||limit>100)fail('分页大小无效');
   const {scope,audience}=await resolveScope(input.scope||context.scope||{},context,deps.lookups);
   if(tool.scopes&&Object.keys(scope).some(k=>!tool.scopes.includes(k)))fail('该工具不支持活动或人群范围');
-  if(['check_data_quality','get_activity','get_channel_economics'].includes(id)&&scope.source!=='all')fail('该工具当前仅支持全来源范围，不会忽略来源筛选');
+  if(['check_data_quality','get_activity','get_channel_economics','get_seo_performance','get_kol_performance'].includes(id)&&scope.source!=='all')fail('该工具当前仅支持全来源范围，不会忽略来源筛选');
   const ctx={...context,scope},start=input.start??context.period.start,end=input.end??context.period.end;
   validateRange(start,end);if(start<context.period.start-(context.period.end-context.period.start)||end>context.period.end)fail('查询时间超出授权范围',403);
   const period={start,end,timezone:'Asia/Bangkok'},body={start,end,source:scope.source};
@@ -59,12 +61,14 @@ function createToolRegistry(deps){
    if(id==='get_retention')for(const k of ['initial','returning']){body[k]=input[k]||'chip';if(!['chip','drill','ai','trade','visit'].includes(body[k]))fail('留存事件无效');}
    if(id==='get_paths')body.details=false;
    if(id==='get_activity'&&!scope.activityId)fail('活动工具需要activityId');
-   const snapshot=await deps.snapshot();
+   const snapshot=id==='get_seo_performance'?{snapshot_id:null,as_of:new Date().toISOString()}:await deps.snapshot();
    if(!Number.isFinite(Date.parse(snapshot.as_of))||end>Date.parse(snapshot.as_of)+1)fail('所选期间超出数据水位');
    const operation=async()=>{
     if(tool.adapter==='metrics')return deps.metrics(body,snapshot,input.metrics||['active_users','new_users','returning_users'],ctx);
     if(tool.adapter==='economics')return deps.economics(body,ctx);
     if(tool.adapter==='activities')return deps.activities(body,snapshot,audience,ctx);
+    if(tool.adapter==='seo-performance')return deps.seoPerformance({...body,limit,siteUrl:input.siteUrl},ctx);
+    if(tool.adapter==='kol-performance')return deps.kolPerformance({...body,limit},ctx,snapshot);
     return deps.runAnalysis(tool.adapter,body,snapshot,audience,owner(ctx));
    };
    operationStarted=true;
@@ -77,7 +81,7 @@ function createToolRegistry(deps){
     const entries=(safe.metrics||[]).map(m=>makeEvidence({...m,query:{tool:id,body},sourceVersions:{events:snapshot.snapshot_id},watermarks:{events:snapshot.as_of,trades:null,registrations:null},coverage:safe.coverage||{status:'unknown'},warnings:safe.warnings||[]},{...ctx,period}));
     for(const e of entries)deps.evidenceStore.save(e,ctx);return {status:'ok',evidence:entries,warnings:safe.warnings||[]};
    }
-   const e=makeEvidence({metricId:tool.metric,value:safe,query:{tool:id,body,metrics:input.metrics||null,dimensions:input.dimensions||null,audienceFingerprint:audience===null?null:fingerprint(audience)},sourceVersions:{events:snapshot.snapshot_id},watermarks:{events:snapshot.as_of,trades:payload.trade_watermark??null,registrations:payload.registration_watermark??null},coverage:payload.coverage||payload.quality||{status:'unknown'},warnings:payload.warnings||['各源水位独立；未提供的交易及注册覆盖为未知'],reportLocator:{page:tool.adapter,period,scope}}, {...ctx,period});
+   const e=makeEvidence({metricId:tool.metric,value:safe,query:{tool:id,body,metrics:input.metrics||null,dimensions:input.dimensions||null,audienceFingerprint:audience===null?null:fingerprint(audience)},sourceVersions:tool.adapter==='seo-performance'?{events:null,searchConsole:safe.snapshotId||null}:{events:snapshot.snapshot_id},watermarks:{events:tool.adapter==='seo-performance'?null:snapshot.as_of,trades:payload.trade_watermark??null,registrations:payload.registration_watermark??null,searchConsole:tool.adapter==='seo-performance'?safe.importedAt||null:null},coverage:payload.coverage||payload.quality||{status:'unknown'},warnings:payload.warnings||['各源水位独立；未提供的交易及注册覆盖为未知'],reportLocator:{page:tool.adapter,period,scope}}, {...ctx,period});
    deps.evidenceStore.save(e,ctx);return page(e,id,0,limit,ctx);
   }catch(error){if(error.status&&error.status<500)throw error;return {status:'unavailable',evidence:[],warnings:['数据获取失败，不得将缺失解释为0'],error:{type:'data_unavailable'}};}
   finally{clearTimeout(timer);if(!operationStarted)budget.active--;}
@@ -93,6 +97,6 @@ function createToolRegistry(deps){
 function defaultRegistry(){
  const db=require('../../../db/connection'),remote=require('../../../data/hologres');
  const {createEvidenceStore}=require('../evidence'),{sqliteLookups}=require('../scope');
- return createToolRegistry({evidenceStore:createEvidenceStore(db),lookups:sqliteLookups(db),snapshot:()=>remote.status(),runAnalysis:require('./adapters').runAnalysis,metrics:require('./adapters').metrics,economics:require('./adapters').economics,activities:require('./adapters').activities});
+ return createToolRegistry({evidenceStore:createEvidenceStore(db),lookups:sqliteLookups(db),snapshot:()=>remote.status(),runAnalysis:require('./adapters').runAnalysis,metrics:require('./adapters').metrics,economics:require('./adapters').economics,activities:require('./adapters').activities,seoPerformance:require('./adapters').seoPerformance,kolPerformance:require('./adapters').kolPerformance});
 }
 module.exports={createToolRegistry,defaultRegistry,listMetrics,listToolIds:()=>Object.keys(definitions)};
