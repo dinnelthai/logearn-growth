@@ -43,7 +43,9 @@ function createInvestigationTimeline({
       analysis.filter_conditions?.sourceAlertId!==proposal.alert_id){
     throw Object.assign(Error('分析关联不一致或记录不可访问，请核查'),{status:409});
    }
-   suggestions=(await recordsApi.listSuggestionsByAnalysis(analysis.id,ownerId)).slice(0,100);
+   suggestions=await recordsApi.listSuggestionsByAnalysis(analysis.id,ownerId);
+   if(!Array.isArray(suggestions)||suggestions.length>100)
+    throw Object.assign(Error('调查建议数量超过工作台的完整展示上限'),{status:409});
    // One owner-scoped SQL fetch, even if the analysis produced many actions.
    const reviews=await recordsApi.listRetrospectivesByAnalysis(analysis.id,ownerId);
    const suggestionIds=new Set(suggestions.map(s=>s.id));
