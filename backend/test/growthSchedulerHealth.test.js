@@ -1,5 +1,9 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
+// Worker import must not create a real Redis connection in offline CI.
+const queuePath=require.resolve('../src/queues/queues');
+require.cache[queuePath]={id:queuePath,filename:queuePath,loaded:true,
+ exports:{closeQueues:async()=>{}}};
 const {tick}=require('../src/queues/workers/growthAutonomyScheduler');
 test('unattended scheduler refuses duplicate replicas and records aggregate health, never dispatching paid historical work',async()=>{
  const original={
