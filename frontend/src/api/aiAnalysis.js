@@ -33,3 +33,5 @@ export const previewGrowthPlan=(reportId,goal='activation')=>aiFetch('/api/ai-an
 });
 
 export const previewGrowthSignals=reportId=>aiFetch('/api/ai-analysis/growth-signals',{method:'POST',body:JSON.stringify({reportId})});
+
+export const getGrowthReviewQueue=()=>aiFetch('/api/ai-analysis/growth-review-queue');
