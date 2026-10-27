@@ -61,7 +61,7 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
     if(Date.now()>deadline || calls.reduce((n,c)=>n+c.tokens,0)>maxTokens)throw Error('分析预算已达上限，未保存为成功结果');
     let value;
     try { value=parseJSON(response.content); }
-    catch(error) { lastError=error; routing={tier:'complex',reason:'模型输出无法解析，由当前模型重试'}; messages.push({role:'assistant',content:response.content},{role:'user',content:'输出无法解析，请完成原任务并返回完整合法 JSON。'});continue; }
+    catch(error) { lastError=error; routing={tier:'complex',reason:'模型输出无法解析，由当前模型重试'}; const correction='输出无法解析，请完成原任务并返回完整合法 JSON。'; traceStore?.saveFollowup?.(traceContext,round,correction,'parse-error'); messages.push({role:'assistant',content:response.content},{role:'user',content:correction});continue; }
     messages.push({role:'assistant',content:response.content});
     if (Array.isArray(value.investigations) && value.investigations.length) {
       if (!investigate) throw Error('该任务暂不支持请求的补充调查，任务未完成');
@@ -76,7 +76,7 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
       messages.push({role:'user',content:JSON.stringify({additionalEvidence:evidence.slice(-value.investigations.length),instruction:'根据补充证据继续调查或返回完整结果'})});continue;
     }
     try { await validate(value); }
-    catch(error) {lastError=error;routing={tier:'complex',reason:'结果缺少必要字段，由当前模型补全'};messages.push({role:'user',content:error.message+'。请完成原任务，返回完整结构，不能省略必要内容。'});continue;}
+    catch(error) {lastError=error;routing={tier:'complex',reason:'结果缺少必要字段，由当前模型补全'};const correction=error.message+'。请完成原任务，返回完整结构，不能省略必要内容。';traceStore?.saveFollowup?.(traceContext,round,correction,'validation-error');messages.push({role:'user',content:correction});continue;}
     return {analysis:value,calls,evidence,routing,cost:calls.reduce((n,c)=>n+c.cost,0),model,provider:response.provider||client.modelInfo?.provider};
   }
   throw Error('分析未完成：已达到调查调用上限。'+(lastError?.message||'请提高预算或缩小问题范围'));
