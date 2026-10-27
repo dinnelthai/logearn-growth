@@ -23,6 +23,12 @@ const skills=Object.freeze([
  {id:'seo-organic',version:'1',goal:'conversion',label:'SEO Search Console 搜索表现',
   tools:['get_seo_performance','get_channels','get_funnel'],signals:['new_users','activation_rate'],
   instructions:'仅使用用户导入的 Search Console 查询/页面/日期原始行；无法证明整站完整覆盖，搜索端日期和站内业务日不同；点击、排名不等于注册、交易或因果转化'},
+ {id:'content-growth',version:'1',goal:'conversion',label:'内容增长与渠道表现',
+  tools:['get_content_growth','get_channels','get_funnel'],signals:['new_users','activation_rate'],
+  instructions:'人工登记内容数据仅作累积表现参考；必须额外查验独立访问和注册事实，不能归因假设当因果证据'},
+ {id:'follower-quality',version:'1',goal:'conversion',label:'X粉丝质量与潜在受众',
+  tools:['get_follower_quality','get_channels'],signals:['new_users'],
+  instructions:'粉丝类别基于有限的简介和帖子关键词；只汇总类别，不输出个人档案，不推断真实购买意向'},
  {id:'kol-impact',version:'1',goal:'conversion',label:'KOL 归组用户与交易行为',
   tools:['get_kol_performance','get_channels','get_funnel','get_channel_economics'],signals:['new_users','activation_rate'],
   instructions:'使用既有 CRM KOL 成员归组与真实交易观察；成员可重叠，交易量不是收入；用户标签相关性不等于 KOL 导致的增量'}
