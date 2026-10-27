@@ -206,3 +206,12 @@ Not yet safe or complete:
 4. Deployment, default branch merge, and live migration are intentionally not performed.
 
 Recommended before readiness: confirm new CI, add full live Worker crash/restart test with real Redis/Postgres and bounded fake LLM, verify SQLite trace file persists across replica restarts, and define operator-approved rescue for incomplete paid calls. Do not silently auto-retry in `processing` after lease expiry.
+
+## P0 cancellation — cooperative stop, no deletion of billing evidence (2026-10-27)
+
+- Added idempotent `cancel_requested` column to the AI-record PostgreSQL migration. **Run `npm run migrate:ai` before deploying**, otherwise the new cancellation and lease SQL will fail.
+- Owner-scoped `POST /api/ai-analysis/:id/cancel` atomically changes a pending or processing analysis to `failed`, sets `cancel_requested=true`, and revokes the execution token/lease. Completed and already-cancelled tasks cannot be cancelled again. The endpoint explicitly warns that an already dispatched paid request may still incur charges.
+- Model-call start, lease renewal, snapshot writes, final report transaction, manual retry, automatic finalization and expired-lease monitoring all fence against cancellation; the shared paid-call journal remains intact for audit.
+- Frontend now displays a Cancel action only for active uncancelled analysis, hides retry for cancelled records and shows the in-flight billing caveat.
+- Added `backend/test/analysisCancelHttp.test.js` and expanded `backend/test/workerLeaseIntegration.test.js` with real PostgreSQL cancellation and stale token assertions. Added HTTP test to CI; frontend Vite build is already covered.
+- Limits: cooperative cancellation cannot retroactively interrupt an HTTP request already accepted by the model provider, and cannot guarantee the provider will not charge it. No production deploy or authenticated UI smoke test performed. The P0 general multi-step recovery remains intentionally blocked if any paid call is ambiguous.
