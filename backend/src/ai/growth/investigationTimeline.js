@@ -18,7 +18,7 @@ function stageFor(proposal,analysis,suggestions,retrospectives){
  if(suggestions.some(s=>s.user_status==='pending'))return 'awaiting-action-approval';
  if(suggestions.some(s=>['adopted','executing'].includes(s.user_status)))return 'action-in-progress';
  if(suggestions.some(s=>s.user_status==='executed' &&
-    !retrospectives.some(r=>r.suggestion_id===s.id)))return 'awaiting-retrospective';
+    !retrospectives.some(r=>r.suggestionId===s.id)))return 'awaiting-retrospective';
  if(retrospectives.length)return 'retrospective-recorded';
  return 'action-closed';
 }
