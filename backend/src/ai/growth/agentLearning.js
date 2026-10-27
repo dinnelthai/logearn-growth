@@ -22,15 +22,16 @@ function judgeHistory(rows,{now=Date.now()}={}){
      assessment='observed-contradicted';reason='primary-metric-not-improved-in-mature-observation';
     }else reason='retrospective-conflicts-with-primary-metric';
   }
+  const forecastCalibration=require('./agentForecast').calibrateForecast(row.forecast,row);
   evaluated.push({
    suggestionId:row.suggestion_id,retrospectiveId:row.retrospective_id,
    analysisId:row.analysis_id,metric:known.has(metric)?metric:null,
    goal:row.filter_conditions?.focusGoal||'activation',
    source:row.business_scope?.source||'all',
-   assessment,evidence:{
+   assessment,forecastCalibration,evidence:{
     reason,primaryMetric:metric,change:metricChange||null,
     hasImprovement:row.has_improvement,hasCausality:row.has_causality,
-    confidence:row.confidence,reviewedAt:Number(row.reviewed_at),
+    confidence:row.confidence,reviewedAt:Number(row.reviewed_at),forecastCalibration,
     caveat:'回顾性观察不足以验证建议因果有效性；不证明模型预测准确'
    }
   });
@@ -42,7 +43,12 @@ function summarizeJudgements(judgements){
  const contradicted=judgements.filter(x=>x.assessment==='observed-contradicted').length;
  const insufficient=judgements.length-supported-contradicted;
  const comparable=supported+contradicted;
+ const forecastHits=judgements.filter(j=>j.forecastCalibration?.status==='observed-hit').length;
+ const forecastMisses=judgements.filter(j=>j.forecastCalibration?.status==='observed-miss').length;
+ const forecastComparable=forecastHits+forecastMisses;
  return {version:'growth-judgement-v1',reviewed:judgements.length,
+  forecastComparable,forecastHits,forecastMisses,
+  observedForecastHitRate:forecastComparable?forecastHits/forecastComparable:null,
   observedSupported:supported,observedContradicted:contradicted,
   insufficient,observableAgreementRate:comparable?supported/comparable:null,
   actualPredictionAccuracy:null,causalEffectiveness:null,
@@ -52,21 +58,22 @@ function proposeStrategy(judgements,{goal,source='all'}={}){
  const selected=judgements.filter(x=>x.goal===goal&&x.source===source);
  const ordered=[...selected].sort((a,b)=>a.retrospectiveId.localeCompare(b.retrospectiveId));
  const digest=createHash('sha256').update(JSON.stringify(ordered.map(x=>[
-  x.suggestionId,x.retrospectiveId,x.metric,x.assessment
+  x.suggestionId,x.retrospectiveId,x.metric,x.assessment,x.forecastCalibration?.status
  ]))).digest('hex');
  const stats=new Map();
  for(const j of selected){
   if(!known.has(j.metric))continue;
   let counts=stats.get(j.metric)||{metric:j.metric,observedSupported:0,
    observedContradicted:0,insufficient:0};
+  if(j.forecastCalibration?.status==='observed-miss')counts.forecastMisses=(counts.forecastMisses||0)+1;
   if(j.assessment==='observed-supported')counts.observedSupported++;
   else if(j.assessment==='observed-contradicted')counts.observedContradicted++;
   else counts.insufficient++;
   stats.set(j.metric,counts);
  }
  const metrics=[...stats.values()].sort((a,b)=>a.metric.localeCompare(b.metric));
- const focusMetrics=metrics.filter(x=>x.observedContradicted>=2&&
-  x.observedContradicted>x.observedSupported)
+ const focusMetrics=metrics.filter(x=>(x.observedContradicted>=2&&
+  x.observedContradicted>x.observedSupported)||(x.forecastMisses||0)>=2)
   .sort((a,b)=>b.observedContradicted-a.observedContradicted)
   .slice(0,3).map(x=>x.metric);
  return {digest,policy:{
