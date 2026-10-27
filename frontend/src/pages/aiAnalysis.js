@@ -1,6 +1,6 @@
 import './aiAnalysis.css';
 import {loadingState} from './loadingState.js';
-import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead,getGrowthInvestigationTimeline,getSeoImports,importSeoSnapshot,previewSeoSnapshot,previewKolPerformance} from '../api/aiAnalysis.js';
+import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead,getGrowthInvestigationTimeline,getSeoImports,importSeoSnapshot,previewSeoSnapshot,previewKolPerformance,getGscConnection,saveGscSite,syncGscPerformance,getGscPerformance} from '../api/aiAnalysis.js';
 const DAY=86400000,OFFSET=7*3600000;
 const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
@@ -8,6 +8,11 @@ export function createAIAnalysis(ctx){
   const {$,esc}=ctx;
   let generation=0,timer=null,selected=null,busy=false,polling=false;
   const defaults={start:day(Date.now()-7*DAY),end:day(Date.now()-DAY)};
+  const gscDates={start:new Date(Date.now()-30*DAY).toISOString().slice(0,10),
+    end:new Date(Date.now()-3*DAY).toISOString().slice(0,10)};
+  const formatCount=v=>v==null?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0});
+  const formatPercent=v=>v==null?'—':(100*Number(v)).toFixed(2)+'%';
+  const formatPosition=v=>v==null?'—':Number(v).toFixed(1);
   const statusText={pending:'等待执行',processing:'分析中',completed:'已完成',failed:'失败',adopted:'已采纳',executed:'已执行',executing:'执行中',rejected:'已拒绝',invalid:'已失效'};
   const label=s=>statusText[s]||s;
   const json=v=>esc(JSON.stringify(v,null,2));
@@ -18,7 +23,7 @@ export function createAIAnalysis(ctx){
     const token=++generation;clearTimeout(timer);polling=false;
     const host=$('#as-output');host.innerHTML=loadingState('正在加载主动业务分析…');
     try{
-      const [list,reviews,costs,reviewQueue,inbox,alertData,proposalData,noticeData,budgetData,seoData]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]})),getGrowthAlerts().catch(error=>({alerts:[],error:error.message})),getGrowthInvestigations().catch(error=>({proposals:[],error:error.message})),getGrowthNotifications().catch(error=>({notifications:[],error:error.message})),getGrowthBudget().catch(error=>({limit:0,reservedCalls:0,remainingCalls:0,error:error.message})),getSeoImports().catch(error=>({imports:[],error:error.message}))]);
+      const [list,reviews,costs,reviewQueue,inbox,alertData,proposalData,noticeData,budgetData,seoData,gscConnection,gscSnapshot]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]})),getGrowthAlerts().catch(error=>({alerts:[],error:error.message})),getGrowthInvestigations().catch(error=>({proposals:[],error:error.message})),getGrowthNotifications().catch(error=>({notifications:[],error:error.message})),getGrowthBudget().catch(error=>({limit:0,reservedCalls:0,remainingCalls:0,error:error.message})),getSeoImports().catch(error=>({imports:[],error:error.message})),getGscConnection().catch(error=>({configured:false,sites:[],error:error.message})),getGscPerformance().catch(error=>({available:false,error:error.message}))]);
       if(token!==generation)return;
       host.innerHTML=`<div class="si-page ai-analysis-page">
         <section class="a-card"><h1>AI 业务增长助手</h1><p>主动发起分析，按业务证据排优先级；记录行动后主动复盘。所有分析与复盘均使用同一 DeRouter 模型。</p>
@@ -74,8 +79,67 @@ export function createAIAnalysis(ctx){
           ${n.read_at?'（已读）':'<button class="a-button" data-notice-read="'+esc(n.id)+'">标记已读</button>'}
           </p>`).join('')||'<p>暂无站内通知。</p>'}
         <p>仅站内通知，尚未启用邮件等外部送达。</p></section>
-        <section class="a-card"><h2>SEO · Search Console 原始数据</h2>
-          <p>只支持手动提供的 Google Search Console 查询/页面/日期导出数据；不会自动连接 Google、获取站外凭证，也不调用模型。</p>
+        <section class="a-card ai-gsc-settings">
+          <h2>Google Search Console · 网站与数据设置</h2>
+          <p>只读 Search Console API。凭证保存在服务器环境，网页不会上传或显示 Google 私钥／Token。</p>
+          <p role="status">
+            ${gscConnection.configured?
+              (gscConnection.selectedSite?'已连接 · 站点已选定':'API 已配置 · 请选择可访问站点'):
+              '尚未完成此账号的 API 授权配置'}
+            ${gscConnection.mode&&gscConnection.configured?' · '+esc(gscConnection.mode):''}
+          </p>
+          ${gscConnection.error?'<p role="alert">连接检查失败：'+esc(gscConnection.error)+'</p>':''}
+          ${gscConnection.reason?'<p>'+esc(gscConnection.reason)+'</p>':''}
+          ${gscConnection.selectionNeedsReview?'<p role="alert">此前站点已失去 API 权限，请重新选择。</p>':''}
+          <div class="ai-gsc-controls">
+            <label>Search Console 资源
+              <select data-gsc-site ${!(gscConnection.sites||[]).length?'disabled':''}>
+                ${(gscConnection.sites||[]).length?(gscConnection.sites||[]).map(site=>
+                  `<option value="${esc(site.siteUrl)}" ${site.siteUrl===gscConnection.selectedSite?'selected':''}>${esc(site.siteUrl)} · ${esc(site.permissionLevel)}</option>`).join(''):
+                  '<option value="">没有可访问的 Google 站点</option>'}
+              </select>
+            </label>
+            <button class="a-button" type="button" data-gsc-save ${!(gscConnection.sites||[]).length?'disabled':''}>保存默认站点</button>
+          </div>
+          <form data-gsc-sync-form class="ai-gsc-controls">
+            <label>数据开始日期（Search Console 太平洋时间）
+              <input type="date" name="startDate" required value="${esc(gscDates.start)}"></label>
+            <label>结束日期（仅最终数据，至少早于今天2天）
+              <input type="date" name="endDate" required value="${esc(gscDates.end)}"></label>
+            <button type="submit" class="a-button" ${!gscConnection.selectedSite?'disabled':''}>从 Google 同步数据</button>
+          </form>
+          <p>同步采用已最终确定的 Google 搜索数据；不会发起 AI 调查，也不会修改网站、索引或 Sitemap 设置。</p>
+        </section>
+        <section class="a-card ai-gsc-report">
+          <h2>Search Console · SEO 数据面板</h2>
+          ${gscSnapshot.error?'<p role="status">历史同步数据暂不可用：'+esc(gscSnapshot.error)+'</p>':''}
+          ${gscSnapshot.available&&gscSnapshot.report?(()=>{
+            const r=gscSnapshot.report,metric=r.metrics||{},coverage=r.coverage||{};
+            return `<p>资源：${esc(r.siteUrl)} · 报告期 ${esc(r.startDate)} ~ ${esc(r.endDate)} · 上次同步 ${esc(r.syncedAt?new Date(r.syncedAt).toLocaleString('zh-CN'):'—')}</p>
+              <div class="ai-stats-grid">
+                <div class="ai-stat"><span>总点击</span><strong>${esc(formatCount(metric.clicks))}</strong></div>
+                <div class="ai-stat"><span>总曝光</span><strong>${esc(formatCount(metric.impressions))}</strong></div>
+                <div class="ai-stat"><span>站点 CTR</span><strong>${esc(formatPercent(metric.ctr))}</strong></div>
+                <div class="ai-stat"><span>平均排名</span><strong>${esc(formatPosition(metric.position))}</strong></div>
+              </div>
+              <p>数据覆盖：${esc(coverage.reportedDays)} / ${esc(coverage.expectedDays)} 个日期；
+                查询行 ${esc(coverage.queryRowsReturned)}；页面行 ${esc(coverage.pageRowsReturned)}。</p>
+              <h3>按日走势</h3>
+              <div class="ai-gsc-table"><table><thead><tr><th>日期</th><th>点击</th><th>曝光</th><th>CTR</th><th>排名</th></tr></thead>
+                <tbody>${(r.daily||[]).map(d=>`<tr><td>${esc(d.date)}</td><td>${esc(formatCount(d.clicks))}</td><td>${esc(formatCount(d.impressions))}</td><td>${esc(formatPercent(d.ctr))}</td><td>${esc(formatPosition(d.position))}</td></tr>`).join('')||'<tr><td colspan="5">暂无按日数据，不能判定为零流量</td></tr>'}</tbody></table></div>
+              <h3>热门关键词（前 30）</h3>
+              <div class="ai-gsc-table"><table><thead><tr><th>查询词</th><th>点击</th><th>曝光</th><th>CTR</th><th>排名</th></tr></thead>
+                <tbody>${(r.queries||[]).slice(0,30).map(q=>`<tr><td>${esc(q.query)}</td><td>${esc(formatCount(q.clicks))}</td><td>${esc(formatCount(q.impressions))}</td><td>${esc(formatPercent(q.ctr))}</td><td>${esc(formatPosition(q.position))}</td></tr>`).join('')||'<tr><td colspan="5">无可展示的查询词</td></tr>'}</tbody></table></div>
+              <h3>潜在 SEO 机会（候选，非预测收益）</h3>
+              ${(r.opportunities||[]).slice(0,12).map(q=>`<p>${esc(q.query)} · 曝光 ${esc(formatCount(q.impressions))} · CTR ${esc(formatPercent(q.ctr))} · 平均排名 ${esc(formatPosition(q.position))}</p>`).join('')||'<p>本次数据中没有达到候选阈值的查询词。</p>'}
+              <h3>热门页面（前 20）</h3>
+              <div class="ai-gsc-table"><table><thead><tr><th>页面</th><th>点击</th><th>曝光</th><th>CTR</th></tr></thead>
+                <tbody>${(r.pages||[]).slice(0,20).map(p=>`<tr><td>${esc(p.page)}</td><td>${esc(formatCount(p.clicks))}</td><td>${esc(formatCount(p.impressions))}</td><td>${esc(formatPercent(p.ctr))}</td></tr>`).join('')||'<tr><td colspan="4">无可展示的页面</td></tr>'}</tbody></table></div>
+              <p>${(r.warnings||[]).map(w=>esc(w)).join('；')}</p>`;
+          })():'<p>尚无已同步的 Google API 数据。选择站点后点击同步，才能展示可核查的关键词及趋势。</p>'}
+        </section>
+        <section class="a-card"><h2>SEO · 备用手动导入</h2>
+          <p>优先使用上方 Google API 同步。只有服务器尚不能读取该资源时，才使用以下离线 GSC JSON 作为有限证据。</p>
           ${seoData.error?'<p role="status">SEO 数据暂不可用：'+esc(seoData.error)+'</p>':''}
           <form data-seo-import-form>
            <label>粘贴规范化的 GSC JSON（siteUrl、startDate、endDate、source、rows）
@@ -199,6 +263,32 @@ export function createAIAnalysis(ctx){
         finally{busy=false;if(button.isConnected)button.disabled=false;}
       });
 
+      const gscSave=host.querySelector('[data-gsc-save]');
+      if(gscSave)gscSave.onclick=async()=>{
+        const value=host.querySelector('[data-gsc-site]')?.value;
+        if(busy||!value)return;busy=true;gscSave.disabled=true;
+        try{
+          await saveGscSite(value);
+          if(token===generation){message('Search Console 默认站点已保存');await draw()}
+        }catch(error){if(token===generation)message('保存站点失败：'+error.message)}
+        finally{busy=false;if(gscSave.isConnected)gscSave.disabled=false}
+      };
+      const gscSyncForm=host.querySelector('[data-gsc-sync-form]');
+      if(gscSyncForm)gscSyncForm.onsubmit=async e=>{
+        e.preventDefault();if(busy)return;busy=true;
+        const button=e.target.querySelector('button');button.disabled=true;
+        const form=new FormData(e.target),startDate=String(form.get('startDate')||''),
+          endDate=String(form.get('endDate')||'');
+        try{
+          const synced=await syncGscPerformance(startDate,endDate);
+          gscDates.start=startDate;gscDates.end=endDate;
+          if(token===generation){
+            message(synced.cached?'已读取最近同步的 Search Console 快照':'Google Search Console 已同步最终数据');
+            await draw();
+          }
+        }catch(error){if(token===generation)message('Search Console 同步失败：'+error.message)}
+        finally{busy=false;if(button.isConnected)button.disabled=false}
+      };
       const specialist=host.querySelector('[data-specialist-preview]');
       host.querySelectorAll('[data-seo-preview]').forEach(button=>button.onclick=async()=>{
         if(!specialist)return;
