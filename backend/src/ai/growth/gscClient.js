@@ -36,6 +36,7 @@ function hasCredentials(env=process.env){
 }
 function createGscClient({env=process.env,request=fetch,readFile=fs.readFileSync,clock=Date.now}={}){
  let current=null,loading=null;
+ const siteCache=new Map();
  async function oauthToken(){
   if(env.GSC_ACCESS_TOKEN)return String(env.GSC_ACCESS_TOKEN).trim();
   if(current&&current.expiresAt>clock()+60000)return current.accessToken;
@@ -93,10 +94,14 @@ function createGscClient({env=process.env,request=fetch,readFile=fs.readFileSync
  async function sites(ownerId){
   const allow=authorizedProperties(ownerId,env);
   if(!allow.length) return [];
+  const key=String(ownerId)+':'+allow.join('|'),cached=siteCache.get(key);
+  if(cached&&cached.until>clock())return cached.sites.map(x=>({...x}));
   const entries=(await google('/sites')).siteEntry||[];
-  return entries.filter(x=>allow.includes(x.siteUrl)&&
+  const sites=entries.filter(x=>allow.includes(x.siteUrl)&&
     ['siteOwner','siteFullUser','siteRestrictedUser'].includes(x.permissionLevel))
     .map(x=>({siteUrl:x.siteUrl,permissionLevel:x.permissionLevel}));
+  siteCache.set(key,{sites,until:clock()+60000});
+  return sites.map(x=>({...x}));
  }
  async function assertAllowedSite(ownerId,siteUrl){
   const site=propertyName(siteUrl);
