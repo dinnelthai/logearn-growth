@@ -91,3 +91,19 @@ export const getGscSitemaps=()=>aiFetch('/api/ai-analysis/growth-seo/gsc/sitemap
 export const inspectGscUrl=inspectionUrl=>aiFetch('/api/ai-analysis/growth-seo/gsc/inspect',{
  method:'POST',body:JSON.stringify({inspectionUrl})
 });
+
+export const getAutonomyStatus=(source='all')=>aiFetch(
+ '/api/ai-analysis/growth-agent/status?source='+encodeURIComponent(source));
+export const getAutonomyTargets=(source='all')=>aiFetch(
+ '/api/ai-analysis/growth-agent/targets?source='+encodeURIComponent(source));
+export const saveAutonomyTarget=value=>aiFetch('/api/ai-analysis/growth-agent/targets',{
+ method:'PUT',body:JSON.stringify(value)
+});
+export const getAutonomyBriefs=(source='all')=>aiFetch(
+ '/api/ai-analysis/growth-agent/briefs?source='+encodeURIComponent(source));
+export const getAutonomyLearning=(source='all')=>aiFetch(
+ '/api/ai-analysis/growth-agent/learning?source='+encodeURIComponent(source));
+export const refreshAutonomyBrief=(goals=['activation','retention','conversion','revenue'],source='all')=>aiFetch(
+ '/api/ai-analysis/growth-agent/refresh',{
+ method:'POST',body:JSON.stringify({goals,source})
+});
