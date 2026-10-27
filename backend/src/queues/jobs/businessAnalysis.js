@@ -72,11 +72,12 @@ async function businessAnalysis(job) {
     }
     // Ranked business candidates stay untouched; plan adds explainable
     // anomaly triage and permitted investigations for the existing runner.
+    const memory=await records.getAnalysisMemory(ownerId,source);
     const growthPlan=require('../../ai/growth/planner').planGrowthInvestigation({
-      goal:focusGoal,report:compact
+      goal:focusGoal,report:compact,history:memory
     });
     compact={...compact,business:{...compact.business,question:userQuestion||compact.business.question},
-      memory:await records.getAnalysisMemory(ownerId,source),growthPlan};
+      memory,growthPlan};
     const session=require('../../ai/business/foundation').defaultFoundation().prepare(compact,{ownerId,runId:analysisId,goalRef:job.data.goalRef});
     compact=session.context;
     const snapshot={snapshot_id:compact.snapshot.id,snapshot_cutoff:compact.snapshot.cutoff,as_of:compact.snapshot.asOf,
