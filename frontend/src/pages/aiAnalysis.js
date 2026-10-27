@@ -75,7 +75,11 @@ export function createAIAnalysis(ctx){
         <p>状态：${esc(label(s.user_status))}</p><form data-suggestion="${esc(s.id)}">
         <label>实际行动 / 拒绝原因<textarea name="note" maxlength="5000">${esc(s.actual_action||s.rejection_reason||'')}</textarea></label>
         <label>实际执行时间（UTC+7）<input name="executedAt" type="datetime-local" value="${s.executed_at?new Date(Number(s.executed_at)+OFFSET).toISOString().slice(0,16):''}"></label>
-        <button class="a-button" name="status" value="adopted">采纳</button><button class="a-button" name="status" value="executed">记录已执行</button><button class="a-button" name="status" value="rejected">拒绝</button></form>
+        ${s.user_status==='pending'?'<button class="a-button" name="status" value="adopted">人工批准采纳</button>':''}
+        ${s.user_status==='adopted'?'<button class="a-button" name="status" value="executing">开始执行</button>':''}
+        ${s.user_status==='executing'?'<button class="a-button" name="status" value="executed">记录已执行</button>':''}
+        ${['pending','adopted','executing'].includes(s.user_status)?'<button class="a-button" name="status" value="rejected">拒绝</button>':''}
+        </form>
         ${s.user_status==='executed'?`<button class="a-button" data-review="${esc(s.id)}">复盘执行效果</button>`:''}</article>`).join('')}
       <details><summary>业务快照、目标优先级及模型调用记录</summary><pre>${json({snapshot:r.data_snapshot,calls:r.result?.calls})}</pre></details>`;
       // Diagnostics are owner-scoped and intentionally do not expose model prompts.
