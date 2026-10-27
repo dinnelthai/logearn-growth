@@ -5,6 +5,7 @@ const {createSign}=require('node:crypto'),fs=require('node:fs');
 const SCOPE='https://www.googleapis.com/auth/webmasters.readonly';
 const TOKEN_URL='https://oauth2.googleapis.com/token';
 const API='https://www.googleapis.com/webmasters/v3';
+const INSPECTION_API='https://searchconsole.googleapis.com/v1';
 const fail=(message,status=400)=>{throw Object.assign(Error(message),{status})};
 function propertyName(input){
  if(typeof input!=='string'||!input||input.length>250)fail('Search Console 资源格式无效');
@@ -72,11 +73,12 @@ function createGscClient({env=process.env,request=fetch,readFile=fs.readFileSync
   })();
   try{return await loading}finally{loading=null}
  }
- async function google(path,body){
+ async function google(path,body,origin=API){
+  if(![API,INSPECTION_API].includes(origin))fail('未知 Google API 地址',400);
   if(!hasCredentials(env))fail('服务器尚未配置 Search Console API 凭证',503);
   const token=await oauthToken();
   let response;
-  try{response=await request(API+path,{
+  try{response=await request(origin+path,{
     method:body?'POST':'GET',
     headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},
     ...(body?{body:JSON.stringify(body)}:{}),
@@ -123,7 +125,53 @@ function createGscClient({env=process.env,request=fetch,readFile=fs.readFileSync
   };
   return google('/sites/'+encodeURIComponent(siteUrl)+'/searchAnalytics/query',params);
  }
- return {sites,assertAllowedSite,searchAnalytics,google,
+ async function sitemaps(ownerId,siteUrl){
+  await assertAllowedSite(ownerId,siteUrl);
+  const r=await google('/sites/'+encodeURIComponent(siteUrl)+'/sitemaps');
+  if(r.sitemap!=null&&!Array.isArray(r.sitemap))
+    fail('Google Sitemap 返回格式无效',503);
+  return (r.sitemap||[]).slice(0,50).map(s=>({
+    path:String(s.path||'').slice(0,1500),
+    lastSubmitted:s.lastSubmitted||null,lastDownloaded:s.lastDownloaded||null,
+    isPending:s.isPending===true,isSitemapsIndex:s.isSitemapsIndex===true,
+    errors:Number.isFinite(Number(s.errors))?Number(s.errors):null,
+    warnings:Number.isFinite(Number(s.warnings))?Number(s.warnings):null,
+    type:s.type||null,
+    content:(s.contents||[]).slice(0,10).map(c=>({
+      type:c.type||null,submitted:c.submitted??null,indexed:c.indexed??null
+    }))
+  }));
+ }
+ async function inspect(ownerId,siteUrl,inspectionUrl){
+  await assertAllowedSite(ownerId,siteUrl);
+  let page;
+  try{page=new URL(inspectionUrl)}catch{fail('网址检查地址无效')}
+  if(page.protocol!=='https:'||page.username||page.password||page.hash||
+     page.href.length>1500)fail('仅允许检查 HTTPS 页面且不能包含凭据或片段');
+  if(siteUrl.startsWith('sc-domain:')){
+   const domain=siteUrl.slice('sc-domain:'.length);
+   if(page.hostname!==domain&&!page.hostname.endsWith('.'+domain))
+    fail('所检查 URL 不属于当前 Search Console 域名资源',403);
+  }else if(!page.href.startsWith(siteUrl))
+   fail('所检查 URL 不属于当前 Search Console URL 前缀资源',403);
+  const r=await google('/urlInspection/index:inspect',{
+   inspectionUrl:page.href,siteUrl,languageCode:'zh-CN'
+  },INSPECTION_API);
+  const status=r.inspectionResult?.indexStatusResult;
+  if(!status||typeof status!=='object')fail('Google 尚未返回此 URL 的索引状态',503);
+  return {inspectionUrl:page.href,siteUrl,
+    verdict:status.verdict||null,coverageState:status.coverageState||null,
+    robotsTxtState:status.robotsTxtState||null,
+    indexingState:status.indexingState||null,
+    pageFetchState:status.pageFetchState||null,
+    lastCrawlTime:status.lastCrawlTime||null,
+    googleCanonical:status.googleCanonical||null,
+    userCanonical:status.userCanonical||null,
+    source:'google-index-url-inspection',
+    isLiveTest:false,
+    warning:'仅查询 Google 索引中的版本，不是实时页面可索引性测试，也没有请求收录'};
+ }
+ return {sites,assertAllowedSite,searchAnalytics,sitemaps,inspect,google,
   status(ownerId){const allowed=authorizedProperties(ownerId,env);
    return {configured:allowed.length>0&&hasCredentials(env),
     authorizationConfigured:hasCredentials(env),
