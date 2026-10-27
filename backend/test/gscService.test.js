@@ -6,7 +6,7 @@ const row=(key,clicks,impressions,position)=>({keys:[key],clicks,impressions,
  ctr:impressions?clicks/impressions:0,position});
 function fixture(){return {
  daily:{rows:[row(startDate,10,100,4),row(endDate,20,200,6)]},
- queries:{rows:[row('holder distribution',2,150,8),row('wallet holder map',5,200,4)]},
+ queries:{rows:[row('holder distribution',2,150,8),row('wallet holder map',12,200,4)]},
  pages:{rows:[row('https://logearn.com/holders',8,240,4)]}
 }}
 test('real GSC daily property totals are independent of query and page top-row subsets',()=>{
