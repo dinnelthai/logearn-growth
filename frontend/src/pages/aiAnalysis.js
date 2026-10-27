@@ -1,6 +1,6 @@
 import './aiAnalysis.css';
 import {loadingState} from './loadingState.js';
-import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead} from '../api/aiAnalysis.js';
+import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead,getGrowthInvestigationTimeline} from '../api/aiAnalysis.js';
 const DAY=86400000,OFFSET=7*3600000;
 const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
@@ -59,9 +59,11 @@ export function createAIAnalysis(ctx){
         ${(proposalData.proposals||[]).slice(0,30).map(p=>`<article>
           <p>${esc(p.metric)} · ${esc(p.source)} · ${esc(p.status)} · ${esc(day(Number(p.period_end)))}</p>
           <p>异常观测需要核实采集覆盖，模型分析可能产生费用；批准不代表自动执行增长动作。</p>
+          <button class="a-button" data-case-timeline="'+esc(p.id)+'">查看完整链路</button>
           ${p.analysis_id?'<button class="a-button" data-analysis="'+esc(p.analysis_id)+'">查看关联分析</button>':''}
           ${p.status==='proposed'?'<button class="a-button" data-growth-proposal="approve" data-proposal-id="'+esc(p.id)+'" data-proposal-version="'+esc(p.version)+'" '+(Number(budgetData.remainingCalls)<1?'disabled title="每日预算未开启或已耗尽"':'')+'>人工批准调查</button><button class="a-button" data-growth-proposal="dismiss" data-proposal-id="'+esc(p.id)+'" data-proposal-version="'+esc(p.version)+'">忽略提案</button>':''}
           </article>`).join('')||'<p>暂无待审批异常调查。</p>'}
+        <section data-growth-timeline><p>选择提案后，可查看原始观测、调查、建议和复盘的完整关联。</p></section>
         </section>
         <section class="a-card"><h2>站内通知</h2>
         ${noticeData.error?'<p role="status">通知暂不可用：'+esc(noticeData.error)+'</p>':''}
@@ -100,6 +102,54 @@ export function createAIAnalysis(ctx){
         finally{busy=false;if(button.isConnected)button.disabled=false;}
       });
 
+      host.querySelectorAll('[data-case-timeline]').forEach(button=>button.onclick=async()=>{
+        const panel=host.querySelector('[data-growth-timeline]');
+        if(!panel)return;
+        const openedAt=token;
+        button.disabled=true;
+        panel.textContent='正在读取调查链路…';
+        try{
+          const timeline=await getGrowthInvestigationTimeline(button.dataset.caseTimeline);
+          if(openedAt!==generation)return;
+          const stages={
+            'awaiting-approval':'等待人工批准','dismissed':'提案已忽略',
+            'approved-awaiting-dispatch':'已批准，等待派发','queued':'已入队',
+            'investigating':'AI 正在调查','investigation-failed':'调查失败，需核查',
+            'analysis-completed-no-action':'分析已完成，无待执行建议',
+            'awaiting-action-approval':'等待建议审批',
+            'action-in-progress':'行动执行中','awaiting-retrospective':'等待复盘',
+            'retrospective-recorded':'已有复盘记录','action-closed':'行动已关闭'
+          };
+          const obs=timeline.originalObservation||{};
+          panel.innerHTML=`<h3>完整调查链路 · ${esc(stages[timeline.stage]||timeline.stage)}</h3>
+            <p>告警：${esc(timeline.alert.metric)} · ${esc(timeline.alert.direction)} ·
+            来源 ${esc(timeline.alert.source)} · 优先级 ${esc(timeline.alert.priority)}</p>
+            <p>原始观测（提案时冻结）：${esc(obs.baseline??'未知')} → ${esc(obs.observed??'未知')}
+            · 变化 ${esc(obs.absolute??'未知')}；不构成因果证明。</p>
+            <p>证据分析 ID：${esc(obs.evidence?.baselineAnalysisId||'未知')} →
+            ${esc(obs.evidence?.currentAnalysisId||'未知')}</p>
+            ${timeline.analysis?`<p>AI 调查：${esc(timeline.analysis.status)}
+              ${timeline.analysis.error?' · '+esc(timeline.analysis.error):''}</p>
+              <p>摘要：${esc(timeline.analysis.summary||'尚无分析结论')}</p>
+              <p>验证证据 ID：${(timeline.analysis.evidenceIds||[]).map(esc).join('、')||'尚无'}</p>
+              <button class="a-button" data-case-analysis="${esc(timeline.analysis.id)}">查看原分析与证据</button>`:
+              '<p>尚未关联 AI 调查，可能还在等待审批或派发。</p>'}
+            <h4>行动建议（${esc(timeline.counts.suggestions)}）</h4>
+            ${(timeline.actions||[]).map(a=>`<article><p>${esc(a.priority)} · ${esc(a.problem)}
+              · ${esc(label(a.status))}</p><p>建议：${esc(a.action||'无')}</p>
+              ${a.actualAction?'<p>实际执行：'+esc(a.actualAction)+'</p>':''}
+              </article>`).join('')||'<p>没有已保存的行动建议。</p>'}
+            <h4>复盘（${esc(timeline.counts.retrospectives)}）</h4>
+            ${(timeline.retrospectives||[]).map(r=>`<p>${esc(r.conclusion)} ·
+              ${esc(r.confidence)} · ${r.hasCausality?'包含因果证据':'观察相关，未证明因果'}</p>`).join('')||
+              '<p>尚无完成的复盘。</p>'}
+            <p>本页只读取既有记录，不调用模型，也不执行运营动作。</p>`;
+          panel.querySelector('[data-case-analysis]')?.addEventListener('click',()=>{
+            if(timeline.analysis?.id)open(timeline.analysis.id);
+          });
+        }catch(error){if(openedAt===generation)panel.textContent='无法读取调查链路：'+error.message;}
+        finally{if(button.isConnected)button.disabled=false;}
+      });
       host.querySelectorAll('[data-growth-proposal]').forEach(button=>button.onclick=async()=>{
         if(busy)return;busy=true;button.disabled=true;
         try{
