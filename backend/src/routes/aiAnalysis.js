@@ -110,7 +110,11 @@ router.get('/jobs/:jobId/checkpoint',handle(async(req,res)=>{
   // model responses or tool results on this diagnostics endpoint.
   const calls=require('../ai/business/trace').createTraceStore(require('../db/connection')).list(req.user.user_id,record.id);
   const summary=require('../ai/business/checkpointState').inspectCheckpoint(calls);
-  res.json({analysisId:record.id,recordStatus:record.status,...summary});
+  const leaseExpired=record.status==='processing' && (!record.lease_expires_at || Number(record.lease_expires_at)<=Date.now());
+  res.json({analysisId:record.id,recordStatus:record.status,
+    leaseExpired,leaseExpiresAt:record.lease_expires_at||null,
+    requiresHumanReview:leaseExpired||summary.state==='blocked'||summary.state==='partial-tools',
+    ...summary});
 }));
 router.get('/jobs/:jobId/status',handle(async(req,res)=>{
   const status=await getJobStatus('aiAnalysis',req.params.jobId);
