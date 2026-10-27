@@ -79,6 +79,23 @@ Object.entries(taskHandlers).forEach(([taskName, handler]) => {
 });
 
 logger.info('Registered task handlers:', Object.keys(taskHandlers));
+// Optional read-only lease watchdog. It never steals work or issues LLM calls.
+let leaseWatchdog=null,leaseWatchdogBusy=false;
+if(process.env.AI_LEASE_MONITOR_ENABLED==='1'){
+  leaseWatchdog=setInterval(async()=>{
+    if(leaseWatchdogBusy)return;
+    leaseWatchdogBusy=true;
+    try{
+      const expired=await require('../../db/aiRecords').listExpiredAnalysisLeases(100);
+      if(expired.length)logger.warn('[AI recovery] expired processing leases require review',{
+        count:expired.length,oldestLeaseExpiredAt:expired[0].lease_expires_at
+      });
+    }catch(error){logger.error('[AI recovery] lease monitor unavailable',error.message);}
+    finally{leaseWatchdogBusy=false;}
+  },60000);
+  leaseWatchdog.unref?.();
+}
+
 
 /**
  * Worker 事件监听
@@ -119,6 +136,7 @@ queues.aiAnalysis.on('stalled', (job) => {
  */
 async function gracefulShutdown() {
   logger.info('Shutting down AI Analysis Worker...');
+  if(leaseWatchdog)clearInterval(leaseWatchdog);
 
   try {
     await queues.aiAnalysis.close();
