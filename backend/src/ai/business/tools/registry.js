@@ -95,4 +95,4 @@ function defaultRegistry(){
  const {createEvidenceStore}=require('../evidence'),{sqliteLookups}=require('../scope');
  return createToolRegistry({evidenceStore:createEvidenceStore(db),lookups:sqliteLookups(db),snapshot:()=>remote.status(),runAnalysis:require('./adapters').runAnalysis,metrics:require('./adapters').metrics,economics:require('./adapters').economics,activities:require('./adapters').activities});
 }
-module.exports={createToolRegistry,defaultRegistry,listMetrics};
+module.exports={createToolRegistry,defaultRegistry,listMetrics,listToolIds:()=>Object.keys(definitions)};

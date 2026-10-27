@@ -1,7 +1,7 @@
 'use strict';
 const {listSkills,getSkill}=require('./skills');
-const {definitions}=require('../business/tools/registry');
-const supportedTools=new Set(Object.keys(definitions));
+const {listToolIds}=require('../business/tools/registry');
+const supportedTools=new Set(listToolIds());
 const goalMap={activation:['growth-overview','activation-funnel'],retention:['growth-overview','retention'],conversion:['growth-overview','channel-growth','trade-conversion'],revenue:['growth-overview','revenue']};
 function planGrowthInvestigation({goal='activation',report,maxSkills=3}={}){
  if(!Object.hasOwn(goalMap,goal))throw Object.assign(Error('未知增长目标'),{status:400});
