@@ -142,9 +142,8 @@ router.post('/growth-alerts/scan',handle(async(req,res)=>{
 }));
 router.get('/growth-alerts/:id/history',handle(async(req,res)=>{
   const store=require('../ai/growth/alertStore').createAlertStore();
-  const alerts=await store.list(req.user.user_id,{limit:100,includeResolved:true});
-  if(!alerts.some(alert=>alert.id===req.params.id))
-    return res.status(404).json({error:'告警不存在或无权限'});
+  const record=await store.get(req.user.user_id,req.params.id);
+  if(!record)return res.status(404).json({error:'告警不存在或无权限'});
   res.json({events:await store.history(req.user.user_id,req.params.id)});
 }));
 router.post('/growth-alerts/:id/action',handle(async(req,res)=>{
