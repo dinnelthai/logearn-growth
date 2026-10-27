@@ -20,7 +20,8 @@ const taskHandlers = {
   'business-analysis': businessAnalysis,
   'finalize-validated': recoverValidatedAnalysis,
   'resume-investigation': resumeIncompleteAnalysis,
-  'retrospective': retrospectiveAnalysis
+  'retrospective': retrospectiveAnalysis,
+  'follower-collect': async job=>require('../../services/followerAudit').collect(job.data.owner,job.data.account)
 };
 
 // WebSocket handlers for real-time updates
