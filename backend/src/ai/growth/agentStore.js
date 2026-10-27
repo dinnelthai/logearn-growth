@@ -103,10 +103,10 @@ function createAgentStore(db=pool){
   if(!ownerId||!Number.isSafeInteger(limit)||limit<1||limit>300)
    bad('学习反馈查询参数无效');
   const r=await db.query(`SELECT s.id AS suggestion_id,s.analysis_id,s.user_status,
-    s.validation_metrics,s.priority,s.created_at,s.executed_at,
+    s.validation_metrics,s.forecast,s.priority,s.created_at,s.executed_at,
     a.business_scope,a.filter_conditions,
     r.id AS retrospective_id,r.created_at AS reviewed_at,
-    r.metric_changes,r.has_improvement,r.has_causality,r.confidence
+    r.metric_changes,r.effect_period,r.has_improvement,r.has_causality,r.confidence
    FROM ai_suggestions s
    JOIN ai_analysis_records a ON a.id=s.analysis_id AND a.owner_id=s.owner_id
    JOIN ai_retrospectives r ON r.suggestion_id=s.id AND r.owner_id=s.owner_id
