@@ -1,6 +1,6 @@
 import './aiAnalysis.css';
 import {loadingState} from './loadingState.js';
-import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead,getGrowthInvestigationTimeline} from '../api/aiAnalysis.js';
+import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead,getGrowthInvestigationTimeline,getSeoImports,importSeoSnapshot,previewSeoSnapshot,previewKolPerformance} from '../api/aiAnalysis.js';
 const DAY=86400000,OFFSET=7*3600000;
 const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
@@ -18,7 +18,7 @@ export function createAIAnalysis(ctx){
     const token=++generation;clearTimeout(timer);polling=false;
     const host=$('#as-output');host.innerHTML=loadingState('正在加载主动业务分析…');
     try{
-      const [list,reviews,costs,reviewQueue,inbox,alertData,proposalData,noticeData,budgetData]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]})),getGrowthAlerts().catch(error=>({alerts:[],error:error.message})),getGrowthInvestigations().catch(error=>({proposals:[],error:error.message})),getGrowthNotifications().catch(error=>({notifications:[],error:error.message})),getGrowthBudget().catch(error=>({limit:0,reservedCalls:0,remainingCalls:0,error:error.message}))]);
+      const [list,reviews,costs,reviewQueue,inbox,alertData,proposalData,noticeData,budgetData,seoData]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]})),getGrowthAlerts().catch(error=>({alerts:[],error:error.message})),getGrowthInvestigations().catch(error=>({proposals:[],error:error.message})),getGrowthNotifications().catch(error=>({notifications:[],error:error.message})),getGrowthBudget().catch(error=>({limit:0,reservedCalls:0,remainingCalls:0,error:error.message})),getSeoImports().catch(error=>({imports:[],error:error.message}))]);
       if(token!==generation)return;
       host.innerHTML=`<div class="si-page ai-analysis-page">
         <section class="a-card"><h1>AI 业务增长助手</h1><p>主动发起分析，按业务证据排优先级；记录行动后主动复盘。所有分析与复盘均使用同一 DeRouter 模型。</p>
@@ -28,6 +28,8 @@ export function createAIAnalysis(ctx){
         <label>结束日期（含当日）<input name="end" type="date" required value="${defaults.end}"></label>
         <label>来源<input name="source" value="all" maxlength="200" placeholder="all 或业务来源值"></label>
         <label>业务目标<select name="goal"><option value="activation">提升激活</option><option value="retention">提升留存</option><option value="conversion">提升转化</option><option value="revenue">收入策略</option></select></label>
+        <label>专项增长技能<select name="skillId"><option value="">通用增长分析</option><option value="seo-organic">SEO · Search Console（激活/转化）</option><option value="kol-impact">KOL · 合作归组（转化/收入）</option></select></label>
+        <p>专项技能只允许全来源分析；SEO 不会把搜索点击假设成交易转化，KOL 不会把 CRM 归组等同于合作增量。</p>
         <label>分析方式<select name="modelMode"><option value="auto">自动调查（单模型）</option><option value="complex">深度调查（同一模型）</option></select></label>
         <label>业务背景与问题<textarea name="question" maxlength="5000" placeholder="当前目标、资源约束、近期活动、产品改动，以及你想解决的问题"></textarea></label>
         <button class="a-button" type="submit" ${busy?'disabled':''}>开始分析</button></form>
@@ -72,6 +74,24 @@ export function createAIAnalysis(ctx){
           ${n.read_at?'（已读）':'<button class="a-button" data-notice-read="'+esc(n.id)+'">标记已读</button>'}
           </p>`).join('')||'<p>暂无站内通知。</p>'}
         <p>仅站内通知，尚未启用邮件等外部送达。</p></section>
+        <section class="a-card"><h2>SEO · Search Console 原始数据</h2>
+          <p>只支持手动提供的 Google Search Console 查询/页面/日期导出数据；不会自动连接 Google、获取站外凭证，也不调用模型。</p>
+          ${seoData.error?'<p role="status">SEO 数据暂不可用：'+esc(seoData.error)+'</p>':''}
+          <form data-seo-import-form>
+           <label>粘贴规范化的 GSC JSON（siteUrl、startDate、endDate、source、rows）
+             <textarea name="json" rows="4" maxlength="95000" placeholder='{"siteUrl":"https://example.com/","startDate":"2026-10-18","endDate":"2026-10-18","source":"gsc-manual-export","rows":[{"date":"2026-10-18","query":"holder distribution","page":"https://example.com/holders","clicks":2,"impressions":80,"position":8.2}]}'
+             required></textarea></label>
+           <button class="a-button" type="submit">导入 GSC 快照（不调用 AI）</button>
+          </form>
+          ${(seoData.imports||[]).slice(0,10).map(r=>`<p>${esc(r.site_url)} ·
+             ${esc(r.start_date)} ~ ${esc(r.end_date)} · ${esc(r.row_count)} 行
+             <button class="a-button" data-seo-preview="${esc(r.id)}">查看 SEO 证据</button></p>`).join('')||'<p>暂无 Search Console 数据，关键词搜索量与排名不可用。</p>'}
+        </section>
+        <section class="a-card"><h2>KOL · CRM 归组效果</h2>
+          <p>复用既有 KOL 排名计算，需连接真实 Hologres。指标是观察行为，不能说明由 KOL 导致；缺失值仍为未知。</p>
+          <button class="a-button" data-kol-preview type="button">读取当前统计期 KOL 观察结果（不调用 AI）</button>
+        </section>
+        <section class="a-card" data-specialist-preview><p>选择一个 SEO 快照或读取 KOL 观察结果查看证据。</p></section>
         <section class="a-card"><h2>历史分析</h2><button class="a-button" data-refresh>刷新</button>
         ${list.records.length?list.records.map(r=>`<p><button class="a-button" data-analysis="${esc(r.id)}">${esc(r.title)}</button> · ${esc(label(r.status))} · 建议 ${esc(r.suggestion_count)} 条</p>`).join(''):'<p>尚无分析，点击开始后才会调用模型。</p>'}</section>
         <section class="a-card" data-detail><p>选择一条分析查看证据和建议。</p></section>
@@ -179,6 +199,40 @@ export function createAIAnalysis(ctx){
         finally{busy=false;if(button.isConnected)button.disabled=false;}
       });
 
+      const specialist=host.querySelector('[data-specialist-preview]');
+      host.querySelectorAll('[data-seo-preview]').forEach(button=>button.onclick=async()=>{
+        if(!specialist)return;
+        button.disabled=true;specialist.textContent='正在查询 Search Console 快照…';
+        try{
+          const result=await previewSeoSnapshot(button.dataset.seoPreview);
+          if(token!==generation)return;
+          specialist.innerHTML='<h3>SEO 已导入观察数据</h3><pre>'+esc(JSON.stringify(result.report,null,2))+'</pre>';
+        }catch(error){if(token===generation)specialist.textContent=error.message}
+        finally{if(button.isConnected)button.disabled=false}
+      });
+      const kolButton=host.querySelector('[data-kol-preview]');
+      if(kolButton)kolButton.onclick=async()=>{
+        if(!specialist)return;
+        kolButton.disabled=true;specialist.textContent='正在查询已归组 KOL 观察数据…';
+        try{
+          const result=await previewKolPerformance(timestamp(defaults.start),
+            timestamp(defaults.end)+DAY);
+          if(token!==generation)return;
+          specialist.innerHTML='<h3>KOL 观察数据（非因果）</h3><pre>'+esc(JSON.stringify(result.report,null,2))+'</pre>';
+        }catch(error){if(token===generation)specialist.textContent=error.message}
+        finally{if(kolButton.isConnected)kolButton.disabled=false}
+      };
+      const importForm=host.querySelector('[data-seo-import-form]');
+      if(importForm)importForm.onsubmit=async e=>{
+        e.preventDefault();if(busy)return;busy=true;
+        const button=e.target.querySelector('button');button.disabled=true;
+        try{
+          const raw=new FormData(e.target).get('json');
+          const result=await importSeoSnapshot(JSON.parse(raw));
+          if(token===generation){message(result.created?'SEO 快照导入成功':'相同快照已存在，未重复写入');await draw();}
+        }catch(error){if(token===generation)message('导入失败：'+error.message)}
+        finally{busy=false;if(button.isConnected)button.disabled=false}
+      };
       host.querySelectorAll('[data-analysis]').forEach(b=>b.onclick=()=>open(b.dataset.analysis));
       host.querySelector('[data-ai-form]').onsubmit=async e=>{
         e.preventDefault();if(busy)return;busy=true;const button=e.target.querySelector('button');button.disabled=true;
@@ -186,7 +240,7 @@ export function createAIAnalysis(ctx){
         defaults.start=form.get('start');defaults.end=form.get('end');
         try{
           const result=await createBusinessAnalysis({requestKey,title:form.get('title'),dateRangeStart:timestamp(defaults.start),dateRangeEnd:timestamp(defaults.end)+DAY,
-            businessScope:{source:form.get('source').trim()||'all'},focusGoal:form.get('goal'),userQuestion:form.get('question'),modelMode:form.get('modelMode')});
+            businessScope:{source:form.get('source').trim()||'all'},focusGoal:form.get('goal'),userQuestion:form.get('question'),modelMode:form.get('modelMode'),skillId:form.get('skillId')||null});
           if(token!==generation)return;
           selected=result.analysisId;await draw();
         }catch(error){if(token===generation)message(error.message);}
