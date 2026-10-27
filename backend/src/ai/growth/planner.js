@@ -11,7 +11,9 @@ function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[
   throw Error('必须提供现有业务报告作为任务规划依据');
  const specialized={
   'seo-organic':['activation','conversion'],
-  'kol-impact':['conversion','revenue']
+  'kol-impact':['conversion','revenue'],
+  'content-growth':['conversion'],
+  'follower-quality':['conversion']
  };
  if(focusSkillId!=null&&(!Object.hasOwn(specialized,focusSkillId)||
     !specialized[focusSkillId].includes(goal)))
