@@ -478,8 +478,7 @@ CREATE TABLE IF NOT EXISTS ai_growth_agent_strategy (
  goal TEXT NOT NULL,version INTEGER NOT NULL,
  feedback_digest TEXT NOT NULL,policy JSONB NOT NULL,
  evidence JSONB NOT NULL,created_at BIGINT NOT NULL,
- UNIQUE(owner_id,source,goal,version),
- UNIQUE(owner_id,source,goal,feedback_digest)
+ UNIQUE(owner_id,source,goal,version)
 );
 CREATE INDEX IF NOT EXISTS idx_growth_agent_strategy_owner
  ON ai_growth_agent_strategy(owner_id,source,goal,version DESC);
