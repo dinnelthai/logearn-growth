@@ -16,12 +16,15 @@ async function businessAnalysis(job) {
   const {analysisId,ownerId,dateRangeStart:start,dateRangeEnd:end,userQuestion,focusGoal='activation',modelMode='auto'}=job.data;
   const scope=validateScope(job.data.businessScope);
   validateRange(start,end);
-  const existing=await records.getAnalysisRecord(analysisId,ownerId);
-  if (!existing) throw Error('分析记录不存在或无权限');
-  if (existing.status==='completed') return existing.result;
-  if(existing.status==='processing')throw Error('任务此前已开始执行，需核查调用轨迹后恢复，禁止盲重放');
+  // This gate is intentionally before report-building, tool execution and LLM calls.
+  // A duplicate delivery must not mark the other Worker's analysis as failed.
+  const traceStore=require('../../ai/business/trace').createTraceStore(require('../../db/connection'));
+  const start=await require('../../ai/business/workerStart').claimSafeAnalysis({
+    analysisId,ownerId,records,traceStore
+  });
+  if(start.action==='completed')return start.result;
   try {
-    await records.updateAnalysisStatus(analysisId,'processing');await job.progress(10);
+    await job.progress(10);
     const duration=end-start,source=scope.source;
     let compact;
     if(job.data.evidenceReportId){
