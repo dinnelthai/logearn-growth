@@ -61,6 +61,12 @@ function createAlertStore(query=(sql,args)=>aiPool.query(sql,args)){
     LIMIT $2`,[ownerId,limit,includeResolved===true]);
   return result.rows;
  }
+ async function get(ownerId,id){
+  if(typeof ownerId!=='string'||!ownerId||typeof id!=='string'||!id)
+   throw Error('告警查询参数无效');
+  const result=await query('SELECT * FROM ai_growth_alerts WHERE id=$1 AND owner_id=$2',[id,ownerId]);
+  return result.rows[0]||null;
+ }
  async function history(ownerId,id,limit=50){
   if(!ownerId||!id||!Number.isSafeInteger(limit)||limit<1||limit>100)throw Error('告警历史参数无效');
   const r=await query(`SELECT e.id,e.event_type,e.details,e.created_at FROM ai_growth_alert_events e
@@ -98,6 +104,6 @@ function createAlertStore(query=(sql,args)=>aiPool.query(sql,args)){
   [id,ownerId,expectedVersion,action,snoozeUntil,note,now,event]);
   return result.rows[0]||null;
  }
- return {completedDays,observe,list,history,transition};
+ return {completedDays,observe,list,get,history,transition};
 }
 module.exports={createAlertStore};
