@@ -187,3 +187,22 @@ Accept a new component only when it:
 - An initial CI run found a JavaScript identifier collision (`start` also represents the range start). Fixed in commit `a8dcca0e`. The corrected **GitHub Actions workflow passed** (run `40506590076`).
 - Limitations: the unit tests mock PostgreSQL's query execution, so a real multi-process PG/Redis concurrent delivery test is still needed. This is an atomic startup claim, **not** a renewable lease or automatic takeover; a crash can leave `processing` awaiting human recovery. Keep `canAutoResume:false` and do not enable automatic replays.
 - No Growth metrics, attribution, SQL analytics or production deployments altered.
+
+## P0 consolidated implementation — worker leases, diagnostics, integration (2026-10-27)
+
+Changes in this consolidated slice:
+- Add idempotent PostgreSQL migration for `execution_token` and `lease_expires_at` on `ai_analysis_records`. Run `npm run migrate:ai` **before deploying this branch**. No Growth metric schema changes.
+- Worker startup issues a random execution token. The existing atomic `pending -> processing` claim now persists this token with a two-minute lease; a 20-second heartbeat renews it.
+- `assertAnalysisLease` checks owner, token, status and expiry before each outbound model call and each business tool call. Snapshot writes, final report transaction, and failed-state transition also check the token. Stale Worker writes are rejected.
+- Owner-scoped checkpoint API now reports expiry/review flags. The existing AI Analysis UI reads checkpoint counts, pending tools, model journal blockers and lease-expiry status without exposing raw model responses.
+- Added integration test `backend/test/workerLeaseIntegration.test.js`: real PostgreSQL and Redis/Bull with two deliveries for one analysis ID, competing atomic claims, lease renewal, stale token rejection and terminal-status fencing. GitHub Actions provisions disposable Postgres 16 and Redis 7, runs in separate `ai-integration` job.
+- **GitHub CI push and PR succeeded** on `954269c9` (runs `40507314302`, `40507321974`). The later extra final-report fencing assertion in commit `614745c2` must still pass independently; don't claim it passed until the new CI completes.
+- Existing tracing continues to deny automatic replay if the paid call status is unknown. The owner-scoped journal and status persistence are local SQLite plus PostgreSQL, so production topology and shared-volume consistency need deployment-specific validation.
+
+Not yet safe or complete:
+1. Full automatic continuation of multi-step investigation after a Worker crash remains **disabled**. `canAutoResume` is still false; an expired lease does not prove no paid model call happened. Enabling paid-call restart without an exactly-once or idempotency scheme would be unsafe.
+2. Lease ownership prevents most stale database writes and checks before each step, but does not cancel an already-in-flight provider request or side-effectful external tool. Exact-once behavior and cancellation require more infrastructure/provider-specific evidence.
+3. No full deployed multi-service kill/restart/cancel end-to-end scenario yet; CI verifies concurrent Bull deliveries and mocked/isolated process termination separately. Frontend production smoke test and actual credential/data verification remain outstanding.
+4. Deployment, default branch merge, and live migration are intentionally not performed.
+
+Recommended before readiness: confirm new CI, add full live Worker crash/restart test with real Redis/Postgres and bounded fake LLM, verify SQLite trace file persists across replica restarts, and define operator-approved rescue for incomplete paid calls. Do not silently auto-retry in `processing` after lease expiry.
