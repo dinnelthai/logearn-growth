@@ -9,7 +9,7 @@ function report(id,start,end,users,overrides={}){
   period:{start,end},business:{scope:{source:'all'}},focusGoal:'activation',
   snapshot:{id:'snap-'+id,asOf:new Date(end+3600000).toISOString(),
    eventsCompleteThrough:new Date(end).toISOString(),historyComplete:true},
-  current:{totals:{active_users:users,new_users:users,returning_users:20}},
+  current:{totals:{active_users:users,new_users:20,returning_users:20}},
   growth:{quality:{truncated:false}}
  };
  return {id,owner_id:'owner-a',status:'completed',date_range_start:start,date_range_end:end,
