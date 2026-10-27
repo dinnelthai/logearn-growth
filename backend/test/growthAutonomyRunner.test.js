@@ -59,8 +59,10 @@ test('scheduler goals and paid flags require explicit authorization',()=>{
  assert.equal(config.paidEnabled,false);
  assert.equal(config.goals.length,4);
  config=autonomyConfig({AI_AUTONOMY_OWNER_IDS:'alice',
-  AI_AUTONOMY_PAID_DAILY_ENABLED:'1',AI_AUTONOMY_GOALS:'activation,retention'});
+  AI_AUTONOMY_PAID_DAILY_ENABLED:'1',AI_AUTONOMY_PAID_CALLS_PER_DAY:'12',
+  AI_AUTONOMY_GOALS:'activation,retention'});
  assert.equal(config.paidEnabled,true);
+ assert.throws(()=>autonomyConfig({AI_AUTONOMY_OWNER_IDS:'alice',AI_AUTONOMY_PAID_DAILY_ENABLED:'1'}),/必须配置/);
  assert.deepEqual(config.goals,['activation','retention']);
  assert.throws(()=>autonomyConfig({AI_AUTONOMY_OWNER_IDS:'alice,alice'}),/不重复/);
 });

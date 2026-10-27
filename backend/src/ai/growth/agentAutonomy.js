@@ -66,7 +66,9 @@ function autonomyConfig(env=process.env){
   throw Error('AI_AUTONOMY_OWNER_IDS 需要显式且不重复的授权用户列表');
  const source=env.AI_AUTONOMY_SOURCE||'all';
  if(typeof source!=='string'||!source||source.length>200)throw Error('Agent 来源范围无效');
- return {owners,goals,source,
-  paidEnabled:env.AI_AUTONOMY_PAID_DAILY_ENABLED==='1'};
+ const paidEnabled=env.AI_AUTONOMY_PAID_DAILY_ENABLED==='1';
+ if(paidEnabled&&require('./autonomyBudget').dailyAutonomyLimit(env)===0)
+  throw Error('开启自动付费分析时必须配置 AI_AUTONOMY_PAID_CALLS_PER_DAY 为正整数');
+ return {owners,goals,source,paidEnabled};
 }
 module.exports={tickAutonomousOwner,autonomyConfig,allowedGoals};
