@@ -82,6 +82,7 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
     }
     try { await validate(value); }
     catch(error) {lastError=error;routing={tier:'complex',reason:'结果缺少必要字段，由当前模型补全'};const correction=error.message+'。请完成原任务，返回完整结构，不能省略必要内容。';traceStore?.saveFollowup?.(traceContext,round,correction,'validation-error');messages.push({role:'user',content:correction});continue;}
+    traceStore?.saveValidatedAnalysis?.(traceContext,round,value);
     return {analysis:value,calls,evidence,routing,cost:calls.reduce((n,c)=>n+c.cost,0),model,provider:response.provider||client.modelInfo?.provider};
   }
   throw Error('分析未完成：已达到调查调用上限。'+(lastError?.message||'请提高预算或缩小问题范围'));
