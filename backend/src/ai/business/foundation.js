@@ -15,7 +15,7 @@ function createFoundation(db,registry){
  // Uses the exact already-persisted context, without fetching a new report or
  // recomputing a new baseline snapshot after a process crash.
  function resume(context,{ownerId,runId}){
-  if(!context||context.ownerId!==ownerId||context.runId!==runId||
+  if(!context||!ownerId||!runId||
      !context.business?.scope||!context.period||!Array.isArray(context.evidence))
     throw Error('恢复上下文与任务身份不一致');
   const base={ownerId,runId,scope:context.business.scope,period:context.period};
