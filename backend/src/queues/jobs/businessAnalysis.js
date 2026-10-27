@@ -67,7 +67,9 @@ async function businessAnalysis(job) {
     }else{
       compact=await reportsService.build({start,end,businessScope:scope,focusGoal,question:userQuestion});
     }
-    // Ranked business candidates stay untouched; the plan adds explainable\n    // anomaly triage and permitted investigations for the existing AI runner.\n    const growthPlan=require('../../ai/growth/planner').planGrowthInvestigation({
+    // Ranked business candidates stay untouched; plan adds explainable
+    // anomaly triage and permitted investigations for the existing runner.
+    const growthPlan=require('../../ai/growth/planner').planGrowthInvestigation({
       goal:focusGoal,report:compact
     });
     compact={...compact,business:{...compact.business,question:userQuestion||compact.business.question},
