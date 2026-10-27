@@ -549,19 +549,20 @@ async function searchExperience(ownerId, query, limit = 10) {
   return result.rows;
 }
 
-async function completeAnalysis(id, ownerId, suggestions, result, model) {
+async function completeAnalysis(id, ownerId, suggestions, result, model, token) {
   const client=await aiPool.connect();
   try {
     await client.query('BEGIN');
-    const locked=await client.query('SELECT status,result FROM ai_analysis_records WHERE id=$1 AND owner_id=$2 FOR UPDATE',[id,ownerId]);
+    const locked=await client.query('SELECT status,result,execution_token,lease_expires_at FROM ai_analysis_records WHERE id=$1 AND owner_id=$2 FOR UPDATE',[id,ownerId]);
     if(!locked.rows.length)throw Error('分析记录不存在或无权限');
     if(locked.rows[0].status==='completed'){await client.query('COMMIT');return locked.rows[0].result;}
+    if(!token||locked.rows[0].status!=='processing'||locked.rows[0].execution_token!==token||Number(locked.rows[0].lease_expires_at)<=Date.now())throw Error('执行租约失效，禁止写入分析结果');
     // This transaction owns all result writes; rollback leaves no partial suggestions.
     const existing=await client.query('SELECT id FROM ai_suggestions WHERE analysis_id=$1',[id]);
     if(existing.rows.length)throw Error('发现旧版本未完成的建议，请新建分析以保留原记录');
     for(const suggestion of suggestions)await createSuggestion(suggestion,client);
     await client.query(`UPDATE ai_analysis_records SET status='completed',result=$3,model_provider=$4,model_name=$5,
-      prompt_version='business-v2',cost_usd=$6,completed_at=$7,error_message=NULL WHERE id=$1 AND owner_id=$2`,
+      prompt_version='business-v2',cost_usd=$6,completed_at=$7,error_message=NULL,execution_token=NULL,lease_expires_at=NULL WHERE id=$1 AND owner_id=$2`,
       [id,ownerId,JSON.stringify(result),model.provider,model.model,model.cost,Date.now()]);
     await client.query('COMMIT');return result;
   } catch(error) {await client.query('ROLLBACK');throw error;}
@@ -605,8 +606,11 @@ async function claimAnalysisRetry(id, ownerId) {
     WHERE id=$1 AND owner_id=$2 AND status='failed' RETURNING *`,[id,ownerId]);
   return result.rows[0]||null;
 }
-async function updateAnalysisSnapshot(id, snapshot) {
-  await write('UPDATE ai_analysis_records SET data_snapshot=$2 WHERE id=$1', [id, JSON.stringify(snapshot)]);
+async function updateAnalysisSnapshot(id, snapshot, ownerId, token) {
+  const result=await write(`UPDATE ai_analysis_records SET data_snapshot=$2 WHERE id=$1
+    AND owner_id=$3 AND execution_token=$4 AND status='processing' AND lease_expires_at>$5 RETURNING id`,
+    [id, JSON.stringify(snapshot), ownerId, token, Date.now()]);
+  if(!result.rows.length)throw Error('执行租约失效，禁止更新快照');
 }
 async function getAnalysisMemory(ownerId, source = 'all') {
   const result = await read(`SELECT s.id, s.business_problem, s.action, s.user_status,
