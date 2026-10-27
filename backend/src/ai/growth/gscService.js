@@ -162,6 +162,18 @@ function createGscService({db=pool,client=defaultClient,clock=Date.now}={}){
    throw error;
   }finally{conn.release()}
  }
- return {connection,setting,select,latest,sync};
+ async function sitemaps(ownerId){
+  const selected=await setting(ownerId);
+  if(!selected?.site_url)fail('先选择 Search Console 资源再查看 Sitemap',409);
+  const rows=await client.sitemaps(ownerId,selected.site_url);
+  return {siteUrl:selected.site_url,rows,readOnly:true,
+   warnings:['仅列出已提交的 Sitemap，提交数和已索引数不是整站页面索引覆盖率']};
+ }
+ async function inspect(ownerId,inspectionUrl){
+  const selected=await setting(ownerId);
+  if(!selected?.site_url)fail('先选择 Search Console 资源再检查 URL',409);
+  return client.inspect(ownerId,selected.site_url,inspectionUrl);
+ }
+ return {connection,setting,select,latest,sync,sitemaps,inspect};
 }
 module.exports={createGscService,buildGoogleSnapshot,summarizeGsc,dateWindow};
