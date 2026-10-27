@@ -19,7 +19,8 @@ function planGrowthInvestigation({goal='activation',report,maxSkills=3}={}){
   sourceSnapshot:report.snapshot?.id||null,requiresApprovalForActions:true,
   steps:selected.map(({skill})=>({
    skillId:skill.id,skillVersion:skill.version,label:skill.label,
-   tools:skill.tools.filter(id=>supportedTools.has(id)),
+   tools:skill.tools.filter(id=>supportedTools.has(id)&&(
+    report.business.scope.source==='all'||!['check_data_quality','get_channel_economics'].includes(id))),
    investigation:skill.instructions,mode:'read-only',
    relatedCandidates:priority.filter(c=>skill.signals.includes(c.metric)).map(c=>c.id).filter(Boolean).slice(0,5)
   })),
