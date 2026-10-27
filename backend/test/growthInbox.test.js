@@ -32,3 +32,39 @@ test('invalid inputs are rejected',()=>{
  assert.throws(()=>buildGrowthInbox({analyses:{},now:NOW}),/输入无效/);
  assert.throws(()=>buildGrowthInbox({now:NaN}),/输入无效/);
 });
+
+test('current major decline with a draft proposal creates one approval task instead of duplicate alert',()=>{
+ const now=NOW;
+ const alerts=[{id:'alert-1',status:'open',metric:'active_users',priority:'P0',
+   last_period_end:1700000000000,snooze_until:null}];
+ const proposals=[{id:'p1',alert_id:'alert-1',status:'proposed',period_end:1700000000000,
+   last_period_end:1700000000000,alert_status:'open',priority:'P0',metric:'active_users'}];
+ const original=JSON.stringify({alerts,proposals});
+ const inbox=buildGrowthInbox({alerts,proposals,now});
+ assert.equal(inbox.counts.proposalApprovals,1);
+ assert.equal(inbox.counts.alerts,0);
+ assert.deepEqual(inbox.tasks.map(t=>t.kind),['investigation-approval']);
+ assert.equal(inbox.tasks[0].proposalId,'p1');
+ assert.equal(JSON.stringify({alerts,proposals}),original);
+});
+test('approved proposal without linked analysis requires dispatch review, old proposals do not hide a fresh alert',()=>{
+ const alert={id:'a',status:'open',metric:'active_users',priority:'P0',
+   last_period_end:200,snooze_until:null};
+ const current={id:'new',alert_id:'a',status:'approved',analysis_id:null,
+   period_end:200,last_period_end:200,alert_status:'open',metric:'active_users'};
+ let inbox=buildGrowthInbox({alerts:[alert],proposals:[current],now:NOW});
+ assert.equal(inbox.counts.dispatchReview,1);
+ assert.equal(inbox.counts.alerts,0);
+ assert.equal(inbox.tasks[0].status,'needs-dispatch-review');
+ inbox=buildGrowthInbox({alerts:[alert],proposals:[{...current,period_end:100}],now:NOW});
+ assert.equal(inbox.counts.alerts,1);
+ assert.equal(inbox.counts.dispatchReview,0);
+ inbox=buildGrowthInbox({alerts:[alert],proposals:[{...current,status:'dismissed'}],now:NOW});
+ assert.equal(inbox.counts.total,0);
+});
+test('acknowledged or snoozed proposals cannot request a fresh investigation',()=>{
+ const base={id:'p',alert_id:'a',status:'proposed',period_end:200,
+   last_period_end:200,alert_status:'acknowledged',metric:'active_users'};
+ assert.equal(buildGrowthInbox({proposals:[base],now:NOW}).counts.total,0);
+ assert.equal(buildGrowthInbox({proposals:[{...base,alert_status:'open',snooze_until:NOW+86400000}],now:NOW}).counts.total,0);
+});
