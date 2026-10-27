@@ -9,6 +9,22 @@ const paging=req=>{
   if(!Number.isSafeInteger(limit)||limit<1||limit>100||!Number.isSafeInteger(offset)||offset<0)throw Object.assign(Error('分页参数无效'),{status:400});
   return {limit,offset,status:req.query.status||null};
 };
+router.get('/growth-skills',handle(async(req,res)=>{
+  res.json({version:'growth-skills-v1',
+    skills:require('../ai/growth/skills').listSkills(),
+    execution:'read-only-tools; no automatic external actions'});
+}));
+router.post('/growth-plan',handle(async(req,res)=>{
+  const reportId=req.body?.reportId;
+  if(typeof reportId!=='string'||!reportId.trim()||reportId.length>256)
+    return res.status(400).json({error:'需要已保存的业务报告 ID'});
+  const ownerId=req.user.user_id;
+  const report=require('../db/businessReports').createStore(require('../db/connection')).get(reportId,ownerId);
+  if(!report)return res.status(404).json({error:'业务报告不存在或无权限'});
+  const goal=req.body.goal||report.focusGoal||report.business?.focusGoal||'activation';
+  const plan=require('../ai/growth/planner').planGrowthInvestigation({goal,report,maxSkills:3});
+  res.json({plan,dispatched:false});
+}));
 router.post('/analyze',handle(async(req,res)=>{
   const {title,analysisType='optimization',dateRangeStart:start,dateRangeEnd:end,userQuestion='',focusGoal='activation',modelMode='auto',evidenceReportId=null,goalRef=null}=req.body;
   validateRange(start,end);const businessScope=validateScope(req.body.businessScope);
