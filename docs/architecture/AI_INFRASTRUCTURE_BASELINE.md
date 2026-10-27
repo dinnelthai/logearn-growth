@@ -69,3 +69,12 @@ Accept a new component only when it:
 - Limitation: unique retry queue IDs are not the analysis ID, so their evicted-job status is available via the durable `GET /api/ai-analysis/:id` endpoint rather than this fallback. Full checkpoint/resume is **not implemented**.
 - Local verification: `node --check` on modified route and new helper; `node --test test/jobStatus.test.js test/agentFoundation.test.js test/agentEvidence.test.js test/agentTrace.test.js` **8 tests passed** on uploaded local backend copy with these exact changes applied. This is **not** a CI run against a fresh GitHub checkout or production integration test.
 - Next: add HTTP contract tests for this fallback; only then consider further progress-state changes.
+
+## Implementation checkpoint 2 — HTTP contract coverage (2026-10-27)
+
+- Added `backend/test/jobStatusHttp.test.js` using a loopback Express server with stubbed queue and owner-scoped record access (no production Redis, Postgres, or paid LLM calls).
+- The HTTP contract now tests: live job progress, live job ownership rejection (403), pruned completed result, pruned failed error, pruned processing `unknown` without fake resumability, missing record (404), and no cross-owner result exposure.
+- Local test command: `NODE_PATH=<path-to-extracted-existing-node_modules> node --test test/jobStatusHttp.test.js test/agentApi.test.js test/agentFoundation.test.js test/agentEvidence.test.js test/agentTrace.test.js test/jobStatus.test.js`.
+- Local result: **10 passed, 0 failed** against a local source copy with this branch's status fallback. Node v22.16.0. Not a fresh-checkout CI result; dependency installation and production integration still unverified.
+- No business calculation or database schema touched.
+- Next highest-priority gap: investigate durable checkpoint semantics and retry safety for paid calls. Do not enable automatic replay for an ambiguous provider request.
