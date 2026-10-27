@@ -1,12 +1,33 @@
 'use strict';
 // Pure, read-only daily operating inbox. Existing DB remains the source of truth.
-function buildGrowthInbox({analyses=[],suggestions=[],reviewEntries=[],alerts=[],now=Date.now()}={}){
- if(![analyses,suggestions,reviewEntries,alerts].every(Array.isArray)||!Number.isSafeInteger(now))
+function buildGrowthInbox({analyses=[],suggestions=[],reviewEntries=[],alerts=[],proposals=[],now=Date.now()}={}){
+ if(![analyses,suggestions,reviewEntries,alerts,proposals].every(Array.isArray)||!Number.isSafeInteger(now))
    throw Error('增长待办输入无效');
  const tasks=[];
+ // Only the proposal for the alert's most recent observed business day
+ // supersedes an untriaged alert; older dismissed proposals remain historical.
+ const latestProposals=new Map();
+ for(const p of proposals.slice(0,100)){
+  if(!p||typeof p.id!=='string'||typeof p.alert_id!=='string')continue;
+  if(Number(p.period_end)!==Number(p.last_period_end))continue;
+  latestProposals.set(p.alert_id,p);
+  if(p.alert_status!=='open'||Number(p.snooze_until)>now)continue;
+  if(p.status==='proposed')tasks.push({
+   id:'proposal:'+p.id,kind:'investigation-approval',priority:'P0',
+   title:'审批重大异常调查：'+String(p.metric||'').slice(0,50),
+   proposalId:p.id,alertId:p.alert_id,status:'awaiting-human-approval',
+   guidance:'审阅原始异常证据；只有人工批准才可能创建付费模型调用'
+  });
+  if(p.status==='approved'&&!p.analysis_id)tasks.push({
+   id:'proposal:'+p.id,kind:'investigation-dispatch',priority:'P0',
+   title:'核查已批准但尚未关联分析的异常提案',
+   proposalId:p.id,alertId:p.alert_id,status:'needs-dispatch-review',
+   guidance:'检查队列及固定请求标识，勿为相同提案创建新的付费任务'
+  });
+ }
  for(const a of alerts.slice(0,100)){
   if(!a||typeof a.id!=='string'||a.status!=='open'||
-     Number(a.snooze_until)>now)continue;
+     Number(a.snooze_until)>now||latestProposals.has(a.id))continue;
   tasks.push({id:'alert:'+a.id,kind:'growth-alert',
    priority:a.priority==='P0'?'P0':'P1',title:'复查跨日异常：'+String(a.metric||'').slice(0,50),
    alertId:a.id,status:'needs-triage',
@@ -51,7 +72,9 @@ function buildGrowthInbox({analyses=[],suggestions=[],reviewEntries=[],alerts=[]
   counts:{total:tasks.length,approval:tasks.filter(x=>x.kind==='approval').length,
    review:tasks.filter(x=>x.kind==='retrospective').length,
    failed:tasks.filter(x=>x.kind==='analysis-failed').length,
-   alerts:tasks.filter(x=>x.kind==='growth-alert').length},
+   alerts:tasks.filter(x=>x.kind==='growth-alert').length,
+   proposalApprovals:tasks.filter(x=>x.kind==='investigation-approval').length,
+   dispatchReview:tasks.filter(x=>x.kind==='investigation-dispatch').length},
   tasks:tasks.slice(0,100),readOnly:true,paidCalls:0,externalActions:0,
   warnings:['工作台基于已保存的分析与跨日告警，不证明因果；无自动审批或执行']};
 }
