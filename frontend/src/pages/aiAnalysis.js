@@ -1,6 +1,6 @@
 import './aiAnalysis.css';
 import {loadingState} from './loadingState.js';
-import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox} from '../api/aiAnalysis.js';
+import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,scanGrowthAlerts,changeGrowthAlert} from '../api/aiAnalysis.js';
 const DAY=86400000,OFFSET=7*3600000;
 const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
@@ -18,7 +18,7 @@ export function createAIAnalysis(ctx){
     const token=++generation;clearTimeout(timer);polling=false;
     const host=$('#as-output');host.innerHTML=loadingState('正在加载主动业务分析…');
     try{
-      const [list,reviews,costs,reviewQueue,inbox]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]}))]);
+      const [list,reviews,costs,reviewQueue,inbox,alertData]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]})),getGrowthAlerts().catch(error=>({alerts:[],error:error.message}))]);
       if(token!==generation)return;
       host.innerHTML=`<div class="si-page ai-analysis-page">
         <section class="a-card"><h1>AI 业务增长助手</h1><p>主动发起分析，按业务证据排优先级；记录行动后主动复盘。所有分析与复盘均使用同一 DeRouter 模型。</p>
@@ -39,6 +39,19 @@ export function createAIAnalysis(ctx){
         ${(inbox.warnings||[]).map(w=>'<p>'+esc(w)+'</p>').join('')}
         ${(inbox.tasks||[]).slice(0,20).map(t=>`<p>${esc(t.priority)} · ${esc(t.title)} · ${esc(t.status)} ${t.analysisId?'<button class="a-button" data-analysis="'+esc(t.analysisId)+'">查看分析</button>':''}</p>`).join('')||'<p>目前没有需要处理的运营待办。</p>'}
         </section>
+        <section class="a-card"><h2>跨日增长告警</h2>
+        <p>基于相邻完整业务日、相同目标和采集范围的已保存结果；仅提示观测变化，不宣称因果。扫描不调用 AI。</p>
+        <button class="a-button" type="button" data-scan-growth-alerts>扫描已完成的每日分析</button>
+        ${alertData.error?'<p role="status">告警服务暂不可用：'+esc(alertData.error)+'</p>':''}
+        ${(alertData.alerts||[]).slice(0,30).map(a=>`<article>
+          <p>${esc(a.priority)} · ${esc(a.metric)} · ${esc(a.direction==='decline'?'减少':'增加')} ·
+          ${esc(a.source)} · 已出现 ${esc(a.occurrences)} 次 · ${esc(a.status)}</p>
+          <p>上一完整日 ${esc(a.evidence?.baseline??'未知')} → 当前完整日 ${esc(a.evidence?.observed??'未知')}</p>
+          ${Number(a.snooze_until)>Date.now()?'<p>已延后至 '+esc(day(Number(a.snooze_until)))+'</p>':''}
+          ${a.status==='open'?'<button class="a-button" data-alert-action="acknowledge" data-alert-id="'+esc(a.id)+'" data-alert-version="'+esc(a.version)+'">确认</button>':''}
+          ${a.status!=='resolved'?'<button class="a-button" data-alert-action="snooze" data-alert-id="'+esc(a.id)+'" data-alert-version="'+esc(a.version)+'">延后24小时</button><button class="a-button" data-alert-action="resolve" data-alert-id="'+esc(a.id)+'" data-alert-version="'+esc(a.version)+'">标记解决</button>':''}
+          </article>`).join('')||'<p>目前没有未解决的跨日告警。</p>'}
+        </section>
         <section class="a-card"><h2>历史分析</h2><button class="a-button" data-refresh>刷新</button>
         ${list.records.length?list.records.map(r=>`<p><button class="a-button" data-analysis="${esc(r.id)}">${esc(r.title)}</button> · ${esc(label(r.status))} · 建议 ${esc(r.suggestion_count)} 条</p>`).join(''):'<p>尚无分析，点击开始后才会调用模型。</p>'}</section>
         <section class="a-card" data-detail><p>选择一条分析查看证据和建议。</p></section>
@@ -49,6 +62,25 @@ export function createAIAnalysis(ctx){
         <section class="a-card"><h2>复盘记录</h2>${reviews.retrospectives.map(r=>`<article><h3>${esc(r.analysis_title)}</h3><p>${esc(r.conclusion)}</p><p>置信度：${esc(r.confidence)} · ${r.has_causality?'有因果证据':'观测变化，未证明因果'}</p><p>经验：${esc(r.lessons_learned||'尚无结论')}</p></article>`).join('')||'<p>记录行动后，可主动发起复盘。</p>'}</section></div>`;
       host.querySelector('[data-health]').onclick=async()=>{try{const state=await getAgentHealth();if(token===generation)host.querySelector('[data-health-result]').textContent=JSON.stringify(state,null,2);}catch(error){if(token===generation)message(error.message);}};
       host.querySelector('[data-refresh]').onclick=()=>draw();
+      host.querySelector('[data-scan-growth-alerts]').onclick=async e=>{
+        if(busy)return;busy=true;const button=e.currentTarget;button.disabled=true;
+        try{
+          const result=await scanGrowthAlerts();
+          if(token===generation){message('扫描完成，新观测 '+(result.newObservations||0)+' 条');await draw();}
+        }catch(error){if(token===generation)message(error.message);}
+        finally{busy=false;if(button.isConnected)button.disabled=false;}
+      };
+      host.querySelectorAll('[data-alert-action]').forEach(button=>button.onclick=async()=>{
+        if(busy)return;busy=true;button.disabled=true;
+        const action=button.dataset.alertAction;
+        try{
+          await changeGrowthAlert(button.dataset.alertId,Number(button.dataset.alertVersion),action,
+            action==='snooze'?{snoozeUntil:Date.now()+DAY}:{});
+          if(token===generation)await draw();
+        }catch(error){if(token===generation)message(error.message);}
+        finally{busy=false;if(button.isConnected)button.disabled=false;}
+      });
+
       host.querySelectorAll('[data-ready-review]').forEach(button=>button.onclick=async()=>{
         if(busy)return;busy=true;button.disabled=true;
         try{
