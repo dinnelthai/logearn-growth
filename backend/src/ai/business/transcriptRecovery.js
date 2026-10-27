@@ -24,8 +24,11 @@ function reconstructTranscript({rows,systemPrompt,context,operationType='analysi
     let parsed;
     try{parsed=JSON.parse(response.trim().replace(/^`{3}(?:json)?\s*/,'').replace(/\s*`{3}$/,''));}
     catch{
-      messages.push({role:'assistant',content:response},{role:'user',content:'输出无法解析，请完成原任务并返回完整合法 JSON。'});
-      calls.push(row.result);
+      const followup=row.result.followup;
+      if(!followup || followup.kind!=='parse-error' || typeof followup.content!=='string')
+        return fail('unrecorded-parse-repair');
+      messages.push({role:'assistant',content:response},{role:'user',content:followup.content});
+      calls.push({model:row.result.model,provider:row.result.provider,tokens:row.result.tokens,cost:row.result.cost,costKnown:row.result.costKnown,fromCache:row.result.fromCache});
       continue;
     }
     if (!parsed||typeof parsed!=='object'||Array.isArray(parsed))return fail('invalid-response-shape');
@@ -36,9 +39,11 @@ function reconstructTranscript({rows,systemPrompt,context,operationType='analysi
       if(completed.length!==parsed.investigations.length)return fail('tool-execution-incomplete');
       evidence.push(...completed);
       messages.push({role:'user',content:JSON.stringify({additionalEvidence:completed,instruction:'根据补充证据继续调查或返回完整结果'})});
+    }else if(row.result.followup){
+      if(row.result.followup.kind!=='validation-error'||typeof row.result.followup.content!=='string')
+        return fail('invalid-validation-followup');
+      messages.push({role:'user',content:row.result.followup.content});
     }else if (row!==rows.at(-1)) {
-      // Validation errors were not journaled in the original runner; their
-      // exact user messages cannot be reconstructed safely.
       return fail('unrecorded-validation-turn');
     }
   }
