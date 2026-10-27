@@ -27,7 +27,14 @@ async function tickAutonomousOwner({
  const enqueued=[];
  if(allowPaidDispatch){
   for(const goal of required){
-   if(analyses.some(a=>a.filter_conditions?.focusGoal===goal))continue;
+   // Completed and active runs are owned by the existing analysis worker.
+   // Pending records may have been persisted before Bull accepted the job.
+   // Failed runs are NOT blindly replayed: remote paid-call state may be unknown.
+   const existing=analyses.find(a=>a.filter_conditions?.focusGoal===goal);
+   if(existing&&existing.status!=='pending'){
+    if(existing.status==='failed')enqueued.push({goal,status:'failed-needs-safe-retry-review',analysisId:existing.id});
+    continue;
+   }
    const item=await dispatchDaily({ownerId,now,goal,source,records,enqueue});
    enqueued.push({goal,status:item.status,analysisId:item.analysisId});
   }
