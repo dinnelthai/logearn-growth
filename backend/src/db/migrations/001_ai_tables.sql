@@ -236,3 +236,39 @@ ALTER TABLE ai_analysis_records ADD COLUMN IF NOT EXISTS cancel_requested BOOLEA
 
 -- Preserve exact JSON.stringify bytes used for the model context fingerprint.
 ALTER TABLE ai_analysis_records ADD COLUMN IF NOT EXISTS context_payload TEXT;
+
+-- P1 cross-day Growth monitoring. Does not store or recompute Growth metrics;
+-- it journals owner-scoped observations derived from completed daily reports.
+CREATE TABLE IF NOT EXISTS ai_growth_alerts (
+  id TEXT PRIMARY KEY,
+  owner_id TEXT NOT NULL,
+  fingerprint TEXT NOT NULL,
+  source TEXT NOT NULL,
+  goal TEXT NOT NULL,
+  metric TEXT NOT NULL,
+  direction TEXT NOT NULL CHECK(direction IN ('decline','increase')),
+  priority TEXT NOT NULL CHECK(priority IN ('P0','P1')),
+  first_period_end BIGINT NOT NULL,
+  last_period_end BIGINT NOT NULL,
+  occurrences INTEGER NOT NULL DEFAULT 1 CHECK(occurrences>0),
+  status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','acknowledged','resolved')),
+  snooze_until BIGINT,
+  reviewed_at BIGINT,
+  operator_note TEXT,
+  version INTEGER NOT NULL DEFAULT 1,
+  evidence JSONB NOT NULL,
+  created_at BIGINT NOT NULL,
+  updated_at BIGINT NOT NULL,
+  UNIQUE(owner_id,fingerprint)
+);
+CREATE INDEX IF NOT EXISTS idx_ai_growth_alert_owner ON ai_growth_alerts(owner_id,status,updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS ai_growth_alert_events (
+  id BIGSERIAL PRIMARY KEY,
+  alert_id TEXT NOT NULL REFERENCES ai_growth_alerts(id) ON DELETE CASCADE,
+  owner_id TEXT NOT NULL,
+  event_type TEXT NOT NULL CHECK(event_type IN ('observed','acknowledged','snoozed','resolved','reopened')),
+  details JSONB NOT NULL DEFAULT '{}',
+  created_at BIGINT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ai_growth_alert_events ON ai_growth_alert_events(owner_id,alert_id,id DESC);
