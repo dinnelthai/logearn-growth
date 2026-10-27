@@ -35,6 +35,11 @@ function createPromptRegistry(db){
   const id=randomUUID(),now=Date.now();
   db.exec('BEGIN IMMEDIATE');
   try{
+   const existing=db.prepare(`SELECT id,status FROM agent_prompt_candidates
+    WHERE owner_id=? AND role=? AND candidate_hash=?
+    ORDER BY created_at DESC LIMIT 1`).get(ownerId,role,next.hash);
+   if(existing){db.exec('COMMIT');return {id:existing.id,role,baselineHash:base.hash,
+    candidateHash:next.hash,status:existing.status,reused:true,automaticActivation:false}}
    const insert=db.prepare('INSERT OR IGNORE INTO agent_prompts(hash,role,content) VALUES(?,?,?)');
    insert.run(base.hash,role,baseline);insert.run(next.hash,role,content);
    db.prepare(`INSERT INTO agent_prompt_candidates

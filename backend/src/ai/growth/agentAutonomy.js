@@ -15,7 +15,7 @@ async function tickAutonomousOwner({
  ownerId,now=Date.now(),source='all',goals=DEFAULT_GOALS,allowPaidDispatch=false,
  store=createAgentStore(),records=require('../../db/aiRecords'),
  enqueue=require('../../queues/queues').addAIAnalysisJob,
- notify=null
+ notify=null,proposeCandidate=null
 }={}){
  if(typeof ownerId!=='string'||!ownerId||!Number.isSafeInteger(now))
   throw Error('自动运营任务身份和日期无效');
@@ -36,6 +36,23 @@ async function tickAutonomousOwner({
  const targets=await store.targets(ownerId,{source});
  const strategies={};
  for(const goal of required)strategies[goal]=await store.getStrategy(ownerId,goal,source);
+ let promptCandidate=null;
+ if(process.env.AI_PROMPT_CANDIDATE_PROPOSAL_ENABLED==='1'){
+  const focus=[...new Set(required.flatMap(goal=>
+    Array.isArray(strategies[goal]?.policy?.focusMetrics)?
+     strategies[goal].policy.focusMetrics:[]))]
+   .filter(x=>['active_users','new_users','returning_users','activation_rate','d7','weekly_core'].includes(x))
+   .slice(0,3);
+  if(focus.length){
+   const {analysisPrompt}=require('../../queues/jobs/businessAnalysis');
+   const appendix='历史执行与成熟复盘中，以下指标多次出现未达预期的观测：'+focus.join('、')+
+     '。优先检验新的反证、数据覆盖与假设，并明确旧建议为何不能直接重复。不得改变已有指标定义、权限、预算或业务口径。';
+   const create=proposeCandidate||((input)=>require('../optimization/promptRegistry')
+    .createPromptRegistry(require('../../db/connection')).propose(ownerId,input));
+   promptCandidate=await create({role:'analysis',baseline:analysisPrompt,appendix,
+    reason:'基于成熟执行复盘的指标反证自动生成待评估候选，不自行发布'});
+  }
+ }
  const brief=createDailyBrief({ownerId,day:period.day,source,
   goals:required,analyses,targets,learning,strategies});
  const saved=await store.upsertBrief(ownerId,brief,{now});
@@ -53,7 +70,8 @@ async function tickAutonomousOwner({
   expected:saved.quality?.requiredGoals??required.length,
   enqueued,learning:learning.judgements,
   strategyVersions:Object.fromEntries(Object.entries(strategies).map(([k,v])=>[k,v?.version||null])),
-  notification,
+  notification,promptCandidate:promptCandidate?{id:promptCandidate.id,
+   status:promptCandidate.status,requiresIndependentEvaluation:true}:null,
   automaticPaidAllowed:allowPaidDispatch,externalActions:0
  };
 }
