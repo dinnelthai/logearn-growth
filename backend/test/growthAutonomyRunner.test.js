@@ -66,3 +66,29 @@ test('scheduler goals and paid flags require explicit authorization',()=>{
  assert.deepEqual(config.goals,['activation','retention']);
  assert.throws(()=>autonomyConfig({AI_AUTONOMY_OWNER_IDS:'alice,alice'}),/不重复/);
 });
+
+test('completed retrospective strategy can propose a review-only prompt candidate when explicitly enabled',async()=>{
+ const prev=process.env.AI_PROMPT_CANDIDATE_PROPOSAL_ENABLED;
+ process.env.AI_PROMPT_CANDIDATE_PROPOSAL_ENABLED='1';
+ const fixture=fake(),requests=[];
+ fixture.store.getStrategy=async()=>({version:1,policy:{focusMetrics:['active_users']}});
+ try{
+  const out=await tickAutonomousOwner({
+   ownerId:'alice',now,goals:['activation'],allowPaidDispatch:false,...fixture,
+   proposeCandidate:async request=>{
+    requests.push(request);
+    return {id:'candidate-1',status:'proposed'};
+   }
+  });
+  assert.equal(requests.length,1);
+  assert.equal(requests[0].role,'analysis');
+  assert.match(requests[0].appendix,/active_users/);
+  assert.equal(out.promptCandidate.status,'proposed');
+  assert.equal(out.promptCandidate.requiresIndependentEvaluation,true);
+  assert.equal(out.externalActions,0);
+  assert.equal(out.enqueued.length,0);
+ }finally{
+  if(prev==null)delete process.env.AI_PROMPT_CANDIDATE_PROPOSAL_ENABLED;
+  else process.env.AI_PROMPT_CANDIDATE_PROPOSAL_ENABLED=prev;
+ }
+});
