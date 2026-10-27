@@ -78,3 +78,12 @@ Accept a new component only when it:
 - Local result: **10 passed, 0 failed** against a local source copy with this branch's status fallback. Node v22.16.0. Not a fresh-checkout CI result; dependency installation and production integration still unverified.
 - No business calculation or database schema touched.
 - Next highest-priority gap: investigate durable checkpoint semantics and retry safety for paid calls. Do not enable automatic replay for an ambiguous provider request.
+
+## Implementation checkpoint 3 — paid-call replay safety (2026-10-27)
+
+- New `backend/src/ai/business/retrySafety.js`: a pure fail-closed retry policy. Only failed analyses with a reliably readable **empty** model-call journal can use the old restart-from-beginning retry API.
+- Changed `POST /api/ai-analysis/:id/retry`: before transitioning a failed record to pending, query the existing SQLite `agent_calls` journal scoped to the authenticated owner and analysis ID. Any prior call (started, unknown **or received**) returns HTTP 409. Journal read errors fail before state mutation.
+- Added `backend/test/retrySafety.test.js` and `backend/test/retrySafetyHttp.test.js`: policy cases and HTTP tests for paid-call guard, owner isolation, inaccessible journal, and empty-journal retry.
+- Local verification: policy unit tests **3/3 pass**; HTTP retry test + existing `agentApi.test.js` and `agentTrace.test.js` **3/3 pass** in a local copy of the uploaded backend with the exact retry gate applied; Node 22.16.0. GitHub CI / deployment / paid DeRouter E2E not run.
+- **Not true checkpoint/resume**: received model responses still cannot be automatically reconstructed into a resumed conversation; successful partial work intentionally blocks blind retry rather than being replayed. A durable response/evidence checkpoint with idempotency and restart tests is the next implementation milestone.
+- This safety gate preserves Growth business calculations, schemas, and metrics.
