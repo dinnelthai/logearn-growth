@@ -124,6 +124,10 @@ router.get('/cost-stats',handle(async(req,res)=>{
   for(const value of [startTime,endTime])if(value!=null&&(!Number.isSafeInteger(Number(value))||Number(value)<0))return res.status(400).json({error:'成本统计时间无效'});
   res.json(await records.getUserCostStats(req.user.user_id,startTime?Number(startTime):null,endTime?Number(endTime):null));
 }));
+router.get('/growth-budget',handle(async(req,res)=>{
+  const budget=await require('../ai/growth/budget').dailyBudgetStatus(req.user.user_id);
+  res.json(budget);
+}));
 router.get('/growth-investigations',handle(async(req,res)=>{
   const proposals=await require('../ai/growth/investigationStore')
     .createInvestigationStore().list(req.user.user_id,{limit:100});
@@ -143,6 +147,17 @@ router.post('/growth-investigations/:id/action',handle(async(req,res)=>{
     if(!changed)return res.status(409).json({error:'提案已更新或不能撤销'});
     return res.json({proposal:changed,paidCalls:0});
   }
+  // Quota-off means no paid investigation may be approved or enqueued.
+  // The Worker independently enforces this limit atomically before provider IO.
+  const {budgetLimit,dailyBudgetStatus}=require('../ai/growth/budget');
+  if(budgetLimit()===0)return res.status(409).json({
+    error:'异常调查付费额度未开启；须先设置 AI_GROWTH_PAID_CALLS_PER_DAY',
+    reason:'growth-paid-budget-disabled'
+  });
+  const budget=await dailyBudgetStatus(ownerId);
+  if(budget.remainingCalls<1)return res.status(409).json({
+    error:'当日异常调查模型轮次配额已用完',reason:'growth-paid-budget-exhausted'
+  });
   // Approval is an explicit authenticated human action; concurrent callers
   // share one deterministic request key and Bull job ID.
   if(proposal.status==='proposed'){
