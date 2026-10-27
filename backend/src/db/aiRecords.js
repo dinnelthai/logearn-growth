@@ -603,6 +603,14 @@ async function failClaimedAnalysis(id,ownerId,token,errorMessage) {
 }
 // Shared fail-closed paid-call journal. The SQLite trace keeps detailed content;
 // this PostgreSQL fence lets every Worker see whether a charge might have begun.
+// Read-only crash detection. Do not change status or enqueue paid calls.
+async function listExpiredAnalysisLeases(limit=100){
+  if(!Number.isSafeInteger(limit)||limit<1||limit>1000)throw Error('过期任务查询限制无效');
+  const result=await read(`SELECT id,owner_id,lease_expires_at
+    FROM ai_analysis_records WHERE status='processing' AND lease_expires_at<$1
+    ORDER BY lease_expires_at ASC LIMIT $2`,[Date.now(),limit]);
+  return result.rows;
+}
 async function hasAnalysisPaidCalls(id,ownerId){
   const result=await read('SELECT 1 FROM ai_analysis_call_guard WHERE analysis_id=$1 AND owner_id=$2 LIMIT 1',[id,ownerId]);
   return result.rows.length>0;
@@ -656,7 +664,7 @@ async function getRetrospective(id, ownerId) {
 }
 
 module.exports = {
-  completeAnalysis, claimAnalysisRetry, claimAnalysisExecution, renewAnalysisLease, assertAnalysisLease, failClaimedAnalysis, hasAnalysisPaidCalls, beginAnalysisPaidCall, finishAnalysisPaidCall, updateAnalysisSnapshot, getAnalysisMemory, getRetrospective,
+  completeAnalysis, claimAnalysisRetry, claimAnalysisExecution, renewAnalysisLease, assertAnalysisLease, failClaimedAnalysis, hasAnalysisPaidCalls, beginAnalysisPaidCall, finishAnalysisPaidCall, listExpiredAnalysisLeases, updateAnalysisSnapshot, getAnalysisMemory, getRetrospective,
   // 分析记录
   createAnalysisRecord,
   updateAnalysisStatus,
