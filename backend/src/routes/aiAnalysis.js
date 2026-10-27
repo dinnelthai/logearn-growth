@@ -198,10 +198,11 @@ router.post('/analyze',handle(async(req,res)=>{
   if(typeof title!=='string'||!title.trim()||title.length>200||typeof userQuestion!=='string'||userQuestion.length>5000
     ||!['optimization','anomaly'].includes(analysisType)||!['activation','retention','conversion','revenue'].includes(focusGoal)||!['auto','complex'].includes(modelMode))
     return res.status(400).json({error:'分析标题、类型、目标或模型模式无效'});
-  if(skillId!=null&&(!['seo-organic','kol-impact'].includes(skillId)||
-    !(skillId==='seo-organic'?['activation','conversion']:['conversion','revenue']).includes(focusGoal)||
-    businessScope.source!=='all'))
-    return res.status(400).json({error:'SEO/KOL 专项技能须匹配目标且使用全来源范围'});
+  const skillGoals={'seo-organic':['activation','conversion'],'kol-impact':['conversion','revenue'],
+    'content-growth':['conversion'],'follower-quality':['conversion']};
+  if(skillId!=null&&(!Object.hasOwn(skillGoals,skillId)||
+    !skillGoals[skillId].includes(focusGoal)||businessScope.source!=='all'))
+    return res.status(400).json({error:'专项技能须匹配目标并使用全来源范围'});
   const requestKey=req.body.requestKey||randomUUID();
   if(typeof requestKey!=='string'||requestKey.length>100)return res.status(400).json({error:'请求标识无效'});
   const ownerId=req.user.user_id;
