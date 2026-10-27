@@ -32,7 +32,7 @@ function createTraceStore(db){
   }catch(e){db.exec('ROLLBACK');throw e;}
  }
  function unknown(context,round){db.prepare("UPDATE agent_calls SET status='unknown',finished_at=? WHERE owner_id=? AND trace_id=? AND round=?").run(Date.now(),owner(context),context.traceId,round);}
- function list(ownerId,runId){return db.prepare('SELECT status,prompts,result,started_at,finished_at FROM agent_calls WHERE owner_id=? AND run_id=? ORDER BY started_at,round').all(owner({ownerId}),runId).map(r=>({...r,prompts:JSON.parse(r.prompts),result:r.result?JSON.parse(r.result):null}));}
+ function list(ownerId,runId){return db.prepare('SELECT trace_id,round,status,prompts,result,started_at,finished_at FROM agent_calls WHERE owner_id=? AND run_id=? ORDER BY started_at,round,trace_id').all(owner({ownerId}),runId).map(r=>({...r,prompts:JSON.parse(r.prompts),result:r.result?JSON.parse(r.result):null}));}
  return {savePrompt,begin,finish,appendInvestigation,unknown,list};
 }
 module.exports={createTraceStore};
