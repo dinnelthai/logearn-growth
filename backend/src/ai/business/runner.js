@@ -76,7 +76,7 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
         await paidCalls?.finish?.(round,'unknown');
         throw error;
       }
-      calls.push({runId,traceId,promptVersions,model,provider:response.provider||client.modelInfo?.provider,
+      calls.push({runId,traceId,promptVersions,model,provider:calls.at(-1)?.provider,
         cost:response.cost||0,costKnown:response.costKnown!==false,
         tokens:response.fromCache?0:response.usage?.totalTokens||0,fromCache:!!response.fromCache,reason:routing.reason});
       traceStore?.finish(traceContext,round,{...calls.at(-1),responseContent:response.content,contextHash});
