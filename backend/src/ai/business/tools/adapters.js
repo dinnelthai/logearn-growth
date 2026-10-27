@@ -41,4 +41,23 @@ async function activities(body,snapshot,audience,context){
  const facts=await memberFacts(snapshot,members.map(m=>m.user_id),period);
  return {...memberMetrics(facts,members.map(m=>({id:m.user_id})),period,snapshot),coverage:facts.errors,warnings:['活动原始固定名单与查询期间交集；基线和分组仍以活动报告为准']};
 }
-module.exports={runAnalysis,metrics,economics,activities};
+// Dedicated owner-scoped specialist adapters. No model calls or external writes.
+async function seoPerformance(body,context){
+ const {createSeoStore,summarizeSeo}=require('../../growth/seoStore');
+ const startDate=new Date(body.start+7*3600000).toISOString().slice(0,10);
+ const endDate=new Date(body.end-1+7*3600000).toISOString().slice(0,10);
+ const record=await createSeoStore().latestCovering(context.ownerId,{
+   siteUrl:body.siteUrl||null,startDate,endDate
+ });
+ if(!record)return {available:false,reason:'未导入覆盖所选期间的 Search Console 数据',
+   coverage:{status:'not-imported',completeSearchTraffic:false},
+   warnings:['没有 Google Search Console 导出数据，不能生成搜索关键词排名或曝光量']};
+ return summarizeSeo(record,{startDate,endDate,limit:body.limit||20});
+}
+async function kolPerformance(body,context,snapshot){
+ return require('../../growth/kolReader').createKolReader().summarize({
+  ownerId:context.ownerId,start:body.start,end:body.end,source:body.source,
+  limit:Math.min(body.limit||20,25),snapshot
+ });
+}
+module.exports={runAnalysis,metrics,economics,activities,seoPerformance,kolPerformance};
