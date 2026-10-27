@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),{createHash}=require('node:crypto');
 const {reconstructTranscript}=require('../src/ai/business/transcriptRecovery');
 const systemPrompt='do not invent metrics',context={period:{start:1,end:2}},hash=createHash('sha256').update(systemPrompt).digest('hex');
-const make=(round,response,investigations=[])=>({round,trace_id:'trace',status:'received',prompts:{analysis:hash},result:{responseContent:JSON.stringify(response),investigations,model:'test',tokens:10,cost:0.01}});
+const make=(round,response,investigations=[])=>({round,trace_id:'trace',status:'received',prompts:{analysis:hash},result:{responseContent:JSON.stringify(response),investigations,model:'test',tokens:10,cost:0.01,contextHash:createHash('sha256').update(JSON.stringify(context)).digest('hex')}});
 const recover=rows=>reconstructTranscript({rows,systemPrompt,context});
 test('reconstructs ordered investigation evidence with original assistant and user turns',()=>{
  const query={tool:'get_paths',input:{limit:2}},result={count:4};
@@ -29,4 +29,12 @@ test('read-only reconstruction makes no external calls and does not mutate store
  assert.equal(s.state,'reconstructed');
  assert.equal(JSON.stringify(rows),serialized);
  assert.equal(s.reason,'requires-source-snapshot-and-validation');
+});
+
+test('source data changes and legacy journals without fingerprints are rejected',()=>{
+ const previous=make(0,{summary:'done'});
+ const changed=reconstructTranscript({rows:[previous],systemPrompt,context:{period:{start:3,end:4}}});
+ assert.equal(changed.reason,'source-context-mismatch');
+ const legacy=make(0,{summary:'done'});delete legacy.result.contextHash;
+ assert.equal(recover([legacy]).reason,'source-context-mismatch');
 });
