@@ -446,3 +446,57 @@ CREATE TABLE IF NOT EXISTS ai_growth_experiment_evaluations (
 );
 CREATE INDEX IF NOT EXISTS idx_growth_experiment_owner
  ON ai_growth_experiment_evaluations(owner_id,created_at DESC);
+
+-- P1 autonomous Growth management: operator-owned targets, immutable daily
+-- scorecards, evidence-derived strategy versions and judgement calibration.
+CREATE TABLE IF NOT EXISTS ai_growth_agent_targets (
+ id TEXT PRIMARY KEY,owner_id TEXT NOT NULL,metric TEXT NOT NULL,
+ source TEXT NOT NULL DEFAULT 'all',goal TEXT NOT NULL,
+ target NUMERIC NOT NULL CHECK(target>0),
+ weight INTEGER NOT NULL DEFAULT 1 CHECK(weight BETWEEN 1 AND 10),
+ version INTEGER NOT NULL DEFAULT 1,active BOOLEAN NOT NULL DEFAULT TRUE,
+ created_at BIGINT NOT NULL,updated_at BIGINT NOT NULL,
+ UNIQUE(owner_id,goal,source,metric)
+);
+CREATE INDEX IF NOT EXISTS idx_growth_agent_targets_owner
+ ON ai_growth_agent_targets(owner_id,source,goal,active);
+
+CREATE TABLE IF NOT EXISTS ai_growth_agent_briefs (
+ id TEXT PRIMARY KEY,owner_id TEXT NOT NULL,day TEXT NOT NULL,
+ source TEXT NOT NULL,
+ status TEXT NOT NULL CHECK(status IN ('ready','partial','blocked')),
+ score JSONB NOT NULL, report JSONB NOT NULL,
+ analysis_ids JSONB NOT NULL,quality JSONB NOT NULL,
+ strategy_version INTEGER,generated_at BIGINT NOT NULL,
+ UNIQUE(owner_id,day,source)
+);
+CREATE INDEX IF NOT EXISTS idx_growth_agent_briefs_owner
+ ON ai_growth_agent_briefs(owner_id,source,day DESC);
+
+CREATE TABLE IF NOT EXISTS ai_growth_agent_strategy (
+ id TEXT PRIMARY KEY,owner_id TEXT NOT NULL,source TEXT NOT NULL,
+ goal TEXT NOT NULL,version INTEGER NOT NULL,
+ feedback_digest TEXT NOT NULL,policy JSONB NOT NULL,
+ evidence JSONB NOT NULL,created_at BIGINT NOT NULL,
+ UNIQUE(owner_id,source,goal,version),
+ UNIQUE(owner_id,source,goal,feedback_digest)
+);
+CREATE INDEX IF NOT EXISTS idx_growth_agent_strategy_owner
+ ON ai_growth_agent_strategy(owner_id,source,goal,version DESC);
+
+CREATE TABLE IF NOT EXISTS ai_growth_agent_judgements (
+ id TEXT PRIMARY KEY,owner_id TEXT NOT NULL,
+ suggestion_id TEXT NOT NULL REFERENCES ai_suggestions(id) ON DELETE CASCADE,
+ analysis_id TEXT NOT NULL REFERENCES ai_analysis_records(id) ON DELETE CASCADE,
+ retrospective_id TEXT NOT NULL REFERENCES ai_retrospectives(id) ON DELETE CASCADE,
+ assessment TEXT NOT NULL CHECK(assessment IN ('observed-supported','observed-contradicted','insufficient')),
+ metric TEXT, evidence JSONB NOT NULL,checked_at BIGINT NOT NULL,
+ UNIQUE(owner_id,suggestion_id,retrospective_id)
+);
+CREATE INDEX IF NOT EXISTS idx_growth_agent_judgements_owner
+ ON ai_growth_agent_judgements(owner_id,checked_at DESC);
+
+-- Internal notifications are read-only summaries, never automatic actions.
+ALTER TABLE ai_growth_notifications DROP CONSTRAINT IF EXISTS ai_growth_notifications_kind_check;
+ALTER TABLE ai_growth_notifications ADD CONSTRAINT ai_growth_notifications_kind_check
+ CHECK(kind IN ('alert','proposal','daily-brief'));
