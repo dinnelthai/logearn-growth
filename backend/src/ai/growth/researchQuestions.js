@@ -1,6 +1,6 @@
 'use strict';
 const {createHash}=require('node:crypto');
-const KINDS=Object.freeze({collection:3,product:3,entry:2,activity:2});
+const KINDS=Object.freeze({collection:3,product:3,entry:2,activity:2,content:2,audience:3});
 const LIMIT=50;
 function validateOwner(ownerId){
  if(typeof ownerId!=='string'||!ownerId.trim()||ownerId.length>256)
@@ -15,11 +15,11 @@ function questionFor(change,{source='all',now=Date.now()}={}){
  // Never infer data completeness or business impact merely from an event.
  const kind=change.kind;
  const label={collection:'采集口径变化',product:'产品版本变化',
-  entry:'入口变化',activity:'活动变化'}[kind];
+  entry:'入口变化',activity:'活动变化',content:'新增内容发布',audience:'粉丝数据覆盖变化'}[kind];
  const id=createHash('sha256').update(JSON.stringify([change.id,source])).digest('hex').slice(0,32);
  return {id:'research-'+id,changeId:change.id,kind,source,
   title:label+'后关键指标是否发生可验证变化？',
-  question:'先检查变更前后源数据水位、成熟分母和采集覆盖，再对照同来源的激活、留存、转化指标；只报告观测关联，必须有可打开的原始证据。',
+  question:kind==='audience'?'确认采样分页、分类覆盖率和停止原因；禁止把未采样粉丝视为非目标受众，禁止推断转化。':kind==='content'?'核实内容曝光平台指标、UTM、产品站内访问与已验证的注册交易事实；不能用手工累计曝光推断新增转化。':'先检查变更前后源数据水位、成熟分母和采集覆盖，再对照同来源的激活、留存、转化指标；只报告观测关联，必须有可打开的原始证据。',
   priority:KINDS[kind],occurredAt:change.occurredAt,
   status:'awaiting-review',requiresApproval:true,paidCalls:0};
 }
