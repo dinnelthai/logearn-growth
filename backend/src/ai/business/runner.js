@@ -53,7 +53,10 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
       callTrace={...traceContext,traceId:saved.trace_id};
       response={content:saved.result.responseContent,provider:saved.result.provider,
         cost:saved.result.cost,usage:{totalTokens:saved.result.tokens},fromCache:saved.result.fromCache};
-      calls.push({...saved.result,runId,traceId:saved.trace_id,reason:routing.reason});
+      calls.push({runId,traceId:saved.trace_id,promptVersions:saved.prompts,
+        model:saved.result.model,provider:saved.result.provider,
+        cost:Number(saved.result.cost)||0,costKnown:saved.result.costKnown!==false,
+        tokens:Number(saved.result.tokens)||0,fromCache:!!saved.result.fromCache,reason:routing.reason});
     }else{
       const remainingTokens=maxTokens-calls.reduce((n,c)=>n+c.tokens,0);
       const inputUpperBound=Buffer.byteLength(JSON.stringify(messages))+messages.length*16;
