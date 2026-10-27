@@ -63,7 +63,7 @@ export function createAIAnalysis(ctx){
       panel.innerHTML=`<h2>${esc(r.title)} · ${esc(label(r.status))}</h2>
       ${r.error_message?`<p role="alert">${esc(r.error_message)}</p>`:''}
       <p data-checkpoint-result role="status">正在读取调查检查点…</p>
-      ${r.status==='failed'?'<button class="a-button" data-retry-analysis>重试分析</button>':''}
+      ${r.status==='failed'&&!r.cancel_requested?'<button class="a-button" data-retry-analysis>重试分析</button>':''}
       ${['pending','processing'].includes(r.status)&&!r.cancel_requested?'<button class="a-button" type="button" data-cancel-analysis>取消任务</button>':''}
       ${r.cancel_requested?'<p role="status">任务已取消，不会继续新的模型调用；先前发出的请求仍可能计费。</p>':''}
       <p>${esc(r.result?.summary||'任务已排队；请确认 AI Worker 正在运行。')}</p>
@@ -104,11 +104,11 @@ export function createAIAnalysis(ctx){
       panel.querySelectorAll('[data-evidence]').forEach(button=>button.onclick=async()=>{try{const evidence=await getEvidence(button.dataset.evidence);if(token===generation&&selected===id)panel.querySelector('[data-evidence-result]').textContent=JSON.stringify(evidence,null,2);}catch(error){message(error.message);}});
       panel.querySelector('[data-cancel-analysis]')?.addEventListener('click',async e=>{
         if(busy)return;
-        busy=true;e.currentTarget.disabled=true;
+        busy=true;const button=e.currentTarget;button.disabled=true;
         try{
           await cancelAnalysis(id);
           if(token===generation&&selected===id)await open(id);
-        }catch(error){message(error.message);if(e.currentTarget.isConnected)e.currentTarget.disabled=false;}
+        }catch(error){message(error.message);if(button.isConnected)button.disabled=false;}
         finally{busy=false;}
       });
       panel.querySelector('[data-retry-analysis]')?.addEventListener('click',async()=>{if(busy)return;busy=true;try{await retryAnalysis(id);if(token===generation)await open(id);}catch(error){message(error.message);}finally{busy=false;}});
