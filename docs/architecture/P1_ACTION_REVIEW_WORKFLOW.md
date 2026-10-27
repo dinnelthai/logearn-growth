@@ -25,3 +25,12 @@ The AI Analysis UI hides illegal action buttons and displays a read-only queue o
 - Review data freshness is mandatory: an unavailable watermark blocks maturity checks.
 - This is an initial operator workflow; full experiment design, multi-metric statistical significance and notification delivery are separate work.
 - Codex independent review and production deployment remain outstanding.
+
+## Read-only queue, UI and deduplicated first review
+
+- `GET /api/ai-analysis/growth-review-queue` uses owner-scoped `listPendingReviewSuggestions()`, excludes already saved retrospectives, and returns `readyCount`, status, earliest date and the source data watermark. Unknown watermarks fail closed.
+- `frontend/src/pages/aiAnalysis.js` shows only legal next-state buttons, the review queue and an explicit paid-review button. It never auto-applies a recommendation.
+- `POST /api/ai-analysis/suggestions/:id/retrospective` uses a stable `SHA-256([ownerId,suggestionId,'initial-review-v1'])` Bull job ID. It returns an already-saved result without queueing when present. Arbitrary request keys no longer mint fresh paid review IDs for the same action.
+- `backend/test/growthActionWorkflow.test.js` and `backend/test/growthReviewHttp.test.js` cover state ordering, review-day cutoffs, owner isolation, repeated requests and existing result reuse.
+
+**Production caveat:** Bull job-ID deduplication is queue-scoped, not a globally transactional paid-call journal for retrospectives. Crash-before-save after Bull job removal and certain administrative retry paths still need Codex validation and a shared persistent guard before unattended auto-paid review is enabled. Automated paid retrospectives remain disabled. Use the explicit human review action only.
