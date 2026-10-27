@@ -15,7 +15,9 @@ const definitions={
  get_channel_economics:{metric:'trade_revenue',adapter:'economics',scopes:['source'],description:'owner合作账本，按币种分别统计，未记录收入为未知'},
  check_data_quality:{metric:'quality',adapter:'tracking-audit',scopes:['source'],description:'埋点覆盖诊断，不将水位ID解释成强一致快照'},
  get_seo_performance:{metric:'seo_search',adapter:'seo-performance',scopes:['source'],description:'只读查询用户导入的 Search Console 行；非实时 Google API、覆盖可不完整'},
- get_kol_performance:{metric:'kol_performance',adapter:'kol-performance',scopes:['source'],description:'复用已有 KOL CRM 归组和真实观察行为；不等于因果归因'}
+ get_kol_performance:{metric:'kol_performance',adapter:'kol-performance',scopes:['source'],description:'复用已有 KOL CRM 归组和真实观察行为；不等于因果归因'},
+ get_content_growth:{metric:'content_growth',adapter:'content-growth',scopes:['source'],description:'只读人工登记内容累计表现，无平台自动同步或注册交易归因'},
+ get_follower_quality:{metric:'follower_quality',adapter:'follower-quality',scopes:['source'],description:'只读粉丝采集分类汇总，无个人资料外传，数据覆盖可能不足'}
 };
 const fields=['scope','start','end','metrics','dimensions','filters','steps','hours','initial','returning','limit','cursor','siteUrl'];
 const inputSchema={type:'object',additionalProperties:false,properties:Object.fromEntries(fields.map(k=>[k,{type:['start','end','hours','limit'].includes(k)?'integer':['metrics','dimensions','steps'].includes(k)?'array':['scope','filters'].includes(k)?'object':'string'}]))};
@@ -31,7 +33,7 @@ function createToolRegistry(deps){
   const limit=input.limit??20;if(!Number.isSafeInteger(limit)||limit<1||limit>100)fail('分页大小无效');
   const {scope,audience}=await resolveScope(input.scope||context.scope||{},context,deps.lookups);
   if(tool.scopes&&Object.keys(scope).some(k=>!tool.scopes.includes(k)))fail('该工具不支持活动或人群范围');
-  if(['check_data_quality','get_activity','get_channel_economics','get_seo_performance','get_kol_performance'].includes(id)&&scope.source!=='all')fail('该工具当前仅支持全来源范围，不会忽略来源筛选');
+  if(['check_data_quality','get_activity','get_channel_economics','get_seo_performance','get_kol_performance','get_content_growth','get_follower_quality'].includes(id)&&scope.source!=='all')fail('该工具当前仅支持全来源范围，不会忽略来源筛选');
   const ctx={...context,scope},start=input.start??context.period.start,end=input.end??context.period.end;
   validateRange(start,end);if(start<context.period.start-(context.period.end-context.period.start)||end>context.period.end)fail('查询时间超出授权范围',403);
   const period={start,end,timezone:'Asia/Bangkok'},body={start,end,source:scope.source};
@@ -69,6 +71,8 @@ function createToolRegistry(deps){
     if(tool.adapter==='activities')return deps.activities(body,snapshot,audience,ctx);
     if(tool.adapter==='seo-performance')return deps.seoPerformance({...body,limit,siteUrl:input.siteUrl},ctx);
     if(tool.adapter==='kol-performance')return deps.kolPerformance({...body,limit},ctx,snapshot);
+    if(tool.adapter==='content-growth')return deps.contentGrowth(body,ctx);
+    if(tool.adapter==='follower-quality')return deps.followerQuality(body,ctx);
     return deps.runAnalysis(tool.adapter,body,snapshot,audience,owner(ctx));
    };
    operationStarted=true;
@@ -97,6 +101,6 @@ function createToolRegistry(deps){
 function defaultRegistry(){
  const db=require('../../../db/connection'),remote=require('../../../data/hologres');
  const {createEvidenceStore}=require('../evidence'),{sqliteLookups}=require('../scope');
- return createToolRegistry({evidenceStore:createEvidenceStore(db),lookups:sqliteLookups(db),snapshot:()=>remote.status(),runAnalysis:require('./adapters').runAnalysis,metrics:require('./adapters').metrics,economics:require('./adapters').economics,activities:require('./adapters').activities,seoPerformance:require('./adapters').seoPerformance,kolPerformance:require('./adapters').kolPerformance});
+ return createToolRegistry({evidenceStore:createEvidenceStore(db),lookups:sqliteLookups(db),snapshot:()=>remote.status(),runAnalysis:require('./adapters').runAnalysis,metrics:require('./adapters').metrics,economics:require('./adapters').economics,activities:require('./adapters').activities,seoPerformance:require('./adapters').seoPerformance,kolPerformance:require('./adapters').kolPerformance,contentGrowth:require('./contentAdapters').contentGrowth,followerQuality:require('./contentAdapters').followerQuality});
 }
 module.exports={createToolRegistry,defaultRegistry,listMetrics,listToolIds:()=>Object.keys(definitions)};
