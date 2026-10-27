@@ -97,7 +97,14 @@ router.get('/retrospectives/:id',handle(async(req,res)=>{
 }));
 router.get('/jobs/:jobId/status',handle(async(req,res)=>{
   const status=await getJobStatus('aiAnalysis',req.params.jobId);
-  if(!status.exists)return res.status(404).json({error:'任务不存在或已过期，请查阅持久化分析记录'});
+  if(!status.exists){
+    // Once Bull prunes a job, use only the authenticated durable analysis record.
+    // Retry jobs have a distinct jobId; their owner can still use GET /:id.
+    const record=await records.getAnalysisRecord(req.params.jobId,req.user.user_id);
+    const projected=require('../ai/business/jobStatus').statusFromRecord(record,req.params.jobId);
+    if(!projected)return res.status(404).json({error:'任务不存在或已过期，请查阅持久化分析记录'});
+    return res.json(projected);
+  }
   if(status.data?.ownerId!==req.user.user_id)return res.status(403).json({error:'无权访问任务'});
   res.json({jobId:status.id,state:status.state,progress:status.progress,result:status.returnvalue,error:status.failedReason});
 }));
