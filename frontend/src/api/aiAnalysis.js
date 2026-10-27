@@ -86,3 +86,8 @@ export const syncGscPerformance=(startDate,endDate)=>aiFetch(
  });
 export const getGscPerformance=(range=null)=>aiFetch('/api/ai-analysis/growth-seo/gsc/report'+
  (range?'?'+new URLSearchParams(range):''));
+
+export const getGscSitemaps=()=>aiFetch('/api/ai-analysis/growth-seo/gsc/sitemaps');
+export const inspectGscUrl=inspectionUrl=>aiFetch('/api/ai-analysis/growth-seo/gsc/inspect',{
+ method:'POST',body:JSON.stringify({inspectionUrl})
+});
