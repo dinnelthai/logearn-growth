@@ -672,9 +672,9 @@ async function claimAnalysisRetry(id, ownerId) {
   return result.rows[0]||null;
 }
 async function updateAnalysisSnapshot(id, snapshot, ownerId, token) {
-  const result=await write(`UPDATE ai_analysis_records SET data_snapshot=$2 WHERE id=$1
+  const result=await write(`UPDATE ai_analysis_records SET data_snapshot=$2,context_payload=$6 WHERE id=$1
     AND owner_id=$3 AND execution_token=$4 AND status='processing' AND cancel_requested=false AND lease_expires_at>$5 RETURNING id`,
-    [id, JSON.stringify(snapshot), ownerId, token, Date.now()]);
+    [id, JSON.stringify(snapshot), ownerId, token, Date.now(),JSON.stringify(snapshot)]);
   if(!result.rows.length)throw Error('执行租约失效，禁止更新快照');
 }
 async function getAnalysisMemory(ownerId, source = 'all') {
