@@ -105,7 +105,8 @@ function createGscService({db=pool,client=defaultClient,clock=Date.now}={}){
   if(!property||siteUrl&&property!==selected?.site_url)return null;
   if(startDate!=null||endDate!=null){
    if(!startDate||!endDate)fail('必须同时指定 GSC 开始和结束日期');
-   dateWindow(startDate,endDate);
+   const start=dateMs(startDate),end=dateMs(endDate);
+   if(end<start||end-start>30*DAY)fail('GSC 快照查询仅支持1–31天的完整日期窗口');
   }
   const values=[String(ownerId),property];
   let sql=`SELECT id,owner_id,site_url,start_date::text,end_date::text,source,
