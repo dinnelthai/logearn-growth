@@ -59,3 +59,13 @@ Accept a new component only when it:
 ## Handoff
 
 **Next task:** verify repository HEAD dependency install and run the 3 existing tests against HEAD; then implement only the smallest missing piece (progress/resume visibility) with failing characterization tests first. Every future PR should include: change boundary, exact tests, evidence of behavior, known gaps, and rollback instructions.
+
+
+## Implementation checkpoint 1 — durable status fallback (2026-10-27)
+
+- New: `backend/src/ai/business/jobStatus.js` pure projection for status from an authenticated persisted analysis record when Bull's bounded job history has evicted the job.
+- Changed: `GET /api/ai-analysis/jobs/:jobId/status` falls back to `records.getAnalysisRecord(jobId, authenticatedOwner)` only if the queue job is absent. If neither exists, retain 404; do not disclose other owners' records.
+- Correctness: completed/failed statuses expose persisted terminal results/errors; missing active job + pending/processing database row returns `state: "unknown"`, `resumable: false`, and no fabricated percent.
+- Limitation: unique retry queue IDs are not the analysis ID, so their evicted-job status is available via the durable `GET /api/ai-analysis/:id` endpoint rather than this fallback. Full checkpoint/resume is **not implemented**.
+- Local verification: `node --check` on modified route and new helper; `node --test test/jobStatus.test.js test/agentFoundation.test.js test/agentEvidence.test.js test/agentTrace.test.js` **8 tests passed** on uploaded local backend copy with these exact changes applied. This is **not** a CI run against a fresh GitHub checkout or production integration test.
+- Next: add HTTP contract tests for this fallback; only then consider further progress-state changes.
