@@ -136,7 +136,8 @@ router.post('/growth-alerts/scan',handle(async(req,res)=>{
     source=req.body?.source||'all';
   require('../ai/growth/daily').dailyRequest({ownerId,goal,source});
   const result=await require('../ai/growth/monitor').scanDailyAlerts({
-    ownerId,goal,source,store:require('../ai/growth/alertStore').createAlertStore()
+    ownerId,goal,source,store:require('../ai/growth/alertStore').createAlertStore(),
+    proposalStore:require('../ai/growth/investigationStore').createInvestigationStore()
   });
   res.json({...result,paidCalls:0,externalActions:0});
 }));
