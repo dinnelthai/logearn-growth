@@ -368,3 +368,81 @@ CREATE TABLE IF NOT EXISTS ai_growth_gsc_snapshots (
 );
 CREATE INDEX IF NOT EXISTS idx_ai_gsc_snapshots_owner_site_period
   ON ai_growth_gsc_snapshots(owner_id,site_url,start_date,end_date,fetched_at DESC);
+
+-- P1 specialist operating automation (all processors are opt-in).
+CREATE TABLE IF NOT EXISTS ai_growth_gsc_sync_jobs (
+ id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, site_url TEXT NOT NULL,
+ target_date DATE NOT NULL, state TEXT NOT NULL DEFAULT 'pending'
+  CHECK(state IN ('pending','running','done','failed')),
+ attempts INTEGER NOT NULL DEFAULT 0 CHECK(attempts BETWEEN 0 AND 8),
+ next_attempt_at BIGINT NOT NULL, lease_until BIGINT,
+ last_error TEXT, snapshot_id TEXT, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL,
+ UNIQUE(owner_id,site_url,target_date)
+);
+CREATE INDEX IF NOT EXISTS idx_growth_gsc_jobs_due
+ ON ai_growth_gsc_sync_jobs(state,next_attempt_at,lease_until);
+
+CREATE TABLE IF NOT EXISTS ai_growth_kol_period_snapshots (
+ id TEXT PRIMARY KEY, owner_id TEXT NOT NULL,
+ start_at BIGINT NOT NULL, end_at BIGINT NOT NULL,
+ evidence JSONB NOT NULL, coverage JSONB NOT NULL,
+ source_watermark TEXT, captured_at BIGINT NOT NULL,
+ UNIQUE(owner_id,start_at,end_at),
+ CHECK(end_at>start_at)
+);
+CREATE INDEX IF NOT EXISTS idx_growth_kol_snapshots
+ ON ai_growth_kol_period_snapshots(owner_id,end_at DESC);
+
+CREATE TABLE IF NOT EXISTS ai_growth_specialist_tasks (
+ id TEXT PRIMARY KEY, owner_id TEXT NOT NULL,
+ kind TEXT NOT NULL CHECK(kind IN ('seo','kol')),
+ fingerprint TEXT NOT NULL, priority TEXT NOT NULL CHECK(priority IN ('P0','P1','P2')),
+ title TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open'
+  CHECK(status IN ('open','acknowledged','executing','executed','resolved','dismissed')),
+ source_end BIGINT NOT NULL,
+ first_seen_at BIGINT NOT NULL,last_seen_at BIGINT NOT NULL,
+ occurrences INTEGER NOT NULL DEFAULT 1 CHECK(occurrences>0),
+ snooze_until BIGINT, version INTEGER NOT NULL DEFAULT 1,
+ evidence JSONB NOT NULL, action_note TEXT,review_note TEXT,
+ updated_at BIGINT NOT NULL,
+ UNIQUE(owner_id,kind,fingerprint)
+);
+CREATE INDEX IF NOT EXISTS idx_growth_specialist_tasks_owner
+ ON ai_growth_specialist_tasks(owner_id,status,priority,last_seen_at DESC);
+CREATE TABLE IF NOT EXISTS ai_growth_specialist_task_events (
+ id BIGSERIAL PRIMARY KEY,task_id TEXT NOT NULL
+  REFERENCES ai_growth_specialist_tasks(id) ON DELETE CASCADE,
+ owner_id TEXT NOT NULL, event_type TEXT NOT NULL,
+ details JSONB NOT NULL DEFAULT '{}',created_at BIGINT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_growth_specialist_event_owner
+ ON ai_growth_specialist_task_events(owner_id,task_id,id DESC);
+
+-- Durable external notification outbox, separately approved/opt-in.
+CREATE TABLE IF NOT EXISTS ai_growth_delivery_outbox (
+ id TEXT PRIMARY KEY, owner_id TEXT NOT NULL,channel TEXT NOT NULL
+  CHECK(channel IN ('webhook','email')),
+ source_kind TEXT NOT NULL,source_id TEXT NOT NULL,
+ state TEXT NOT NULL DEFAULT 'pending'
+  CHECK(state IN ('pending','sending','delivered','failed')),
+ attempts INTEGER NOT NULL DEFAULT 0 CHECK(attempts BETWEEN 0 AND 8),
+ next_attempt_at BIGINT NOT NULL,locked_until BIGINT,
+ delivered_at BIGINT,last_http_status INTEGER,last_error TEXT,
+ payload JSONB NOT NULL,created_at BIGINT NOT NULL,updated_at BIGINT NOT NULL,
+ UNIQUE(owner_id,channel,source_kind,source_id)
+);
+CREATE INDEX IF NOT EXISTS idx_growth_delivery_due
+ ON ai_growth_delivery_outbox(state,next_attempt_at,locked_until);
+
+-- Human-entered randomized A/B test inputs, never inferred from analytics
+-- channel correlations. No claim of causality without assigned experiment.
+CREATE TABLE IF NOT EXISTS ai_growth_experiment_evaluations (
+ id TEXT PRIMARY KEY,owner_id TEXT NOT NULL,experiment_key TEXT NOT NULL,
+ hypothesis TEXT NOT NULL, primary_metric TEXT NOT NULL,
+ started_at BIGINT NOT NULL,ended_at BIGINT NOT NULL,
+ design JSONB NOT NULL,result JSONB NOT NULL,
+ created_at BIGINT NOT NULL,updated_at BIGINT NOT NULL,
+ UNIQUE(owner_id,experiment_key)
+);
+CREATE INDEX IF NOT EXISTS idx_growth_experiment_owner
+ ON ai_growth_experiment_evaluations(owner_id,created_at DESC);
