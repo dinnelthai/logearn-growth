@@ -25,3 +25,15 @@ test('content and follower evidence isolate owners without returning profiles',(
   assert.throws(()=>reader.contentGrowth(scope,{}),/用户范围/);
  }finally{db.close()}
 });
+
+test('publication range follows Bangkok calendar day rather than UTC midnight',()=>{
+ const db=new DatabaseSync(':memory:');
+ try{
+  db.exec('CREATE TABLE content_growth_items(owner_id TEXT,platform TEXT,published_at TEXT,impressions INTEGER,likes INTEGER,comments INTEGER,shares INTEGER)');
+  db.prepare('INSERT INTO content_growth_items VALUES(?,?,?,?,?,?,?)').run('owner-a','x','2026-10-27',7,1,0,0);
+  db.prepare('INSERT INTO content_growth_items VALUES(?,?,?,?,?,?,?)').run('owner-a','x','2026-10-28',11,1,0,0);
+  const from=Date.parse('2026-10-27T17:00:00Z'),to=Date.parse('2026-10-28T17:00:00Z');
+  const result=createContentAdapters(db).contentGrowth({start:from,end:to},{ownerId:'owner-a'});
+  assert.equal(result.summary.x.impressions,11);
+ }finally{db.close()}
+});
