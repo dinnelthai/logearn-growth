@@ -37,3 +37,13 @@ export const previewGrowthSignals=reportId=>aiFetch('/api/ai-analysis/growth-sig
 export const getGrowthReviewQueue=()=>aiFetch('/api/ai-analysis/growth-review-queue');
 
 export const getGrowthInbox=()=>aiFetch('/api/ai-analysis/growth-inbox');
+
+export const getGrowthAlerts=(includeResolved=false)=>aiFetch('/api/ai-analysis/growth-alerts'+(includeResolved?'?resolved=1':''));
+export const scanGrowthAlerts=(goal='activation',source='all')=>aiFetch('/api/ai-analysis/growth-alerts/scan',{
+  method:'POST',body:JSON.stringify({goal,source})
+});
+export const changeGrowthAlert=(id,expectedVersion,action,extra={})=>aiFetch(
+  '/api/ai-analysis/growth-alerts/'+encodeURIComponent(id)+'/action',{
+    method:'POST',body:JSON.stringify({action,expectedVersion,...extra})
+  });
+export const getGrowthAlertHistory=id=>aiFetch('/api/ai-analysis/growth-alerts/'+encodeURIComponent(id)+'/history');
