@@ -1,0 +1,71 @@
+'use strict';
+const {dailyRequest,dispatchDaily}=require('./daily');
+const {createAgentStore}=require('./agentStore');
+const {refreshLearning}=require('./agentLearning');
+const {createDailyBrief}=require('./agentBrief');
+const {createHash}=require('node:crypto');
+const DEFAULT_GOALS=['activation','retention','conversion','revenue'];
+function allowedGoals(goals){
+ if(!Array.isArray(goals)||!goals.length||goals.length>4||
+  goals.some(x=>!DEFAULT_GOALS.includes(x))||new Set(goals).size!==goals.length)
+  throw Error('每日 Agent 目标列表只能选择不重复的激活、留存、转化、收入');
+ return [...goals];
+}
+async function tickAutonomousOwner({
+ ownerId,now=Date.now(),source='all',goals=DEFAULT_GOALS,allowPaidDispatch=false,
+ store=createAgentStore(),records=require('../../db/aiRecords'),
+ enqueue=require('../../queues/queues').addAIAnalysisJob,
+ notify=null
+}={}){
+ if(typeof ownerId!=='string'||!ownerId||!Number.isSafeInteger(now))
+  throw Error('自动运营任务身份和日期无效');
+ const required=allowedGoals(goals);
+ const period=dailyRequest({ownerId,now,goal:required[0],source}).period;
+ // Refresh strategy ONLY from completed retrospectives; it never calls an LLM.
+ const learning=await refreshLearning({ownerId,source,goals:required,store,now});
+ let analyses=await store.dailyAnalyses(ownerId,period.day,source);
+ const enqueued=[];
+ if(allowPaidDispatch){
+  for(const goal of required){
+   if(analyses.some(a=>a.filter_conditions?.focusGoal===goal))continue;
+   const item=await dispatchDaily({ownerId,now,goal,source,records,enqueue});
+   enqueued.push({goal,status:item.status,analysisId:item.analysisId});
+  }
+  if(enqueued.length)analyses=await store.dailyAnalyses(ownerId,period.day,source);
+ }
+ const targets=await store.targets(ownerId,{source});
+ const strategies={};
+ for(const goal of required)strategies[goal]=await store.getStrategy(ownerId,goal,source);
+ const brief=createDailyBrief({ownerId,day:period.day,source,
+  goals:required,analyses,targets,learning,strategies});
+ const saved=await store.upsertBrief(ownerId,brief,{now});
+ // Only a ready/partial, persisted brief is eligible for optional proactive
+ // external delivery. Blocked or unknown business context never leaves DB.
+ let notification=null;
+ if(notify&&['ready','partial'].includes(saved.status))
+  notification=await notify({ownerId,briefId:saved.id,day:period.day,
+   status:saved.status,score:brief.score.value,
+   summary:brief.report.overview.slice(0,1200)});
+ return {
+  ownerId,day:period.day,source,status:saved.status,briefId:saved.id,
+  score:brief.score.value,goals:required,
+  completed:brief.quality.completedGoals,expected:brief.quality.requiredGoals,
+  enqueued,learning:learning.judgements,
+  strategyVersions:Object.fromEntries(Object.entries(strategies).map(([k,v])=>[k,v?.version||null])),
+  notification,
+  automaticPaidAllowed:allowPaidDispatch,externalActions:0
+ };
+}
+function autonomyConfig(env=process.env){
+ const owners=(env.AI_AUTONOMY_OWNER_IDS||'').split(',').map(x=>x.trim()).filter(Boolean);
+ const goals=allowedGoals((env.AI_AUTONOMY_GOALS||
+  'activation,retention,conversion,revenue').split(',').map(x=>x.trim()));
+ if(!owners.length||owners.length>100||owners.some(x=>x.length>256)||
+  new Set(owners).size!==owners.length)
+  throw Error('AI_AUTONOMY_OWNER_IDS 需要显式且不重复的授权用户列表');
+ const source=env.AI_AUTONOMY_SOURCE||'all';
+ if(typeof source!=='string'||!source||source.length>200)throw Error('Agent 来源范围无效');
+ return {owners,goals,source,
+  paidEnabled:env.AI_AUTONOMY_PAID_DAILY_ENABLED==='1'};
+}
+module.exports={tickAutonomousOwner,autonomyConfig,allowedGoals};
