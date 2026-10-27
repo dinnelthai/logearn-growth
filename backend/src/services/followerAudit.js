@@ -23,7 +23,15 @@ async function analyzeBatch(owner,account){
  let completed=0
  for(const row of rows){await analyze(owner,account,row.user_id);completed++}
  const remaining=db.prepare('SELECT COUNT(*) n FROM x_follower_audit WHERE owner_id=? AND account=? AND posts_at IS NULL').get(owner,account).n
- return {completed,remaining,nextBatchRequiresOperatorAction:remaining>0}
+ if(remaining>0&&process.env.FOLLOWER_AUTO_ANALYZE_ENABLED==='1'){
+  const next=db.prepare('SELECT user_id FROM x_follower_audit WHERE owner_id=? AND account=? AND posts_at IS NULL ORDER BY followers DESC LIMIT 1').get(owner,account);
+  if(next){
+   const jobId='follower-auto-'+require('crypto').createHash('sha256').update(owner+':'+account+':'+next.user_id).digest('hex').slice(0,32)
+   await require('../queues/queues').addAIAnalysisJob('follower-analyze-batch',{owner,account},{jobId,attempts:1})
+   return {completed,remaining,nextBatchQueued:true,autoMode:true}
+  }
+ }
+ return {completed,remaining,nextBatchRequiresOperatorAction:remaining>0,autoMode:false}
 }
 function review(owner,account,id,value){if(typeof value!=='boolean')throw Error('排查状态无效');const r=db.prepare('UPDATE x_follower_audit SET reviewed=? WHERE owner_id=? AND account=? AND user_id=?').run(+value,owner,account,id);if(!r.changes)throw Error('关注者不存在')}
 module.exports={list,start,analyze,review,startAnalysis,collect,analyzeBatch}
