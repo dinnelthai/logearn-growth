@@ -134,3 +134,12 @@ Accept a new component only when it:
 - Local mirrored module tests: **5/5 passed** on Node 22.16.0. The runner-level updated assertion and clean GitHub CI have not yet been executed end-to-end.
 - Still **not automatic resume**: transcript reconstruction does not prove the external data remains available, preserve validation repair messages, or handle unknown paid calls. Do not expose raw saved prompt/context/response externally.
 - Next: journal validation-repair turns, then add restart/replay simulator proving no duplicate LLM or tool calls before any production resume switch.
+
+## Implementation checkpoint 9 — persisted validation repair turns (2026-10-27)
+
+- `traceStore.saveFollowup(context,round,message,kind)` now stores the **exact** model correction turn under the existing received-call JSON in an SQLite IMMEDIATE transaction. Writes require the correct owner/run/trace/round, only accept `parse-error` and `validation-error`, are idempotent for identical content, and reject conflicts. No new schema or dependencies.
+- `runner.js` writes parse and business-validation repair messages **before** attempting the next paid LLM round. If journaling fails, the run stops before the next call.
+- `transcriptRecovery.js` replays these persisted messages in the original turn order. Legacy unrecorded intermediate validation feedback and missing parse correction still fail closed; `canAutoResume` remains false.
+- Added `backend/test/agentFollowupCheckpoint.test.js` (SQLite and transcript tests) and `backend/test/agentFollowupRunner.test.js` (mock-LLM ordering tests). These tests are **committed but have not been executed in a fresh checkout**. No CI, production or real DeRouter assertions are claimed.
+- Business logic, databases, queues and deployment configuration untouched.
+- Next: run clean-checkout backend test suite and correct any failures; only then build a simulated termination/restart controller. Do not enable automatic paid replay before complete checkpoints and journal consistency are verified.
