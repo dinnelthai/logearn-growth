@@ -103,6 +103,15 @@ router.get('/retrospectives/:id',handle(async(req,res)=>{
   if(!record)return res.status(404).json({error:'复盘不存在'});
   res.json(record);
 }));
+router.get('/jobs/:jobId/checkpoint',handle(async(req,res)=>{
+  const record=await records.getAnalysisRecord(req.params.jobId,req.user.user_id);
+  if(!record)return res.status(404).json({error:'分析不存在'});
+  // Owner authorization precedes any journal lookup. Never expose raw prompts,
+  // model responses or tool results on this diagnostics endpoint.
+  const calls=require('../ai/business/trace').createTraceStore(require('../db/connection')).list(req.user.user_id,record.id);
+  const summary=require('../ai/business/checkpointState').inspectCheckpoint(calls);
+  res.json({analysisId:record.id,recordStatus:record.status,...summary});
+}));
 router.get('/jobs/:jobId/status',handle(async(req,res)=>{
   const status=await getJobStatus('aiAnalysis',req.params.jobId);
   if(!status.exists){
