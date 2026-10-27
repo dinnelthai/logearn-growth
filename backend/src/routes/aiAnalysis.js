@@ -138,7 +138,13 @@ router.put('/suggestions/:id/status',handle(async(req,res)=>{
     if(!Number.isSafeInteger(updates.executedAt)||updates.executedAt<0||updates.executedAt>Date.now())return res.status(400).json({error:'执行时间无效'});
     updates.executedBy=req.user.user_id;
   }
-  res.json(await records.updateSuggestionStatus(req.params.id,req.user.user_id,userStatus,updates));
+  // The decision is human initiated; compare-and-swap prevents stale tabs
+  // from silently overwriting another operator's decision.
+  const effective={...updates,actualAction:updates.actualAction||current.actual_action};
+  const updated=await records.transitionSuggestionStatus(req.params.id,req.user.user_id,
+    current.user_status,userStatus,effective);
+  if(!updated)return res.status(409).json({error:'建议已被其他操作更新，请刷新后重试'});
+  res.json(updated);
 }));
 router.post('/suggestions/:id/retrospective',handle(async(req,res)=>{
   const ownerId=req.user.user_id,s=await records.getSuggestion(req.params.id,ownerId);
