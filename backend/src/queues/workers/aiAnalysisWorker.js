@@ -11,13 +11,14 @@
 
 require('dotenv').config();
 const { queues } = require('../queues');
-const { businessAnalysis } = require('../jobs/businessAnalysis');
+const { businessAnalysis,recoverValidatedAnalysis } = require('../jobs/businessAnalysis');
 const { retrospectiveAnalysis } = require('../jobs/retrospective');
 const logger = console;
 
 // 任务处理器映射
 const taskHandlers = {
   'business-analysis': businessAnalysis,
+  'finalize-validated': recoverValidatedAnalysis,
   'retrospective': retrospectiveAnalysis
 };
 
@@ -81,7 +82,7 @@ Object.entries(taskHandlers).forEach(([taskName, handler]) => {
 logger.info('Registered task handlers:', Object.keys(taskHandlers));
 // Optional read-only lease watchdog. It never steals work or issues LLM calls.
 let leaseWatchdog=null,leaseWatchdogBusy=false;
-if(process.env.AI_LEASE_MONITOR_ENABLED==='1'){
+if(process.env.AI_LEASE_MONITOR_ENABLED==='1'||process.env.AI_RECOVERY_FINALIZE_ENABLED==='1'){
   leaseWatchdog=setInterval(async()=>{
     if(leaseWatchdogBusy)return;
     leaseWatchdogBusy=true;
@@ -90,6 +91,16 @@ if(process.env.AI_LEASE_MONITOR_ENABLED==='1'){
       if(expired.length)logger.warn('[AI recovery] expired processing leases require review',{
         count:expired.length,oldestLeaseExpiredAt:expired[0].lease_expires_at
       });
+      if(process.env.AI_RECOVERY_FINALIZE_ENABLED==='1'){
+        // Only the finalization handler validates full shared paid-call and
+        // SQLite journals. It never calls a provider or business tool.
+        for(const item of expired){
+          await require('../queues').addAIAnalysisJob(
+            'finalize-validated',{analysisId:item.id,ownerId:item.owner_id},
+            {jobId:'finalize-'+item.id+'-'+Math.floor(Date.now()/60000),attempts:1}
+          );
+        }
+      }
     }catch(error){logger.error('[AI recovery] lease monitor unavailable',error.message);}
     finally{leaseWatchdogBusy=false;}
   },60000);
