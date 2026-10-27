@@ -18,11 +18,22 @@ router.get('/growth-agent/status',handle(async(req,res)=>{
   const [briefs,targets]=await Promise.all([
     store.listBriefs(ownerId,{source,limit:1}),store.targets(ownerId,{source})
   ]);
+  const configured=process.env.AI_AUTONOMY_ENABLED==='1';
+  const allowedOwners=(process.env.AI_AUTONOMY_OWNER_IDS||'')
+    .split(',').map(x=>x.trim()).filter(Boolean);
+  // Never expose global deployment run metadata to unrelated accounts.
+  const authorized=configured&&allowedOwners.includes(String(ownerId));
+  const health=authorized
+    ?await require('../ai/growth/agentSchedulerHealth').createSchedulerHealth().status()
+    :null;
   res.json({version:'growth-autonomy-v1',
-    schedulerConfigured:process.env.AI_AUTONOMY_ENABLED==='1',
+    schedulerConfigured:configured,
     paidDailyDispatchConfigured:process.env.AI_AUTONOMY_ENABLED==='1'&&
       process.env.AI_AUTONOMY_PAID_DAILY_ENABLED==='1',
-    schedulerRunning:'not-verified-from-http',
+    schedulerRunning:health?.live===true,
+    schedulerAuthorizedForOwner:authorized,
+    schedulerHealth:health||{observed:false,live:false,stale:true,status:
+      authorized?'never-run':'not-authorized'},
     defaultSafeMode:true,externalActionsEnabled:false,
     latestBrief:briefs[0]||null,targetCount:targets.filter(t=>t.active).length,
     modelCallsOnThisRequest:0});
