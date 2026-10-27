@@ -65,6 +65,23 @@ test('Postgres fencing and real Bull/Redis duplicate delivery', {skip:!enabled},
   assert.equal(await records.failClaimedAnalysis(id,owner,active.execution_token,'stale completion'),false);
   assert.equal(await records.failClaimedAnalysis(id,owner,recoveredToken,'test shutdown'),true);
   assert.equal((await records.getAnalysisRecord(id,owner)).status,'failed');
+
+  // Cancellation revokes the winning token and prevents any subsequent billing,
+  // tool snapshot mutation or successful final report transaction.
+  await pool.query("UPDATE ai_analysis_records SET status='pending',cancel_requested=false,execution_token=NULL,lease_expires_at=NULL WHERE id=$1",[id]);
+  const cancelToken=randomUUID();
+  assert.ok(await records.claimAnalysisExecution(id,owner,cancelToken));
+  const cancelled=await records.requestAnalysisCancellation(id,owner);
+  assert.equal(cancelled.cancel_requested,true);
+  assert.equal(cancelled.status,'failed');
+  assert.equal(await records.requestAnalysisCancellation(id,owner),null);
+  await assert.rejects(records.assertAnalysisLease(id,owner,cancelToken),/失效/);
+  await assert.rejects(records.beginAnalysisPaidCall(id,owner,cancelToken,1),/重复付费/);
+  await assert.rejects(records.updateAnalysisSnapshot(id,{unexpected:true},owner,cancelToken),/失效/);
+  await assert.rejects(records.completeAnalysis(id,owner,[],{summary:'late'},{provider:'mock',model:'mock',cost:0},cancelToken),/租约失效/);
+  assert.equal(await records.failClaimedAnalysis(id,owner,cancelToken,'late completion'),false);
+  assert.equal((await records.getAnalysisRecord(id,owner)).cancel_requested,true);
+
  }finally{
   await queue.close();
   await pool.query('DELETE FROM ai_analysis_records WHERE id=$1',[id]).catch(()=>{});
