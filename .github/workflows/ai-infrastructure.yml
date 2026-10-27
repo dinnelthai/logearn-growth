@@ -70,6 +70,7 @@ jobs:
           node --check src/ai/growth/budget.js
           node --check src/ai/growth/experienceFeedback.js
           node --check src/ai/growth/agentScore.js
+          node --check src/ai/growth/agentForecast.js
           node --check src/ai/growth/agentStore.js
           node --check src/ai/growth/agentLearning.js
           node --check src/ai/growth/agentBrief.js
@@ -99,7 +100,7 @@ jobs:
         env:
           NODE_ENV: test
         run: |
-          node --test test/growthAgentWebhook.test.js test/growthAutonomyHttp.test.js test/growthAutonomyRunner.test.js test/growthAgentAutonomy.test.js test/gscHttp.test.js test/gscClient.test.js test/gscService.test.js test/growthSpecialtyAnalyzeHttp.test.js test/growthSpecialistHttp.test.js test/growthSeo.test.js test/growthKolReader.test.js test/growthSpecialistTools.test.js test/growthInboxHttp.test.js test/growthInvestigationTimelineHttp.test.js test/growthInvestigationTimeline.test.js test/growthProposalHttp.test.js test/growthBudgetIntegration.test.js test/growthAlertHttp.test.js test/growthExperience.test.js test/growthCrossDay.test.js test/growthInbox.test.js test/growthReviewHttp.test.js test/growthActionWorkflow.test.js test/growthTriage.test.js test/growthPlanner.test.js test/growthDaily.test.js test/analysisRecoveryIsolation.test.js test/analysisResumeHttp.test.js test/resumePlan.test.js test/partialInvestigationResume.test.js test/analysisCancelHttp.test.js test/validatedFinalCheckpoint.test.js test/validatedFinalRecovery.test.js test/workerStart.test.js test/recoveryDecision.test.js test/agentKilledWorker.test.js test/agentRestartPersistence.test.js test/agentFollowupCheckpoint.test.js             test/agentFollowupRunner.test.js             test/agentTrace.test.js             test/agentResponseCheckpoint.test.js             test/agentInvestigationCheckpoint.test.js             test/checkpointState.test.js             test/transcriptRecovery.test.js             test/checkpointHttp.test.js             test/jobStatus.test.js             test/jobStatusHttp.test.js             test/retrySafety.test.js             test/retrySafetyHttp.test.js
+          node --test test/growthAgentForecast.test.js test/growthAgentWebhook.test.js test/growthAutonomyHttp.test.js test/growthAutonomyRunner.test.js test/growthAgentAutonomy.test.js test/gscHttp.test.js test/gscClient.test.js test/gscService.test.js test/growthSpecialtyAnalyzeHttp.test.js test/growthSpecialistHttp.test.js test/growthSeo.test.js test/growthKolReader.test.js test/growthSpecialistTools.test.js test/growthInboxHttp.test.js test/growthInvestigationTimelineHttp.test.js test/growthInvestigationTimeline.test.js test/growthProposalHttp.test.js test/growthBudgetIntegration.test.js test/growthAlertHttp.test.js test/growthExperience.test.js test/growthCrossDay.test.js test/growthInbox.test.js test/growthReviewHttp.test.js test/growthActionWorkflow.test.js test/growthTriage.test.js test/growthPlanner.test.js test/growthDaily.test.js test/analysisRecoveryIsolation.test.js test/analysisResumeHttp.test.js test/resumePlan.test.js test/partialInvestigationResume.test.js test/analysisCancelHttp.test.js test/validatedFinalCheckpoint.test.js test/validatedFinalRecovery.test.js test/workerStart.test.js test/recoveryDecision.test.js test/agentKilledWorker.test.js test/agentRestartPersistence.test.js test/agentFollowupCheckpoint.test.js             test/agentFollowupRunner.test.js             test/agentTrace.test.js             test/agentResponseCheckpoint.test.js             test/agentInvestigationCheckpoint.test.js             test/checkpointState.test.js             test/transcriptRecovery.test.js             test/checkpointHttp.test.js             test/jobStatus.test.js             test/jobStatusHttp.test.js             test/retrySafety.test.js             test/retrySafetyHttp.test.js
 
   ai-integration:
     runs-on: ubuntu-latest
@@ -143,7 +144,7 @@ jobs:
           AI_P0_INTEGRATION: '1'
           AI_DATABASE_URL: postgres://ci:ci@localhost:5432/ai_test
           REDIS_URL: redis://localhost:6379
-        run: node --test --test-concurrency=1 test/growthAgentOutboxIntegration.test.js test/growthAutonomyIntegration.test.js test/aiMigrationIntegration.test.js test/gscIntegration.test.js test/growthSeoIntegration.test.js test/growthAlertIntegration.test.js test/growthProposalIntegration.test.js test/growthBudgetIntegration.test.js test/workerLeaseIntegration.test.js
+        run: node --test --test-concurrency=1 test/growthAgentForecastIntegration.test.js test/growthAgentOutboxIntegration.test.js test/growthAutonomyIntegration.test.js test/aiMigrationIntegration.test.js test/gscIntegration.test.js test/growthSeoIntegration.test.js test/growthAlertIntegration.test.js test/growthProposalIntegration.test.js test/growthBudgetIntegration.test.js test/workerLeaseIntegration.test.js
 
   ai-frontend:
     runs-on: ubuntu-latest
