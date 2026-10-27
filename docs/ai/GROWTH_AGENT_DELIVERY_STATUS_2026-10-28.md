@@ -51,3 +51,37 @@ node --test test/promptGate.test.js test/promptRegistry.test.js test/promptRepla
 ```
 
 Acceptance must ultimately be supported by a **real, non-synthetic, redacted** business day ID, report ID, worker run status, actual provider usage, GSC checkpoint and a completed feedback-and-retrospective cycle. Never mark production E2E complete without those.
+
+
+## Additional implementation batch — 2026-10-28
+- **Content security:** manual content CRUD is now scoped by authenticated owner; legacy unowned records stay inaccessible pending explicit ownership reconciliation.
+- **Follower workload:** bounded collection and profile-analysis batches now use the existing Bull worker instead of HTTP-process fire-and-forget. Collection pages persist cursor and pause after ten pages; profile analysis stops after twenty users per approved batch. Multi-host SQLite and production redis/job recovery remain unverified.
+- **Read-only growth evidence:** owner-scoped content and follower summaries are registered in the existing AI business tool registry with independent manual/partial coverage metadata. Their specialized Growth Skills can be requested explicitly; they are not claimed as default automatic planning priorities.
+- **Daily evidence sidecar:** daily autonomous briefs attach content publication observations and follower sampling status without changing original growth KPI calculations or inferring registrations/trades from reach.
+- **Research:** record-driven content/audience source changes yield owner-scoped reviewed questions; this is not unrestricted LLM hypothesis generation or autonomous external action execution.
+- **Promptfoo:** an opt-in operator CLI runs real provider baseline-vs-candidate safety holdouts via an installed Promptfoo CLI and blocks candidates without comparable evaluation. Never run or certify it without a real provider; no real-model evaluation was performed by CI. Real independent evaluator version/signatures and blinded business cases still need hardening.
+- **Canary:** optional safety-only auto rollback on a verified jump in unknown paid-call traces with sufficient samples; does not auto-promote or prove business effectiveness.
+- **Operator UI:** new Agent console displays owner status, persisted briefs, judgements, research approvals and prompt candidates; read-only except explicit reviewed research decision actions.
+- **E2E acceptance:** `node backend/scripts/verifyGrowthAgentE2E.js OWNER YYYY-MM-DD` rejects missing persisted four-goal daily facts, evidence-score, scheduler, linked retrospective and sidecar. It was NOT run against production.
+
+### Still open — deployment and external dependencies
+1. Production X/blog/YouTube metrics connectors and first-party UTM -> verified registration/trade attribution. Existing content is operator-entered, not automatic platform metrics.
+2. Real authenticated GSC and KOL API connectivity, rate-limit, source watermarks, migration and deployment evidence.
+3. Real daily LLM reports and verified feedback-retrospective loop in production; CI is synthetic/isolated.
+4. Production PostgreSQL/Redis/SQLite topology and durable queue recovery across host restarts; full USD-rated global budget and unified spend guard.
+5. Operator-executed, independently archived Promptfoo evaluation against real model, business holdout, canary comparison and automatic promotion criteria (promotion intentionally human-gated).
+6. Deeper ongoing LLM research hypothesis refutation and causal effects tracking; observed retrospectives cannot support a causal claim.
+
+### New opt-in controls
+```text
+# Offline paid evaluation (operator CLI only)
+AI_PROMPT_EVAL_PAID_APPROVED=1
+PROMPTFOO_API_KEY=... # never put this in repository
+PROMPTFOO_MODEL=...
+PROMPTFOO_API_BASE_URL=https://...
+AI_PROMPT_EVAL_MAX_PROVIDER_COST=...
+AI_PROMPT_EVAL_MAX_LATENCY_MS=...
+
+# Canary safety-only rollback; default disabled
+AI_PROMPT_AUTO_ROLLBACK_ENABLED=1
+```
