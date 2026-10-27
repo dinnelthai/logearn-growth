@@ -24,3 +24,5 @@ export const getEvidence=id=>aiFetch('/api/growth-agent/evidence/'+encodeURIComp
 export const getJobCheckpoint=id=>aiFetch('/api/ai-analysis/jobs/'+encodeURIComponent(id)+'/checkpoint');
 
 export const cancelAnalysis=id=>aiFetch('/api/ai-analysis/'+encodeURIComponent(id)+'/cancel',{method:'POST',body:'{}'});
+
+export const resumeAnalysis=id=>aiFetch('/api/ai-analysis/'+encodeURIComponent(id)+'/resume',{method:'POST',body:'{}'});
