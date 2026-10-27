@@ -64,7 +64,13 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
     if (Array.isArray(value.investigations) && value.investigations.length) {
       if (!investigate) throw Error('该任务暂不支持请求的补充调查，任务未完成');
       if (value.investigations.length>6) throw Error('补充查询过多，请缩小问题范围或提高调查能力');
-      for (const query of value.investigations) evidence.push({query,result:await investigate(query)});
+      for (const [index,query] of value.investigations.entries()) {
+        const result=await investigate(query);
+        // Persist each confirmed tool result before invoking the next tool.
+        // Does not replay or resume partially executed workflows yet.
+        traceStore?.appendInvestigation?.(traceContext,round,index,query,result);
+        evidence.push({query,result});
+      }
       messages.push({role:'user',content:JSON.stringify({additionalEvidence:evidence.slice(-value.investigations.length),instruction:'根据补充证据继续调查或返回完整结果'})});continue;
     }
     try { await validate(value); }
