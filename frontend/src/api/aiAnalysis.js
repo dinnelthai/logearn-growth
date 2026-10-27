@@ -61,3 +61,5 @@ export const markGrowthNotificationRead=id=>aiFetch(
   '/api/ai-analysis/growth-notifications/'+encodeURIComponent(id)+'/read',
   {method:'POST',body:'{}'}
 );
+
+export const getGrowthInvestigationTimeline=id=>aiFetch('/api/ai-analysis/growth-investigations/'+encodeURIComponent(id)+'/timeline');
