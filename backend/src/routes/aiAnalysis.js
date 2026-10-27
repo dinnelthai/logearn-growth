@@ -134,6 +134,12 @@ router.get('/growth-investigations',handle(async(req,res)=>{
   res.json({version:'growth-investigation-proposals-v1',proposals,
     requiresHumanApproval:true,automaticPaidCalls:false});
 }));
+router.get('/growth-investigations/:id/timeline',handle(async(req,res)=>{
+  const timeline=await require('../ai/growth/investigationTimeline')
+    .createInvestigationTimeline().get(req.user.user_id,req.params.id);
+  if(!timeline)return res.status(404).json({error:'调查提案不存在或无权限'});
+  res.json(timeline);
+}));
 router.post('/growth-investigations/:id/action',handle(async(req,res)=>{
   const ownerId=req.user.user_id;
   const {action,expectedVersion}=req.body||{};
