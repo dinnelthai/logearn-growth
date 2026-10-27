@@ -143,3 +143,10 @@ Accept a new component only when it:
 - Added `backend/test/agentFollowupCheckpoint.test.js` (SQLite and transcript tests) and `backend/test/agentFollowupRunner.test.js` (mock-LLM ordering tests). These tests are **committed but have not been executed in a fresh checkout**. No CI, production or real DeRouter assertions are claimed.
 - Business logic, databases, queues and deployment configuration untouched.
 - Next: run clean-checkout backend test suite and correct any failures; only then build a simulated termination/restart controller. Do not enable automatic paid replay before complete checkpoints and journal consistency are verified.
+
+## Implementation checkpoint 10 — reproducible automated verification (2026-10-27)
+
+- Added `.github/workflows/ai-infrastructure.yml` to run on relevant PR and feature-branch pushes. It uses Node.js 22, `npm ci --ignore-scripts`, checks syntax for AI recovery sources, and runs twelve focused offline test files for checkpointing, retries, reconstruction and authorization. It needs no DeRouter or production credentials.
+- The baseline ZIP supplied by the user (not an exact copy of the current GitHub feature branch) was independently extracted into a local environment. Its original seven AI test files passed **14/14** on Node v22.16.0. This establishes only the *old code baseline*, not the new feature branch.
+- GitHub Actions API returned `total_count: 0` workflow runs when checked after the workflow commit; **no CI pass claimed**. Confirm repository Actions settings and triggered workflow status before merge. If Actions is disabled, enabling Actions requires repository settings access and is not simulated.
+- Next: require an actual clean-checkout CI pass, then implement a restart simulator for persisted tool checkpoints. Keep PR draft until that evidence exists.
