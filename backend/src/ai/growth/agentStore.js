@@ -101,7 +101,7 @@ function createAgentStore(db=pool){
    bad('学习反馈查询参数无效');
   const r=await db.query(`SELECT s.id AS suggestion_id,s.analysis_id,s.user_status,
     s.validation_metrics,s.priority,s.created_at,s.executed_at,
-    a.business_scope,
+    a.business_scope,a.filter_conditions,
     r.id AS retrospective_id,r.created_at AS reviewed_at,
     r.metric_changes,r.has_improvement,r.has_causality,r.confidence
    FROM ai_suggestions s
