@@ -31,7 +31,10 @@ router.post('/growth-plan',handle(async(req,res)=>{
   const report=require('../db/businessReports').createStore(require('../db/connection')).get(reportId,ownerId);
   if(!report)return res.status(404).json({error:'业务报告不存在或无权限'});
   const goal=req.body.goal||report.focusGoal||report.business?.focusGoal||'activation';
-  const plan=require('../ai/growth/planner').planGrowthInvestigation({goal,report,maxSkills:3});
+  const history=await records.getAnalysisMemory(ownerId,report.business.scope.source);
+  const plan=require('../ai/growth/planner').planGrowthInvestigation({
+    goal,report,maxSkills:3,history
+  });
   res.json({plan,dispatched:false});
 }));
 router.post('/analyze',handle(async(req,res)=>{
