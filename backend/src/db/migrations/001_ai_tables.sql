@@ -519,3 +519,14 @@ CREATE TABLE IF NOT EXISTS ai_growth_agent_scheduler_health (
  last_error TEXT,
  run_count BIGINT NOT NULL DEFAULT 0 CHECK(run_count>=0)
 );
+
+-- Fail-closed per-owner/day allocation for autonomous daily LLM calls.
+-- Reservations survive ambiguous provider responses; never auto-refund.
+CREATE TABLE IF NOT EXISTS ai_growth_autonomy_paid_allocations (
+ analysis_id TEXT NOT NULL REFERENCES ai_analysis_records(id) ON DELETE CASCADE,
+ round INTEGER NOT NULL CHECK(round>=0),owner_id TEXT NOT NULL,
+ bangkok_day TEXT NOT NULL,reserved_at BIGINT NOT NULL,
+ PRIMARY KEY(analysis_id,round)
+);
+CREATE INDEX IF NOT EXISTS idx_growth_autonomy_paid_owner_day
+ ON ai_growth_autonomy_paid_allocations(owner_id,bangkok_day);
