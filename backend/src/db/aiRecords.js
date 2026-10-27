@@ -162,7 +162,8 @@ async function createSuggestion({
   expectedImpact = null,
   impactBasis = null,
   validationMetrics,
-  reviewConditions = []
+  reviewConditions = [],
+  forecast = null
 }, client = null) {
   const id = uuidv4();
   const now = Date.now();
@@ -172,15 +173,16 @@ async function createSuggestion({
       id, analysis_id, owner_id,
       business_problem, data_evidence, hypothesis, uncertainties,
       action, priority, priority_reason, applicable_scope,
-      expected_impact, impact_basis, validation_metrics, review_conditions,
+      expected_impact, impact_basis, validation_metrics, review_conditions, forecast,
       user_status, created_at, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
     RETURNING *
   `, [
     id, analysisId, ownerId,
     businessProblem, JSON.stringify(dataEvidence), hypothesis, uncertainties,
     action, priority, priorityReason, JSON.stringify(applicableScope),
     expectedImpact, impactBasis, JSON.stringify(validationMetrics), reviewConditions,
+    forecast?JSON.stringify(forecast):null,
     'pending', now, now
   ]);
 
