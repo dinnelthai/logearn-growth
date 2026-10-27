@@ -17,6 +17,15 @@ test('site discovery uses server-side user property ACL and Google permission ch
     {siteUrl:'https://unapproved.example/',permissionLevel:'siteOwner'},
     {siteUrl:'sc-domain:hidden.net',permissionLevel:'siteUnverifiedUser'}
    ]})};
+   if(url.includes('/sitemaps'))return {ok:true,status:200,json:async()=>({
+    sitemap:[{path:'https://logearn.com/sitemap.xml',errors:'0',warnings:'1'}]
+   })};
+   if(url.includes('/urlInspection/index:inspect'))return {
+    ok:true,status:200,json:async()=>({inspectionResult:{indexStatusResult:{
+     verdict:'PASS',coverageState:'Submitted and indexed',
+     lastCrawlTime:'2026-10-25T00:00:00Z'
+    }}})
+   };
    return {ok:true,status:200,json:async()=>({rows:[{keys:['2026-10-20'],clicks:4,
     impressions:100,ctr:0.04,position:5}]})};
   }});
@@ -36,6 +45,19 @@ test('site discovery uses server-side user property ACL and Google permission ch
   startDate:'2026-10-20',endDate:'2026-10-21',dimensions:['page'],rowLimit:100});
  assert.ok(requests.some(x=>x.url.includes('/searchAnalytics/query')&&
   JSON.parse(x.body||'{}').aggregationType==='byPage'));
+ const sitemaps=await client.sitemaps('alice','sc-domain:logearn.com');
+ assert.equal(sitemaps.length,1);assert.equal(sitemaps[0].warnings,1);
+ const checked=await client.inspect('alice','sc-domain:logearn.com',
+  'https://blog.logearn.com/holders');
+ assert.equal(checked.coverageState,'Submitted and indexed');
+ assert.equal(checked.isLiveTest,false);
+ assert.ok(requests.some(x=>x.url==='https://searchconsole.googleapis.com/v1/urlInspection/index:inspect'));
+ await assert.rejects(client.inspect('alice','sc-domain:logearn.com',
+  'https://logearn.com.evil.net/holders'),/不属于/);
+ await assert.rejects(client.inspect('alice','sc-domain:logearn.com',
+  'http://logearn.com/holders'),/HTTPS/);
+ await assert.rejects(client.inspect('alice','https://logearn.com/',
+  'https://logearn.com.evil.net/holders'),/不属于/);
  assert.equal(requests.filter(x=>x.url.endsWith('/sites')).length,2);
 });
 test('deny path, arbitrary property, missing configuration, and readonly credential leakage',async()=>{
