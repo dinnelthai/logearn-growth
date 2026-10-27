@@ -32,6 +32,16 @@ test('real PostgreSQL: targets, multi-worker brief dedupe and strategy history a
   const complete=await store.upsertBrief(owner,brief,{now:now+1});
   assert.equal(complete.status,'ready');
   await store.upsertBrief(owner,brief,{now:now+2});
+  const revisedTargetBrief={...brief,status:'ready',score:{value:5},
+   report:{overview:'Later KPI changes must not silently rewrite history'}};
+  const frozen=await store.upsertBrief(owner,revisedTargetBrief,{now:now+3});
+  assert.equal(frozen.score.value,75);
+  assert.equal(frozen.report.overview,'Complete reviewed model brief');
+  const downgrade=await store.upsertBrief(owner,{
+   ...revisedTargetBrief,status:'partial',score:{value:null}
+  },{now:now+4});
+  assert.equal(downgrade.status,'ready');
+  assert.equal(downgrade.score.value,75);
   const notices=await db.query(`SELECT kind,message FROM ai_growth_notifications
     WHERE owner_id=$1 AND kind='daily-brief'`,[owner]);
   assert.equal(notices.rows.length,1);
