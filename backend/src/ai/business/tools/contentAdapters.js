@@ -1,5 +1,6 @@
 'use strict';
-const db=require('../../../db/connection');
+const defaultDb=require('../../../db/connection');
+function createContentAdapters(db=defaultDb){
 const {summarize,performanceTrend}=require('../../../analytics/contentGrowth');
 function contentGrowth(body,ctx){
  const owner=String(ctx.ownerId||'');
@@ -34,4 +35,6 @@ function followerQuality(body,ctx){
    warnings:['仅包含已扫描粉丝和部分历史帖子；类别为关键词启发式，不是身份真实性或购买意图',
     '粉丝分类不是转化归因，不能把关联当作新增交易贡献']};
 }
-module.exports={contentGrowth,followerQuality};
+return {contentGrowth,followerQuality};
+}
+module.exports={...createContentAdapters(),createContentAdapters};
