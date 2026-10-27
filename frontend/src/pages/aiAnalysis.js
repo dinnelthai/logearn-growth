@@ -31,7 +31,16 @@ export function createAIAnalysis(ctx){
           <p>每日指标评价 → AI 经营分析 → 行动建议 → 成熟复盘 → 下一轮调查策略。实际运营操作需人工批准。</p>
           <p role="status">定时调度配置：${agentStatus.schedulerConfigured?'已允许':'默认关闭'} ·
             自动付费日报：${agentStatus.paidDailyDispatchConfigured?'已由服务端显式配置':'关闭'} ·
-            运行进程：需部署监控确认。网页刷新本身不调用模型。</p>
+            调度进程：${agentStatus.schedulerRunning?'正在运行':
+              agentStatus.schedulerHealth?.status==='succeeded'&&!agentStatus.schedulerHealth?.stale?'上轮成功，等待下次调度':
+              agentStatus.schedulerHealth?.status==='partial'?'上轮部分失败，请检查':
+              agentStatus.schedulerHealth?.status==='failed'||agentStatus.schedulerHealth?.status==='stale-running'?'失败或心跳已过期':
+              '没有最近的有效运行记录'}。网页刷新本身不调用模型。</p>
+          ${agentStatus.schedulerHealth?.observed?`<p>调度上次开始：${esc(agentStatus.schedulerHealth.lastStartedAt?new Date(agentStatus.schedulerHealth.lastStartedAt).toLocaleString('zh-CN'):'未知')} ·
+            上次结束：${esc(agentStatus.schedulerHealth.lastFinishedAt?new Date(agentStatus.schedulerHealth.lastFinishedAt).toLocaleString('zh-CN'):'未知')} ·
+            执行次数：${esc(agentStatus.schedulerHealth.runCount)} ·
+            上轮错误数：${esc(agentStatus.schedulerHealth.lastSummary?.errors??'未知')}</p>`:''}
+          ${agentStatus.schedulerHealth?.lastError?'<p role="alert">调度异常：'+esc(agentStatus.schedulerHealth.lastError)+'</p>':''}
           ${agentStatus.error?'<p role="alert">Agent 状态不可用：'+esc(agentStatus.error)+'</p>':''}
           <button class="a-button" data-autonomy-refresh type="button">刷新既有日报与历史学习（零付费调用）</button>
           <h3>运营目标设置</h3>
