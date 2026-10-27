@@ -121,6 +121,19 @@ router.get('/cost-stats',handle(async(req,res)=>{
   for(const value of [startTime,endTime])if(value!=null&&(!Number.isSafeInteger(Number(value))||Number(value)<0))return res.status(400).json({error:'成本统计时间无效'});
   res.json(await records.getUserCostStats(req.user.user_id,startTime?Number(startTime):null,endTime?Number(endTime):null));
 }));
+router.get('/growth-review-queue',handle(async(req,res)=>{
+  const ownerId=req.user.user_id;
+  const rows=await records.listPendingReviewSuggestions(ownerId,{limit:100});
+  // Never report review readiness using future or stale event data.
+  const watermark=await require('../data/hologres').status();
+  const asOf=Date.parse(watermark.as_of);
+  if(!Number.isFinite(asOf))return res.status(503).json({error:'业务数据水位未知，暂不判定复盘成熟'});
+  const now=Date.now();
+  const entries=require('../ai/growth/reviewQueue').buildReviewQueue(rows,{now,watermark:asOf});
+  res.json({version:'growth-review-queue-v1',asOf:watermark.as_of,
+    readyCount:entries.filter(e=>e.status==='ready').length,
+    entries,automaticPaidReviews:false});
+}));
 router.get('/suggestions/list',handle(async(req,res)=>res.json({suggestions:await records.listSuggestions(req.user.user_id,paging(req))})));
 router.put('/suggestions/:id/status',handle(async(req,res)=>{
   const {userStatus,actualAction,actionScope,executedAt,rejectionReason}=req.body;
@@ -150,7 +163,12 @@ router.post('/suggestions/:id/retrospective',handle(async(req,res)=>{
   const ownerId=req.user.user_id,s=await records.getSuggestion(req.params.id,ownerId);
   if(!s)return res.status(404).json({error:'建议不存在'});
   if(s.user_status!=='executed')return res.status(400).json({error:'只能复盘已执行的建议'});
-  reviewPeriods(Number(s.executed_at));
+  // Use the same maturity policy in the preview and execution endpoints.
+  const watermark=await require('../data/hologres').status();
+  const asOf=Date.parse(watermark.as_of);
+  if(!Number.isFinite(asOf))return res.status(503).json({error:'数据水位不可用，禁止提前复盘'});
+  const maturity=require('../ai/growth/reviewQueue').classifyReview(s,{now:Date.now(),watermark:asOf});
+  if(maturity.status!=='ready')return res.status(409).json({error:'尚未达到三个完整业务日且数据水位确认的复盘条件',earliestReviewAt:maturity.earliestReviewAt});
   const id=req.body.requestKey||randomUUID();
   if(typeof id!=='string'||!/^[a-zA-Z0-9-]{1,100}$/.test(id))return res.status(400).json({error:'请求标识无效'});
   const {createHash}=require('node:crypto');
