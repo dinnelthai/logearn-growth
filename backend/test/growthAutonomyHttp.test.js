@@ -27,6 +27,14 @@ require.cache[queuePath]={id:queuePath,filename:queuePath,loaded:true,exports:{
  addAIAnalysisJob(){paid++;throw Error('never charge for autonomy refresh')},
  getJobStatus:async()=>({exists:false})
 }};
+const healthPath=require.resolve('../src/ai/growth/agentSchedulerHealth');
+let healthReads=0;
+require.cache[healthPath]={id:healthPath,filename:healthPath,loaded:true,exports:{
+ createSchedulerHealth:()=>({status:async()=>{
+  healthReads++;return {observed:true,live:true,stale:false,status:'running',
+    runCount:3,lastSummary:{items:4,errors:0}};
+ }})
+}};
 const router=require('../src/routes/aiAnalysis');
 test('autonomy web APIs isolate owner target/brief and keep refresh strictly zero-paid',async()=>{
  const app=express();app.use(express.json());
@@ -46,6 +54,28 @@ test('autonomy web APIs isolate owner target/brief and keep refresh strictly zer
   assert.equal(r.status,200);assert.equal(r.value.targetCount,1);
   assert.equal(r.value.schedulerRunning,false);
   assert.equal(r.value.schedulerHealth.observed,false);
+  const prevEnabled=process.env.AI_AUTONOMY_ENABLED,
+    prevOwners=process.env.AI_AUTONOMY_OWNER_IDS;
+  try{
+   process.env.AI_AUTONOMY_ENABLED='1';
+   process.env.AI_AUTONOMY_OWNER_IDS='alice';
+   r=await call('/growth-agent/status');
+   assert.equal(r.status,200);
+   assert.equal(r.value.schedulerRunning,true);
+   assert.equal(r.value.schedulerHealth.runCount,3);
+   r=await call('/growth-agent/status',{owner:'bob'});
+   assert.equal(r.status,200);
+   assert.equal(r.value.schedulerRunning,false);
+   assert.equal(r.value.schedulerHealth.status,'not-authorized');
+   assert.equal(r.value.schedulerHealth.lastSummary,undefined);
+   assert.equal(healthReads,1);
+  }finally{
+   if(prevEnabled==null)delete process.env.AI_AUTONOMY_ENABLED;
+   else process.env.AI_AUTONOMY_ENABLED=prevEnabled;
+   if(prevOwners==null)delete process.env.AI_AUTONOMY_OWNER_IDS;
+   else process.env.AI_AUTONOMY_OWNER_IDS=prevOwners;
+  }
+
   r=await call('/growth-agent/targets',{owner:'bob'});
   assert.equal(r.status,200);assert.equal(r.value.targets.length,0);
   r=await call('/growth-agent/briefs',{owner:'bob'});
