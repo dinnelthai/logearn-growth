@@ -169,10 +169,12 @@ router.post('/suggestions/:id/retrospective',handle(async(req,res)=>{
   if(!Number.isFinite(asOf))return res.status(503).json({error:'数据水位不可用，禁止提前复盘'});
   const maturity=require('../ai/growth/reviewQueue').classifyReview(s,{now:Date.now(),watermark:asOf});
   if(maturity.status!=='ready')return res.status(409).json({error:'尚未达到三个完整业务日且数据水位确认的复盘条件',earliestReviewAt:maturity.earliestReviewAt});
-  const id=req.body.requestKey||randomUUID();
-  if(typeof id!=='string'||!/^[a-zA-Z0-9-]{1,100}$/.test(id))return res.status(400).json({error:'请求标识无效'});
+  // Exactly one first review per executed suggestion. An arbitrary client
+  // requestKey must never multiply paid jobs for the same action.
   const {createHash}=require('node:crypto');
-  const retrospectiveId=createHash('sha256').update(JSON.stringify([ownerId,s.id,id])).digest('hex');
+  const retrospectiveId=createHash('sha256').update(JSON.stringify([ownerId,s.id,'initial-review-v1'])).digest('hex');
+  const existing=await records.getRetrospective(retrospectiveId,ownerId);
+  if(existing)return res.json({retrospectiveId,jobId:retrospectiveId,status:'completed',result:existing});
   const job=await addAIAnalysisJob('retrospective',{retrospectiveId,suggestionId:s.id,ownerId,triggeredBy:ownerId},{jobId:retrospectiveId,attempts:1});
   res.status(202).json({retrospectiveId,jobId:job.id,status:'pending'});
 }));
