@@ -125,3 +125,12 @@ Accept a new component only when it:
 - **Critical safety boundary:** the original input context/data snapshot is supplied to reconstruction but has **not been cryptographically matched to the one originally sent**; validation-repair messages are not journaled. Thus `canAutoResume:false` remains mandatory, even when a transcript is reconstructed. Do not enable Worker auto-resume or duplicate paid calls until these gaps and restart tests are resolved.
 - Business metric calculations, ingestion, SQL and trading logic untouched. No new dependencies, database migrations or external services.
 - Next implementation slice: persist and verify initial-context fingerprint and each post-response validation-repair message; only then consider an explicit safe resume controller.
+
+## Implementation checkpoint 8 — source-context fingerprint (2026-10-27)
+
+- `runner.js` now computes SHA-256 over the exact JSON string sent as its original `context` user message, and persists `contextHash` with each received model response in the existing SQLite trace record. No migration.
+- `transcriptRecovery.js` requires every recovered response to match the hash of the supplied original context. A mismatched source context or older un-fingerprinted journal is **blocked**, not assumed equivalent.
+- Added mismatch and legacy-journal regression cases in `transcriptRecovery.test.js`; added an assertion in `agentResponseCheckpoint.test.js`.
+- Local mirrored module tests: **5/5 passed** on Node 22.16.0. The runner-level updated assertion and clean GitHub CI have not yet been executed end-to-end.
+- Still **not automatic resume**: transcript reconstruction does not prove the external data remains available, preserve validation repair messages, or handle unknown paid calls. Do not expose raw saved prompt/context/response externally.
+- Next: journal validation-repair turns, then add restart/replay simulator proving no duplicate LLM or tool calls before any production resume switch.
