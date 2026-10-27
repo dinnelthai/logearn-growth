@@ -18,6 +18,7 @@ test('received response is journaled before a subsequent investigation fails',as
  assert.deepEqual(events,['begin:0','finish:0','investigate']);
  assert.equal(records.length,1);
  assert.equal(records[0].responseContent,response);
+ assert.equal(records[0].contextHash,require('node:crypto').createHash('sha256').update('{}').digest('hex'));
  assert.equal(records[0].tokens,19);
  assert.equal(records[0].cost,0.01);
 });
