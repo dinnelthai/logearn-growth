@@ -61,6 +61,10 @@ jobs:
           node --check src/ai/growth/actionWorkflow.js
           node --check src/ai/growth/reviewQueue.js
           node --check src/ai/growth/inbox.js
+          node --check src/ai/growth/crossDay.js
+          node --check src/ai/growth/alertStore.js
+          node --check src/ai/growth/monitor.js
+          node --check src/queues/workers/growthAlertMonitor.js
           node --check src/ai/growth/daily.js
           node --check src/queues/workers/dailyGrowthScheduler.js
           node --check src/ai/business/workerStart.js
@@ -73,7 +77,7 @@ jobs:
         env:
           NODE_ENV: test
         run: |
-          node --test test/growthInbox.test.js test/growthReviewHttp.test.js test/growthActionWorkflow.test.js test/growthTriage.test.js test/growthPlanner.test.js test/growthDaily.test.js test/analysisRecoveryIsolation.test.js test/analysisResumeHttp.test.js test/resumePlan.test.js test/partialInvestigationResume.test.js test/analysisCancelHttp.test.js test/validatedFinalCheckpoint.test.js test/validatedFinalRecovery.test.js test/workerStart.test.js test/recoveryDecision.test.js test/agentKilledWorker.test.js test/agentRestartPersistence.test.js test/agentFollowupCheckpoint.test.js             test/agentFollowupRunner.test.js             test/agentTrace.test.js             test/agentResponseCheckpoint.test.js             test/agentInvestigationCheckpoint.test.js             test/checkpointState.test.js             test/transcriptRecovery.test.js             test/checkpointHttp.test.js             test/jobStatus.test.js             test/jobStatusHttp.test.js             test/retrySafety.test.js             test/retrySafetyHttp.test.js
+          node --test test/growthCrossDay.test.js test/growthInbox.test.js test/growthReviewHttp.test.js test/growthActionWorkflow.test.js test/growthTriage.test.js test/growthPlanner.test.js test/growthDaily.test.js test/analysisRecoveryIsolation.test.js test/analysisResumeHttp.test.js test/resumePlan.test.js test/partialInvestigationResume.test.js test/analysisCancelHttp.test.js test/validatedFinalCheckpoint.test.js test/validatedFinalRecovery.test.js test/workerStart.test.js test/recoveryDecision.test.js test/agentKilledWorker.test.js test/agentRestartPersistence.test.js test/agentFollowupCheckpoint.test.js             test/agentFollowupRunner.test.js             test/agentTrace.test.js             test/agentResponseCheckpoint.test.js             test/agentInvestigationCheckpoint.test.js             test/checkpointState.test.js             test/transcriptRecovery.test.js             test/checkpointHttp.test.js             test/jobStatus.test.js             test/jobStatusHttp.test.js             test/retrySafety.test.js             test/retrySafetyHttp.test.js
 
   ai-integration:
     runs-on: ubuntu-latest
@@ -117,7 +121,7 @@ jobs:
           AI_P0_INTEGRATION: '1'
           AI_DATABASE_URL: postgres://ci:ci@localhost:5432/ai_test
           REDIS_URL: redis://localhost:6379
-        run: node --test test/aiMigrationIntegration.test.js test/workerLeaseIntegration.test.js
+        run: node --test test/aiMigrationIntegration.test.js test/growthAlertIntegration.test.js test/workerLeaseIntegration.test.js
 
   ai-frontend:
     runs-on: ubuntu-latest
