@@ -124,6 +124,62 @@ router.get('/cost-stats',handle(async(req,res)=>{
   for(const value of [startTime,endTime])if(value!=null&&(!Number.isSafeInteger(Number(value))||Number(value)<0))return res.status(400).json({error:'成本统计时间无效'});
   res.json(await records.getUserCostStats(req.user.user_id,startTime?Number(startTime):null,endTime?Number(endTime):null));
 }));
+router.get('/growth-investigations',handle(async(req,res)=>{
+  const proposals=await require('../ai/growth/investigationStore')
+    .createInvestigationStore().list(req.user.user_id,{limit:100});
+  res.json({version:'growth-investigation-proposals-v1',proposals,
+    requiresHumanApproval:true,automaticPaidCalls:false});
+}));
+router.post('/growth-investigations/:id/action',handle(async(req,res)=>{
+  const ownerId=req.user.user_id;
+  const {action,expectedVersion}=req.body||{};
+  if(!['approve','dismiss'].includes(action)||!Number.isSafeInteger(expectedVersion))
+    return res.status(400).json({error:'操作类型或版本无效'});
+  const store=require('../ai/growth/investigationStore').createInvestigationStore();
+  let proposal=await store.get(ownerId,req.params.id);
+  if(!proposal)return res.status(404).json({error:'调查提案不存在或无权限'});
+  if(action==='dismiss'){
+    const changed=await store.decide(ownerId,proposal.id,expectedVersion,'dismiss');
+    if(!changed)return res.status(409).json({error:'提案已更新或不能撤销'});
+    return res.json({proposal:changed,paidCalls:0});
+  }
+  // Approval is an explicit authenticated human action; concurrent callers
+  // share one deterministic request key and Bull job ID.
+  if(proposal.status==='proposed'){
+    const approved=await store.decide(ownerId,proposal.id,expectedVersion,'approve');
+    if(!approved)return res.status(409).json({error:'提案已更新、告警已确认或不再符合调查条件'});
+    proposal=await store.get(ownerId,proposal.id);
+  }else if(proposal.status!=='approved'||proposal.version!==expectedVersion){
+    return res.status(409).json({error:'提案已更新或已被撤销'});
+  }
+  const request=store.analysisRequest(proposal,ownerId);
+  const record=await records.createAnalysisRecord(request);
+  if(record.filter_conditions?.proposalId!==proposal.id)
+    throw Object.assign(Error('幂等任务关联异常，拒绝派发'),{status:409});
+  await store.attachAnalysis(ownerId,proposal.id,record.id);
+  if(record.status==='completed')return res.json({analysisId:record.id,status:'completed'});
+  if(record.status!=='pending')
+    return res.status(202).json({analysisId:record.id,status:record.status,alreadyStarted:true});
+  const job=await addAIAnalysisJob('business-analysis',{
+    analysisId:record.id,ownerId,dateRangeStart:Number(record.date_range_start),
+    dateRangeEnd:Number(record.date_range_end),businessScope:record.business_scope,
+    userQuestion:record.user_question,focusGoal:record.filter_conditions.focusGoal,
+    modelMode:'auto'
+  },{jobId:record.id,attempts:1});
+  res.status(202).json({analysisId:record.id,jobId:job.id,status:'queued',
+    note:'人工已批准；模型调查可能产生费用，受任务及跨日调用配额约束'});
+}));
+router.get('/growth-notifications',handle(async(req,res)=>{
+  const notifications=await require('../ai/growth/notificationStore')
+    .createNotificationStore().list(req.user.user_id,{limit:100,unreadOnly:req.query.unread==='1'});
+  res.json({notifications,externalDelivery:false});
+}));
+router.post('/growth-notifications/:id/read',handle(async(req,res)=>{
+  const notice=await require('../ai/growth/notificationStore')
+    .createNotificationStore().markRead(req.user.user_id,req.params.id);
+  if(!notice)return res.status(404).json({error:'通知不存在或无权限'});
+  res.json({notification:notice});
+}));
 router.get('/growth-alerts',handle(async(req,res)=>{
   const store=require('../ai/growth/alertStore').createAlertStore();
   const includeResolved=req.query.resolved==='1';
