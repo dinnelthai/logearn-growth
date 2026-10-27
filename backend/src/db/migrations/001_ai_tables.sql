@@ -321,3 +321,24 @@ CREATE TABLE IF NOT EXISTS ai_growth_paid_call_allocations (
 );
 CREATE INDEX IF NOT EXISTS idx_growth_paid_allocations_owner_day
   ON ai_growth_paid_call_allocations(owner_id,bangkok_day);
+
+-- P1 SEO: user-imported, immutable GSC query+page+date snapshots.
+-- Import is explicit and owner-scoped. These rows are NOT verified Google
+-- API observations until the operator provides their own real export.
+CREATE TABLE IF NOT EXISTS ai_growth_seo_imports (
+  id TEXT PRIMARY KEY,
+  owner_id TEXT NOT NULL,
+  site_url TEXT NOT NULL,
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  source TEXT NOT NULL CHECK (source='gsc-manual-export'),
+  coverage TEXT NOT NULL CHECK (coverage='export-limited'),
+  row_count INTEGER NOT NULL CHECK(row_count BETWEEN 1 AND 500),
+  rows JSONB NOT NULL,
+  checksum TEXT NOT NULL,
+  imported_at BIGINT NOT NULL,
+  UNIQUE (owner_id, checksum),
+  CHECK (end_date >= start_date)
+);
+CREATE INDEX IF NOT EXISTS idx_ai_growth_seo_owner_site
+ ON ai_growth_seo_imports(owner_id,site_url,end_date DESC,imported_at DESC);
