@@ -1,5 +1,5 @@
 import {test,expect,vi,afterEach} from 'vitest'
-vi.mock('../../api/aiAnalysis.js',()=>({createBusinessAnalysis:vi.fn(),getAnalysisList:vi.fn(),getAnalysisDetail:vi.fn(),getJobStatus:vi.fn(),updateSuggestionStatus:vi.fn(),createRetrospective:vi.fn(),getRetrospectives:vi.fn(),getCostStats:vi.fn(),retryAnalysis:vi.fn(),getAgentHealth:vi.fn(),getEvidence:vi.fn(),getJobCheckpoint:vi.fn(),cancelAnalysis:vi.fn(),resumeAnalysis:vi.fn(),getGrowthReviewQueue:vi.fn(),getGrowthInbox:vi.fn(),getGrowthAlerts:vi.fn(),scanGrowthAlerts:vi.fn(),changeGrowthAlert:vi.fn(),getGrowthBudget:vi.fn(),getGrowthInvestigations:vi.fn(),decideGrowthInvestigation:vi.fn(),getGrowthNotifications:vi.fn(),markGrowthNotificationRead:vi.fn(),getGrowthInvestigationTimeline:vi.fn(),getSeoImports:vi.fn(),importSeoSnapshot:vi.fn(),previewSeoSnapshot:vi.fn(),previewKolPerformance:vi.fn(),getGscConnection:vi.fn(),saveGscSite:vi.fn(),syncGscPerformance:vi.fn(),getGscPerformance:vi.fn(),getGscSitemaps:vi.fn(),inspectGscUrl:vi.fn()}))
+vi.mock('../../api/aiAnalysis.js',()=>({createBusinessAnalysis:vi.fn(),getAnalysisList:vi.fn(),getAnalysisDetail:vi.fn(),getJobStatus:vi.fn(),updateSuggestionStatus:vi.fn(),createRetrospective:vi.fn(),getRetrospectives:vi.fn(),getCostStats:vi.fn(),retryAnalysis:vi.fn(),getAgentHealth:vi.fn(),getEvidence:vi.fn(),getJobCheckpoint:vi.fn(),cancelAnalysis:vi.fn(),resumeAnalysis:vi.fn(),getGrowthReviewQueue:vi.fn(),getGrowthInbox:vi.fn(),getGrowthAlerts:vi.fn(),scanGrowthAlerts:vi.fn(),changeGrowthAlert:vi.fn(),getGrowthBudget:vi.fn(),getGrowthInvestigations:vi.fn(),decideGrowthInvestigation:vi.fn(),getGrowthNotifications:vi.fn(),markGrowthNotificationRead:vi.fn(),getGrowthInvestigationTimeline:vi.fn(),getSeoImports:vi.fn(),importSeoSnapshot:vi.fn(),previewSeoSnapshot:vi.fn(),previewKolPerformance:vi.fn(),getGscConnection:vi.fn(),saveGscSite:vi.fn(),syncGscPerformance:vi.fn(),getGscPerformance:vi.fn(),getGscSitemaps:vi.fn(),inspectGscUrl:vi.fn(),getAutonomyStatus:vi.fn(),getAutonomyTargets:vi.fn(),saveAutonomyTarget:vi.fn(),getAutonomyBriefs:vi.fn(),getAutonomyLearning:vi.fn(),refreshAutonomyBrief:vi.fn()}))
 import * as api from '../../api/aiAnalysis.js'
 import {createAIAnalysis} from '../../pages/aiAnalysis.js'
 function setup({withTimeline=false,withGsc=false}={}){
@@ -19,7 +19,12 @@ function setup({withTimeline=false,withGsc=false}={}){
  vi.stubGlobal('document',{createElement:()=>({dataset:{},isConnected:true})});
  api.getAnalysisList.mockResolvedValue({records:[{id:'a',title:'task',status:'processing'}]});api.getRetrospectives.mockResolvedValue({retrospectives:[]});api.getCostStats.mockResolvedValue({total_calls:0});api.getGrowthReviewQueue.mockResolvedValue({entries:[]});api.getGrowthInbox.mockResolvedValue({tasks:[],counts:{total:0},warnings:[]});api.getGrowthAlerts.mockResolvedValue({alerts:[]});api.getGrowthBudget.mockResolvedValue({limit:0,reservedCalls:0,remainingCalls:0});api.getGrowthInvestigations.mockResolvedValue({proposals:[]});api.getGrowthNotifications.mockResolvedValue({notifications:[]});api.getSeoImports.mockResolvedValue({imports:[]});
  api.getGscConnection.mockResolvedValue({configured:false,sites:[],reason:'No API credential'});
- api.getGscPerformance.mockResolvedValue({available:false});
+ api.getGscPerformance.mockResolvedValue({available:false}); 
+ api.getAutonomyStatus.mockResolvedValue({schedulerConfigured:false,paidDailyDispatchConfigured:false});
+ api.getAutonomyTargets.mockResolvedValue({targets:[],supportedMetrics:['active_users']});
+ api.getAutonomyBriefs.mockResolvedValue({briefs:[]});
+ api.getAutonomyLearning.mockResolvedValue({assessment:{reviewed:0,observedSupported:0,observedContradicted:0,insufficient:0,observableAgreementRate:null},strategies:{}});
+
 
  api.getAnalysisDetail.mockResolvedValue({id:'a',title:'task',status:'processing',suggestions:[]});
  api.getJobCheckpoint.mockResolvedValue({recordStatus:'processing',leaseExpired:true,completedRounds:1,completedTools:0,pendingTools:0});
@@ -92,6 +97,23 @@ test('Search Console dashboard clearly distinguishes an actual connected site an
  api.saveGscSite.mockResolvedValue({selectedSite:'sc-domain:logearn.com'});
  await t.gscButton.onclick();
  expect(api.saveGscSite).toHaveBeenCalledWith('sc-domain:logearn.com');
+ expect(api.createBusinessAnalysis).not.toHaveBeenCalled();
+ t.page.dispose();
+});
+
+test('autonomous Growth panel distinguishes an unscored daily report from invented performance',async()=>{
+ const t=setup();
+ api.getAutonomyBriefs.mockResolvedValue({briefs:[{
+  day:'2026-10-26',status:'partial',strategy_version:null,
+  score:{value:null,qualityWarnings:['history incomplete']},
+  quality:{completedGoals:1,requiredGoals:4},
+  report:{overview:'Observed activation change only',priorityActions:[]}
+ }]});
+ await t.page.draw();
+ expect(t.host.innerHTML).toContain('AI Growth Agent · 自主运营驾驶舱');
+ expect(t.host.innerHTML).toContain('证据不足日报');
+ expect(t.host.innerHTML).toContain('综合评分 未知');
+ expect(t.host.innerHTML).toContain('history incomplete');
  expect(api.createBusinessAnalysis).not.toHaveBeenCalled();
  t.page.dispose();
 });
