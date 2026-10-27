@@ -345,3 +345,47 @@
 .ai-analysis-page pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 480px; overflow: auto; }
 .ai-suggestion { border-top: 1px solid #8994a5; padding: 18px 0; }
 .ai-analysis-page [data-ai-message] { color: #ad5724; }
+
+/* Search Console owner-scoped settings and bounded evidence tables */
+.ai-gsc-settings .ai-gsc-controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: end;
+  margin: 12px 0;
+}
+.ai-gsc-settings .ai-gsc-controls label { flex: 1 1 220px; min-width: 0; }
+.ai-gsc-settings .ai-gsc-controls select,
+.ai-gsc-settings .ai-gsc-controls input {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-height: 40px;
+  box-sizing: border-box;
+}
+.ai-gsc-report .ai-gsc-table {
+  overflow-x: auto;
+  width: 100%;
+  margin: 8px 0 16px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 8px;
+}
+.ai-gsc-report .ai-gsc-table table {
+  width: 100%;
+  min-width: 480px;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.ai-gsc-report .ai-gsc-table th,
+.ai-gsc-report .ai-gsc-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.ai-gsc-report .ai-gsc-table th { white-space: nowrap; }
+.ai-gsc-report .ai-gsc-table td:first-child { min-width: 180px; }
+@media (max-width: 600px) {
+  .ai-gsc-settings .ai-gsc-controls { display: block; }
+  .ai-gsc-settings .ai-gsc-controls > * { margin-bottom: 8px; }
+}
