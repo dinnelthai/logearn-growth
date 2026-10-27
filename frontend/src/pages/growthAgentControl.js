@@ -19,11 +19,12 @@ export function createGrowthAgentControl(ctx){
    '/api/ai-analysis/growth-agent/briefs?limit=7',
    '/api/ai-analysis/growth-agent/learning',
    '/api/growth-agent/research/questions',
-   '/api/growth-agent/prompts/candidates'
+   '/api/growth-agent/prompts/candidates',
+   '/api/growth-agent/research/questions?status=approved'
   ]
   const results=await Promise.allSettled(paths.map(p=>request(p)))
   if(token!==generation)return
-  const [status,briefs,learning,research,prompts]=results.map((x,i)=>x.status==='fulfilled'?x.value:{error:String(x.reason?.message||' unavailable'),endpoint:paths[i]})
+  const [status,briefs,learning,research,prompts,approved]=results.map((x,i)=>x.status==='fulfilled'?x.value:{error:String(x.reason?.message||' unavailable'),endpoint:paths[i]})
   const err=x=>x?.error?'<p role="alert">'+safe(x.error)+'</p>':''
   const latest=status.latestBrief
   const score=latest?.score?.value??null
@@ -60,6 +61,9 @@ export function createGrowthAgentControl(ctx){
    <button class="a-button" data-scan>扫描新增线索</button><p data-research-message role="status"></p>
    ${questions.slice(0,25).map(q=>`<article class="a-card a-details"><strong>${safe(q.title)}</strong><p>${safe(q.question)}</p><small>${safe(q.kind)} · 优先级 ${safe(q.priority)}</small> <button class="a-button" data-review="${safe(q.id)}" data-action="approve">批准研究</button> <button class="a-button" data-review="${safe(q.id)}" data-action="dismiss">忽略</button></article>`).join('')||'<p>暂无待审核线索</p>'}
   </section>
+  <section class="a-card a-details"><h2>已批准、待启动的调查</h2>${err(approved)}
+   ${(approved.questions||[]).map(q=>`<article><strong>${safe(q.title)}</strong> <button data-dispatch="${safe(q.id)}">创建专项 AI 调查（可能付费）</button></article>`).join('')||'<p>暂无待启动的已批准问题</p>'}
+  </section>
   <section class="a-card a-details"><h2>提示词候选（不自动上线）</h2>${err(prompts)}
    <div class="a-scroll"><table><thead><tr><th>模块</th><th>理由</th><th>状态</th><th>评估版本</th></tr></thead><tbody>
    ${candidates.slice(0,25).map(c=>`<tr><td>${safe(c.role)}</td><td>${safe(c.reason)}</td><td>${safe(c.status)}</td><td>${safe(c.version)}</td></tr>`).join('')||'<tr><td colspan="4">无候选</td></tr>'}
@@ -68,6 +72,12 @@ export function createGrowthAgentControl(ctx){
   </section>`
   host().querySelector('[data-refresh]').onclick=draw
   host().querySelector('[data-scan]').onclick=async()=>{const node=host().querySelector('[data-research-message]');try{const result=await request('/api/growth-agent/research/scan','POST',{source:'all'});node.textContent='新增 '+result.inserted.length+' 个研究问题';await draw()}catch(e){node.textContent=e.message}}
+  host().querySelectorAll('[data-dispatch]').forEach(button=>button.onclick=async()=>{
+   if(!window.confirm('确认创建这项 AI 调查？后台执行时可能调用付费模型，并需要服务端明确开启研究开关。'))return
+   button.disabled=true
+   try{await request('/api/growth-agent/research/questions/'+encodeURIComponent(button.dataset.dispatch)+'/dispatch','POST',{confirmPaidAnalysis:true});await draw()}
+   catch(e){button.disabled=false;button.title=e.message;window.alert(e.message)}
+  })
   host().querySelectorAll('[data-review]').forEach(button=>button.onclick=async()=>{
    button.disabled=true
    try{await request('/api/growth-agent/research/questions/'+encodeURIComponent(button.dataset.review)+'/decision','POST',{action:button.dataset.action});await draw()}
