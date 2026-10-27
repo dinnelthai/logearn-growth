@@ -382,6 +382,15 @@ async function createRetrospective({
 /**
  * 获取建议的复盘记录列表
  */
+// Read-only, owner-scoped bulk fetch prevents N+1 queries in a growth case.
+async function listRetrospectivesByAnalysis(analysisId,ownerId){
+  if(!analysisId||!ownerId)throw Error('复盘关联参数无效');
+  const result=await read(`SELECT r.* FROM ai_retrospectives r
+    JOIN ai_suggestions s ON s.id=r.suggestion_id AND s.owner_id=r.owner_id
+    WHERE s.analysis_id=$1 AND s.owner_id=$2 AND r.owner_id=$2
+    ORDER BY r.created_at DESC`,[analysisId,ownerId]);
+  return result.rows;
+}
 async function listRetrospectivesBySuggestion(suggestionId, ownerId) {
   const result = await read(`
     SELECT * FROM ai_retrospectives
@@ -720,6 +729,7 @@ module.exports = {
   // 复盘
   createRetrospective,
   listRetrospectivesBySuggestion,
+  listRetrospectivesByAnalysis,
   listRetrospectives,
 
   // 成本追踪
