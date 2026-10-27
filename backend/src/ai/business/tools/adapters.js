@@ -44,14 +44,27 @@ async function activities(body,snapshot,audience,context){
 // Dedicated owner-scoped specialist adapters. No model calls or external writes.
 async function seoPerformance(body,context){
  const {createSeoStore,summarizeSeo}=require('../../growth/seoStore');
+ const {createGscService,summarizeGsc}=require('../../growth/gscService');
+ // GSC date labels are PT; day boundaries requested by the main Growth
+ // analysis are UTC+7. Preserve the original window and explicit mismatch.
  const startDate=new Date(body.start+7*3600000).toISOString().slice(0,10);
  const endDate=new Date(body.end-1+7*3600000).toISOString().slice(0,10);
+ const connected=await createGscService().latest(context.ownerId,{
+  siteUrl:body.siteUrl||null,startDate,endDate
+ });
+ if(connected){
+  const result=summarizeGsc(connected);
+  return {...result,warnings:[...result.warnings,
+   '所选 GSC 查询日期取自曼谷业务日期标签，两者并非同一时区时间窗']};
+ }
+ // Historical manual imports remain an explicit, limited fallback.
  const record=await createSeoStore().latestCovering(context.ownerId,{
    siteUrl:body.siteUrl||null,startDate,endDate
  });
- if(!record)return {available:false,reason:'未导入覆盖所选期间的 Search Console 数据',
-   coverage:{status:'not-imported',completeSearchTraffic:false},
-   warnings:['没有 Google Search Console 导出数据，不能生成搜索关键词排名或曝光量']};
+ if(!record)return {available:false,
+   reason:'当前站点尚未同步完全匹配所选日期的 GSC API 数据，且没有对应手动导入',
+   coverage:{status:'not-synced',completeSearchTraffic:false},
+   warnings:['不能将未同步的 Search Console 数据当作0曝光、0点击或排名变化']};
  return summarizeSeo(record,{startDate,endDate,limit:body.limit||20});
 }
 async function kolPerformance(body,context,snapshot){
