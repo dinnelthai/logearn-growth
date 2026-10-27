@@ -233,3 +233,6 @@ CREATE INDEX IF NOT EXISTS idx_ai_call_guard_owner ON ai_analysis_call_guard(own
 
 -- Cooperative cancellation: requests never erase paid-call evidence.
 ALTER TABLE ai_analysis_records ADD COLUMN IF NOT EXISTS cancel_requested BOOLEAN NOT NULL DEFAULT false;
+
+-- Preserve exact JSON.stringify bytes used for the model context fingerprint.
+ALTER TABLE ai_analysis_records ADD COLUMN IF NOT EXISTS context_payload TEXT;
