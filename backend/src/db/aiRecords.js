@@ -635,7 +635,7 @@ async function claimExpiredFinalization(id,ownerId,token,leaseMs=120000){
 async function listExpiredAnalysisLeases(limit=100){
   if(!Number.isSafeInteger(limit)||limit<1||limit>1000)throw Error('过期任务查询限制无效');
   const result=await read(`SELECT id,owner_id,lease_expires_at
-    FROM ai_analysis_records WHERE status='processing' AND lease_expires_at<$1
+    FROM ai_analysis_records WHERE status='processing' AND cancel_requested=false AND lease_expires_at<$1
     ORDER BY lease_expires_at ASC LIMIT $2`,[Date.now(),limit]);
   return result.rows;
 }
@@ -667,7 +667,7 @@ async function finishAnalysisPaidCall(id,ownerId,token,round,status){
 }
 async function claimAnalysisRetry(id, ownerId) {
   const result=await write(`UPDATE ai_analysis_records SET status='pending',error_message=NULL,started_at=NULL,completed_at=NULL
-    WHERE id=$1 AND owner_id=$2 AND status='failed' RETURNING *`,[id,ownerId]);
+    WHERE id=$1 AND owner_id=$2 AND status='failed' AND cancel_requested=false RETURNING *`,[id,ownerId]);
   return result.rows[0]||null;
 }
 async function updateAnalysisSnapshot(id, snapshot, ownerId, token) {
