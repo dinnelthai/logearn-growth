@@ -54,3 +54,15 @@ test('reviewed strategy focus changes only read-only investigation order, not so
  assert.throws(()=>planGrowthInvestigation({goal:'conversion',report,
   strategy:{policy:{focusMetrics:['write-to-product-db']}}}),/未授权/);
 });
+
+test('daily conversion specialty signals take precedence without modifying business metric priorities',()=>{
+ const before=JSON.stringify(report);
+ const plan=planGrowthInvestigation({goal:'conversion',report,maxSkills:5,
+  availableSpecialties:['content-growth','follower-quality']});
+ assert.deepEqual(plan.steps.slice(0,2).map(s=>s.skillId),['content-growth','follower-quality']);
+ assert.ok(plan.steps[0].tools.includes('get_content_growth'));
+ assert.ok(plan.steps[1].tools.includes('get_follower_quality'));
+ assert.equal(JSON.stringify(report),before);
+ assert.throws(()=>planGrowthInvestigation({goal:'conversion',report,
+  availableSpecialties:['unreviewed-external-write']}),/每日专项证据输入无效/);
+});
