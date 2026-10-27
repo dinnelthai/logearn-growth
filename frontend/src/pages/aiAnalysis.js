@@ -1,6 +1,6 @@
 import './aiAnalysis.css';
 import {loadingState} from './loadingState.js';
-import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis} from '../api/aiAnalysis.js';
+import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis} from '../api/aiAnalysis.js';
 const DAY=86400000,OFFSET=7*3600000;
 const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
@@ -89,6 +89,24 @@ export function createAIAnalysis(ctx){
           'requires-validation-before-resume':'调查记录已保存，但尚未完成恢复验证',
           'noncontiguous-rounds':'调查步骤记录不连续，需人工核查'
         };
+        if(checkpoint.leaseExpired&&checkpoint.recordStatus==='processing'){
+          const existing=panel.querySelector('[data-resume-analysis]');
+          if(!existing){
+            const button=document.createElement('button');
+            button.className='a-button';button.type='button';button.dataset.resumeAnalysis=id;
+            button.textContent='尝试安全续跑';
+            button.onclick=async()=>{
+              if(busy)return;busy=true;button.disabled=true;
+              try{
+                const task=await resumeAnalysis(id);
+                message(task.notice||'恢复任务已进入队列');
+                if(token===generation&&selected===id)await open(id);
+              }catch(error){message(error.message)}
+              finally{busy=false;if(button.isConnected)button.disabled=false}
+            };
+            target.after(button);
+          }
+        }
         target.textContent='已保存模型轮次：'+checkpoint.completedRounds+
           ' · 工具结果：'+checkpoint.completedTools+
           ' · 待完成工具：'+checkpoint.pendingTools+
