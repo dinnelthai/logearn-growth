@@ -42,6 +42,10 @@ router.post('/:id/retry',handle(async(req,res)=>{
   const ownerId=req.user.user_id;
   const existing=await records.getAnalysisRecord(req.params.id,ownerId);
   if(!existing||existing.status!=='failed')return res.status(409).json({error:'仅能重试自己已失败的分析'});
+  // A different Worker replica may own a different local SQLite file.
+  // Shared PostgreSQL paid-call entries are an independent replay blocker.
+  if(await records.hasAnalysisPaidCalls(existing.id,ownerId))
+    return res.status(409).json({error:'存在已发起的模型调用，禁止跨 Worker 重试',reason:'shared-paid-call-guard'});
   // The trace journal is the authority on whether paid work may already exist.
   // If it is unavailable, the request fails without changing persistent status.
   const calls=require('../ai/business/trace').createTraceStore(require('../db/connection')).list(ownerId,existing.id);
