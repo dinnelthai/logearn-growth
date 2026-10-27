@@ -682,6 +682,20 @@ async function finishAnalysisPaidCall(id,ownerId,token,round,status){
     [id,ownerId,token,round,status,Date.now()]);
   if(!result.rows.length)throw Error('模型调用状态未能确认，禁止继续执行');
 }
+// Only retry a failed daily task when absolutely no provider call has ever
+// been reserved; update and check are one PostgreSQL atomic statement.
+async function claimDailySafeRetry(id,ownerId){
+ const result=await write(`UPDATE ai_analysis_records SET
+   status='pending',error_message=NULL,started_at=NULL,completed_at=NULL,
+   autonomy_safe_retries=autonomy_safe_retries+1
+   WHERE id=$1 AND owner_id=$2 AND status='failed'
+     AND cancel_requested=false AND autonomy_safe_retries<3
+     AND filter_conditions->>'dailySchedule'='v1'
+     AND NOT EXISTS(SELECT 1 FROM ai_analysis_call_guard
+       WHERE analysis_id=$1 AND owner_id=$2)
+   RETURNING *`,[id,ownerId]);
+ return result.rows[0]||null;
+}
 async function claimAnalysisRetry(id, ownerId) {
   const result=await write(`UPDATE ai_analysis_records SET status='pending',error_message=NULL,started_at=NULL,completed_at=NULL
     WHERE id=$1 AND owner_id=$2 AND status='failed' AND cancel_requested=false RETURNING *`,[id,ownerId]);
@@ -710,7 +724,7 @@ async function getRetrospective(id, ownerId) {
 }
 
 module.exports = {
-  completeAnalysis, claimAnalysisRetry, claimAnalysisExecution, renewAnalysisLease, assertAnalysisLease, failClaimedAnalysis, hasAnalysisPaidCalls, beginAnalysisPaidCall, finishAnalysisPaidCall, listAnalysisPaidCalls, claimExpiredFinalization, requestAnalysisCancellation, listExpiredAnalysisLeases, updateAnalysisSnapshot, getAnalysisMemory, getRetrospective,
+  completeAnalysis, claimAnalysisRetry, claimDailySafeRetry, claimAnalysisExecution, renewAnalysisLease, assertAnalysisLease, failClaimedAnalysis, hasAnalysisPaidCalls, beginAnalysisPaidCall, finishAnalysisPaidCall, listAnalysisPaidCalls, claimExpiredFinalization, requestAnalysisCancellation, listExpiredAnalysisLeases, updateAnalysisSnapshot, getAnalysisMemory, getRetrospective,
   // 分析记录
   createAnalysisRecord,
   updateAnalysisStatus,
