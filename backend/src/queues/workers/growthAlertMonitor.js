@@ -5,6 +5,7 @@
 require('dotenv').config();
 const cron=require('node-cron');
 const {createAlertStore}=require('../../ai/growth/alertStore');
+const {createInvestigationStore}=require('../../ai/growth/investigationStore');
 const {scanDailyAlerts}=require('../../ai/growth/monitor');
 const {dailyRequest}=require('../../ai/growth/daily');
 const pool=require('../../db/aiPool');
@@ -23,9 +24,10 @@ async function tick({dryRun=false,now=Date.now(),store=createAlertStore()}={}){
   for(const ownerId of ids){
    try{
     if(dryRun){results.push({ownerId,status:'dry-run',goal,source});continue}
-    const result=await scanDailyAlerts({ownerId,goal,source,store,now});
+    const result=await scanDailyAlerts({ownerId,goal,source,store,proposalStore:createInvestigationStore(),now});
     results.push({ownerId,status:result.status,observed:result.observed||0,
-      newObservations:result.newObservations||0,reason:result.reason||null});
+      newObservations:result.newObservations||0,
+      proposedInvestigations:result.proposedInvestigations||0,reason:result.reason||null});
    }catch(error){
     console.error('[growth-monitor] failure',ownerId,error.message);
     results.push({ownerId,status:'error',reason:error.message});
