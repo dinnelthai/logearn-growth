@@ -20,10 +20,10 @@ test('review waits for three complete Bangkok business days and data watermark',
  // Business effect window begins at next Bangkok midnight.
  assert.equal(new Date(first).toISOString(),'2026-10-23T17:00:00.000Z');
  const row={id:'suggestion-1',user_status:'executed',executed_at:executed};
- const ready=classifyReview(row,{now:first+DAY,watermark:first+DAY});
+ const ready=classifyReview(row,{now:first,watermark:first});
  assert.equal(ready.status,'ready');
  assert.equal(ready.periods.days,3);
- assert.equal(classifyReview(row,{now:first+DAY,watermark:first-1}).status,'waiting');
+ assert.equal(classifyReview(row,{now:first,watermark:first-1}).status,'waiting');
  assert.equal(classifyReview({...row,user_status:'adopted'},{now:first+DAY}).status,'not-eligible');
 });
 test('review queue is read-only and only includes executed suggestions',()=>{
