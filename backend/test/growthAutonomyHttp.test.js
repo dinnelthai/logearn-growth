@@ -44,7 +44,8 @@ test('autonomy web APIs isolate owner target/brief and keep refresh strictly zer
  try{
   let r=await call('/growth-agent/status');
   assert.equal(r.status,200);assert.equal(r.value.targetCount,1);
-  assert.equal(r.value.schedulerRunning,'not-verified-from-http');
+  assert.equal(r.value.schedulerRunning,false);
+  assert.equal(r.value.schedulerHealth.observed,false);
   r=await call('/growth-agent/targets',{owner:'bob'});
   assert.equal(r.status,200);assert.equal(r.value.targets.length,0);
   r=await call('/growth-agent/briefs',{owner:'bob'});
