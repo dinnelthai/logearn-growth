@@ -10,7 +10,8 @@ function evidenceFor(db,ownerId,hash,since){
    AND started_at>=? GROUP BY run_id LIMIT 2000`).all(ownerId,hash,since);
  return {runs:calls.length,uncertain:calls.filter(x=>x.uncertain).length,
   validated:calls.filter(x=>x.validated).length,
-  unknownRate:calls.length?calls.filter(x=>x.uncertain).length/calls.length:null};
+  unknownRate:calls.length?calls.filter(x=>x.uncertain).length/calls.length:null,
+  validatedRate:calls.length?calls.filter(x=>x.validated).length/calls.length:null};
 }
 function checkCanary(db,ownerId,{now=Date.now(),env=process.env,minRuns=20}={}){
  if(typeof ownerId!=='string'||!ownerId||!Number.isSafeInteger(now)||
@@ -28,12 +29,16 @@ function checkCanary(db,ownerId,{now=Date.now(),env=process.env,minRuns=20}={}){
  if(candidate.runs<minRuns||baseline.runs<minRuns)
   return {status:'insufficient-comparable-samples',action:'none',candidate,baseline,
    note:'Cannot infer safety or business quality from small samples'};
- const risk=candidate.unknownRate>=0.20&&
+ const unsafeCalls=candidate.unknownRate>=0.20&&
   candidate.unknownRate-baseline.unknownRate>=0.10;
- if(!risk)return {status:'observed-no-stop-threshold',action:'none',candidate,baseline};
+ // Validated response rate is a conservative technical quality proxy,
+ // not a measurement of recommendation accuracy, revenue, or causality.
+ const validationCollapse=baseline.validatedRate>=0.80&&
+  candidate.validatedRate<=baseline.validatedRate-0.25;
+ if(!unsafeCalls&&!validationCollapse)return {status:'observed-no-stop-threshold',action:'none',candidate,baseline};
  const rolled=createPromptRegistry(db).rollback(ownerId,current.role,current.version);
  return {status:'canary-automatically-rolled-back',action:'rollback',candidate,baseline,
-  version:rolled.version,reason:'uncertain-paid-call-rate-spike',
+  version:rolled.version,reason:unsafeCalls?'uncertain-paid-call-rate-spike':'validated-analysis-rate-collapse',
   limitations:'Safety stop only; retrospective association, not causal A/B proof'};
 }
 module.exports={checkCanary,evidenceFor};
