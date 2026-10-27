@@ -86,7 +86,7 @@ function createAlertStore(query=(sql,args)=>aiPool.query(sql,args)){
    UPDATE ai_growth_alerts SET
      status=CASE WHEN $4='acknowledge' THEN 'acknowledged'
         WHEN $4='resolve' THEN 'resolved' WHEN $4='reopen' THEN 'open' ELSE status END,
-     snooze_until=CASE WHEN $4='snooze' THEN $5 ELSE NULL END,
+     snooze_until=CASE WHEN $4='snooze' THEN $5::bigint ELSE NULL::bigint END,
      operator_note=COALESCE($6,operator_note),reviewed_at=$7,updated_at=$7,
      version=version+1
    WHERE id=$1 AND owner_id=$2 AND version=$3
