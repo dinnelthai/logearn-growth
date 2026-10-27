@@ -74,7 +74,8 @@ async function businessAnalysis(job) {
     // anomaly triage and permitted investigations for the existing runner.
     const memory=await records.getAnalysisMemory(ownerId,source);
     const growthPlan=require('../../ai/growth/planner').planGrowthInvestigation({
-      goal:focusGoal,report:compact,history:memory
+      goal:focusGoal,report:compact,history:memory,
+      focusSkillId:executionClaim.record.filter_conditions?.skillId||null
     });
     compact={...compact,business:{...compact.business,question:userQuestion||compact.business.question},
       memory,growthPlan};
