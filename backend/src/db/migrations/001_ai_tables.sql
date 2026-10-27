@@ -211,3 +211,8 @@ ALTER TABLE ai_analysis_records ADD COLUMN IF NOT EXISTS request_key TEXT;
 CREATE UNIQUE INDEX IF NOT EXISTS ai_analysis_request_key ON ai_analysis_records(owner_id,request_key);
 
 ALTER TABLE ai_usage_logs ADD COLUMN IF NOT EXISTS cost_known BOOLEAN NOT NULL DEFAULT false;
+
+-- Worker execution fencing; idempotent for existing installations.
+ALTER TABLE ai_analysis_records ADD COLUMN IF NOT EXISTS execution_token TEXT;
+ALTER TABLE ai_analysis_records ADD COLUMN IF NOT EXISTS lease_expires_at BIGINT;
+CREATE INDEX IF NOT EXISTS idx_ai_analysis_lease ON ai_analysis_records(status,lease_expires_at);
