@@ -21,24 +21,60 @@ async function startAnalysis(owner,account){
  if(!valid(account))throw Error('账号无效')
  const remaining=db.prepare('SELECT COUNT(*) n FROM x_follower_audit WHERE owner_id=? AND account=? AND posts_at IS NULL').get(owner,account).n
  if(!remaining)return {started:false,remaining:0}
- await require('../queues/queues').addAIAnalysisJob('follower-analyze-batch',{owner,account},{jobId:'follower-analysis-'+require('crypto').createHash('sha256').update(owner+':'+account+':'+db.prepare('SELECT user_id FROM x_follower_audit WHERE owner_id=? AND account=? AND posts_at IS NULL ORDER BY followers DESC LIMIT 1').get(owner,account).user_id).digest('hex').slice(0,32),attempts:1})
- return {started:true,remaining}
+ const cap=autoProfileLimit()
+ const already=db.prepare('SELECT COUNT(*) n FROM x_follower_audit WHERE owner_id=? AND account=? AND posts_at IS NOT NULL').get(owner,account).n
+ if(cap&&already>=cap)return {started:false,remaining,limitReached:true,autoMaxProfiles:cap}
+ const claim=db.prepare(`INSERT INTO x_follower_batch_progress(owner_id,account,state,updated_at)
+ VALUES(?,?,'queued',?) ON CONFLICT(owner_id,account) DO UPDATE
+ SET state='queued',last_error=NULL,updated_at=excluded.updated_at
+ WHERE x_follower_batch_progress.state NOT IN('queued','running','waiting-budget')`).run(owner,account,Date.now())
+ if(!claim.changes)return {started:false,remaining,alreadyRunning:true}
+ try{
+  await require('../queues/queues').addAIAnalysisJob('follower-analyze-batch',{owner,account},
+   {jobId:'follower-batch-'+randomUUID(),attempts:1})
+ }catch(error){
+  db.prepare("UPDATE x_follower_batch_progress SET state='failed',last_error=? WHERE owner_id=? AND account=?").run('队列不可用',owner,account)
+  throw error
+ }
+ return {started:true,remaining,autoMaxProfiles:cap,batchSize:20}
 }
 async function analyzeBatch(owner,account){
  if(!valid(account))throw Error('账号无效')
- const rows=db.prepare('SELECT user_id FROM x_follower_audit WHERE owner_id=? AND account=? AND posts_at IS NULL ORDER BY followers DESC LIMIT 20').all(owner,account)
- let completed=0
- for(const row of rows){await analyze(owner,account,row.user_id);completed++}
- const remaining=db.prepare('SELECT COUNT(*) n FROM x_follower_audit WHERE owner_id=? AND account=? AND posts_at IS NULL').get(owner,account).n
- if(remaining>0&&process.env.FOLLOWER_AUTO_ANALYZE_ENABLED==='1'){
-  const next=db.prepare('SELECT user_id FROM x_follower_audit WHERE owner_id=? AND account=? AND posts_at IS NULL ORDER BY followers DESC LIMIT 1').get(owner,account);
-  if(next){
-   const jobId='follower-auto-'+require('crypto').createHash('sha256').update(owner+':'+account+':'+next.user_id).digest('hex').slice(0,32)
-   await require('../queues/queues').addAIAnalysisJob('follower-analyze-batch',{owner,account},{jobId,attempts:1})
-   return {completed,remaining,nextBatchQueued:true,autoMode:true}
-  }
+ const cap=autoProfileLimit()
+ const count=db.prepare('SELECT COUNT(*) n FROM x_follower_audit WHERE owner_id=? AND account=? AND posts_at IS NOT NULL').get(owner,account).n
+ if(cap&&count>=cap){
+  db.prepare("UPDATE x_follower_batch_progress SET state='limit-reached',updated_at=? WHERE owner_id=? AND account=?").run(Date.now(),owner,account)
+  return {completed:0,remaining:null,limitReached:true}
  }
- return {completed,remaining,nextBatchRequiresOperatorAction:remaining>0,autoMode:false}
+ db.prepare("UPDATE x_follower_batch_progress SET state='running',updated_at=? WHERE owner_id=? AND account=?").run(Date.now(),owner,account)
+ const rows=db.prepare('SELECT user_id FROM x_follower_audit WHERE owner_id=? AND account=? AND posts_at IS NULL ORDER BY followers DESC LIMIT ?').all(owner,account,Math.min(20,cap?cap-count:20))
+ let completed=0,pausedForBudget=false
+ try{
+  for(const row of rows){
+   if(acq.budget().remaining_credits<600){pausedForBudget=true;break}
+   await analyze(owner,account,row.user_id)
+   completed++
+   db.prepare('UPDATE x_follower_batch_progress SET completed=completed+1,updated_at=? WHERE owner_id=? AND account=?').run(Date.now(),owner,account)
+  }
+  const remaining=db.prepare('SELECT COUNT(*) n FROM x_follower_audit WHERE owner_id=? AND account=? AND posts_at IS NULL').get(owner,account).n
+  const reached=cap>0&&count+completed>=cap
+  if(remaining>0&&cap&&!reached){
+   const now=Date.now(),budget=acq.budget()
+   const delay=pausedForBudget?Math.max(60000,budget.day_start+86400000+300000-now):0
+   await require('../queues/queues').addAIAnalysisJob('follower-analyze-batch',{owner,account},
+    {jobId:'follower-auto-'+randomUUID(),attempts:1,...(delay?{delay}:{})})
+   db.prepare('UPDATE x_follower_batch_progress SET state=?,updated_at=? WHERE owner_id=? AND account=?')
+    .run(delay?'waiting-budget':'queued',Date.now(),owner,account)
+   return {completed,remaining,nextBatchQueued:true,waitingForDailyBudget:!!delay,autoMode:true}
+  }
+  db.prepare('UPDATE x_follower_batch_progress SET state=?,updated_at=? WHERE owner_id=? AND account=?')
+   .run(reached?'limit-reached':remaining?'paused':'complete',Date.now(),owner,account)
+  return {completed,remaining,limitReached:reached,nextBatchRequiresOperatorAction:remaining>0&&!cap}
+ }catch(error){
+  db.prepare("UPDATE x_follower_batch_progress SET state='failed',last_error=?,updated_at=? WHERE owner_id=? AND account=?")
+   .run(String(error.message).slice(0,200),Date.now(),owner,account)
+  throw error
+ }
 }
 function review(owner,account,id,value){if(typeof value!=='boolean')throw Error('排查状态无效');const r=db.prepare('UPDATE x_follower_audit SET reviewed=? WHERE owner_id=? AND account=? AND user_id=?').run(+value,owner,account,id);if(!r.changes)throw Error('关注者不存在')}
 module.exports={list,start,analyze,review,startAnalysis,collect,analyzeBatch}
