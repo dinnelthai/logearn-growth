@@ -33,16 +33,20 @@ router.post('/growth-plan',handle(async(req,res)=>{
   const goal=req.body.goal||report.focusGoal||report.business?.focusGoal||'activation';
   const history=await records.getAnalysisMemory(ownerId,report.business.scope.source);
   const plan=require('../ai/growth/planner').planGrowthInvestigation({
-    goal,report,maxSkills:3,history
+    goal,report,maxSkills:3,history,focusSkillId:req.body?.skillId||null
   });
   res.json({plan,dispatched:false});
 }));
 router.post('/analyze',handle(async(req,res)=>{
-  const {title,analysisType='optimization',dateRangeStart:start,dateRangeEnd:end,userQuestion='',focusGoal='activation',modelMode='auto',evidenceReportId=null,goalRef=null}=req.body;
+  const {title,analysisType='optimization',dateRangeStart:start,dateRangeEnd:end,userQuestion='',focusGoal='activation',modelMode='auto',evidenceReportId=null,goalRef=null,skillId=null}=req.body;
   validateRange(start,end);const businessScope=validateScope(req.body.businessScope);
   if(typeof title!=='string'||!title.trim()||title.length>200||typeof userQuestion!=='string'||userQuestion.length>5000
     ||!['optimization','anomaly'].includes(analysisType)||!['activation','retention','conversion','revenue'].includes(focusGoal)||!['auto','complex'].includes(modelMode))
     return res.status(400).json({error:'分析标题、类型、目标或模型模式无效'});
+  if(skillId!=null&&(!['seo-organic','kol-impact'].includes(skillId)||
+    !(skillId==='seo-organic'?['activation','conversion']:['conversion','revenue']).includes(focusGoal)||
+    businessScope.source!=='all'))
+    return res.status(400).json({error:'SEO/KOL 专项技能须匹配目标且使用全来源范围'});
   const requestKey=req.body.requestKey||randomUUID();
   if(typeof requestKey!=='string'||requestKey.length>100)return res.status(400).json({error:'请求标识无效'});
   const ownerId=req.user.user_id;
@@ -57,12 +61,13 @@ router.post('/analyze',handle(async(req,res)=>{
     if(report.period.start!==start||report.period.end!==end||report.focusGoal!==focusGoal||report.business.scope.source!==businessScope.source)return res.status(400).json({error:'AI分析范围须与原始业务报告一致'});
   }
   const record=await records.createAnalysisRecord({ownerId,requestKey,title,analysisType,dateRangeStart:start,dateRangeEnd:end,
-    businessScope,userQuestion,dataSnapshot:{},filterConditions:{businessScope,focusGoal,modelMode,evidenceReportId,goalRef}});
+    businessScope,userQuestion,dataSnapshot:{},filterConditions:{businessScope,focusGoal,modelMode,evidenceReportId,goalRef,skillId}});
+
+  if (Number(record.date_range_start)!==start || Number(record.date_range_end)!==end || record.user_question!==userQuestion || record.business_scope.source!==businessScope.source || record.filter_conditions.focusGoal!==focusGoal || record.filter_conditions.modelMode!==modelMode || (record.filter_conditions.evidenceReportId||null)!==evidenceReportId || JSON.stringify(record.filter_conditions.goalRef||null)!==JSON.stringify(goalRef) || (record.filter_conditions.skillId||null)!==skillId) return res.status(409).json({error:'请求标识已用于不同分析，请重新发起'});
   if(record.status==='completed')return res.json({analysisId:record.id,status:'completed',jobId:record.id});
-  if (Number(record.date_range_start)!==start || Number(record.date_range_end)!==end || record.user_question!==userQuestion || record.business_scope.source!==businessScope.source || record.filter_conditions.focusGoal!==focusGoal || record.filter_conditions.modelMode!==modelMode || (record.filter_conditions.evidenceReportId||null)!==evidenceReportId || JSON.stringify(record.filter_conditions.goalRef||null)!==JSON.stringify(goalRef)) return res.status(409).json({error:'请求标识已用于不同分析，请重新发起'});
   let job;
   try { job=await addAIAnalysisJob('business-analysis',{analysisId:record.id,ownerId,dateRangeStart:start,dateRangeEnd:end,
-    businessScope,userQuestion,focusGoal,modelMode,evidenceReportId,goalRef},{jobId:record.id,attempts:1});
+    businessScope,userQuestion,focusGoal,modelMode,evidenceReportId,goalRef,skillId},{jobId:record.id,attempts:1});
   } catch(error) { await records.updateAnalysisStatus(record.id,'failed',null,error.message);throw error; }
   res.status(202).json({analysisId:record.id,jobId:job.id,status:'pending'});
 }));
