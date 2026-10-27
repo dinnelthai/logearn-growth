@@ -6,6 +6,7 @@ function fixture({status='pending',calls=[],win=true}={}){
  let claims=0,reads=0;
  const records={
   async getAnalysisRecord(_id,owner){return owner==='alice'?{...base,status,result:{summary:'saved'}}:null},
+  async hasAnalysisPaidCalls(){return false},
   async claimAnalysisExecution(){claims++;return win?{...base,status:'processing'}:null}
  };
  const traceStore={list(owner,id){reads++;assert.equal(owner,'alice');assert.equal(id,'analysis-1');return calls}};
@@ -47,4 +48,9 @@ test('owner mismatch and journal read errors fail without claiming',async()=>{
  f.traceStore.list=()=>{throw Error('SQLite inaccessible')};
  await assert.rejects(run(f),/SQLite inaccessible/);
  assert.equal(f.claims,0);
+});
+
+test('centralized paid-call history blocks work even if local SQLite is empty',async()=>{
+ const f=fixture();f.records.hasAnalysisPaidCalls=async()=>true;
+ await assert.rejects(run(f),/共享模型调用/);assert.equal(f.claims,0);assert.equal(f.reads,0);
 });
