@@ -73,14 +73,14 @@ function createAgentStore(db=pool){
     brief.strategyVersion??null,now]);
   const value=r.rows[0]||await getBrief(ownerId,brief.day,brief.source);
   // Internal daily brief notification; no external delivery.
-  if(value?.status==='ready'){
+  if(value&&['ready','partial'].includes(value.status)){
    const dayEnd=Date.parse(brief.day+'T00:00:00+07:00')+86400000;
    const noticeId='notice-'+id;
    await db.query(`INSERT INTO ai_growth_notifications
     (id,owner_id,kind,resource_id,period_end,message,created_at)
     VALUES($1,$2,'daily-brief',$3,$4,$5,$6)
     ON CONFLICT(owner_id,kind,resource_id,period_end) DO NOTHING`,
-    [noticeId,ownerId,id,dayEnd,'LogEarn AI Growth 日报已生成 · '+brief.day,now]);
+    [noticeId,ownerId,id,dayEnd,(value.status==='ready'?'LogEarn AI Growth 正式日报 · ':'LogEarn AI Growth 待补证据日报 · ')+brief.day,now]);
   }
   return value;
  }
