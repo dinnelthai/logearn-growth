@@ -9,6 +9,36 @@ const paging=req=>{
   if(!Number.isSafeInteger(limit)||limit<1||limit>100||!Number.isSafeInteger(offset)||offset<0)throw Object.assign(Error('分页参数无效'),{status:400});
   return {limit,offset,status:req.query.status||null};
 };
+// Connected Search Console settings: server-side API credentials only, no
+// credentials are accepted from or returned to the browser.
+router.get('/growth-seo/gsc/connection',handle(async(req,res)=>{
+  const state=await require('../ai/growth/gscService').createGscService()
+    .connection(req.user.user_id);
+  res.json({...state,readOnly:true,paidCalls:0});
+}));
+router.put('/growth-seo/gsc/settings',handle(async(req,res)=>{
+  if(typeof req.body?.siteUrl!=='string')
+   return res.status(400).json({error:'请选择已经由服务端授权的 Search Console 资源'});
+  const value=await require('../ai/growth/gscService').createGscService()
+    .select(req.user.user_id,req.body.siteUrl);
+  res.json({...value,paidCalls:0});
+}));
+router.get('/growth-seo/gsc/report',handle(async(req,res)=>{
+  const store=require('../ai/growth/gscService').createGscService();
+  const record=await store.latest(req.user.user_id,{
+    startDate:req.query.startDate||null,endDate:req.query.endDate||null
+  });
+  if(!record)return res.json({available:false,reason:'尚未同步该站点与日期范围的 Search Console API 数据',
+    paidCalls:0});
+  const report=require('../ai/growth/gscService').summarizeGsc(record);
+  res.json({available:true,report,paidCalls:0});
+}));
+router.post('/growth-seo/gsc/sync',handle(async(req,res)=>{
+  const {startDate,endDate}=req.body||{};
+  const result=await require('../ai/growth/gscService').createGscService()
+   .sync(req.user.user_id,{startDate,endDate});
+  res.json({...result,externalActions:0,paidCalls:0});
+}));
 // Specialty evidence ingestion/read paths are operator initiated and have
 // no model calls. GSC exports are explicitly unverified user-provided data.
 router.get('/growth-seo/imports',handle(async(req,res)=>{
