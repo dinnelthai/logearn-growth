@@ -35,6 +35,8 @@ require.cache[healthPath]={id:healthPath,filename:healthPath,loaded:true,exports
     runCount:3,lastSummary:{items:4,errors:0}};
  }})
 }};
+const budgetPath=require.resolve('../src/ai/growth/autonomyBudget');
+require.cache[budgetPath]={id:budgetPath,filename:budgetPath,loaded:true,exports:{autonomyBudgetStatus:async owner=>({day:'2026-10-28',used:owner==='alice'?2:0,limit:5,remaining:3,paidEnabled:false,accounting:'call-reservations-not-dollar-cost'})}};
 const router=require('../src/routes/aiAnalysis');
 test('autonomy web APIs isolate owner target/brief and keep refresh strictly zero-paid',async()=>{
  const app=express();app.use(express.json());
@@ -63,10 +65,12 @@ test('autonomy web APIs isolate owner target/brief and keep refresh strictly zer
    assert.equal(r.status,200);
    assert.equal(r.value.schedulerRunning,true);
    assert.equal(r.value.schedulerHealth.runCount,3);
+   assert.equal(r.value.dailyPaidBudget.used,2);
    r=await call('/growth-agent/status',{owner:'bob'});
    assert.equal(r.status,200);
    assert.equal(r.value.schedulerRunning,false);
    assert.equal(r.value.schedulerHealth.status,'not-authorized');
+   assert.equal(r.value.dailyPaidBudget,null);
    assert.equal(r.value.schedulerHealth.lastSummary,undefined);
    assert.equal(healthReads,1);
   }finally{
