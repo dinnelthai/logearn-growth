@@ -87,3 +87,12 @@ Accept a new component only when it:
 - Local verification: policy unit tests **3/3 pass**; HTTP retry test + existing `agentApi.test.js` and `agentTrace.test.js` **3/3 pass** in a local copy of the uploaded backend with the exact retry gate applied; Node 22.16.0. GitHub CI / deployment / paid DeRouter E2E not run.
 - **Not true checkpoint/resume**: received model responses still cannot be automatically reconstructed into a resumed conversation; successful partial work intentionally blocks blind retry rather than being replayed. A durable response/evidence checkpoint with idempotency and restart tests is the next implementation milestone.
 - This safety gate preserves Growth business calculations, schemas, and metrics.
+
+## Implementation checkpoint 4 — durable received-response journal (2026-10-27)
+
+- Changed `backend/src/ai/business/runner.js` to persist the **actual model response content** alongside existing cost/model/token metadata in the current SQLite `agent_calls.result`, before parsing, validating, or invoking subsequent tools.
+- The existing owner-scoped `traceStore.list(ownerId,runId)` can read this content from a newly instantiated store. No new tables or third-party dependencies.
+- Added `backend/test/agentResponseCheckpoint.test.js` and expanded `backend/test/agentTrace.test.js`: response is saved before a later tool failure, failed provider calls are not marked as received, and a new trace-store instance can recover the exact saved response only for its owner.
+- Local test command: `NODE_PATH=<existing-upload-extracted-node_modules> node --test test/agentResponseCheckpoint.test.js test/agentTrace.test.js test/agentFoundation.test.js test/agentEvidence.test.js test/jobStatus.test.js test/retrySafety.test.js`; **11 passed, 0 failed** on a local source copy with this change, Node v22.16.0.
+- **Limitations:** the transcript, completed tool calls and investigation state are not checkpointed yet. Recording an LLM response is necessary but insufficient for automatic workflow resume. Keep paid-call retry guards active; never claim mid-run auto-resume is complete. Record contents are sensitive and must remain server-side with owner authorization; do not expose raw model responses on public job status endpoints.
+- GitHub CI, process-kill restart test, production and real paid DeRouter integration: **not yet verified**.
