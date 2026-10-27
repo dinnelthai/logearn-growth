@@ -134,4 +134,66 @@ async function recoverValidatedAnalysis(job) {
     throw error;
   }
 }
-module.exports={businessAnalysis,recoverValidatedAnalysis,analysisPrompt:prompt};
+
+// Resume only from matching, positively received paid-call and read-only tool
+// checkpoints. A new model request occurs only for the next missing round.
+// The shared Postgres fence and execution token still own all new requests.
+async function resumeIncompleteAnalysis(job){
+  const {analysisId,ownerId}=job.data;
+  const record=await records.getAnalysisRecord(analysisId,ownerId);
+  if(!record)throw Error('分析记录不存在或无权限');
+  if(record.status==='completed')return record.result;
+  if(record.status!=='processing'||record.cancel_requested||
+     !record.lease_expires_at||Number(record.lease_expires_at)>=Date.now())
+    throw Error('只能恢复未取消且已过期的调查');
+  const compact=record.data_snapshot;
+  if(!compact?.business?.scope?.source||!Array.isArray(compact.evidence))throw Error('缺少固定的原始业务快照');
+  const guards=await records.listAnalysisPaidCalls(analysisId,ownerId);
+  const store=require('../../ai/business/trace').createTraceStore(require('../../db/connection'));
+  const rows=store.list(ownerId,analysisId);
+  const {buildSystemPrompt}=require('../../ai/business/runner');
+  const plan=require('../../ai/business/resumePlan').planInvestigationResume({
+    rows,guards,context:compact,systemPrompt:buildSystemPrompt(prompt)
+  });
+  if(!plan.allowed)throw Error('无法安全恢复调查：'+plan.reason);
+  const foundation=require('../../ai/business/foundation').defaultFoundation();
+  const session=foundation.resume(compact,{ownerId,runId:analysisId});
+  const token=require('node:crypto').randomUUID();
+  const claimed=await records.claimExpiredFinalization(analysisId,ownerId,token);
+  if(!claimed)throw Error('调查恢复租约已被其他 Worker 领取');
+  let leaseError=null,renewing=false;
+  const heartbeat=setInterval(async()=>{
+    if(renewing)return;renewing=true;
+    try{if(!await records.renewAnalysisLease(analysisId,ownerId,token))leaseError=Error('恢复租约已经失效');}
+    catch(e){leaseError=e}finally{renewing=false}
+  },20000);
+  heartbeat.unref?.();
+  const beforeStep=async()=>{
+    if(leaseError)throw leaseError;
+    await records.assertAnalysisLease(analysisId,ownerId,token);
+  };
+  const source=compact.business.scope.source;
+  const investigate=async query=>{
+    if(query.tool)return session.investigate(query);
+    const ids={north:['active_users','new_users','returning_users'],growth:['activation_rate','d7','registered_users'],weekly:['weekly_core']}[query.kind];
+    if(!ids)throw Error('未知调查工具');
+    return session.investigate({tool:'query_metrics',input:{metrics:ids,scope:{source:query.source||source},
+      start:query.start??compact.period.start,end:query.end??compact.period.end}});
+  };
+  try{
+    await beforeStep();
+    const result=await runTask({context:compact,prompt,ownerId,operationId:analysisId,
+      operationType:'analysis',mode:record.filter_conditions?.modelMode||'auto',
+      resumeRows:rows,investigate,traceStore:session.traceStore,beforeStep,
+      paidCalls:{
+        begin:round=>records.beginAnalysisPaidCall(analysisId,ownerId,token,round),
+        finish:(round,status)=>records.finishAnalysisPaidCall(analysisId,ownerId,token,round,status)
+      },validate:value=>{validateAnalysis(value);session.validate(value);}});
+    await beforeStep();
+    return await persistValidatedResult({job,analysisId,ownerId,token,compact,result});
+  }catch(error){
+    await records.failClaimedAnalysis(analysisId,ownerId,token,error.message);
+    throw error;
+  }finally{clearInterval(heartbeat)}
+}
+module.exports={businessAnalysis,recoverValidatedAnalysis,resumeIncompleteAnalysis,analysisPrompt:prompt};
