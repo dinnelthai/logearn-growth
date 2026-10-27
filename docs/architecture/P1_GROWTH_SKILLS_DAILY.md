@@ -38,3 +38,13 @@ Idempotence uses PostgreSQL's unique `(owner_id,request_key)` and a deterministi
 - No operational actions are executed automatically, and no new Agent framework or database is introduced.
 - Every scheduled model analysis can incur provider charges. Opt-in is explicit. Review existing budget and billing guardrails before enabling.
 - Production deployment and independent Codex review remain separate from feature development.
+
+## P1 continuation — explainable anomaly triage
+
+- `src/ai/growth/triage.js` turns **existing ranked report candidates** into investigable signals. It never recomputes metrics, manufactures missing values or asserts causality. Its allowlist covers observed active/new/returning users, activation, mature D7 and weekly core. Priority and score are inherited from the existing business report.
+- `planner.js` includes these signals in `growthPlan.triage`, and gives relevant Growth Skills higher investigation order. It preserves the report's original order and applies the tool registry's all-source restrictions.
+- `businessAnalysis.js` persists a compact `growthSignals` list and the skill IDs/versions in the existing saved analysis result; no additional database or task is created.
+- `POST /api/ai-analysis/growth-signals` with `{"reportId":"..."}` previews anomalies from an owner-visible saved business report. It never enqueues analysis or requests a paid model. `previewGrowthSignals(reportId)` is available in the existing frontend API wrapper.
+- `backend/test/growthTriage.test.js` checks thresholds, deterministic IDs, immutable source report, unsupported metrics and missing coverage cautions. GitHub Actions includes it.
+
+**Limitations:** These are triage signals and investigation prompts, not statistical anomaly detection, a proven causal diagnosis, or an automatic outbound change. Existing AI analysis may use the skill plan to investigate further and propose human-approved actions. Do not treat a model conclusion as independently verified.
