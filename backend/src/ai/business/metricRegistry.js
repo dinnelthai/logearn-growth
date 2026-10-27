@@ -6,7 +6,9 @@ const specs={
  funnel:['report','funnel',null,'转化窗口与数据截至时间'],paths:['report','paths',null,'完整观测窗口'],product_chain:['report','product-chain',null,'真实交易覆盖未知不等于失败'],
  retention:['report','retention',null,'只比较成熟队列'],channels:['report','channels',null,'成熟分母与待成熟样本分开'],segments:['report','segments',null,'固定范围'],activities:['report','activities',null,'固定名单及活动时间窗'],quality:['report','quality',null,'各源分别报告水位与覆盖'],
  seo_search:['report','seo-performance',null,'用户导入的GSC查询明细；非整站全量；与站内业务日口径不同'],
- kol_performance:['report','kol-performance',null,'KOL CRM人工关联账户的观测数据，不是因果增量']
+ kol_performance:['report','kol-performance',null,'KOL CRM人工关联账户的观测数据，不是因果增量'],
+ content_growth:['report','content-growth',null,'累计内容指标只来自人工登记，非自动归因'],
+ follower_quality:['report','follower-quality',null,'部分已采集粉丝的粗粒度分类']
 };
 const registry=Object.fromEntries(Object.entries(specs).map(([id,[unit,queryAdapter,reviewAdapter,maturityRule]])=>[id,{id,version:'1',label:id,definition:definitions[id]||({registered_users:'真实注册账户人数，来自注册事实',trade_revenue:'已记录收入，按币种分别统计，不使用交易量替代收入'}[id])||'复用现有'+id+'分析服务的正式输出',unit,queryAdapter,reviewAdapter,maturityRule,supportedScopes:['source',...(['north','weekly','quality','economics'].includes(queryAdapter)?[]:['activityId','cohortId'])],supportedDimensions:queryAdapter==='growth'?['source','device','version']:[]} ]));
 function describeMetric(id){if(!Object.hasOwn(registry,id))throw Object.assign(Error('未知指标'),{status:400});return structuredClone(registry[id]);}
