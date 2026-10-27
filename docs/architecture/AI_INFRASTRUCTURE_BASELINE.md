@@ -167,3 +167,12 @@ Accept a new component only when it:
 - The second scenario kills the child after a paid-call `started` journal entry, then verifies recovery is blocked and a new attempt cannot begin blindly. No real LLM calls or production resources are used.
 - Added this crash simulation to the GitHub Actions PR/push test suite. **Both GitHub checks succeeded** on commit `31e7b617`: push run `40505380107` and PR run `40505389095`.
 - **Scope:** this tests a hard-killed Node subprocess writing the same trace store as the AI runner. It is **not** the deployed Bull worker with Redis/Postgres/DeRouter, and does not implement automatic continuation. Keep `canAutoResume:false`; only a later complete multi-service E2E test can support enabling that feature.
+
+## Implementation checkpoint 13 — fail-closed recovery decisions (2026-10-27)
+
+- Added `backend/src/ai/business/recoveryDecision.js`, a pure read-only decision function that uses existing authenticated record status and journal reconstruction to classify recovery into: `use-stored-result`, `eligible-for-existing-retry`, `manual-recovery-review`, or `blocked`.
+- It never executes tools or LLM calls and **always returns `canAutoResume:false`**. It only considers the pre-existing authenticated retry flow for a failed record with a verified empty journal. Already received responses require further source/validation checks and manual review.
+- Added `backend/test/recoveryDecision.test.js` covering completed records, failed/no-paid-call retries, active records, ambiguous paid calls, mismatched snapshots, missing journal and otherwise recoverable conversations.
+- Added this test to `.github/workflows/ai-infrastructure.yml`. CI verdict on the current workflow commit must be confirmed before merge.
+- No change to business metrics, Worker execution behavior, persistence schema or API permissions.
+- Next priority: integrate an authenticated read-only decision report with a stable prompt/context fingerprint from stored originals, then design guarded continuation with transactionally owned execution leases. Do not enable automatic paid replay or restart merely because the decision is visible.
