@@ -553,10 +553,10 @@ async function completeAnalysis(id, ownerId, suggestions, result, model, token) 
   const client=await aiPool.connect();
   try {
     await client.query('BEGIN');
-    const locked=await client.query('SELECT status,result,execution_token,lease_expires_at FROM ai_analysis_records WHERE id=$1 AND owner_id=$2 FOR UPDATE',[id,ownerId]);
+    const locked=await client.query('SELECT status,result,execution_token,lease_expires_at,cancel_requested FROM ai_analysis_records WHERE id=$1 AND owner_id=$2 FOR UPDATE',[id,ownerId]);
     if(!locked.rows.length)throw Error('分析记录不存在或无权限');
     if(locked.rows[0].status==='completed'){await client.query('COMMIT');return locked.rows[0].result;}
-    if(!token||locked.rows[0].status!=='processing'||locked.rows[0].execution_token!==token||Number(locked.rows[0].lease_expires_at)<=Date.now())throw Error('执行租约失效，禁止写入分析结果');
+    if(!token||locked.rows[0].status!=='processing'||locked.rows[0].execution_token!==token||locked.rows[0].cancel_requested||Number(locked.rows[0].lease_expires_at)<=Date.now())throw Error('执行租约失效，禁止写入分析结果');
     // This transaction owns all result writes; rollback leaves no partial suggestions.
     const existing=await client.query('SELECT id FROM ai_suggestions WHERE analysis_id=$1',[id]);
     if(existing.rows.length)throw Error('发现旧版本未完成的建议，请新建分析以保留原记录');
@@ -576,20 +576,20 @@ async function claimAnalysisExecution(id, ownerId, token, leaseMs=120000) {
   const result=await write(`UPDATE ai_analysis_records
     SET status='processing',started_at=$3,error_message=NULL,
         execution_token=$4,lease_expires_at=$5
-    WHERE id=$1 AND owner_id=$2 AND status='pending'
+    WHERE id=$1 AND owner_id=$2 AND status='pending' AND cancel_requested=false
     RETURNING *`,[id,ownerId,now,token,now+leaseMs]);
   return result.rows[0]||null;
 }
 async function renewAnalysisLease(id,ownerId,token,leaseMs=120000) {
   const now=Date.now();
   const result=await write(`UPDATE ai_analysis_records SET lease_expires_at=$4
-    WHERE id=$1 AND owner_id=$2 AND execution_token=$3 AND status='processing'
+    WHERE id=$1 AND owner_id=$2 AND execution_token=$3 AND status='processing' AND cancel_requested=false
       AND lease_expires_at>$5 RETURNING id`,[id,ownerId,token,now+leaseMs,now]);
   return !!result.rows.length;
 }
 async function assertAnalysisLease(id,ownerId,token) {
   const result=await read(`SELECT id FROM ai_analysis_records WHERE id=$1 AND owner_id=$2
-    AND execution_token=$3 AND status='processing' AND lease_expires_at>$4`,
+    AND execution_token=$3 AND status='processing' AND cancel_requested=false AND lease_expires_at>$4`,
     [id,ownerId,token,Date.now()]);
   if(!result.rows.length)throw Object.assign(Error('AI 执行租约失效，停止执行'),{status:409});
 }
@@ -611,10 +611,20 @@ async function listAnalysisPaidCalls(id,ownerId) {
 }
 // Only claim an expired execution for finalizing an already-validated response.
 // Never use this claim to issue further paid calls or unrecorded tools.
+async function requestAnalysisCancellation(id,ownerId) {
+  const now=Date.now();
+  const result=await write(`UPDATE ai_analysis_records SET cancel_requested=true,
+    status=CASE WHEN status='pending' THEN 'failed' ELSE status END,
+    error_message=CASE WHEN status='pending' THEN '用户已取消任务' ELSE error_message END,
+    completed_at=CASE WHEN status='pending' THEN $3 ELSE completed_at END
+    WHERE id=$1 AND owner_id=$2 AND status IN ('pending','processing')
+    RETURNING id,status,cancel_requested`,[id,ownerId,now]);
+  return result.rows[0]||null;
+}
 async function claimExpiredFinalization(id,ownerId,token,leaseMs=120000){
   const now=Date.now();
   const result=await write(`UPDATE ai_analysis_records SET execution_token=$3,
-      lease_expires_at=$4 WHERE id=$1 AND owner_id=$2 AND status='processing'
+      lease_expires_at=$4 WHERE id=$1 AND owner_id=$2 AND status='processing' AND cancel_requested=false
       AND lease_expires_at<$5
       AND EXISTS(SELECT 1 FROM ai_analysis_call_guard WHERE analysis_id=$1 AND status='received')
       AND NOT EXISTS(SELECT 1 FROM ai_analysis_call_guard
@@ -640,7 +650,7 @@ async function beginAnalysisPaidCall(id,ownerId,token,round){
     (analysis_id,owner_id,round,execution_token,status,started_at)
     SELECT id,owner_id,$4,$3,'started',$5 FROM ai_analysis_records
     WHERE id=$1 AND owner_id=$2 AND execution_token=$3 AND status='processing'
-      AND lease_expires_at>$5
+      AND lease_expires_at>$5 AND cancel_requested=false
       AND NOT EXISTS (SELECT 1 FROM ai_analysis_call_guard
         WHERE analysis_id=$1 AND status IN ('started','unknown'))
     ON CONFLICT (analysis_id,round) DO NOTHING RETURNING analysis_id`,
@@ -662,7 +672,7 @@ async function claimAnalysisRetry(id, ownerId) {
 }
 async function updateAnalysisSnapshot(id, snapshot, ownerId, token) {
   const result=await write(`UPDATE ai_analysis_records SET data_snapshot=$2 WHERE id=$1
-    AND owner_id=$3 AND execution_token=$4 AND status='processing' AND lease_expires_at>$5 RETURNING id`,
+    AND owner_id=$3 AND execution_token=$4 AND status='processing' AND cancel_requested=false AND lease_expires_at>$5 RETURNING id`,
     [id, JSON.stringify(snapshot), ownerId, token, Date.now()]);
   if(!result.rows.length)throw Error('执行租约失效，禁止更新快照');
 }
@@ -682,7 +692,7 @@ async function getRetrospective(id, ownerId) {
 }
 
 module.exports = {
-  completeAnalysis, claimAnalysisRetry, claimAnalysisExecution, renewAnalysisLease, assertAnalysisLease, failClaimedAnalysis, hasAnalysisPaidCalls, beginAnalysisPaidCall, finishAnalysisPaidCall, listAnalysisPaidCalls, claimExpiredFinalization, listExpiredAnalysisLeases, updateAnalysisSnapshot, getAnalysisMemory, getRetrospective,
+  completeAnalysis, claimAnalysisRetry, claimAnalysisExecution, renewAnalysisLease, assertAnalysisLease, failClaimedAnalysis, hasAnalysisPaidCalls, beginAnalysisPaidCall, finishAnalysisPaidCall, listAnalysisPaidCalls, claimExpiredFinalization, requestAnalysisCancellation, listExpiredAnalysisLeases, updateAnalysisSnapshot, getAnalysisMemory, getRetrospective,
   // 分析记录
   createAnalysisRecord,
   updateAnalysisStatus,
