@@ -28,6 +28,7 @@
     "path-index:refresh": "node src/pathIndex/cli.js",
     "worker:ai": "node src/queues/workers/aiAnalysisWorker.js",
     "worker:growth-daily": "node src/queues/workers/dailyGrowthScheduler.js",
+    "worker:growth-monitor": "node src/queues/workers/growthAlertMonitor.js",
     "scheduler": "node -e \"console.error('AI tasks are manual only; scheduler disabled'); process.exit(1)\"",
     "queue:dev": "npm run dev"
   },
