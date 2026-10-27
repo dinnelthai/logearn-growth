@@ -26,3 +26,8 @@ export const getJobCheckpoint=id=>aiFetch('/api/ai-analysis/jobs/'+encodeURIComp
 export const cancelAnalysis=id=>aiFetch('/api/ai-analysis/'+encodeURIComponent(id)+'/cancel',{method:'POST',body:'{}'});
 
 export const resumeAnalysis=id=>aiFetch('/api/ai-analysis/'+encodeURIComponent(id)+'/resume',{method:'POST',body:'{}'});
+
+export const getGrowthSkills=()=>aiFetch('/api/ai-analysis/growth-skills');
+export const previewGrowthPlan=(reportId,goal='activation')=>aiFetch('/api/ai-analysis/growth-plan',{
+  method:'POST',body:JSON.stringify({reportId,goal})
+});
