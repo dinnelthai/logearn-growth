@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'backend/src/ai/**'
+      - 'backend/src/db/**'
+      - 'backend/src/queues/**'
       - 'backend/src/routes/aiAnalysis.js'
       - 'backend/test/**'
       - 'frontend/src/pages/aiAnalysis.js'
@@ -13,10 +15,15 @@ on:
   push:
     branches:
       - 'chore/ai-infrastructure-baseline-20261027'
+      - 'feat/ai-growth-agent'
     paths:
       - 'backend/src/ai/**'
+      - 'backend/src/db/**'
+      - 'backend/src/queues/**'
       - 'backend/src/routes/aiAnalysis.js'
       - 'backend/test/**'
+      - 'frontend/src/pages/aiAnalysis.js'
+      - 'frontend/src/api/aiAnalysis.js'
       - 'backend/package*.json'
       - '.github/workflows/ai-infrastructure.yml'
 
