@@ -1,6 +1,6 @@
 import './aiAnalysis.css';
 import {loadingState} from './loadingState.js';
-import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead,getGrowthInvestigationTimeline,getSeoImports,importSeoSnapshot,previewSeoSnapshot,previewKolPerformance,getGscConnection,saveGscSite,syncGscPerformance,getGscPerformance,getGscSitemaps,inspectGscUrl} from '../api/aiAnalysis.js';
+import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead,getGrowthInvestigationTimeline,getSeoImports,importSeoSnapshot,previewSeoSnapshot,previewKolPerformance,getGscConnection,saveGscSite,syncGscPerformance,getGscPerformance,getGscSitemaps,inspectGscUrl,getAutonomyStatus,getAutonomyTargets,saveAutonomyTarget,getAutonomyBriefs,getAutonomyLearning,refreshAutonomyBrief} from '../api/aiAnalysis.js';
 const DAY=86400000,OFFSET=7*3600000;
 const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
@@ -23,9 +23,62 @@ export function createAIAnalysis(ctx){
     const token=++generation;clearTimeout(timer);polling=false;
     const host=$('#as-output');host.innerHTML=loadingState('正在加载主动业务分析…');
     try{
-      const [list,reviews,costs,reviewQueue,inbox,alertData,proposalData,noticeData,budgetData,seoData,gscConnection,gscSnapshot]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]})),getGrowthAlerts().catch(error=>({alerts:[],error:error.message})),getGrowthInvestigations().catch(error=>({proposals:[],error:error.message})),getGrowthNotifications().catch(error=>({notifications:[],error:error.message})),getGrowthBudget().catch(error=>({limit:0,reservedCalls:0,remainingCalls:0,error:error.message})),getSeoImports().catch(error=>({imports:[],error:error.message})),getGscConnection().catch(error=>({configured:false,sites:[],error:error.message})),getGscPerformance().catch(error=>({available:false,error:error.message}))]);
+      const [list,reviews,costs,reviewQueue,inbox,alertData,proposalData,noticeData,budgetData,seoData,gscConnection,gscSnapshot,agentStatus,agentTargets,agentBriefs,agentLearning]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]})),getGrowthAlerts().catch(error=>({alerts:[],error:error.message})),getGrowthInvestigations().catch(error=>({proposals:[],error:error.message})),getGrowthNotifications().catch(error=>({notifications:[],error:error.message})),getGrowthBudget().catch(error=>({limit:0,reservedCalls:0,remainingCalls:0,error:error.message})),getSeoImports().catch(error=>({imports:[],error:error.message})),getGscConnection().catch(error=>({configured:false,sites:[],error:error.message})),getGscPerformance().catch(error=>({available:false,error:error.message})),getAutonomyStatus().catch(error=>({schedulerConfigured:false,error:error.message})),getAutonomyTargets().catch(error=>({targets:[],supportedMetrics:[],error:error.message})),getAutonomyBriefs().catch(error=>({briefs:[],error:error.message})),getAutonomyLearning().catch(error=>({assessment:null,strategies:{},error:error.message}))]);
       if(token!==generation)return;
       host.innerHTML=`<div class="si-page ai-analysis-page">
+        <section class="a-card ai-agent-autonomy">
+          <h2>AI Growth Agent · 自主运营驾驶舱</h2>
+          <p>每日指标评价 → AI 经营分析 → 行动建议 → 成熟复盘 → 下一轮调查策略。实际运营操作需人工批准。</p>
+          <p role="status">定时调度配置：${agentStatus.schedulerConfigured?'已允许':'默认关闭'} ·
+            自动付费日报：${agentStatus.paidDailyDispatchConfigured?'已由服务端显式配置':'关闭'} ·
+            运行进程：需部署监控确认。网页刷新本身不调用模型。</p>
+          ${agentStatus.error?'<p role="alert">Agent 状态不可用：'+esc(agentStatus.error)+'</p>':''}
+          <button class="a-button" data-autonomy-refresh type="button">刷新既有日报与历史学习（零付费调用）</button>
+          <h3>运营目标设置</h3>
+          <p>目标必须由运营人员明确配置。分析人数不是注册人数；任何目标数据不成熟时不计算综合评分。</p>
+          <form data-autonomy-target>
+            <label>业务目标<select name="goal">
+              <option value="activation">激活</option><option value="retention">留存</option>
+              <option value="conversion">转化</option><option value="revenue">收入分析</option>
+            </select></label>
+            <label>指标<select name="metric">${(agentTargets.supportedMetrics||[]).map(m=>
+              `<option value="${esc(m)}">${esc(m)}</option>`).join('')}</select></label>
+            <label>观察值目标<input name="target" type="number" min="0.000001" step="any" required placeholder="人数或比率（比率使用 0–1）"></label>
+            <label>权重（1–10）<input name="weight" type="number" min="1" max="10" step="1" value="1" required></label>
+            <button class="a-button" type="submit">保存目标</button>
+          </form>
+          ${agentTargets.error?'<p role="status">目标读取暂不可用：'+esc(agentTargets.error)+'</p>':''}
+          ${(agentTargets.targets||[]).map(t=>`<p>
+             ${esc(t.goal)} · ${esc(t.metric)} ≥ ${esc(t.target)} · 权重 ${esc(t.weight)}
+             · v${esc(t.version)} ${t.active?'':'（未启用）'}</p>`).join('')||'<p>未配置运营目标，因此 Agent 不会给出虚假的经营评分。</p>'}
+          <h3>最近自主运营日报</h3>
+          ${agentBriefs.error?'<p role="status">日报列表暂不可用：'+esc(agentBriefs.error)+'</p>':''}
+          ${(agentBriefs.briefs||[]).slice(0,5).map(b=>{
+            const report=b.report||{},score=b.score||{},quality=b.quality||{};
+            return `<article>
+              <p><strong>${esc(b.day)}</strong> · ${esc(b.status==='ready'?'正式日报':b.status==='partial'?'证据不足日报':'尚未完成分析')} ·
+                综合评分 ${esc(score.value??'未知')}</p>
+              <p>已完成目标 ${esc(quality.completedGoals??0)} / ${esc(quality.requiredGoals??0)} ·
+                策略版本 ${esc(b.strategy_version??'尚无')}</p>
+              <p>${esc(report.overview||'无可确认的经营总结')}</p>
+              ${(report.priorityActions||[]).slice(0,4).map(a=>`<p>建议复查：${esc(a.text||'未提供')} ·
+                <button class="a-button" data-analysis="${esc(a.analysisId)}">原始证据与建议</button></p>`).join('')}
+              ${(score.qualityWarnings||[]).slice(0,4).map(w=>`<p>质量限制：${esc(w)}</p>`).join('')}
+            </article>`;
+           }).join('')||'<p>暂无日报。启用后续调度或手动分析后，点击零付费刷新整理已有结果。</p>'}
+          <h3>AI 自我评价与学习状态</h3>
+          ${agentLearning.error?'<p role="status">学习状态读取暂不可用：'+esc(agentLearning.error)+'</p>':''}
+          <p>已复盘建议：${esc(agentLearning.assessment?.reviewed??0)} ·
+             观测符合：${esc(agentLearning.assessment?.observedSupported??0)} ·
+             观测不符：${esc(agentLearning.assessment?.observedContradicted??0)} ·
+             证据不足：${esc(agentLearning.assessment?.insufficient??0)}</p>
+          <p>历史一致率 ${agentLearning.assessment?.observableAgreementRate==null?'证据不足':
+            esc((agentLearning.assessment.observableAgreementRate*100).toFixed(1)+'%')}。
+            这是已执行建议与成熟观察结果的符合情况，并非 AI 预测准确率或因果效果。</p>
+          ${Object.entries(agentLearning.strategies||{}).filter(([,v])=>v).map(([goal,value])=>
+            `<p>${esc(goal)} 策略 v${esc(value.version)} ·
+              重点核查：${esc((value.policy?.focusMetrics||[]).join('、')||'保持原规则')}</p>`).join('')}
+        </section>
         <section class="a-card"><h1>AI 业务增长助手</h1><p>主动发起分析，按业务证据排优先级；记录行动后主动复盘。所有分析与复盘均使用同一 DeRouter 模型。</p>
         <p>累计调用 ${esc(costs.total_calls)} 次 · Token ${esc(costs.total_tokens??0)} · 估算费用 $${esc(costs.total_cost??0)}（${esc(costs.unknown_cost_calls??0)} 次调用费率未配置，金额不代表免费）</p>
         <form data-ai-form><label>分析标题<input name="title" required maxlength="200" value="业务增长分析"></label>
@@ -370,6 +423,30 @@ export function createAIAnalysis(ctx){
           const result=await importSeoSnapshot(JSON.parse(raw));
           if(token===generation){message(result.created?'SEO 快照导入成功':'相同快照已存在，未重复写入');await draw();}
         }catch(error){if(token===generation)message('导入失败：'+error.message)}
+        finally{busy=false;if(button.isConnected)button.disabled=false}
+      };
+      const autonomyRefresh=host.querySelector('[data-autonomy-refresh]');
+      if(autonomyRefresh)autonomyRefresh.onclick=async()=>{
+        if(busy)return;busy=true;autonomyRefresh.disabled=true;
+        try{
+          const value=await refreshAutonomyBrief();
+          if(token===generation){message('已整合历史分析和成熟复盘：'+value.status+'；本次没有付费模型请求');await draw()}
+        }catch(error){if(token===generation)message('整理日报失败：'+error.message)}
+        finally{busy=false;if(autonomyRefresh.isConnected)autonomyRefresh.disabled=false}
+      };
+      const targetForm=host.querySelector('[data-autonomy-target]');
+      if(targetForm)targetForm.onsubmit=async e=>{
+        e.preventDefault();if(busy)return;busy=true;
+        const button=e.target.querySelector('button');button.disabled=true;
+        try{
+          const fd=new FormData(e.target),goal=String(fd.get('goal')),
+            metric=String(fd.get('metric')),value=Number(fd.get('target')),
+            weight=Number(fd.get('weight'));
+          const old=(agentTargets.targets||[]).find(x=>x.goal===goal&&x.metric===metric&&x.source==='all');
+          await saveAutonomyTarget({goal,metric,source:'all',target:value,weight,
+            expectedVersion:old?.version??null});
+          if(token===generation){message('运营目标已保存；历史日报数据与目标变动需重新核对');await draw()}
+        }catch(error){if(token===generation)message('保存目标失败：'+error.message)}
         finally{busy=false;if(button.isConnected)button.disabled=false}
       };
       host.querySelectorAll('[data-analysis]').forEach(b=>b.onclick=()=>open(b.dataset.analysis));
