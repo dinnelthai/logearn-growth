@@ -7,14 +7,15 @@ const queuePath=require.resolve('../src/queues/queues');
 const recordsPath=require.resolve('../src/db/aiRecords');
 const tracePath=require.resolve('../src/ai/business/trace');
 const connectionPath=require.resolve('../src/db/connection');
-const state={record:null,calls:[],claims:0,queued:0};
+const state={record:null,calls:[],claims:0,queued:0,shared:false};
 require.cache[queuePath]={id:queuePath,filename:queuePath,loaded:true,exports:{
  async addAIAnalysisJob(){state.queued++;return {id:'retry-job'}},
  async getJobStatus(){return {exists:false}}
 }};
 require.cache[recordsPath]={id:recordsPath,filename:recordsPath,loaded:true,exports:{
  async getAnalysisRecord(_id,owner){return owner==='alice'?state.record:null},
- async claimAnalysisRetry(){state.claims++;return state.record}
+ async claimAnalysisRetry(){state.claims++;return state.record},
+ async hasAnalysisPaidCalls(){return state.shared}
 }};
 require.cache[connectionPath]={id:connectionPath,filename:connectionPath,loaded:true,exports:{}};
 require.cache[tracePath]={id:tracePath,filename:tracePath,loaded:true,exports:{
@@ -33,6 +34,7 @@ test('retry HTTP gate rejects any prior model call before claiming status',async
   let r=await retry();assert.equal(r.status,409);assert.equal(r.body.reason,'prior-model-call');assert.equal(state.claims,0);assert.equal(state.queued,0);
   state.calls=null;r=await retry();assert.equal(r.status,409);assert.equal(state.claims,0);
   state.calls=[];r=await retry('bob');assert.equal(r.status,409);assert.equal(state.claims,0);
-  r=await retry();assert.equal(r.status,202);assert.equal(state.claims,1);assert.equal(state.queued,1);
+  state.shared=true;r=await retry();assert.equal(r.status,409);assert.equal(r.body.reason,'shared-paid-call-guard');assert.equal(state.claims,0);
+  state.shared=false;r=await retry();assert.equal(r.status,202);assert.equal(state.claims,1);assert.equal(state.queued,1);
  } finally {await new Promise(r=>server.close(r))}
 });
