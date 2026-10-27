@@ -25,7 +25,7 @@ test('dispatch uses atomic unique request key and one-attempt Bull job',async()=
  }};
  const enqueue=async(type,data,opts)=>{
    queued++;assert.equal(type,'business-analysis');
-   assert.equal(data.analysisId,'id-1');assert.equal(opts.attempts,1);assert.equal(opts.jobId,'id-1');
+   assert.equal(data.analysisId,'id-1');assert.equal(opts.attempts,1);assert.match(opts.jobId,/^daily-id-1-[0-9]+$/);
    assert.equal(data.focusGoal,'activation');return {id:opts.jobId};
  };
  const options={ownerId:'alice',now:Date.parse('2026-10-27T03:00:00Z'),records,enqueue};
