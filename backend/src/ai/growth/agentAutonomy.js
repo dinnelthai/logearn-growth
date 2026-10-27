@@ -53,7 +53,8 @@ async function tickAutonomousOwner({
     reason:'基于成熟执行复盘的指标反证自动生成待评估候选，不自行发布'});
   }
  }
- const brief=createDailyBrief({ownerId,day:period.day,source,
+ const channelObservations=source==='all'?require('./channelObservations').collectChannelObservations(ownerId,period.day):null;
+ const brief=createDailyBrief({ownerId,day:period.day,source,channelObservations,
   goals:required,analyses,targets,learning,strategies});
  const saved=await store.upsertBrief(ownerId,brief,{now});
  // Only a ready/partial, persisted brief is eligible for optional proactive
