@@ -14,6 +14,15 @@ router.get('/growth-skills',handle(async(req,res)=>{
     skills:require('../ai/growth/skills').listSkills(),
     execution:'read-only-tools; no automatic external actions'});
 }));
+router.post('/growth-signals',handle(async(req,res)=>{
+  const reportId=req.body?.reportId;
+  if(typeof reportId!=='string'||!reportId.trim()||reportId.length>256)
+    return res.status(400).json({error:'需要已保存的业务报告 ID'});
+  const report=require('../db/businessReports').createStore(require('../db/connection')).get(reportId,req.user.user_id);
+  if(!report)return res.status(404).json({error:'业务报告不存在或无权限'});
+  const triage=require('../ai/growth/triage').detectGrowthSignals(report);
+  res.json({triage,dispatched:false,paidCalls:0});
+}));
 router.post('/growth-plan',handle(async(req,res)=>{
   const reportId=req.body?.reportId;
   if(typeof reportId!=='string'||!reportId.trim()||reportId.length>256)
