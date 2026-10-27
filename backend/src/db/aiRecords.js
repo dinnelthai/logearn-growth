@@ -567,6 +567,15 @@ async function completeAnalysis(id, ownerId, suggestions, result, model) {
   } catch(error) {await client.query('ROLLBACK');throw error;}
   finally{client.release();}
 }
+// Atomic pending -> processing claim. The returned row is the only authority
+// for starting expensive business analysis; stale Bull jobs cannot bypass it.
+async function claimAnalysisExecution(id, ownerId) {
+  const result=await write(`UPDATE ai_analysis_records
+    SET status='processing',started_at=$3,error_message=NULL
+    WHERE id=$1 AND owner_id=$2 AND status='pending'
+    RETURNING *`,[id,ownerId,Date.now()]);
+  return result.rows[0]||null;
+}
 async function claimAnalysisRetry(id, ownerId) {
   const result=await write(`UPDATE ai_analysis_records SET status='pending',error_message=NULL,started_at=NULL,completed_at=NULL
     WHERE id=$1 AND owner_id=$2 AND status='failed' RETURNING *`,[id,ownerId]);
@@ -591,7 +600,7 @@ async function getRetrospective(id, ownerId) {
 }
 
 module.exports = {
-  completeAnalysis, claimAnalysisRetry, updateAnalysisSnapshot, getAnalysisMemory, getRetrospective,
+  completeAnalysis, claimAnalysisRetry, claimAnalysisExecution, updateAnalysisSnapshot, getAnalysisMemory, getRetrospective,
   // 分析记录
   createAnalysisRecord,
   updateAnalysisStatus,
