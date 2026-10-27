@@ -90,4 +90,48 @@ async function businessAnalysis(job) {
   }catch(error){await records.failClaimedAnalysis(analysisId,ownerId,token,error.message);throw error;}
   finally{clearInterval(heartbeat);}
 }
-module.exports={businessAnalysis};
+// Finalization-only recovery: zero model requests, zero tool calls.
+// Unknown paid calls, partial investigations and mismatched original context
+// always block. This cannot resume incomplete multi-step investigations.
+async function recoverValidatedAnalysis(job) {
+  const {analysisId,ownerId}=job.data;
+  const record=await records.getAnalysisRecord(analysisId,ownerId);
+  if(!record)throw Error('分析记录不存在或无权限');
+  if(record.status==='completed')return record.result;
+  if(record.status!=='processing'||!record.lease_expires_at||Number(record.lease_expires_at)>=Date.now())
+    throw Error('分析仍在运行或不是可恢复的过期任务');
+  const compact=record.data_snapshot;
+  if(!compact?.business?.scope?.source||!Array.isArray(compact.evidence))
+    throw Error('原始调查快照不完整，禁止恢复');
+  const guards=await records.listAnalysisPaidCalls(analysisId,ownerId);
+  if(!guards.length||guards.some(c=>c.status!=='received'))throw Error('付费调用状态未全部确认，禁止恢复');
+  const journal=require('../../ai/business/trace').createTraceStore(require('../../db/connection'));
+  const rows=journal.list(ownerId,analysisId);
+  if(rows.length!==guards.length || guards.some((g,i)=>Number(g.round)!==rows[i].round||rows[i].status!=='received'))
+    throw Error('共享付费日志与详细调查记录不一致，禁止恢复');
+  const {buildSystemPrompt}=require('../../ai/business/runner');
+  const rebuilt=require('../../ai/business/transcriptRecovery').reconstructTranscript({
+    rows,systemPrompt:buildSystemPrompt(prompt),context:compact,operationType:'analysis'
+  });
+  if(rebuilt.state!=='reconstructed')throw Error('调查上下文不能安全恢复：'+rebuilt.reason);
+  const finalRow=rows.at(-1);
+  const analysis=finalRow?.result?.validatedAnalysis;
+  if(!analysis||finalRow.result.followup||finalRow.result.investigations?.length)
+    throw Error('没有经过验证的最终输出，禁止重新调用模型');
+  validateAnalysis(analysis);
+  const token=require('node:crypto').randomUUID();
+  const claimed=await records.claimExpiredFinalization(analysisId,ownerId,token);
+  if(!claimed)throw Error('恢复执行权已被其他 Worker 领取');
+  const calls=rebuilt.calls;
+  const result={analysis,calls,evidence:rebuilt.evidence,
+    routing:require('../../ai/business/policy').routeTask(compact,record.filter_conditions?.modelMode||'auto'),
+    cost:calls.reduce((n,c)=>n+(Number(c.cost)||0),0),
+    model:finalRow.result.model,provider:finalRow.result.provider};
+  try{
+    return await persistValidatedResult({job,analysisId,ownerId,token,compact,result});
+  }catch(error){
+    await records.failClaimedAnalysis(analysisId,ownerId,token,error.message);
+    throw error;
+  }
+}
+module.exports={businessAnalysis,recoverValidatedAnalysis};
