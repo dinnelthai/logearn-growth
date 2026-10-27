@@ -65,7 +65,12 @@ async function businessAnalysis(job) {
       if(!ids)throw Error('未实现该调查工具：'+query.kind);
       return session.investigate({tool:'query_metrics',input:{metrics:ids,scope:{source:query.source||source},start:query.start??start,end:query.end??end}});
     };
-    const result=await runTask({context:compact,prompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,validate:value=>{validateAnalysis(value);session.validate(value);}});
+    const result=await runTask({context:compact,prompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
+      paidCalls:{
+        begin:round=>records.beginAnalysisPaidCall(analysisId,ownerId,token,round),
+        finish:(round,status)=>records.finishAnalysisPaidCall(analysisId,ownerId,token,round,status)
+      },
+      validate:value=>{validateAnalysis(value);session.validate(value);}});
     const {analysis}=result;
     await job.progress(85);
     const suggestions=analysis.suggestions.map(s=>({analysisId,ownerId,businessProblem:s.problem,dataEvidence:s.evidence,
