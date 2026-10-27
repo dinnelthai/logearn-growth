@@ -38,7 +38,7 @@ async function dispatchDaily({ownerId,now=Date.now(),goal='activation',source='a
    dateRangeEnd:Number(record.date_range_end),businessScope:record.business_scope,
    userQuestion:record.user_question,focusGoal:record.filter_conditions.focusGoal,
    modelMode:'auto'
- },{jobId:record.id,attempts:1});
+ },{jobId:'daily-'+record.id+'-'+Math.floor(Date.now()/600000),attempts:1});
  return {status:'queued',analysisId:record.id,jobId:job.id,period:request.period};
 }
 module.exports={previousBangkokDay,dailyRequest,dispatchDaily};
