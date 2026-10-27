@@ -18,6 +18,14 @@ require.cache[servicePath]={id:servicePath,filename:servicePath,loaded:true,expo
    selectCount++;return {selectedSite:siteUrl};
   },
   async latest(owner,params){return owner==='alice'?original:null},
+  async sitemaps(owner){if(owner!=='alice')forbidden();
+   return {siteUrl:'sc-domain:logearn.com',rows:[{path:'https://logearn.com/sitemap.xml',
+    errors:0,warnings:0}],readOnly:true};
+  },
+  async inspect(owner,url){if(owner!=='alice')forbidden();
+   return {inspectionUrl:url,coverageState:'Submitted and indexed',
+    isLiveTest:false,warning:'not live test'};
+  },
   async sync(owner,window){if(owner!=='alice')forbidden();
    assert.equal(window.startDate,'2026-10-18');
    syncCount++;return {cached:false,report:{available:true,source:'gsc-api',
@@ -72,5 +80,18 @@ test('GSC property settings, reports and syncing are owner-scoped and do not cre
    body:{startDate:'2026-10-18',endDate:'2026-10-19'}});
   assert.equal(r.status,200);assert.equal(r.body.report.source,'gsc-api');
   assert.equal(r.body.paidCalls,0);assert.equal(syncCount,1);assert.equal(paidCalls,0);
+  r=await call('/growth-seo/gsc/sitemaps');
+  assert.equal(r.status,200);assert.equal(r.body.rows.length,1);
+  assert.equal(r.body.readOnly,true);
+  r=await call('/growth-seo/gsc/sitemaps',{owner:'bob'});
+  assert.equal(r.status,403);
+  r=await call('/growth-seo/gsc/inspect',{method:'POST',
+   body:{inspectionUrl:'https://logearn.com/holders'}});
+  assert.equal(r.status,200);assert.equal(r.body.result.isLiveTest,false);
+  assert.equal(r.body.paidCalls,0);
+  r=await call('/growth-seo/gsc/inspect',{method:'POST',owner:'bob',
+   body:{inspectionUrl:'https://logearn.com/holders'}});
+  assert.equal(r.status,403);
+  assert.equal(paidCalls,0);
  }finally{await new Promise(resolve=>server.close(resolve))}
 });
