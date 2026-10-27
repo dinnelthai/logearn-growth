@@ -22,7 +22,7 @@ function createRouter({db,registry}){
   if(process.env.AI_RESEARCH_DISCOVERY_ENABLED!=='1')return res.status(409).json({error:'自主发现尚未启用'});
   const ownerId=String(req.user.user_id);
   const result=require('../ai/growth/researchQuestions').createResearchQuestions(db)
-   .plan(ownerId,store.listChanges(ownerId),{source:req.body?.source||'all'});
+   .plan(ownerId,[...store.listChanges(ownerId),...require('../ai/growth/sourceChanges').sourceChanges(db,ownerId)].slice(0,100),{source:req.body?.source||'all'});
   res.json(result);
  }));
  router.post('/research/questions/:id/decision',handle(async(req,res)=>{
