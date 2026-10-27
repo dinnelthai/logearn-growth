@@ -4,30 +4,40 @@ const {listToolIds}=require('../business/tools/registry');
 const {summarizeExperience}=require('./experienceFeedback');
 const supportedTools=new Set(listToolIds());
 const goalMap={activation:['growth-overview','activation-funnel'],retention:['growth-overview','retention'],conversion:['growth-overview','channel-growth','trade-conversion'],revenue:['growth-overview','revenue']};
-function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[]}={}){
+function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[],focusSkillId=null}={}){
  if(!Object.hasOwn(goalMap,goal))throw Object.assign(Error('未知增长目标'),{status:400});
  if(!Number.isInteger(maxSkills)||maxSkills<1||maxSkills>6)throw Error('技能数量限制无效');
  if(!report||typeof report!=='object'||!report.business?.scope||!report.period)
   throw Error('必须提供现有业务报告作为任务规划依据');
+ const specialized={
+  'seo-organic':['activation','conversion'],
+  'kol-impact':['conversion','revenue']
+ };
+ if(focusSkillId!=null&&(!Object.hasOwn(specialized,focusSkillId)||
+    !specialized[focusSkillId].includes(goal)))
+   throw Object.assign(Error('指定的专项技能与分析目标不兼容'),{status:400});
+ if(focusSkillId&&report.business.scope.source!=='all')
+   throw Object.assign(Error('专项技能需要全来源分析；不能把站外数据假称为所选渠道的筛选结果'),{status:400});
  const triage=require('./triage').detectGrowthSignals(report);
  const experience=summarizeExperience(history,{source:report.business.scope.source});
  const alertIds=new Set(triage.signals.map(signal=>signal.candidateId));
  const priority=(report.candidates||[]).filter(c=>c&&typeof c.metric==='string').slice(0,20);
  const ranked=[...priority].sort((a,b)=>Number(alertIds.has(b.id))-Number(alertIds.has(a.id)));
- const available=goalMap[goal].map(getSkill);
+ const available=[...(focusSkillId?[getSkill(focusSkillId)]:[]),...goalMap[goal].filter(id=>id!==focusSkillId).map(getSkill)];
  const ordered=available.map((skill,i)=>({
   skill,match:ranked.findIndex(c=>skill.signals.includes(c.metric)),order:i,
   attention:experience.filter(e=>skill.signals.includes(e.metric)).reduce((n,e)=>n+e.ineffectiveReviews,0)
- })).sort((a,b)=>(a.match<0?999:a.match)-(b.match<0?999:b.match)||b.attention-a.attention||a.order-b.order);
+ })).sort((a,b)=>(a.skill.id===focusSkillId?0:1)-(b.skill.id===focusSkillId?0:1)||
+   (a.match<0?999:a.match)-(b.match<0?999:b.match)||b.attention-a.attention||a.order-b.order);
  const selected=ordered.slice(0,maxSkills);
  return {
-  version:'growth-plan-v1',goal,scope:report.business.scope,period:report.period,
+  version:'growth-plan-v1',goal,focusSkillId,scope:report.business.scope,period:report.period,
   triage,experienceFeedback:experience,
   sourceSnapshot:report.snapshot?.id||null,requiresApprovalForActions:true,
   steps:selected.map(({skill})=>({
    skillId:skill.id,skillVersion:skill.version,label:skill.label,
    tools:skill.tools.filter(id=>supportedTools.has(id)&&(
-    report.business.scope.source==='all'||!['check_data_quality','get_channel_economics'].includes(id))),
+    report.business.scope.source==='all'||!['check_data_quality','get_channel_economics','get_seo_performance','get_kol_performance'].includes(id))),
    investigation:skill.instructions,mode:'read-only',
    experienceChecks:experience.filter(e=>skill.signals.includes(e.metric)).map(e=>({
     metric:e.metric,observedEffective:e.effectiveReviews,observedIneffective:e.ineffectiveReviews,
