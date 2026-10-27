@@ -30,6 +30,32 @@ function createRouter({db,registry}){
    .decide(String(req.user.user_id),req.params.id,req.body?.action);
   res.status(result.changed?200:409).json(result);
  }));
+ router.post('/research/questions/:id/dispatch',handle(async(req,res)=>{
+  const ownerId=String(req.user.user_id);
+  if(process.env.AI_RESEARCH_PAID_DISPATCH_ENABLED!=='1'||req.body?.confirmPaidAnalysis!==true)
+   return res.status(409).json({error:'自主研究付费分发未授权；请明确开启研究付费开关并确认'});
+  const question=require('../ai/growth/researchQuestions').createResearchQuestions(db).get(ownerId,req.params.id);
+  if(!question||question.status!=='approved')return res.status(409).json({error:'仅允许已批准的研究问题创建调查'});
+  const {previousBangkokDay}=require('../ai/growth/daily');
+  const period=previousBangkokDay();
+  const goal=question.kind==='content'||question.kind==='audience'?'conversion':'activation';
+  const skillId=question.kind==='content'?'content-growth':question.kind==='audience'?'follower-quality':null;
+  const records=require('../db/aiRecords');
+  const record=await records.createAnalysisRecord({ownerId,
+   requestKey:'research-'+question.id,title:question.title,
+   analysisType:'optimization',dateRangeStart:period.start,dateRangeEnd:period.end,
+   businessScope:{source:'all'},userQuestion:question.question,dataSnapshot:{},
+   filterConditions:{businessScope:{source:'all'},focusGoal:goal,modelMode:'auto',skillId,
+    researchQuestionId:question.id}});
+  if(record.status!=='pending')return res.json({status:'already-'+record.status,analysisId:record.id,paidModelCallsStarted:0});
+  const job=await require('../queues/queues').addAIAnalysisJob('business-analysis',{
+    analysisId:record.id,ownerId,dateRangeStart:Number(record.date_range_start),
+    dateRangeEnd:Number(record.date_range_end),businessScope:record.business_scope,
+    userQuestion:record.user_question,focusGoal:goal,modelMode:'auto'
+   },{jobId:'research-'+record.id+'-'+Math.floor(Date.now()/600000),attempts:1});
+  res.status(202).json({status:'queued',analysisId:record.id,jobId:job.id,
+   paidModelCallsStarted:0,paidModelCallsMayStartInWorker:true,questionId:question.id});
+ }));
  router.get('/prompts/candidates',handle(async(req,res)=>{
   const registry=require('../ai/optimization/promptRegistry').createPromptRegistry(db);
   res.json({candidates:registry.list(String(req.user.user_id),{
