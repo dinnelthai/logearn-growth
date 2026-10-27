@@ -63,3 +63,15 @@ export const markGrowthNotificationRead=id=>aiFetch(
 );
 
 export const getGrowthInvestigationTimeline=id=>aiFetch('/api/ai-analysis/growth-investigations/'+encodeURIComponent(id)+'/timeline');
+
+export const getSeoImports=()=>aiFetch('/api/ai-analysis/growth-seo/imports');
+export const importSeoSnapshot=payload=>aiFetch('/api/ai-analysis/growth-seo/import',{
+  method:'POST',body:JSON.stringify(payload)
+});
+export const previewSeoSnapshot=(snapshotId,startDate=null,endDate=null)=>aiFetch(
+ '/api/ai-analysis/growth-seo/preview',{
+  method:'POST',body:JSON.stringify({snapshotId,startDate,endDate})
+ });
+export const previewKolPerformance=(start,end)=>aiFetch('/api/ai-analysis/growth-kol/preview',{
+ method:'POST',body:JSON.stringify({start,end,source:'all'})
+});
