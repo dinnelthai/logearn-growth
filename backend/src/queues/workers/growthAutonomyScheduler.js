@@ -15,6 +15,10 @@ async function tick({now=Date.now(),dryRun=false,runOwner=tickAutonomousOwner}={
  if(running)return {status:'already-running'};
  running=true;
  const results=[];
+ const webhookConfig=require('../../ai/growth/agentWebhook').webhookConfig();
+ const enabledOwners=Object.keys(webhookConfig);
+ const outbox=enabledOwners.length?
+  require('../../ai/growth/agentOutbox').createAgentOutbox():null;
  try{
   for(const ownerId of settings.owners){
    // Catch the most recent day, plus two past completed days in case the
@@ -25,11 +29,26 @@ async function tick({now=Date.now(),dryRun=false,runOwner=tickAutonomousOwner}={
       ownerId,now:now-lag*86400000,source:settings.source,
       goals:settings.goals,
       // Never automatically launch paid historical backfills.
-      allowPaidDispatch:lag===0&&settings.paidEnabled
+      allowPaidDispatch:lag===0&&settings.paidEnabled,
+      notify:outbox&&webhookConfig[ownerId]?value=>outbox.enqueue(value):null
      });
      results.push({...item,backfillDaysAgo:lag});
     }catch(error){
      results.push({ownerId,backfillDaysAgo:lag,status:'error',reason:error.message});
+    }
+   }
+  }
+  if(outbox){
+   const {sendAgentWebhook}=require('../../ai/growth/agentWebhook');
+   const due=await outbox.claim(enabledOwners,{limit:10});
+   for(const item of due){
+    try{
+     const httpStatus=await sendAgentWebhook(item,{config:webhookConfig});
+     await outbox.finish(item,{delivered:true,httpStatus});
+     results.push({ownerId:item.owner_id,delivery:'delivered',briefId:item.payload.briefId});
+    }catch(error){
+     await outbox.finish(item,{delivered:false,error,httpStatus:error.httpStatus||null});
+     results.push({ownerId:item.owner_id,delivery:'retry-scheduled',reason:error.message});
     }
    }
   }
