@@ -604,6 +604,24 @@ async function failClaimedAnalysis(id,ownerId,token,errorMessage) {
 // Shared fail-closed paid-call journal. The SQLite trace keeps detailed content;
 // this PostgreSQL fence lets every Worker see whether a charge might have begun.
 // Read-only crash detection. Do not change status or enqueue paid calls.
+async function listAnalysisPaidCalls(id,ownerId) {
+  const result=await read(`SELECT round,status FROM ai_analysis_call_guard
+    WHERE analysis_id=$1 AND owner_id=$2 ORDER BY round ASC`,[id,ownerId]);
+  return result.rows;
+}
+// Only claim an expired execution for finalizing an already-validated response.
+// Never use this claim to issue further paid calls or unrecorded tools.
+async function claimExpiredFinalization(id,ownerId,token,leaseMs=120000){
+  const now=Date.now();
+  const result=await write(`UPDATE ai_analysis_records SET execution_token=$3,
+      lease_expires_at=$4 WHERE id=$1 AND owner_id=$2 AND status='processing'
+      AND lease_expires_at<$5
+      AND EXISTS(SELECT 1 FROM ai_analysis_call_guard WHERE analysis_id=$1 AND status='received')
+      AND NOT EXISTS(SELECT 1 FROM ai_analysis_call_guard
+        WHERE analysis_id=$1 AND status IN ('started','unknown'))
+      RETURNING *`,[id,ownerId,token,now+leaseMs,now]);
+  return result.rows[0]||null;
+}
 async function listExpiredAnalysisLeases(limit=100){
   if(!Number.isSafeInteger(limit)||limit<1||limit>1000)throw Error('过期任务查询限制无效');
   const result=await read(`SELECT id,owner_id,lease_expires_at
@@ -664,7 +682,7 @@ async function getRetrospective(id, ownerId) {
 }
 
 module.exports = {
-  completeAnalysis, claimAnalysisRetry, claimAnalysisExecution, renewAnalysisLease, assertAnalysisLease, failClaimedAnalysis, hasAnalysisPaidCalls, beginAnalysisPaidCall, finishAnalysisPaidCall, listExpiredAnalysisLeases, updateAnalysisSnapshot, getAnalysisMemory, getRetrospective,
+  completeAnalysis, claimAnalysisRetry, claimAnalysisExecution, renewAnalysisLease, assertAnalysisLease, failClaimedAnalysis, hasAnalysisPaidCalls, beginAnalysisPaidCall, finishAnalysisPaidCall, listAnalysisPaidCalls, claimExpiredFinalization, listExpiredAnalysisLeases, updateAnalysisSnapshot, getAnalysisMemory, getRetrospective,
   // 分析记录
   createAnalysisRecord,
   updateAnalysisStatus,
