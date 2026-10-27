@@ -1,6 +1,6 @@
 import './aiAnalysis.css';
 import {loadingState} from './loadingState.js';
-import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,scanGrowthAlerts,changeGrowthAlert} from '../api/aiAnalysis.js';
+import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead} from '../api/aiAnalysis.js';
 const DAY=86400000,OFFSET=7*3600000;
 const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
@@ -18,7 +18,7 @@ export function createAIAnalysis(ctx){
     const token=++generation;clearTimeout(timer);polling=false;
     const host=$('#as-output');host.innerHTML=loadingState('正在加载主动业务分析…');
     try{
-      const [list,reviews,costs,reviewQueue,inbox,alertData]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]})),getGrowthAlerts().catch(error=>({alerts:[],error:error.message}))]);
+      const [list,reviews,costs,reviewQueue,inbox,alertData,proposalData,noticeData,budgetData]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]})),getGrowthAlerts().catch(error=>({alerts:[],error:error.message})),getGrowthInvestigations().catch(error=>({proposals:[],error:error.message})),getGrowthNotifications().catch(error=>({notifications:[],error:error.message})),getGrowthBudget().catch(error=>({limit:0,reservedCalls:0,remainingCalls:0,error:error.message}))]);
       if(token!==generation)return;
       host.innerHTML=`<div class="si-page ai-analysis-page">
         <section class="a-card"><h1>AI 业务增长助手</h1><p>主动发起分析，按业务证据排优先级；记录行动后主动复盘。所有分析与复盘均使用同一 DeRouter 模型。</p>
@@ -52,6 +52,24 @@ export function createAIAnalysis(ctx){
           ${a.status!=='resolved'?'<button class="a-button" data-alert-action="snooze" data-alert-id="'+esc(a.id)+'" data-alert-version="'+esc(a.version)+'">延后24小时</button><button class="a-button" data-alert-action="resolve" data-alert-id="'+esc(a.id)+'" data-alert-version="'+esc(a.version)+'">标记解决</button>':''}
           </article>`).join('')||'<p>目前没有未解决的跨日告警。</p>'}
         </section>
+        <section class="a-card"><h2>待审批异常调查</h2>
+        <p>每日模型调用保守额度：已预留 ${esc(budgetData.reservedCalls??0)} / ${esc(budgetData.limit??0)} 轮。额度为零时无法批准付费调查；并非美元费用上限。</p>
+        ${budgetData.error?'<p role="status">额度查询暂不可用：'+esc(budgetData.error)+'</p>':''}
+        ${proposalData.error?'<p role="status">提案查询暂不可用：'+esc(proposalData.error)+'</p>':''}
+        ${(proposalData.proposals||[]).slice(0,30).map(p=>`<article>
+          <p>${esc(p.metric)} · ${esc(p.source)} · ${esc(p.status)} · ${esc(day(Number(p.period_end)))}</p>
+          <p>异常观测需要核实采集覆盖，模型分析可能产生费用；批准不代表自动执行增长动作。</p>
+          ${p.analysis_id?'<button class="a-button" data-analysis="'+esc(p.analysis_id)+'">查看关联分析</button>':''}
+          ${p.status==='proposed'?'<button class="a-button" data-growth-proposal="approve" data-proposal-id="'+esc(p.id)+'" data-proposal-version="'+esc(p.version)+'" '+(Number(budgetData.remainingCalls)<1?'disabled title="每日预算未开启或已耗尽"':'')+'>人工批准调查</button><button class="a-button" data-growth-proposal="dismiss" data-proposal-id="'+esc(p.id)+'" data-proposal-version="'+esc(p.version)+'">忽略提案</button>':''}
+          </article>`).join('')||'<p>暂无待审批异常调查。</p>'}
+        </section>
+        <section class="a-card"><h2>站内通知</h2>
+        ${noticeData.error?'<p role="status">通知暂不可用：'+esc(noticeData.error)+'</p>':''}
+        ${(noticeData.notifications||[]).slice(0,30).map(n=>`<p>
+          ${esc(n.message)} · ${esc(day(Number(n.created_at)))}
+          ${n.read_at?'（已读）':'<button class="a-button" data-notice-read="'+esc(n.id)+'">标记已读</button>'}
+          </p>`).join('')||'<p>暂无站内通知。</p>'}
+        <p>仅站内通知，尚未启用邮件等外部送达。</p></section>
         <section class="a-card"><h2>历史分析</h2><button class="a-button" data-refresh>刷新</button>
         ${list.records.length?list.records.map(r=>`<p><button class="a-button" data-analysis="${esc(r.id)}">${esc(r.title)}</button> · ${esc(label(r.status))} · 建议 ${esc(r.suggestion_count)} 条</p>`).join(''):'<p>尚无分析，点击开始后才会调用模型。</p>'}</section>
         <section class="a-card" data-detail><p>选择一条分析查看证据和建议。</p></section>
@@ -82,6 +100,26 @@ export function createAIAnalysis(ctx){
         finally{busy=false;if(button.isConnected)button.disabled=false;}
       });
 
+      host.querySelectorAll('[data-growth-proposal]').forEach(button=>button.onclick=async()=>{
+        if(busy)return;busy=true;button.disabled=true;
+        try{
+          const response=await decideGrowthInvestigation(button.dataset.proposalId,
+            Number(button.dataset.proposalVersion),button.dataset.growthProposal);
+          if(token===generation){
+            message(response.note||'提案状态已更新');
+            await draw();
+          }
+        }catch(error){if(token===generation)message(error.message);}
+        finally{busy=false;if(button.isConnected)button.disabled=false;}
+      });
+      host.querySelectorAll('[data-notice-read]').forEach(button=>button.onclick=async()=>{
+        if(busy)return;busy=true;button.disabled=true;
+        try{
+          await markGrowthNotificationRead(button.dataset.noticeRead);
+          if(token===generation)await draw();
+        }catch(error){if(token===generation)message(error.message);}
+        finally{busy=false;if(button.isConnected)button.disabled=false;}
+      });
       host.querySelectorAll('[data-ready-review]').forEach(button=>button.onclick=async()=>{
         if(busy)return;busy=true;button.disabled=true;
         try{
