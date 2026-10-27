@@ -28,3 +28,20 @@ test('canary evidence is scoped by owner and immutable archived prompt hashes',(
   assert.equal(evidenceFor(db,'alice','baseline',100).validated,1);
  }finally{db.close()}
 });
+
+test('validated-analysis completion regression can trigger safety-only rollback',()=>{
+ const db=fixture();
+ try{
+  for(let i=0;i<20;i++){
+   db.prepare('INSERT INTO agent_calls VALUES(?,?,?,?,?,?)').run('alice','base-'+i,'received',JSON.stringify({analysis:'baseline'}),JSON.stringify({validatedAnalysis:{summary:'ok'}}),150);
+   db.prepare('INSERT INTO agent_calls VALUES(?,?,?,?,?,?)').run('alice','new-'+i,'received',JSON.stringify({analysis:'candidate'}),JSON.stringify({responseContent:'invalid response'}),150);
+  }
+  const out=checkCanary(db,'alice',{now:200,minRuns:20,env:{
+   AI_PROMPT_RUNTIME_ENABLED:'1',AI_PROMPT_AUTO_ROLLBACK_ENABLED:'1'
+  }});
+  assert.equal(out.action,'rollback');
+  assert.equal(out.reason,'validated-analysis-rate-collapse');
+  assert.equal(db.prepare("SELECT candidate_hash FROM agent_active_prompts WHERE owner_id='alice'").get().candidate_hash,'baseline');
+  assert.equal(db.prepare("SELECT percent FROM agent_prompt_rollouts WHERE owner_id='alice'").get().percent,0);
+ }finally{db.close()}
+});
