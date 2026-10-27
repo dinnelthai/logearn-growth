@@ -569,12 +569,36 @@ async function completeAnalysis(id, ownerId, suggestions, result, model) {
 }
 // Atomic pending -> processing claim. The returned row is the only authority
 // for starting expensive business analysis; stale Bull jobs cannot bypass it.
-async function claimAnalysisExecution(id, ownerId) {
+async function claimAnalysisExecution(id, ownerId, token, leaseMs=120000) {
+  if(typeof token!=='string'||!token||!Number.isSafeInteger(leaseMs)||leaseMs<30000)throw Error('执行租约参数无效');
+  const now=Date.now();
   const result=await write(`UPDATE ai_analysis_records
-    SET status='processing',started_at=$3,error_message=NULL
+    SET status='processing',started_at=$3,error_message=NULL,
+        execution_token=$4,lease_expires_at=$5
     WHERE id=$1 AND owner_id=$2 AND status='pending'
-    RETURNING *`,[id,ownerId,Date.now()]);
+    RETURNING *`,[id,ownerId,now,token,now+leaseMs]);
   return result.rows[0]||null;
+}
+async function renewAnalysisLease(id,ownerId,token,leaseMs=120000) {
+  const now=Date.now();
+  const result=await write(`UPDATE ai_analysis_records SET lease_expires_at=$4
+    WHERE id=$1 AND owner_id=$2 AND execution_token=$3 AND status='processing'
+      AND lease_expires_at>$5 RETURNING id`,[id,ownerId,token,now+leaseMs,now]);
+  return !!result.rows.length;
+}
+async function assertAnalysisLease(id,ownerId,token) {
+  const result=await read(`SELECT id FROM ai_analysis_records WHERE id=$1 AND owner_id=$2
+    AND execution_token=$3 AND status='processing' AND lease_expires_at>$4`,
+    [id,ownerId,token,Date.now()]);
+  if(!result.rows.length)throw Object.assign(Error('AI 执行租约失效，停止执行'),{status:409});
+}
+async function failClaimedAnalysis(id,ownerId,token,errorMessage) {
+  const result=await write(`UPDATE ai_analysis_records SET status='failed',
+    error_message=$4,completed_at=$5,execution_token=NULL,lease_expires_at=NULL
+    WHERE id=$1 AND owner_id=$2 AND execution_token=$3 AND status='processing'
+      AND lease_expires_at>$6 RETURNING id`,
+    [id,ownerId,token,String(errorMessage),Date.now(),Date.now()]);
+  return !!result.rows.length;
 }
 async function claimAnalysisRetry(id, ownerId) {
   const result=await write(`UPDATE ai_analysis_records SET status='pending',error_message=NULL,started_at=NULL,completed_at=NULL
@@ -600,7 +624,7 @@ async function getRetrospective(id, ownerId) {
 }
 
 module.exports = {
-  completeAnalysis, claimAnalysisRetry, claimAnalysisExecution, updateAnalysisSnapshot, getAnalysisMemory, getRetrospective,
+  completeAnalysis, claimAnalysisRetry, claimAnalysisExecution, renewAnalysisLease, assertAnalysisLease, failClaimedAnalysis, updateAnalysisSnapshot, getAnalysisMemory, getRetrospective,
   // 分析记录
   createAnalysisRecord,
   updateAnalysisStatus,
