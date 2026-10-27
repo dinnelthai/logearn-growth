@@ -272,3 +272,38 @@ CREATE TABLE IF NOT EXISTS ai_growth_alert_events (
   created_at BIGINT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_ai_growth_alert_events ON ai_growth_alert_events(owner_id,alert_id,id DESC);
+
+-- Drafts produced by zero-LLM cross-day monitoring. Only an authenticated
+-- human approval can dispatch a paid business-analysis job.
+CREATE TABLE IF NOT EXISTS ai_growth_investigation_proposals (
+  id TEXT PRIMARY KEY,
+  owner_id TEXT NOT NULL,
+  alert_id TEXT NOT NULL REFERENCES ai_growth_alerts(id) ON DELETE CASCADE,
+  period_end BIGINT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'proposed'
+    CHECK(status IN ('proposed','approved','dismissed')),
+  analysis_id TEXT REFERENCES ai_analysis_records(id),
+  version INTEGER NOT NULL DEFAULT 1 CHECK(version > 0),
+  evidence JSONB NOT NULL,
+  created_at BIGINT NOT NULL,
+  updated_at BIGINT NOT NULL,
+  UNIQUE(owner_id,alert_id,period_end)
+);
+CREATE INDEX IF NOT EXISTS idx_ai_growth_proposals_owner
+  ON ai_growth_investigation_proposals(owner_id,status,created_at DESC);
+
+-- Shared operational inbox notices. No external delivery is performed unless
+-- the future notification transport is explicitly configured.
+CREATE TABLE IF NOT EXISTS ai_growth_notifications (
+  id TEXT PRIMARY KEY,
+  owner_id TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK(kind IN ('alert','proposal')),
+  resource_id TEXT NOT NULL,
+  period_end BIGINT NOT NULL,
+  message TEXT NOT NULL,
+  created_at BIGINT NOT NULL,
+  read_at BIGINT,
+  UNIQUE(owner_id,kind,resource_id,period_end)
+);
+CREATE INDEX IF NOT EXISTS idx_ai_growth_notifications_owner
+  ON ai_growth_notifications(owner_id,created_at DESC);
