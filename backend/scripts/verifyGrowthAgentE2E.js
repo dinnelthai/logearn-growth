@@ -22,7 +22,7 @@ async function verify({ownerId,day,source='all',store=createAgentStore(),health=
   }),
   evidenceScore:Number.isFinite(brief?.score?.value),
   schedulerObserved:heartbeat.observed===true&&!heartbeat.stale,
-  feedbackReviewed:feedback.some(f=>f.user_status==='executed'&&f.retrospective_id),
+  feedbackReviewed:feedback.some(f=>f.user_status==='executed'&&f.retrospective_id&&analyses.some(a=>a.id===f.analysis_id)),
   strategyVersion:Number.isSafeInteger(Number(brief?.strategy_version))&&Number(brief.strategy_version)>0,
   channelSidecarRecorded:brief?.report?.channelObservations?.version==='source-sidecar-v1'
  };
