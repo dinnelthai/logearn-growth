@@ -20,7 +20,10 @@ async function persistValidatedResult({job,analysisId,ownerId,token,compact,resu
       hypothesis:s.hypothesis,uncertainties:s.uncertainties,action:s.action,priority:s.priority,priorityReason:s.priorityReason,
       applicableScope:{...s.scope,source},expectedImpact:s.expectedImpact,impactBasis:s.impactBasis,validationMetrics:s.validationMetrics,reviewConditions:s.reviewConditions}));
     const saved={summary:analysis.summary,keyFindings:analysis.keyFindings,suggestionsCount:analysis.suggestions.length,
-      claims:analysis.claims,evidenceIds:compact.evidence.map(e=>e.id),goalVersion:compact.goal?.version||null,candidates:compact.candidates,routing:result.routing,calls:result.calls,additionalEvidence:result.evidence,cost:result.cost,analysisId};
+      claims:analysis.claims,
+      growthSignals:compact.growthPlan?.triage?.signals||[],
+      growthSkills:compact.growthPlan?.steps?.map(step=>({id:step.skillId,version:step.skillVersion}))||[],
+      evidenceIds:compact.evidence.map(e=>e.id),goalVersion:compact.goal?.version||null,candidates:compact.candidates,routing:result.routing,calls:result.calls,additionalEvidence:result.evidence,cost:result.cost,analysisId};
     await records.assertAnalysisLease(analysisId,ownerId,token);
     await records.completeAnalysis(analysisId,ownerId,suggestions,saved,result,token);await job.progress(100);
     return saved;
