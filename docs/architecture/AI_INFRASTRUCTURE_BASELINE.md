@@ -96,3 +96,12 @@ Accept a new component only when it:
 - Local test command: `NODE_PATH=<existing-upload-extracted-node_modules> node --test test/agentResponseCheckpoint.test.js test/agentTrace.test.js test/agentFoundation.test.js test/agentEvidence.test.js test/jobStatus.test.js test/retrySafety.test.js`; **11 passed, 0 failed** on a local source copy with this change, Node v22.16.0.
 - **Limitations:** the transcript, completed tool calls and investigation state are not checkpointed yet. Recording an LLM response is necessary but insufficient for automatic workflow resume. Keep paid-call retry guards active; never claim mid-run auto-resume is complete. Record contents are sensitive and must remain server-side with owner authorization; do not expose raw model responses on public job status endpoints.
 - GitHub CI, process-kill restart test, production and real paid DeRouter integration: **not yet verified**.
+
+## Implementation checkpoint 5 — durable investigation results (2026-10-27)
+
+- Reused the existing SQLite `agent_calls.result` JSON rather than adding tables or services. A new `traceStore.appendInvestigation(context,round,index,query,result)` writes one confirmed tool result at a time in an IMMEDIATE transaction.
+- Enforced the authenticated run owner, the exact trace/round and `received` state; results append in order. Identical duplicates are idempotent, conflicting rewrites fail, and incomplete model responses cannot record tool results.
+- `runner.js` checkpoints each successful tool execution before proceeding to the next tool, while keeping the previous runtime behavior intact.
+- New `backend/test/agentInvestigationCheckpoint.test.js` covers durable read-back, owner isolation, ordered writes, identical replay, conflicting replay and unknown model calls.
+- Local verification: Node v22.16.0; `NODE_PATH=<existing-extracted-dependencies> node --test test/agentInvestigationCheckpoint.test.js test/agentTrace.test.js test/agentFoundation.test.js` -> **4 tests passed** on a patched local copy. Not CI against clean checkout.
+- Still **not automatic mid-run resume**. Reconstructing messages, tool execution sequence, budget, and checkpoint consistency before worker restart remains outstanding; unknown paid calls must continue to block restart. Raw tool results may contain sensitive information and must remain server-side.
