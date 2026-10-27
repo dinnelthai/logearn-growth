@@ -1,6 +1,6 @@
 import './aiAnalysis.css';
 import {loadingState} from './loadingState.js';
-import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead,getGrowthInvestigationTimeline,getSeoImports,importSeoSnapshot,previewSeoSnapshot,previewKolPerformance,getGscConnection,saveGscSite,syncGscPerformance,getGscPerformance} from '../api/aiAnalysis.js';
+import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead,getGrowthInvestigationTimeline,getSeoImports,importSeoSnapshot,previewSeoSnapshot,previewKolPerformance,getGscConnection,saveGscSite,syncGscPerformance,getGscPerformance,getGscSitemaps,inspectGscUrl} from '../api/aiAnalysis.js';
 const DAY=86400000,OFFSET=7*3600000;
 const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
@@ -137,6 +137,17 @@ export function createAIAnalysis(ctx){
                 <tbody>${(r.pages||[]).slice(0,20).map(p=>`<tr><td>${esc(p.page)}</td><td>${esc(formatCount(p.clicks))}</td><td>${esc(formatCount(p.impressions))}</td><td>${esc(formatPercent(p.ctr))}</td></tr>`).join('')||'<tr><td colspan="4">无可展示的页面</td></tr>'}</tbody></table></div>
               <p>${(r.warnings||[]).map(w=>esc(w)).join('；')}</p>`;
           })():'<p>尚无已同步的 Google API 数据。选择站点后点击同步，才能展示可核查的关键词及趋势。</p>'}
+        </section>
+        <section class="a-card ai-gsc-diagnostics">
+          <h2>Sitemap 与 URL 收录检查</h2>
+          <p>只读查看 Search Console 中已经提交的 Sitemap 和某个 URL 的 Google 索引版本；不提交 Sitemap，不请求收录，也不更改网站。</p>
+          <button class="a-button" data-gsc-sitemaps ${!gscConnection.selectedSite?'disabled':''}>查看已提交 Sitemap</button>
+          <form data-gsc-inspect-form class="ai-gsc-controls">
+            <label>检查页面 URL（必须属于已选择资源的 HTTPS 页面）
+              <input name="inspectionUrl" type="url" placeholder="https://example.com/holders" maxlength="1500" required></label>
+            <button type="submit" class="a-button" ${!gscConnection.selectedSite?'disabled':''}>查看 Google 索引状态</button>
+          </form>
+          <div data-gsc-diagnostic-result role="status">尚未发起索引状态查询。</div>
         </section>
         <section class="a-card"><h2>SEO · 备用手动导入</h2>
           <p>优先使用上方 Google API 同步。只有服务器尚不能读取该资源时，才使用以下离线 GSC JSON 作为有限证据。</p>
@@ -287,6 +298,44 @@ export function createAIAnalysis(ctx){
             await draw();
           }
         }catch(error){if(token===generation)message('Search Console 同步失败：'+error.message)}
+        finally{busy=false;if(button.isConnected)button.disabled=false}
+      };
+      const gscDiagnostics=host.querySelector('[data-gsc-diagnostic-result]');
+      const sitemapButton=host.querySelector('[data-gsc-sitemaps]');
+      if(sitemapButton)sitemapButton.onclick=async()=>{
+        if(busy||!gscDiagnostics)return;busy=true;sitemapButton.disabled=true;
+        gscDiagnostics.textContent='正在读取 Google Sitemap 状态…';
+        try{
+          const result=await getGscSitemaps();
+          if(token!==generation)return;
+          gscDiagnostics.innerHTML='<h3>已提交 Sitemap（最多50条）</h3>'+
+            ((result.rows||[]).map(r=>`<p>${esc(r.path)} ·
+              错误 ${esc(r.errors??'未知')} · 警告 ${esc(r.warnings??'未知')} ·
+              最近下载 ${esc(r.lastDownloaded||'未知')}${r.isPending?' · 待处理':''}</p>`).join('')||
+             '<p>该 Search Console 资源没有返回已提交的 Sitemap。</p>')+
+            '<p>提交和索引计数不等于整站页面覆盖率。</p>';
+        }catch(error){if(token===generation)gscDiagnostics.textContent='Sitemap 查询失败：'+error.message}
+        finally{busy=false;if(sitemapButton.isConnected)sitemapButton.disabled=false}
+      };
+      const inspectForm=host.querySelector('[data-gsc-inspect-form]');
+      if(inspectForm)inspectForm.onsubmit=async e=>{
+        e.preventDefault();if(busy||!gscDiagnostics)return;busy=true;
+        const button=e.target.querySelector('button');button.disabled=true;
+        const url=String(new FormData(e.target).get('inspectionUrl')||'');
+        gscDiagnostics.textContent='正在查询 Google 已索引版本…';
+        try{
+          const response=await inspectGscUrl(url);
+          if(token!==generation)return;
+          const r=response.result||{};
+          gscDiagnostics.innerHTML=`<h3>Google URL 索引信息</h3>
+             <p>页面：${esc(r.inspectionUrl||url)}</p>
+             <p>索引覆盖：${esc(r.coverageState||'未知')} · 结果：${esc(r.verdict||'未知')}</p>
+             <p>抓取状态：${esc(r.pageFetchState||'未知')} · 最近抓取：${esc(r.lastCrawlTime||'未知')}</p>
+             <p>robots.txt：${esc(r.robotsTxtState||'未知')} · 索引允许：${esc(r.indexingState||'未知')}</p>
+             <p>Google 规范页面：${esc(r.googleCanonical||'未知')}</p>
+             <p>网站声明的规范页面：${esc(r.userCanonical||'未知')}</p>
+             <p>${esc(r.warning||'仅查询 Google 索引中的已有状态')}</p>`;
+        }catch(error){if(token===generation)gscDiagnostics.textContent='网址检查失败：'+error.message}
         finally{busy=false;if(button.isConnected)button.disabled=false}
       };
       const specialist=host.querySelector('[data-specialist-preview]');
