@@ -176,3 +176,14 @@ Accept a new component only when it:
 - Added this test to `.github/workflows/ai-infrastructure.yml`. CI verdict on the current workflow commit must be confirmed before merge.
 - No change to business metrics, Worker execution behavior, persistence schema or API permissions.
 - Next priority: integrate an authenticated read-only decision report with a stable prompt/context fingerprint from stored originals, then design guarded continuation with transactionally owned execution leases. Do not enable automatic paid replay or restart merely because the decision is visible.
+
+## Implementation checkpoint 14 — atomic Worker startup claim (2026-10-27)
+
+- Identified a real race: `businessAnalysis` previously read `pending`, then later updated `processing` without an atomic conditional claim. Concurrent Bull deliveries could both pass the read.
+- Added `aiRecords.claimAnalysisExecution(id,ownerId)`, using one PostgreSQL `UPDATE ... WHERE id=$1 AND owner_id=$2 AND status='pending' RETURNING *`. Only the winning Worker proceeds.
+- Added `workerStart.claimSafeAnalysis` to verify owner-scoped record access and **empty** paid-call journal before the PostgreSQL claim. A duplicate delivery or inaccessible journal cannot initiate tool/LLM work.
+- Integrated the gate into `queues/jobs/businessAnalysis.js` **before** data retrieval and AI calls. Gate errors intentionally occur outside the worker's record-failure catch so a losing Worker does not mark the winner's analysis as failed.
+- Added `backend/test/workerStart.test.js` covering winning and losing claims, completed result lookup, ownership, live/failed states, paid-call entries and inaccessible journal; added it to CI.
+- An initial CI run found a JavaScript identifier collision (`start` also represents the range start). Fixed in commit `a8dcca0e`. The corrected **GitHub Actions workflow passed** (run `40506590076`).
+- Limitations: the unit tests mock PostgreSQL's query execution, so a real multi-process PG/Redis concurrent delivery test is still needed. This is an atomic startup claim, **not** a renewable lease or automatic takeover; a crash can leave `processing` awaiting human recovery. Keep `canAutoResume:false` and do not enable automatic replays.
+- No Growth metrics, attribution, SQL analytics or production deployments altered.
