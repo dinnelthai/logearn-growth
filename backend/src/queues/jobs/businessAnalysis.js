@@ -80,15 +80,29 @@ async function businessAnalysis(job) {
       executionClaim.record.filter_conditions?.dailySchedule==='v1'
       ?await require('../../ai/growth/agentStore').createAgentStore()
         .getStrategy(ownerId,focusGoal,source):null;
+    const isDailyConversion=executionClaim.record.filter_conditions?.dailySchedule==='v1'&&
+      focusGoal==='conversion'&&source==='all';
+    const availableSpecialties=isDailyConversion
+      ?require('../../ai/growth/dailySpecialties').availableDailySpecialties(require('../../db/connection'),ownerId):[];
     const growthPlan=require('../../ai/growth/planner').planGrowthInvestigation({
       goal:focusGoal,report:compact,history:memory,
       focusSkillId:executionClaim.record.filter_conditions?.skillId||null,
+      maxSkills:Math.min(6,3+availableSpecialties.length),availableSpecialties,
       strategy:learnedStrategy
     });
     compact={...compact,business:{...compact.business,question:userQuestion||compact.business.question},
       memory,growthPlan};
     const session=require('../../ai/business/foundation').defaultFoundation().prepare(compact,{ownerId,runId:analysisId,goalRef:job.data.goalRef});
     compact=session.context;
+    // Existing read-only tool registry creates archived, owner-scoped evidence.
+    // This guarantees observed content/follower data are available to the daily
+    // conversion prompt when the corresponding owner data exists.
+    for(const skillId of availableSpecialties){
+      const tool=skillId==='content-growth'?'get_content_growth':'get_follower_quality';
+      const observed=await session.investigate({tool,input:{start,end,scope:{source:'all'}}});
+      if(observed.status==='ok'&&Array.isArray(observed.evidence))compact.evidence.push(...observed.evidence);
+      else compact.warnings=[...(compact.warnings||[]),tool+': source unavailable'];
+    }
     const snapshot={snapshot_id:compact.snapshot.id,snapshot_cutoff:compact.snapshot.cutoff,as_of:compact.snapshot.asOf,
       history_complete:compact.snapshot.historyComplete,events_complete_through:compact.snapshot.eventsCompleteThrough};
     await records.updateAnalysisSnapshot(analysisId,compact,ownerId,token);await job.progress(40);
