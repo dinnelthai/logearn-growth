@@ -613,10 +613,11 @@ async function listAnalysisPaidCalls(id,ownerId) {
 // Never use this claim to issue further paid calls or unrecorded tools.
 async function requestAnalysisCancellation(id,ownerId) {
   const now=Date.now();
+  // Revocation is atomic with the request. An already-in-flight provider
+  // request may still finish, but cannot commit a report or start another call.
   const result=await write(`UPDATE ai_analysis_records SET cancel_requested=true,
-    status=CASE WHEN status='pending' THEN 'failed' ELSE status END,
-    error_message=CASE WHEN status='pending' THEN '用户已取消任务' ELSE error_message END,
-    completed_at=CASE WHEN status='pending' THEN $3 ELSE completed_at END
+    status='failed',error_message='用户已取消任务',completed_at=$3,
+    execution_token=NULL,lease_expires_at=NULL
     WHERE id=$1 AND owner_id=$2 AND status IN ('pending','processing')
     RETURNING id,status,cancel_requested`,[id,ownerId,now]);
   return result.rows[0]||null;
