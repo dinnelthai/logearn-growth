@@ -12,6 +12,10 @@ function parseJSON(content) {
 function validateAnalysis(a) {
   if (typeof a.summary !== 'string' || !Array.isArray(a.keyFindings) || !Array.isArray(a.suggestions)) throw Error('分析结果缺少摘要、发现或建议');
   for (const s of a.suggestions) {
+    if(s.forecast!=null){
+      s.forecast=require('../growth/agentForecast').validateForecast(
+        s.forecast,s.validationMetrics,s.evidence);
+    }
     if (['problem','hypothesis','action','priorityReason'].some(k=>typeof s[k]!=='string'||!s[k].trim()) || !['P0','P1','P2'].includes(s.priority)
       || !s.evidence || typeof s.evidence!=='object' || !Array.isArray(s.uncertainties)
       || !s.validationMetrics || typeof s.validationMetrics.primary!=='string' || !Array.isArray(s.reviewConditions)) throw Error('建议缺少必要的证据、优先级、验证指标或行动');
