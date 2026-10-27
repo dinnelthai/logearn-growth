@@ -44,12 +44,13 @@ async function tickAutonomousOwner({
  let notification=null;
  if(notify&&['ready','partial'].includes(saved.status))
   notification=await notify({ownerId,briefId:saved.id,day:period.day,
-   status:saved.status,score:brief.score.value,
-   summary:brief.report.overview.slice(0,1200)});
+   status:saved.status,score:saved.score?.value??null,
+   summary:String(saved.report?.overview||'').slice(0,1200)});
  return {
   ownerId,day:period.day,source,status:saved.status,briefId:saved.id,
-  score:brief.score.value,goals:required,
-  completed:brief.quality.completedGoals,expected:brief.quality.requiredGoals,
+  score:saved.score?.value??null,goals:required,
+  completed:saved.quality?.completedGoals??0,
+  expected:saved.quality?.requiredGoals??required.length,
   enqueued,learning:learning.judgements,
   strategyVersions:Object.fromEntries(Object.entries(strategies).map(([k,v])=>[k,v?.version||null])),
   notification,
