@@ -115,3 +115,13 @@ Accept a new component only when it:
 - **Local verification:** a mirrored standalone checkpoint inspector passed 4/4 unit tests with Node 22.16.0. HTTP test is committed but not verified against a clean repository checkout or actual database connections. GitHub CI and full end-to-end tests remain outstanding.
 - **Important:** `canAutoResume` is always false by design. This is an inspection feature, not permission to restart a paid model call. Saved responses, prompt versions, source-data snapshots, and completed tool results must be validated together before any actual resume orchestration is enabled.
 - Next slice: ensure complete investigation transcript can be reconstructed deterministically and independently verified against the original model prompt, source snapshot and tool outputs; then test process termination/restart without duplicate DeRouter calls. Avoid additional AI frameworks until these tests expose a proven need.
+
+## Implementation checkpoint 7 — read-only transcript reconstruction (2026-10-27)
+
+- Added `backend/src/ai/business/transcriptRecovery.js` to reconstruct the ordered assistant/tool-evidence messages from previously journaled **received** model responses. It calls no LLM, tool, database or queue and cannot trigger paid replay.
+- Explicitly refuses missing rounds, unresolved paid requests, unmatched prompt versions, partial/invalid tool results, and intervening model validation turns whose corrections were not journaled by the original runner.
+- Added `backend/test/transcriptRecovery.test.js` covering two-round tool conversation, unknown paid calls, gaps, prompt drift, partial tool results and read-only behavior.
+- Local verification: Node 22.16.0, syntax check + `node --test backend/test/transcriptRecovery.test.js` with a mirrored copy of the committed source and prior checkpoint-inspector module: **4/4 passing**. This is not a clean GitHub checkout, integration test or production test.
+- **Critical safety boundary:** the original input context/data snapshot is supplied to reconstruction but has **not been cryptographically matched to the one originally sent**; validation-repair messages are not journaled. Thus `canAutoResume:false` remains mandatory, even when a transcript is reconstructed. Do not enable Worker auto-resume or duplicate paid calls until these gaps and restart tests are resolved.
+- Business metric calculations, ingestion, SQL and trading logic untouched. No new dependencies, database migrations or external services.
+- Next implementation slice: persist and verify initial-context fingerprint and each post-response validation-repair message; only then consider an explicit safe resume controller.
