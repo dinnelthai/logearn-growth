@@ -342,3 +342,29 @@ CREATE TABLE IF NOT EXISTS ai_growth_seo_imports (
 );
 CREATE INDEX IF NOT EXISTS idx_ai_growth_seo_owner_site
  ON ai_growth_seo_imports(owner_id,site_url,end_date DESC,imported_at DESC);
+
+-- Search Console API property selection and read-only, immutable observations.
+-- Credentials are exclusively held by the server; never stored in these tables.
+CREATE TABLE IF NOT EXISTS ai_growth_gsc_settings (
+  owner_id TEXT PRIMARY KEY,
+  site_url TEXT NOT NULL,
+  updated_at BIGINT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS ai_growth_gsc_snapshots (
+  id TEXT PRIMARY KEY,
+  owner_id TEXT NOT NULL,
+  site_url TEXT NOT NULL,
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  source TEXT NOT NULL DEFAULT 'gsc-api' CHECK(source='gsc-api'),
+  data_state TEXT NOT NULL CHECK(data_state='final'),
+  property_totals JSONB NOT NULL,
+  daily JSONB NOT NULL,
+  queries JSONB NOT NULL,
+  pages JSONB NOT NULL,
+  coverage JSONB NOT NULL,
+  fetched_at BIGINT NOT NULL,
+  CHECK (end_date >= start_date)
+);
+CREATE INDEX IF NOT EXISTS idx_ai_gsc_snapshots_owner_site_period
+  ON ai_growth_gsc_snapshots(owner_id,site_url,start_date,end_date,fetched_at DESC);
