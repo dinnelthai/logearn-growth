@@ -173,7 +173,7 @@ function createPromptRegistry(db){
    WHERE a.owner_id=? AND a.role=?`).get(ownerId,role);
   if(!row||!Number.isSafeInteger(row.percent)||row.percent<=0)return baseline;
   const slot=parseInt(hash(JSON.stringify([ownerId,role,runId])).slice(0,8),16)%100;
-  return slot<row.percent&&row.content.startsWith(baseline+'\\n\\n【候选增量规则')
+  return slot<row.percent&&row.content.startsWith(baseline+'\n\n【候选增量规则')
    ?row.content:baseline;
  }
  return {propose,getCandidate,getWithContents,list,recordEvaluation,approve,activate,rollback,setRollout,resolve};
