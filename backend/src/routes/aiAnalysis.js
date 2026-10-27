@@ -9,6 +9,40 @@ const paging=req=>{
   if(!Number.isSafeInteger(limit)||limit<1||limit>100||!Number.isSafeInteger(offset)||offset<0)throw Object.assign(Error('分页参数无效'),{status:400});
   return {limit,offset,status:req.query.status||null};
 };
+// Specialty evidence ingestion/read paths are operator initiated and have
+// no model calls. GSC exports are explicitly unverified user-provided data.
+router.get('/growth-seo/imports',handle(async(req,res)=>{
+  const imports=await require('../ai/growth/seoStore').createSeoStore()
+    .list(req.user.user_id,{limit:50});
+  res.json({imports,source:'gsc-manual-export',googleConnected:false,paidCalls:0});
+}));
+router.post('/growth-seo/import',handle(async(req,res)=>{
+  const value=await require('../ai/growth/seoStore').createSeoStore()
+    .importSnapshot(req.user.user_id,req.body);
+  res.status(value.created?201:200).json({...value,googleConnected:false,paidCalls:0});
+}));
+router.post('/growth-seo/preview',handle(async(req,res)=>{
+  if(typeof req.body?.snapshotId!=='string'||req.body.snapshotId.length>128)
+    return res.status(400).json({error:'SEO 快照 ID 无效'});
+  const store=require('../ai/growth/seoStore').createSeoStore();
+  const record=await store.get(req.user.user_id,req.body.snapshotId);
+  if(!record)return res.status(404).json({error:'SEO 快照不存在或无权限'});
+  const report=require('../ai/growth/seoStore').summarizeSeo(record,{
+    startDate:req.body.startDate||record.start_date,
+    endDate:req.body.endDate||record.end_date,limit:20
+  });
+  res.json({report,dispatched:false,paidCalls:0});
+}));
+router.post('/growth-kol/preview',handle(async(req,res)=>{
+  const {start,end}=req.body||{};
+  validateRange(start,end);
+  const source=req.body?.source||'all';
+  if(source!=='all')return res.status(400).json({error:'KOL 归组效果只支持全来源范围'});
+  const report=await require('../ai/growth/kolReader').createKolReader().summarize({
+    ownerId:req.user.user_id,start,end,source,limit:20
+  });
+  res.json({report,dispatched:false,paidCalls:0});
+}));
 router.get('/growth-skills',handle(async(req,res)=>{
   res.json({version:'growth-skills-v1',
     skills:require('../ai/growth/skills').listSkills(),
