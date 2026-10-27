@@ -73,9 +73,17 @@ async function businessAnalysis(job) {
     // Ranked business candidates stay untouched; plan adds explainable
     // anomaly triage and permitted investigations for the existing runner.
     const memory=await records.getAnalysisMemory(ownerId,source);
+    // Only opt-in daily autonomy reads previously reviewed strategy versions.
+    // The exact selected policy is persisted within the analysis context for
+    // deterministic replay; nothing mutates growth KPIs or source SQL.
+    const learnedStrategy=process.env.AI_AUTONOMY_ENABLED==='1'&&
+      executionClaim.record.filter_conditions?.dailySchedule==='v1'
+      ?await require('../../ai/growth/agentStore').createAgentStore()
+        .getStrategy(ownerId,focusGoal,source):null;
     const growthPlan=require('../../ai/growth/planner').planGrowthInvestigation({
       goal:focusGoal,report:compact,history:memory,
-      focusSkillId:executionClaim.record.filter_conditions?.skillId||null
+      focusSkillId:executionClaim.record.filter_conditions?.skillId||null,
+      strategy:learnedStrategy
     });
     compact={...compact,business:{...compact.business,question:userQuestion||compact.business.question},
       memory,growthPlan};
