@@ -216,3 +216,17 @@ ALTER TABLE ai_usage_logs ADD COLUMN IF NOT EXISTS cost_known BOOLEAN NOT NULL D
 ALTER TABLE ai_analysis_records ADD COLUMN IF NOT EXISTS execution_token TEXT;
 ALTER TABLE ai_analysis_records ADD COLUMN IF NOT EXISTS lease_expires_at BIGINT;
 CREATE INDEX IF NOT EXISTS idx_ai_analysis_lease ON ai_analysis_records(status,lease_expires_at);
+
+-- Shared cross-worker paid-call fence, complementary to the detailed SQLite trace.
+-- "started" is intentionally ambiguous after process loss and cannot be replayed.
+CREATE TABLE IF NOT EXISTS ai_analysis_call_guard (
+  analysis_id TEXT NOT NULL REFERENCES ai_analysis_records(id) ON DELETE CASCADE,
+  owner_id TEXT NOT NULL,
+  round INTEGER NOT NULL,
+  execution_token TEXT NOT NULL,
+  status TEXT NOT NULL CHECK(status IN ('started','received','unknown')),
+  started_at BIGINT NOT NULL,
+  finished_at BIGINT,
+  PRIMARY KEY (analysis_id,round)
+);
+CREATE INDEX IF NOT EXISTS idx_ai_call_guard_owner ON ai_analysis_call_guard(owner_id,analysis_id,status);
