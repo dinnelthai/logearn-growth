@@ -47,7 +47,7 @@ router.get('/growth-agent/briefs',handle(async(req,res)=>{
 }));
 router.get('/growth-agent/briefs/:day',handle(async(req,res)=>{
   const day=req.params.day,source=req.query.source||'all';
-  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(day))
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(day))
    return res.status(400).json({error:'日期格式无效'});
   const brief=await require('../ai/growth/agentStore').createAgentStore()
     .getBrief(req.user.user_id,day,source);
