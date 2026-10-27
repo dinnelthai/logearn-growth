@@ -13,7 +13,10 @@ function reconstructTranscript({rows,systemPrompt,context,operationType='analysi
   const fail=reason=>({state:'blocked',reason,canAutoResume:false,inspection,messages:null,evidence:null,calls:null});
   if (!rows?.length) return fail('no-recorded-calls');
   if (inspection.state!=='recorded')return fail(inspection.reason||inspection.state);
-  const messages=[{role:'system',content:systemPrompt},{role:'user',content:JSON.stringify(context)}];
+  const originalContextJSON=JSON.stringify(context);
+  const contextHash=createHash('sha256').update(originalContextJSON).digest('hex');
+  if (rows.some(row=>row?.result?.contextHash!==contextHash))return fail('source-context-mismatch');
+  const messages=[{role:'system',content:systemPrompt},{role:'user',content:originalContextJSON}];
   const evidence=[],calls=[];
   for(const row of rows){
     if(row.prompts?.[role]!==promptHash)return fail('prompt-version-mismatch');
