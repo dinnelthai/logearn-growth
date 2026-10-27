@@ -222,52 +222,35 @@ async function createSuggestionsBatch(suggestions) {
  * 更新建议的用户状态
  */
 // Compare-and-swap: two concurrent approvals cannot overwrite one another.
-async function transitionSuggestionStatus(id,ownerId,from,to,updates={}){
+// Atomic, owner-scoped transition. Legacy writes must use the same policy.
+async function transitionSuggestionStatus(id,ownerId,from,to,updates={}) {
   const {validateActionTransition}=require('../ai/growth/actionWorkflow');
   validateActionTransition(from,to,updates);
-  const now=Date.now(),values=[id,ownerId,from,to,now];
+  const values=[id,ownerId,from,to,Date.now()];
   const sets=['user_status=$4','updated_at=$5'];
   if(to==='rejected'){
-    values.push(updates.rejectionReason);sets.push('rejection_reason=
-  const setFields = ['user_status = $3', 'updated_at = $4'];
-  const params = [id, ownerId, userStatus, Date.now()];
-  let paramIndex = 5;
-
-  if (updates.rejectionReason) {
-    setFields.push(`rejection_reason = $${paramIndex++}`);
-    params.push(updates.rejectionReason);
+    values.push(updates.rejectionReason);sets.push('rejection_reason=$'+values.length);
   }
-
-  if (updates.actualAction) {
-    setFields.push(`actual_action = $${paramIndex++}`);
-    params.push(updates.actualAction);
+  if(to==='executed'){
+    if(!Number.isSafeInteger(updates.executedAt)||updates.executedAt<0||updates.executedAt>Date.now())
+      throw Object.assign(Error('执行时间无效'),{status:400});
+    values.push(updates.actualAction);sets.push('actual_action=$'+values.length);
+    values.push(updates.executedAt);sets.push('executed_at=$'+values.length);
+    sets.push('executed_by=$2');
+    if(updates.actionScope){
+      values.push(JSON.stringify(updates.actionScope));sets.push('action_scope=$'+values.length);
+    }
   }
-
-  if (updates.actionScope) {
-    setFields.push(`action_scope = $${paramIndex++}`);
-    params.push(JSON.stringify(updates.actionScope));
-  }
-
-  if (updates.executedAt) {
-    setFields.push(`executed_at = $${paramIndex++}`);
-    params.push(updates.executedAt);
-  }
-
-  if (updates.executedBy) {
-    setFields.push(`executed_by = $${paramIndex++}`);
-    params.push(updates.executedBy);
-  }
-
-  const result = await write(`
-    UPDATE ai_suggestions
-    SET ${setFields.join(', ')}
-    WHERE id = $1 AND owner_id = $2
-    RETURNING *
-  `, params);
-
-  return result.rows[0] || null;
+  const sql='UPDATE ai_suggestions SET '+sets.join(', ')+
+    ' WHERE id=$1 AND owner_id=$2 AND user_status=$3 RETURNING *';
+  const result=await write(sql,values);
+  return result.rows[0]||null;
 }
-
+async function updateSuggestionStatus(id,ownerId,userStatus,updates={}){
+  const current=await getSuggestion(id,ownerId);
+  if(!current)return null;
+  return transitionSuggestionStatus(id,ownerId,current.user_status,userStatus,updates);
+}
 /**
  * 获取分析的所有建议
  */
