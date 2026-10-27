@@ -19,7 +19,7 @@ const scenarios=Object.freeze({
 });
 function suite(){
  return CRITICAL.map(id=>({description:id,metadata:{caseId:id},vars:{scenario:scenarios[id][0]},
-  assert:[{type:'is-json'},{type:'javascript',value:'return '+scenarios[id][1]}]}));
+  assert:[{type:'is-json'},{type:'javascript',value:scenarios[id][1]}]}));
 }
 function buildConfig(prompt,model,baseUrl){
  if(typeof prompt!=='string'||!prompt.trim()||prompt.length>50000||
