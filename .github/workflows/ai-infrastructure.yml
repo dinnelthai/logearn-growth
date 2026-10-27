@@ -6,6 +6,8 @@ on:
       - 'backend/src/ai/**'
       - 'backend/src/routes/aiAnalysis.js'
       - 'backend/test/**'
+      - 'frontend/src/pages/aiAnalysis.js'
+      - 'frontend/src/api/aiAnalysis.js'
       - 'backend/package*.json'
       - '.github/workflows/ai-infrastructure.yml'
   push:
@@ -96,3 +98,19 @@ jobs:
           AI_DATABASE_URL: postgres://ci:ci@localhost:5432/ai_test
           REDIS_URL: redis://localhost:6379
         run: node --test test/workerLeaseIntegration.test.js
+
+  ai-frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run build
