@@ -85,3 +85,15 @@ AI_PROMPT_EVAL_MAX_LATENCY_MS=...
 # Canary safety-only rollback; default disabled
 AI_PROMPT_AUTO_ROLLBACK_ENABLED=1
 ```
+
+
+## 2026-10-28 six-item audit remediation
+
+1. **Specialty API:** `POST /api/ai-analysis/analyze` now accepts `content-growth` and `follower-quality` for `conversion` in all-source scope. Daily conversion automatically prioritizes present owner-scoped sources and prefetches both read-only evidence tools when available; tool errors remain unknown, not zero.
+2. **Daily jobs:** persisted `pending` rows are requeued with bounded Bull delivery IDs. Failed daily records get at most **three safe automated retries**, through an atomic PostgreSQL claim which refuses any prior model-call guard entry or cancellation. It must never retry an unknown paid call. Apply `npm run migrate:ai` to install `autonomy_safe_retries`.
+3. **Content dates:** publication-date filtering now uses UTC+7 business days; tested at the midnight boundary.
+4. **Research dispatch:** approval is separate from execution. After approval an operator can explicitly submit `POST /api/growth-agent/research/questions/:id/dispatch` with `{ "confirmPaidAnalysis": true }` when `AI_RESEARCH_PAID_DISPATCH_ENABLED=1`; analysis records are idempotent per approved question. This is paid work, not autonomous approval.
+5. **Safety rollback:** in addition to unknown provider-call spikes, an opt-in canary rolls back when validated-analysis completion drops sharply on sufficiently many comparable runs. This is **technical output validation**, not evaluation of advice quality, causal business ROI, or statistically randomized A/B lift. No automatic promotion is added.
+6. **Follower backlog:** `FOLLOWER_AUTO_ANALYZE_ENABLED=1` plus **mandatory** `FOLLOWER_AUTO_MAX_PROFILES=1..20000` enables a single operator-started run to continue in 20-profile Bull batches, delayed into the next Bangkok budget day when necessary. Batch state is stored in SQLite; the existing third-party credit guard applies. Unknown or failed external calls stop the job. No claim is made about the real identity or profitability of MEME traders from keyword labels. Multi-host SQLite recovery and production 9700-profile behavior still require deployment verification.
+
+**Operational prerequisites:** PostgreSQL AI migration, Redis Bull worker, SQLite database shared by API and worker, valid TwitterAPI.io credentials and positive X acquisition daily USD budget. Keep all paid or canary flags off until those dependencies and accounting are independently verified. Real platform metrics, GSC and KOL connections and a production daily feedback E2E have not been proven by CI.
