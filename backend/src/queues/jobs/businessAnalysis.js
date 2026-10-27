@@ -12,6 +12,20 @@ const prompt=`你是LogEarn业务增长分析师。依据业务目标和真实�
 最终输出必须包含claims数组，每项为{id,kind:"fact|hypothesis|recommendation",text,evidenceIds,values:[{evidenceId,value}],uncertainties}。事实和建议必须引用提供的证据ID；引用数值写在values中。建议evidence对象必须包含evidenceIds数组。补查可返回investigations:[{tool:"能力目录中的ID",input:{}}]。
 输出JSON：{"summary":"摘要","keyFindings":["发现"],"suggestions":[{"problem":"问题","evidence":{"metrics":["可核对数值"],"dataPoints":["证据"]},"hypothesis":"假设","uncertainties":["未知"],"action":"具体行动","priority":"P0或P1或P2","priorityReason":"数据影响、实施成本及排序依据","scope":{"source":"请求来源"},"expectedImpact":"有依据的预期或未知","impactBasis":"依据","validationMetrics":{"primary":"active_users/new_users/returning_users 或明确业务指标ID","secondary":[]},"reviewConditions":["验证条件与观察期"]}]}。
 可不提出建议，但必须解释原因；指标不存在时不能自行造数。不得自行承诺收益。`;
+async function persistValidatedResult({job,analysisId,ownerId,token,compact,result}) {
+  const source=compact.business.scope.source;
+  const {analysis}=result;
+    await job.progress(85);
+    const suggestions=analysis.suggestions.map(s=>({analysisId,ownerId,businessProblem:s.problem,dataEvidence:s.evidence,
+      hypothesis:s.hypothesis,uncertainties:s.uncertainties,action:s.action,priority:s.priority,priorityReason:s.priorityReason,
+      applicableScope:{...s.scope,source},expectedImpact:s.expectedImpact,impactBasis:s.impactBasis,validationMetrics:s.validationMetrics,reviewConditions:s.reviewConditions}));
+    const saved={summary:analysis.summary,keyFindings:analysis.keyFindings,suggestionsCount:analysis.suggestions.length,
+      claims:analysis.claims,evidenceIds:compact.evidence.map(e=>e.id),goalVersion:compact.goal?.version||null,candidates:compact.candidates,routing:result.routing,calls:result.calls,additionalEvidence:result.evidence,cost:result.cost,analysisId};
+    await records.assertAnalysisLease(analysisId,ownerId,token);
+    await records.completeAnalysis(analysisId,ownerId,suggestions,saved,result,token);await job.progress(100);
+    return saved;
+}
+
 async function businessAnalysis(job) {
   const {analysisId,ownerId,dateRangeStart:start,dateRangeEnd:end,userQuestion,focusGoal='activation',modelMode='auto'}=job.data;
   const scope=validateScope(job.data.businessScope);
@@ -71,16 +85,8 @@ async function businessAnalysis(job) {
         finish:(round,status)=>records.finishAnalysisPaidCall(analysisId,ownerId,token,round,status)
       },
       validate:value=>{validateAnalysis(value);session.validate(value);}});
-    const {analysis}=result;
-    await job.progress(85);
-    const suggestions=analysis.suggestions.map(s=>({analysisId,ownerId,businessProblem:s.problem,dataEvidence:s.evidence,
-      hypothesis:s.hypothesis,uncertainties:s.uncertainties,action:s.action,priority:s.priority,priorityReason:s.priorityReason,
-      applicableScope:{...s.scope,source},expectedImpact:s.expectedImpact,impactBasis:s.impactBasis,validationMetrics:s.validationMetrics,reviewConditions:s.reviewConditions}));
-    const saved={summary:analysis.summary,keyFindings:analysis.keyFindings,suggestionsCount:analysis.suggestions.length,
-      claims:analysis.claims,evidenceIds:compact.evidence.map(e=>e.id),goalVersion:compact.goal?.version||null,candidates:compact.candidates,routing:result.routing,calls:result.calls,additionalEvidence:result.evidence,cost:result.cost,analysisId};
     await beforeStep();
-    await records.completeAnalysis(analysisId,ownerId,suggestions,saved,result,token);await job.progress(100);
-    return saved;
+    return persistValidatedResult({job,analysisId,ownerId,token,compact,result});
   }catch(error){await records.failClaimedAnalysis(analysisId,ownerId,token,error.message);throw error;}
   finally{clearInterval(heartbeat);}
 }
