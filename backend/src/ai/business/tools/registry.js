@@ -63,7 +63,7 @@ function createToolRegistry(deps){
    if(id==='get_retention')for(const k of ['initial','returning']){body[k]=input[k]||'chip';if(!['chip','drill','ai','trade','visit'].includes(body[k]))fail('留存事件无效');}
    if(id==='get_paths')body.details=false;
    if(id==='get_activity'&&!scope.activityId)fail('活动工具需要activityId');
-   const snapshot=id==='get_seo_performance'?{snapshot_id:null,as_of:new Date().toISOString()}:await deps.snapshot();
+   const snapshot=['get_seo_performance','get_content_growth','get_follower_quality'].includes(id)?{snapshot_id:null,as_of:new Date().toISOString()}:await deps.snapshot();
    if(!Number.isFinite(Date.parse(snapshot.as_of))||end>Date.parse(snapshot.as_of)+1)fail('所选期间超出数据水位');
    const operation=async()=>{
     if(tool.adapter==='metrics')return deps.metrics(body,snapshot,input.metrics||['active_users','new_users','returning_users'],ctx);
@@ -85,7 +85,7 @@ function createToolRegistry(deps){
     const entries=(safe.metrics||[]).map(m=>makeEvidence({...m,query:{tool:id,body},sourceVersions:{events:snapshot.snapshot_id},watermarks:{events:snapshot.as_of,trades:null,registrations:null},coverage:safe.coverage||{status:'unknown'},warnings:safe.warnings||[]},{...ctx,period}));
     for(const e of entries)deps.evidenceStore.save(e,ctx);return {status:'ok',evidence:entries,warnings:safe.warnings||[]};
    }
-   const e=makeEvidence({metricId:tool.metric,value:safe,query:{tool:id,body,metrics:input.metrics||null,dimensions:input.dimensions||null,audienceFingerprint:audience===null?null:fingerprint(audience)},sourceVersions:tool.adapter==='seo-performance'?{events:null,searchConsole:safe.snapshotId||null}:{events:snapshot.snapshot_id},watermarks:{events:tool.adapter==='seo-performance'?null:snapshot.as_of,trades:payload.trade_watermark??null,registrations:payload.registration_watermark??null,searchConsole:tool.adapter==='seo-performance'?safe.importedAt||null:null},coverage:payload.coverage||payload.quality||{status:'unknown'},warnings:payload.warnings||['各源水位独立；未提供的交易及注册覆盖为未知'],reportLocator:{page:tool.adapter,period,scope}}, {...ctx,period});
+   const e=makeEvidence({metricId:tool.metric,value:safe,query:{tool:id,body,metrics:input.metrics||null,dimensions:input.dimensions||null,audienceFingerprint:audience===null?null:fingerprint(audience)},sourceVersions:['seo-performance','content-growth','follower-quality'].includes(tool.adapter)?{events:null,searchConsole:tool.adapter==='seo-performance'?safe.snapshotId||null:null,operatorRecords:tool.adapter==='content-growth'?'manual':null,followerScan:tool.adapter==='follower-quality'?'partial':null}:{events:snapshot.snapshot_id},watermarks:{events:['seo-performance','content-growth','follower-quality'].includes(tool.adapter)?null:snapshot.as_of,trades:payload.trade_watermark??null,registrations:payload.registration_watermark??null,searchConsole:tool.adapter==='seo-performance'?safe.importedAt||null:null},coverage:payload.coverage||payload.quality||{status:'unknown'},warnings:payload.warnings||['各源水位独立；未提供的交易及注册覆盖为未知'],reportLocator:{page:tool.adapter,period,scope}}, {...ctx,period});
    deps.evidenceStore.save(e,ctx);return page(e,id,0,limit,ctx);
   }catch(error){if(error.status&&error.status<500)throw error;return {status:'unavailable',evidence:[],warnings:['数据获取失败，不得将缺失解释为0'],error:{type:'data_unavailable'}};}
   finally{clearTimeout(timer);if(!operationStarted)budget.active--;}
