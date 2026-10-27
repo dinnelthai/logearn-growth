@@ -1,9 +1,17 @@
 'use strict';
 // Pure, read-only daily operating inbox. Existing DB remains the source of truth.
-function buildGrowthInbox({analyses=[],suggestions=[],reviewEntries=[],now=Date.now()}={}){
- if(![analyses,suggestions,reviewEntries].every(Array.isArray)||!Number.isSafeInteger(now))
+function buildGrowthInbox({analyses=[],suggestions=[],reviewEntries=[],alerts=[],now=Date.now()}={}){
+ if(![analyses,suggestions,reviewEntries,alerts].every(Array.isArray)||!Number.isSafeInteger(now))
    throw Error('增长待办输入无效');
  const tasks=[];
+ for(const a of alerts.slice(0,100)){
+  if(!a||typeof a.id!=='string'||a.status!=='open'||
+     Number(a.snooze_until)>now)continue;
+  tasks.push({id:'alert:'+a.id,kind:'growth-alert',
+   priority:a.priority==='P0'?'P0':'P1',title:'复查跨日异常：'+String(a.metric||'').slice(0,50),
+   alertId:a.id,status:'needs-triage',
+   guidance:'连续完整业务日的观测变化不代表因果；需先确认采集覆盖再决定是否调查'});
+ }
  for(const a of analyses.slice(0,100)){
   if(!a||typeof a.id!=='string')continue;
   if(a.status==='failed')tasks.push({
@@ -42,8 +50,9 @@ function buildGrowthInbox({analyses=[],suggestions=[],reviewEntries=[],now=Date.
  return {version:'growth-inbox-v1',generatedAt:now,
   counts:{total:tasks.length,approval:tasks.filter(x=>x.kind==='approval').length,
    review:tasks.filter(x=>x.kind==='retrospective').length,
-   failed:tasks.filter(x=>x.kind==='analysis-failed').length},
+   failed:tasks.filter(x=>x.kind==='analysis-failed').length,
+   alerts:tasks.filter(x=>x.kind==='growth-alert').length},
   tasks:tasks.slice(0,100),readOnly:true,paidCalls:0,externalActions:0,
-  warnings:['工作台基于已有记录，不是全部增长机会或完整异常告警；无自动审批或执行']};
+  warnings:['工作台基于已保存的分析与跨日告警，不证明因果；无自动审批或执行']};
 }
 module.exports={buildGrowthInbox};
