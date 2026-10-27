@@ -7,13 +7,27 @@ const {autonomyConfig,tickAutonomousOwner}=require('../../ai/growth/agentAutonom
 const {closeQueues}=require('../queues');
 let running=false;
 function config(){return autonomyConfig(process.env)}
-async function tick({now=Date.now(),dryRun=false,runOwner=tickAutonomousOwner}={}){
+async function tick({now=Date.now(),dryRun=false,runOwner=tickAutonomousOwner,
+ health=require('../../ai/growth/agentSchedulerHealth').createSchedulerHealth()}={}){
  const settings=config();
  if(dryRun)return {dryRun:true,owners:settings.owners.length,
   goals:settings.goals,paidDispatchEnabled:false,
   note:'dry run does not query the database or call model providers'};
- if(running)return {status:'already-running'};
+ if(running)return {status:'already-running-local'};
+ const lease=await health.begin({now:Date.now()});
+ if(!lease)return {status:'already-running-other-worker'};
  running=true;
+ let failure=null,leaseLost=false,renewing=false;
+ const pulse=setInterval(async()=>{
+  if(renewing)return;
+  renewing=true;
+  try{
+   const renewed=await health.heartbeat(lease);
+   if(!renewed)leaseLost=true;
+  }catch(error){leaseLost=true;console.error('[growth-autonomy] heartbeat',error.message)}
+  finally{renewing=false}
+ },20000);
+ pulse.unref?.();
  const results=[];
  const webhookConfig=require('../../ai/growth/agentWebhook').webhookConfig();
  const enabledOwners=Object.keys(webhookConfig);
@@ -25,6 +39,7 @@ async function tick({now=Date.now(),dryRun=false,runOwner=tickAutonomousOwner}={
    // model or upstream watermark was temporarily unavailable.
    for(let lag=2;lag>=0;lag--){
     try{
+     if(leaseLost)throw Error('Agent 调度租约已失效，停止进一步处理');
      const item=await runOwner({
       ownerId,now:now-lag*86400000,source:settings.source,
       goals:settings.goals,
@@ -40,7 +55,7 @@ async function tick({now=Date.now(),dryRun=false,runOwner=tickAutonomousOwner}={
   }
   if(outbox){
    const {sendAgentWebhook}=require('../../ai/growth/agentWebhook');
-   const due=await outbox.claim(enabledOwners,{limit:10});
+   const due=leaseLost?[]:await outbox.claim(enabledOwners,{limit:10});
    for(const item of due){
     try{
      const httpStatus=await sendAgentWebhook(item,{config:webhookConfig});
@@ -57,7 +72,24 @@ async function tick({now=Date.now(),dryRun=false,runOwner=tickAutonomousOwner}={
    score:r.score??null,enqueued:r.enqueued?.length||0,reason:r.reason||null
   }))));
   return results;
- }finally{running=false}
+ }catch(error){failure=error;throw error}
+ finally{
+  clearInterval(pulse);
+  const errors=results.filter(x=>x.status==='error'||
+   x.delivery==='retry-scheduled'||x.status==='lease-lost').length;
+  const summary={items:results.length,errors,
+   ready:results.filter(x=>x.status==='ready').length,
+   partial:results.filter(x=>x.status==='partial').length,
+   blocked:results.filter(x=>x.status==='blocked').length,
+   queued:results.reduce((n,x)=>n+(x.enqueued?.length||0),0),
+   deliveries:results.filter(x=>x.delivery==='delivered').length};
+  const outcome=failure||leaseLost?'failed':errors?'partial':'succeeded';
+  try{
+   await health.finish(lease,{outcome,summary,
+    error:failure?.message|| (leaseLost?'lease-lost':null)});
+  }catch(error){console.error('[growth-autonomy] cannot persist run health',error.message)}
+  running=false;
+ }
 }
 async function main(){
  config();
