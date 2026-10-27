@@ -1,6 +1,6 @@
 import './aiAnalysis.css';
 import {loadingState} from './loadingState.js';
-import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence} from '../api/aiAnalysis.js';
+import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint} from '../api/aiAnalysis.js';
 const DAY=86400000,OFFSET=7*3600000;
 const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
@@ -62,6 +62,7 @@ export function createAIAnalysis(ctx){
       const panel=$('#as-output').querySelector('[data-detail]');if(!panel)return;
       panel.innerHTML=`<h2>${esc(r.title)} · ${esc(label(r.status))}</h2>
       ${r.error_message?`<p role="alert">${esc(r.error_message)}</p>`:''}
+      <p data-checkpoint-result role="status">正在读取调查检查点…</p>
       ${r.status==='failed'?'<button class="a-button" data-retry-analysis>重试分析</button>':''}
       <p>${esc(r.result?.summary||'任务已排队；请确认 AI Worker 正在运行。')}</p>
       ${(r.result?.keyFindings||[]).map(f=>`<p>${esc(f)}</p>`).join('')}
@@ -75,6 +76,29 @@ export function createAIAnalysis(ctx){
         <button class="a-button" name="status" value="adopted">采纳</button><button class="a-button" name="status" value="executed">记录已执行</button><button class="a-button" name="status" value="rejected">拒绝</button></form>
         ${s.user_status==='executed'?`<button class="a-button" data-review="${esc(s.id)}">复盘执行效果</button>`:''}</article>`).join('')}
       <details><summary>业务快照、目标优先级及模型调用记录</summary><pre>${json({snapshot:r.data_snapshot,calls:r.result?.calls})}</pre></details>`;
+      // Diagnostics are owner-scoped and intentionally do not expose model prompts.
+      getJobCheckpoint(id).then(checkpoint=>{
+        if(token!==generation||selected!==id||!panel.isConnected)return;
+        const target=panel.querySelector('[data-checkpoint-result]');
+        if(!target)return;
+        const reasons={
+          'unresolved-paid-call':'模型调用状态未确认，必须人工核查，不能直接重试',
+          'tool-execution-incomplete':'调查工具执行不完整，尚不允许自动续跑',
+          'requires-validation-before-resume':'调查记录已保存，但尚未完成恢复验证',
+          'noncontiguous-rounds':'调查步骤记录不连续，需人工核查'
+        };
+        target.textContent='已保存模型轮次：'+checkpoint.completedRounds+
+          ' · 工具结果：'+checkpoint.completedTools+
+          ' · 待完成工具：'+checkpoint.pendingTools+
+          (checkpoint.leaseExpired?' · 执行租约已过期':'')+
+          (checkpoint.reason?' · '+(reasons[checkpoint.reason]||checkpoint.reason):'')+
+          (checkpoint.requiresHumanReview?' · 需要人工处理':'');
+      }).catch(error=>{
+        if(token===generation&&selected===id&&panel.isConnected){
+          const target=panel.querySelector('[data-checkpoint-result]');
+          if(target)target.textContent='检查点暂不可用：'+error.message;
+        }
+      });
       panel.querySelectorAll('[data-evidence]').forEach(button=>button.onclick=async()=>{try{const evidence=await getEvidence(button.dataset.evidence);if(token===generation&&selected===id)panel.querySelector('[data-evidence-result]').textContent=JSON.stringify(evidence,null,2);}catch(error){message(error.message);}});
       panel.querySelector('[data-retry-analysis]')?.addEventListener('click',async()=>{if(busy)return;busy=true;try{await retryAnalysis(id);if(token===generation)await open(id);}catch(error){message(error.message);}finally{busy=false;}});
       panel.querySelectorAll('[data-suggestion]').forEach(form=>form.onsubmit=async e=>{
