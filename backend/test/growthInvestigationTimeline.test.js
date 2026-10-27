@@ -34,7 +34,7 @@ function fixture(overrides={}){
   recordsApi:{
    async getAnalysisRecord(id,owner){counts.analysis++;return owner==='alice'&&id==='analysis-1'?record:null},
    async listSuggestionsByAnalysis(){counts.suggestions++;return [suggestion]},
-   async listRetrospectivesBySuggestion(){counts.reviews++;return reviews}
+   async listRetrospectivesByAnalysis(id,owner){counts.reviews++;assert.equal(id,'analysis-1');assert.equal(owner,'alice');return reviews}
   }
  });
  return {service,counts};
@@ -85,4 +85,11 @@ test('executed suggestion without saved retrospective remains awaiting review',a
  assert.equal(state.stage,'awaiting-retrospective');
  assert.equal(state.counts.retrospectives,0);
  assert.equal(stageFor({status:'approved'},{status:'completed'},[{user_status:'pending'}],[]),'awaiting-action-approval');
+});
+
+test('foreign or unrelated retrospective rows are blocked even with an existing case',async()=>{
+ const foreign=fixture({reviews:[{...retrospective,owner_id:'bob'}]});
+ await assert.rejects(foreign.service.get('alice','proposal-1'),/复盘关联不一致/);
+ const unrelated=fixture({reviews:[{...retrospective,suggestion_id:'some-other-action'}]});
+ await assert.rejects(unrelated.service.get('alice','proposal-1'),/复盘关联不一致/);
 });
