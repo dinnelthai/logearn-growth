@@ -55,7 +55,15 @@ test('Postgres fencing and real Bull/Redis duplicate delivery', {skip:!enabled},
   );
   assert.equal(await records.failClaimedAnalysis(id,owner,oldToken,'stale worker'),false);
   assert.equal((await records.getAnalysisRecord(id,owner)).status,'processing');
-  assert.equal(await records.failClaimedAnalysis(id,owner,active.execution_token,'test shutdown'),true);
+  // A second Worker may take ownership only after lease expiry and with
+  // all shared paid-call entries positively received (never unknown).
+  await pool.query('UPDATE ai_analysis_records SET lease_expires_at=$2 WHERE id=$1',[id,Date.now()-1000]);
+  const recoveredToken=randomUUID();
+  const recovered=await records.claimExpiredFinalization(id,owner,recoveredToken);
+  assert.equal(recovered.execution_token,recoveredToken);
+  await assert.rejects(records.assertAnalysisLease(id,owner,active.execution_token),/失效/);
+  assert.equal(await records.failClaimedAnalysis(id,owner,active.execution_token,'stale completion'),false);
+  assert.equal(await records.failClaimedAnalysis(id,owner,recoveredToken,'test shutdown'),true);
   assert.equal((await records.getAnalysisRecord(id,owner)).status,'failed');
  }finally{
   await queue.close();
