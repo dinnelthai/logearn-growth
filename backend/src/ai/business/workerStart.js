@@ -9,6 +9,10 @@ async function claimSafeAnalysis({analysisId,ownerId,records,traceStore}) {
   if(!record)throw Object.assign(Error('分析记录不存在或无权限'),{status:404});
   if(record.status==='completed')return {action:'completed',result:record.result};
   // Never read another owner's journal before verifying record ownership.
+  // PostgreSQL is shared across Worker replicas; a local SQLite journal
+  // alone cannot prove another replica never sent a paid request.
+  const hasSharedPaidCall=await records.hasAnalysisPaidCalls(analysisId,ownerId);
+  if(hasSharedPaidCall)throw Object.assign(Error('存在共享模型调用记录，禁止跨 Worker 重放'),{status:409,reason:'shared-paid-call-guard'});
   const rows=traceStore.list(ownerId,analysisId);
   const verdict=decideRecovery({record,rows});
   if(rows.length)throw Object.assign(Error('已有模型调用记录，禁止 Worker 盲目重新执行'),{status:409,reason:verdict.reason});
