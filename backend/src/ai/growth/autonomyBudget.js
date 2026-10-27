@@ -53,7 +53,7 @@ async function beginAutonomyPaidCall({
     (analysis_id,owner_id,round,execution_token,status,started_at)
     VALUES($1,$2,$3,$4,'started',$5)
     ON CONFLICT (analysis_id,round) DO NOTHING RETURNING analysis_id`,
-    [analysisId,ownerId,token,round,now]);
+    [analysisId,ownerId,round,token,now]);
   if(!guard.rows.length)throw forbidden('模型调用防重复标记已存在');
   await client.query('COMMIT');begun=false;
   return {reserved:true,day,round,limit,accounting:'reserved-rounds-not-dollars'};
