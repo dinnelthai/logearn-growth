@@ -271,6 +271,21 @@ async function transitionSuggestionStatus(id,ownerId,from,to,updates={}){
 /**
  * 获取分析的所有建议
  */
+// Efficient owner-scoped review queue; excludes suggestions with a completed
+// retrospective. The scheduler still enforces business-day maturity.
+async function listPendingReviewSuggestions(ownerId,{limit=100}={}){
+  if(!Number.isSafeInteger(limit)||limit<1||limit>500)throw Error('复盘查询数量无效');
+  const result=await read(`SELECT s.id,s.analysis_id,s.owner_id,s.business_problem,s.priority,
+      s.user_status,s.executed_at,s.action_scope,s.applicable_scope
+    FROM ai_suggestions s
+    WHERE s.owner_id=$1 AND s.user_status='executed' AND s.executed_at IS NOT NULL
+      AND NOT EXISTS(
+        SELECT 1 FROM ai_retrospectives r
+        WHERE r.suggestion_id=s.id AND r.owner_id=$1
+      )
+    ORDER BY s.executed_at ASC LIMIT $2`,[ownerId,limit]);
+  return result.rows;
+}
 async function listSuggestionsByAnalysis(analysisId, ownerId) {
   const result = await read(`
     SELECT * FROM ai_suggestions
@@ -714,6 +729,7 @@ module.exports = {
   updateSuggestionStatus,
   transitionSuggestionStatus,
   listSuggestionsByAnalysis,
+  listPendingReviewSuggestions,
   listSuggestions,
   getSuggestion,
 
