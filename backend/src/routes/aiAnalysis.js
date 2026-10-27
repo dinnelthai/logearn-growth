@@ -121,6 +121,32 @@ router.get('/cost-stats',handle(async(req,res)=>{
   for(const value of [startTime,endTime])if(value!=null&&(!Number.isSafeInteger(Number(value))||Number(value)<0))return res.status(400).json({error:'成本统计时间无效'});
   res.json(await records.getUserCostStats(req.user.user_id,startTime?Number(startTime):null,endTime?Number(endTime):null));
 }));
+router.get('/growth-inbox',handle(async(req,res)=>{
+  const ownerId=req.user.user_id;
+  const [analyses,suggestions,reviewRows]=await Promise.all([
+    records.listAnalysisRecords(ownerId,{limit:100,offset:0}),
+    records.listSuggestions(ownerId,{limit:200,offset:0}),
+    records.listPendingReviewSuggestions(ownerId,{limit:200})
+  ]);
+  let reviewEntries=[],watermarkWarning=null;
+  try{
+    const remote=require('../data/hologres');
+    const status=await remote.status();
+    const asOf=Date.parse(status.as_of);
+    if(!Number.isFinite(asOf))throw Error('invalid watermark');
+    reviewEntries=require('../ai/growth/reviewQueue').buildReviewQueue(reviewRows,{
+      now:Date.now(),watermark:asOf
+    });
+  }catch(error){
+    // Inability to prove data maturity must suppress review-ready tasks.
+    watermarkWarning='业务数据水位暂不可用，未显示复盘到期任务';
+  }
+  const inbox=require('../ai/growth/inbox').buildGrowthInbox({
+    analyses,suggestions,reviewEntries,now:Date.now()
+  });
+  if(watermarkWarning)inbox.warnings.push(watermarkWarning);
+  res.json(inbox);
+}));
 router.get('/growth-review-queue',handle(async(req,res)=>{
   const ownerId=req.user.user_id;
   const rows=await records.listPendingReviewSuggestions(ownerId,{limit:100});
