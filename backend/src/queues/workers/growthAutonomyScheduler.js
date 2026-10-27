@@ -56,8 +56,9 @@ async function tick({now=Date.now(),dryRun=false,runOwner=tickAutonomousOwner,
     try{
      const db=require('../../db/connection');
      const changes=require('../../ai/business/context').createContextStore(db).listChanges(ownerId);
+     const sourceEvents=require('../../ai/growth/sourceChanges').sourceChanges(db,ownerId,{now});
      const research=require('../../ai/growth/researchQuestions').createResearchQuestions(db)
-       .plan(ownerId,changes,{source:settings.source,now});
+       .plan(ownerId,[...changes,...sourceEvents].slice(0,100),{source:settings.source,now});
      results.push({ownerId,researchNew:research.inserted.length,paidCalls:0,status:'research-discovery'});
     }catch(error){results.push({ownerId,status:'error',reason:'research-discovery: '+error.message})}
    }
