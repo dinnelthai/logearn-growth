@@ -101,7 +101,7 @@ function createSeoStore(db=pool){
   const result=await db.query(`INSERT INTO ai_growth_seo_imports
    (id,owner_id,site_url,start_date,end_date,source,coverage,row_count,rows,checksum,imported_at)
    VALUES($1,$2,$3,$4,$5,'gsc-manual-export','export-limited',$6,$7::jsonb,$8,$9)
-   ON CONFLICT(owner_id,checksum) DO NOTHING RETURNING id`,
+   ON CONFLICT DO NOTHING RETURNING id`,
    [id,ownerId,normalized.siteUrl,normalized.startDate,normalized.endDate,
     normalized.rows.length,JSON.stringify(normalized.rows),hash,now]);
   return {id,created:result.rows.length>0,rowCount:normalized.rows.length,
