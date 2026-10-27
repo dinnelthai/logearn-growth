@@ -45,6 +45,9 @@ router.post('/:id/resume',handle(async(req,res)=>{
   if(record.cancel_requested||record.status!=='processing'||!record.lease_expires_at||
      Number(record.lease_expires_at)>=Date.now())
     return res.status(409).json({error:'仅可恢复未取消且执行租约已过期的调查'});
+  const shared=await records.listAnalysisPaidCalls(record.id,ownerId);
+  if(!shared.length||shared.some(row=>row.status!=='received'))
+    return res.status(409).json({error:'模型调用存在未确认状态，或缺少可恢复的调用记录',reason:'unconfirmed-paid-call'});
   // The Worker validates shared paid-call states, journal rounds, the exact
   // context hash and each tool checkpoint before making any new paid call.
   const job=await addAIAnalysisJob('resume-investigation',
