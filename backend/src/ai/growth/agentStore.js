@@ -69,7 +69,8 @@ function createAgentStore(db=pool){
     status=EXCLUDED.status,score=EXCLUDED.score,report=EXCLUDED.report,
     analysis_ids=EXCLUDED.analysis_ids,quality=EXCLUDED.quality,
     strategy_version=EXCLUDED.strategy_version,generated_at=EXCLUDED.generated_at
-   WHERE ai_growth_agent_briefs.status<>'ready' OR EXCLUDED.status='ready'
+   WHERE ai_growth_agent_briefs.status='blocked' OR
+    (ai_growth_agent_briefs.status='partial' AND EXCLUDED.status IN ('partial','ready'))
    RETURNING *`,[id,ownerId,brief.day,brief.source,brief.status,
     JSON.stringify(brief.score),JSON.stringify(brief.report),
     JSON.stringify(brief.analysisIds),JSON.stringify(brief.quality),
