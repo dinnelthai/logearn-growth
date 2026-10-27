@@ -1,0 +1,3 @@
+const test=require('node:test'),assert=require('node:assert/strict');const {classify,verified}=require('../src/analytics/followerClassification')
+test('verification preserves unknown and false',()=>{assert.equal(verified({verified:false}),0);assert.equal(verified({verified:true}),1);assert.equal(verified({}),null)})
+test('classification uses evidence without treating no sample as unrelated',()=>{assert.equal(classify('',[]).category,'unknown');assert.equal(classify('meme trader',[]).category,'meme');assert.equal(classify('',[{text:'GMGM GMGN 筹码分布 SOL memecoin'}]).category,'meme');assert.equal(classify('crypto trader',[]).category,'crypto');assert.equal(classify('gardening',[]).category,'other')})

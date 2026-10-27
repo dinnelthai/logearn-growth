@@ -1,0 +1,3 @@
+function verified(user){return typeof user.verified==='boolean'?Number(user.verified):null}
+function classify(bio,posts){const items=[String(bio||''),...posts.map(p=>String(p.text||''))].filter(Boolean);if(!items.length)return {category:'unknown',evidence:''};const meme=/\b(meme(?:coin)?s?|memecoin|pump\.fun|gmgn|dexscreener|solana meme)\b|土狗|金狗|打狗|扫链|筹码/i,crypto=/\b(crypto|web3|defi|blockchain|solana|trading|token|btc|ethereum)\b|加密|链上|币圈|交易|代币/i;const hit=items.find(s=>meme.test(s));if(hit)return {category:'meme',evidence:hit.slice(0,220)};const c=items.find(s=>crypto.test(s));return c?{category:'crypto',evidence:c.slice(0,220)}:{category:'other',evidence:''}}
+module.exports={verified,classify}

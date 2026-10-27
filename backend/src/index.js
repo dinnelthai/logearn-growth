@@ -78,6 +78,7 @@ app.use('/api/ops',requireAuth,require('./routes/ops'))
 app.use('/api/growth-reports',requireAuth,require('./routes/growthReports'))
 app.use('/api/crm/kols', requireAuth, require('./routes/crm'))
 app.use('/api/x-acquisition', requireAuth, require('./routes/xAcquisition'))
+app.use('/api/content-growth', requireAuth, require('./routes/contentGrowth'))
 
 // Optional AI modules initialize only on explicit AI requests. Business pages do not need Redis, AI storage or keys.
 function optionalRouter(modulePath) {
