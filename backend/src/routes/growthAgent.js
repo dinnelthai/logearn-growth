@@ -55,6 +55,11 @@ function createRouter({db,registry}){
    .activate(String(req.user.user_id),req.params.id,req.body?.expectedVersion);
   res.json(item);
  }));
+ router.post('/prompts/rollout',handle(async(req,res)=>{
+  const item=require('../ai/optimization/promptRegistry').createPromptRegistry(db)
+   .setRollout(String(req.user.user_id),req.body?.role,req.body?.expectedVersion,req.body?.percent);
+  res.json(item);
+ }));
  router.post('/prompts/rollback',handle(async(req,res)=>{
   const item=require('../ai/optimization/promptRegistry').createPromptRegistry(db)
    .rollback(String(req.user.user_id),req.body?.role,req.body?.expectedVersion);

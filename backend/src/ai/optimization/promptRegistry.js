@@ -111,6 +111,10 @@ function createPromptRegistry(db){
      candidate_hash=excluded.candidate_hash,previous_hash=agent_active_prompts.candidate_hash,
      version=agent_active_prompts.version+1,updated_at=excluded.updated_at`).run(
       ownerId,row.role,row.candidate_hash,row.baseline_hash,now);
+   db.prepare(`INSERT INTO agent_prompt_rollouts (owner_id,role,candidate_hash,percent,version)
+    VALUES(?,?,?,0,1) ON CONFLICT(owner_id,role) DO UPDATE SET
+    candidate_hash=excluded.candidate_hash,percent=0,version=agent_prompt_rollouts.version+1`)
+    .run(ownerId,row.role,row.candidate_hash);
    const updated=db.prepare(`UPDATE agent_prompt_candidates
      SET status='active',version=version+1 WHERE owner_id=? AND id=? AND
      version=? AND status='approved'`).run(ownerId,id,expectedVersion);
@@ -134,18 +138,44 @@ function createPromptRegistry(db){
    WHERE owner_id=? AND role=? AND version=?`).run(
     Date.now(),ownerId,role,expectedVersion);
   if(result.changes!==1)refuse('回滚冲突');
+  db.prepare('UPDATE agent_prompt_rollouts SET percent=0,candidate_hash=?,version=version+1 WHERE owner_id=? AND role=?')
+   .run(active.previous_hash,ownerId,role);
   return {status:'rolled-back',version:expectedVersion+1,activeHash:active.previous_hash};
  }
- function resolve(ownerId,role,baseline,{env=process.env}={}){
+ function setRollout(ownerId,role,expectedVersion,percent){
   owner(ownerId);
-  if(env.AI_PROMPT_RUNTIME_ENABLED!=='1')return baseline;
-  const base=validateCandidate({role,content:baseline});
-  const row=db.prepare(`SELECT p.content FROM agent_active_prompts a
-   JOIN agent_prompts p ON p.hash=a.candidate_hash
-   WHERE a.owner_id=? AND a.role=?`).get(ownerId,role);
-  // Only an exact continuation of the current base instructions is permitted.
-  return row?.content?.startsWith(baseline+'\n\n【候选增量规则')?row.content:baseline;
+  const steps=[0,5,10,25,50,100];
+  if(!VALID_ROLES.has(role)||!steps.includes(percent)||!Number.isSafeInteger(expectedVersion))
+   refuse('灰度比例或版本不合法',400);
+  const current=db.prepare('SELECT * FROM agent_prompt_rollouts WHERE owner_id=? AND role=?')
+   .get(ownerId,role);
+  if(!current||current.version!==expectedVersion)refuse('灰度版本已变化');
+  const index=steps.indexOf(current.percent),requested=steps.indexOf(percent);
+  if(requested>index+1)refuse('灰度只能逐档扩展，允许随时回到0');
+  const active=db.prepare('SELECT candidate_hash FROM agent_active_prompts WHERE owner_id=? AND role=?')
+   .get(ownerId,role);
+  if(!active||active.candidate_hash!==current.candidate_hash)refuse('灰度版本与当前提示词不一致');
+  const updated=db.prepare(`UPDATE agent_prompt_rollouts SET percent=?,version=version+1
+    WHERE owner_id=? AND role=? AND version=?`)
+   .run(percent,ownerId,role,expectedVersion);
+  if(updated.changes!==1)refuse('并发灰度修改冲突');
+  return {role,percent,version:expectedVersion+1};
  }
- return {propose,getCandidate,getWithContents,list,recordEvaluation,approve,activate,rollback,resolve};
+ function resolve(ownerId,role,baseline,{env=process.env,runId=null}={}){
+  owner(ownerId);
+  if(env.AI_PROMPT_RUNTIME_ENABLED!=='1'||typeof runId!=='string'||!runId)
+   return baseline;
+  validateCandidate({role,content:baseline});
+  const row=db.prepare(`SELECT p.content,r.percent FROM agent_active_prompts a
+   JOIN agent_prompts p ON p.hash=a.candidate_hash
+   JOIN agent_prompt_rollouts r ON r.owner_id=a.owner_id AND r.role=a.role
+    AND r.candidate_hash=a.candidate_hash
+   WHERE a.owner_id=? AND a.role=?`).get(ownerId,role);
+  if(!row||!Number.isSafeInteger(row.percent)||row.percent<=0)return baseline;
+  const slot=parseInt(hash(JSON.stringify([ownerId,role,runId])).slice(0,8),16)%100;
+  return slot<row.percent&&row.content.startsWith(baseline+'\\n\\n【候选增量规则')
+   ?row.content:baseline;
+ }
+ return {propose,getCandidate,getWithContents,list,recordEvaluation,approve,activate,rollback,setRollout,resolve};
 }
 module.exports={createPromptRegistry};

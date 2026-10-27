@@ -13,7 +13,9 @@ function fixture(){
  status TEXT NOT NULL,version INTEGER NOT NULL,created_at INTEGER NOT NULL,evaluated_at INTEGER,
  approved_at INTEGER,approved_by TEXT,evaluation TEXT,suite_hash TEXT,PRIMARY KEY(owner_id,id));
  CREATE TABLE agent_active_prompts(owner_id TEXT NOT NULL,role TEXT NOT NULL,candidate_hash TEXT NOT NULL,
- previous_hash TEXT NOT NULL,version INTEGER NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(owner_id,role));`);
+ previous_hash TEXT NOT NULL,version INTEGER NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(owner_id,role));
+ CREATE TABLE agent_prompt_rollouts(owner_id TEXT NOT NULL,role TEXT NOT NULL,candidate_hash TEXT NOT NULL,
+ percent INTEGER NOT NULL,version INTEGER NOT NULL,PRIMARY KEY(owner_id,role));`);
  return {db,registry:createPromptRegistry(db)};
 }
 const baseline='Do not invent business facts; preserve owner scope.';
@@ -33,7 +35,11 @@ test('prompt candidate requires independent evaluation and owner approval',()=>{
   assert.throws(()=>registry.activate('alice',v.id,3,{env:{}}),/disabled/);
   const active=registry.activate('alice',v.id,3,{env:{AI_PROMPT_AUTO_PUBLISH:'1'}});
   assert.equal(active.status,'active');
-  assert.match(registry.resolve('alice','analysis',baseline,{env:{AI_PROMPT_RUNTIME_ENABLED:'1'}}),/missing denominators/);
+  assert.equal(registry.resolve('alice','analysis',baseline,{env:{AI_PROMPT_RUNTIME_ENABLED:'1'},runId:'first'}),baseline);
+  const canary=registry.setRollout('alice','analysis',1,5);
+  assert.equal(canary.percent,5);
+  assert.throws(()=>registry.setRollout('alice','analysis',2,100),/逐档/);
+  assert.equal(Array.from({length:1000},(_,i)=>registry.resolve('alice','analysis',baseline,{env:{AI_PROMPT_RUNTIME_ENABLED:'1'},runId:'sample-'+i})).some(x=>x.includes('missing denominators')),true);
   assert.equal(registry.resolve('bob','analysis',baseline,{env:{AI_PROMPT_RUNTIME_ENABLED:'1'}}),baseline);
   const rolled=registry.rollback('alice','analysis',1);
   assert.equal(rolled.status,'rolled-back');

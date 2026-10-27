@@ -541,3 +541,11 @@ CREATE TABLE IF NOT EXISTS agent_active_prompts (
  previous_hash TEXT NOT NULL REFERENCES agent_prompts(hash),
  version INTEGER NOT NULL DEFAULT 1,updated_at INTEGER NOT NULL,
  PRIMARY KEY(owner_id,role));
+
+-- Operator-controlled gradual canary. Activation always starts at zero traffic.
+CREATE TABLE IF NOT EXISTS agent_prompt_rollouts (
+ owner_id TEXT NOT NULL,role TEXT NOT NULL,
+ candidate_hash TEXT NOT NULL REFERENCES agent_prompts(hash),
+ percent INTEGER NOT NULL DEFAULT 0 CHECK(percent IN (0,5,10,25,50,100)),
+ version INTEGER NOT NULL DEFAULT 1,
+ PRIMARY KEY(owner_id,role));
