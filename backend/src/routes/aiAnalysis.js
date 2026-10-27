@@ -38,6 +38,21 @@ router.post('/analyze',handle(async(req,res)=>{
   } catch(error) { await records.updateAnalysisStatus(record.id,'failed',null,error.message);throw error; }
   res.status(202).json({analysisId:record.id,jobId:job.id,status:'pending'});
 }));
+router.post('/:id/resume',handle(async(req,res)=>{
+  const ownerId=req.user.user_id;
+  const record=await records.getAnalysisRecord(req.params.id,ownerId);
+  if(!record)return res.status(404).json({error:'分析不存在或无权限'});
+  if(record.cancel_requested||record.status!=='processing'||!record.lease_expires_at||
+     Number(record.lease_expires_at)>=Date.now())
+    return res.status(409).json({error:'仅可恢复未取消且执行租约已过期的调查'});
+  // The Worker validates shared paid-call states, journal rounds, the exact
+  // context hash and each tool checkpoint before making any new paid call.
+  const job=await addAIAnalysisJob('resume-investigation',
+    {analysisId:record.id,ownerId},
+    {jobId:'manual-resume-'+record.id+'-'+Math.floor(Date.now()/60000),attempts:1});
+  res.status(202).json({analysisId:record.id,jobId:job.id,status:'queued',
+    notice:'将优先复用已完成步骤；如果后续需要新的模型轮次，仍可能产生费用'});
+}));
 router.post('/:id/cancel',handle(async(req,res)=>{
   const updated=await records.requestAnalysisCancellation(req.params.id,req.user.user_id);
   if(!updated)return res.status(409).json({error:'任务不存在、无权限或已经结束'});
