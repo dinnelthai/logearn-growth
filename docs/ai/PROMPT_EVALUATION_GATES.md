@@ -20,3 +20,9 @@ The owner-scoped SQLite registry now supports proposed → evaluated → approve
 3. Review the candidate and use the authenticated approval endpoint, passing the current expectedVersion. Activation also requires `AI_PROMPT_AUTO_PUBLISH=1` and refuses a moved baseline. `AI_PROMPT_RUNTIME_ENABLED` remains disabled by default; the live runner is not connected to the registry yet, so activation in the registry alone does NOT change model behavior.
 
 A candidate's review must not read hidden case answers; only the separate operator evaluator reads them. No production prompts may be swapped until replay stability, canary comparison, persistent evaluation provenance, and automatic rollback have been independently verified. The included `promptfooconfig.yaml` is a **synthetic offline assertion smoke suite only**; it must never count as a qualifying evaluation of a candidate.
+
+## Safe canary and replay
+
+Activation writes a zero-traffic staging record. An authenticated operator expands traffic via `POST /api/growth-agent/prompts/rollout`, one step at a time: 0%, 5%, 10%, 25%, 50%, 100%; dropping to zero is always allowed. `AI_PROMPT_RUNTIME_ENABLED=1` is a separate explicit switch. Each new analysis uses deterministic run-ID bucketing and stores the exact full prompt hash in its trace. On worker replay, recovery loads the archived prompt for that owner and run rather than recomputing a new prompt version.
+
+**Remaining production validation:** a real blinded evaluation and paired shadow/canary metrics must prove quality and risk before increasing traffic. The registry records approval/rollout/rollback but does not itself measure live effectiveness or automatically roll back a canary.
