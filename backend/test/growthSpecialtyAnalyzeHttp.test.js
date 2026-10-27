@@ -51,7 +51,7 @@ test('manual specialist AI selections require appropriate goal/source and do not
   assert.equal(r.status,202);assert.equal(record.filter_conditions.skillId,'seo-organic');
   assert.equal(queued,1);
   record.status='completed';
-  r=await post({...standard,skillId:'kol-impact',focusGoal:'revenue'});
+  r=await post({...standard,skillId:'kol-impact'});
   assert.equal(r.status,409);assert.equal(queued,1);
   r=await post(standard);
   assert.equal(r.status,200);assert.equal(r.body.analysisId,'analysis-seo-1');
