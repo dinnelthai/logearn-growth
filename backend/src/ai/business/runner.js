@@ -27,7 +27,9 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
   const promptVersions={[operationType==='retrospective'?'review':'analysis']:createHash('sha256').update(systemPrompt).digest('hex')};
   const traceContext={ownerId,runId,traceId,promptVersions};
   traceStore?.savePrompt(operationType==='retrospective'?'review':'analysis',systemPrompt);
-  const messages=[{role:'system',content:systemPrompt},{role:'user',content:JSON.stringify(context)}];
+  const initialContextJSON=JSON.stringify(context);
+  const contextHash=createHash('sha256').update(initialContextJSON).digest('hex');
+  const messages=[{role:'system',content:systemPrompt},{role:'user',content:initialContextJSON}];
   const calls=[],evidence=[];
   const maxCalls=Number(process.env.AI_TASK_MAX_CALLS || 6), maxBytes=Number(process.env.AI_TASK_MAX_INPUT_BYTES || 240000);
   const maxTokens=Number(process.env.AI_TASK_MAX_TOKENS || 50000), deadline=Date.now()+Number(process.env.AI_TASK_TIMEOUT_MS || 600000);
@@ -55,7 +57,7 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
     calls.push({runId,traceId,promptVersions,model,provider:response.provider||client.modelInfo?.provider,cost:response.cost||0,costKnown:response.costKnown!==false,tokens:response.fromCache?0:response.usage?.totalTokens||0,fromCache:!!response.fromCache,reason:routing.reason});
     // Persist the exact received model response before parsing or running tools.
     // This is a recoverable paid-response checkpoint, not a resumable workflow yet.
-    traceStore?.finish(traceContext,round,{...calls.at(-1),responseContent:response.content});
+    traceStore?.finish(traceContext,round,{...calls.at(-1),responseContent:response.content,contextHash});
     if(Date.now()>deadline || calls.reduce((n,c)=>n+c.tokens,0)>maxTokens)throw Error('分析预算已达上限，未保存为成功结果');
     let value;
     try { value=parseJSON(response.content); }
