@@ -9,11 +9,13 @@ test('unattended scheduler refuses duplicate replicas and records aggregate heal
  const original={
   owners:process.env.AI_AUTONOMY_OWNER_IDS,
   goals:process.env.AI_AUTONOMY_GOALS,
-  paid:process.env.AI_AUTONOMY_PAID_DAILY_ENABLED
+  paid:process.env.AI_AUTONOMY_PAID_DAILY_ENABLED,
+  cap:process.env.AI_AUTONOMY_PAID_CALLS_PER_DAY
  };
  process.env.AI_AUTONOMY_OWNER_IDS='alice';
  process.env.AI_AUTONOMY_GOALS='activation';
  process.env.AI_AUTONOMY_PAID_DAILY_ENABLED='1';
+ process.env.AI_AUTONOMY_PAID_CALLS_PER_DAY='12';
  const health={begins:0,finishes:[],begin:async()=>{
   health.begins++;return health.begins===1?{name:'growth-autonomy',token:'lease-1'}:null},
   heartbeat:async()=>true,finish:async(_lease,result)=>health.finishes.push(result)};
@@ -40,7 +42,8 @@ test('unattended scheduler refuses duplicate replicas and records aggregate heal
   for(const [key,value]of Object.entries({
    AI_AUTONOMY_OWNER_IDS:original.owners,
    AI_AUTONOMY_GOALS:original.goals,
-   AI_AUTONOMY_PAID_DAILY_ENABLED:original.paid
+   AI_AUTONOMY_PAID_DAILY_ENABLED:original.paid,
+   AI_AUTONOMY_PAID_CALLS_PER_DAY:original.cap
   })){
    if(value==null)delete process.env[key];else process.env[key]=value;
   }
