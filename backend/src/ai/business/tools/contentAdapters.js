@@ -8,8 +8,8 @@ function contentGrowth(body,ctx){
  const rows=db.prepare(`SELECT platform,published_at,impressions,likes,comments,shares
    FROM content_growth_items WHERE owner_id=? AND published_at>=? AND published_at<=?
    ORDER BY published_at DESC LIMIT 501`).all(owner,
-   new Date(body.start).toISOString().slice(0,10),
-   new Date(body.end-1).toISOString().slice(0,10));
+   new Date(body.start+7*3600000).toISOString().slice(0,10),
+   new Date(body.end-1+7*3600000).toISOString().slice(0,10));
  const truncated=rows.length>500,items=rows.slice(0,500);
  return {available:items.length>0,summary:summarize(items),
    trends:performanceTrend(items),sampleSize:items.length,
