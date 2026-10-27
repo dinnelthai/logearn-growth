@@ -122,7 +122,7 @@ jobs:
           AI_P0_INTEGRATION: '1'
           AI_DATABASE_URL: postgres://ci:ci@localhost:5432/ai_test
           REDIS_URL: redis://localhost:6379
-        run: node --test test/aiMigrationIntegration.test.js test/growthAlertIntegration.test.js test/workerLeaseIntegration.test.js
+        run: node --test --test-concurrency=1 test/aiMigrationIntegration.test.js test/growthAlertIntegration.test.js test/workerLeaseIntegration.test.js
 
   ai-frontend:
     runs-on: ubuntu-latest
