@@ -22,17 +22,20 @@ function createAgentStore(db=pool){
    !Number.isSafeInteger(weight)||weight<1||weight>10||
    expectedVersion!==null&&(!Number.isSafeInteger(expectedVersion)||expectedVersion<1)||
    typeof active!=='boolean'||!Number.isSafeInteger(now))bad('运营目标配置无效');
-  const result=await db.query(`INSERT INTO ai_growth_agent_targets
-   (id,owner_id,metric,source,goal,target,weight,version,active,created_at,updated_at)
-   SELECT $1,$2,$3,$4,$5,$6,$7,1,$8,$9,$9
-   WHERE $10::integer IS NULL
-   ON CONFLICT(owner_id,goal,source,metric)
-   DO UPDATE SET target=EXCLUDED.target,weight=EXCLUDED.weight,
-    active=EXCLUDED.active,version=ai_growth_agent_targets.version+1,
-    updated_at=EXCLUDED.updated_at
-   WHERE $10::integer=ai_growth_agent_targets.version
-   RETURNING id,metric,goal,source,target::float8 AS target,weight,version,active`,
-    [randomUUID(),ownerId,metric,source,goal,target,weight,active,now,expectedVersion]);
+  // New targets are insert-only; editing requires the exact observed version.
+  // Avoid INSERT ... SELECT WHERE version that suppresses conflict updates.
+  const result=expectedVersion===null
+   ?await db.query(`INSERT INTO ai_growth_agent_targets
+     (id,owner_id,metric,source,goal,target,weight,version,active,created_at,updated_at)
+     VALUES($1,$2,$3,$4,$5,$6,$7,1,$8,$9,$9)
+     ON CONFLICT(owner_id,goal,source,metric) DO NOTHING
+     RETURNING id,metric,goal,source,target::float8 AS target,weight,version,active`,
+    [randomUUID(),ownerId,metric,source,goal,target,weight,active,now])
+   :await db.query(`UPDATE ai_growth_agent_targets SET
+     target=$5,weight=$6,active=$7,version=version+1,updated_at=$8
+     WHERE owner_id=$1 AND goal=$2 AND source=$3 AND metric=$4 AND version=$9
+     RETURNING id,metric,goal,source,target::float8 AS target,weight,version,active`,
+    [ownerId,goal,source,metric,target,weight,active,now,expectedVersion]);
   if(!result.rows.length)bad('目标版本已变化；请刷新后再保存',409);
   return result.rows[0];
  }
