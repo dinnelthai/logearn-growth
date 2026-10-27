@@ -53,7 +53,9 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
       throw error;
     }
     calls.push({runId,traceId,promptVersions,model,provider:response.provider||client.modelInfo?.provider,cost:response.cost||0,costKnown:response.costKnown!==false,tokens:response.fromCache?0:response.usage?.totalTokens||0,fromCache:!!response.fromCache,reason:routing.reason});
-    traceStore?.finish(traceContext,round,calls.at(-1));
+    // Persist the exact received model response before parsing or running tools.
+    // This is a recoverable paid-response checkpoint, not a resumable workflow yet.
+    traceStore?.finish(traceContext,round,{...calls.at(-1),responseContent:response.content});
     if(Date.now()>deadline || calls.reduce((n,c)=>n+c.tokens,0)>maxTokens)throw Error('分析预算已达上限，未保存为成功结果');
     let value;
     try { value=parseJSON(response.content); }
