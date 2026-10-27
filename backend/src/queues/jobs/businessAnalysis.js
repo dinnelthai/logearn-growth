@@ -67,7 +67,11 @@ async function businessAnalysis(job) {
     }else{
       compact=await reportsService.build({start,end,businessScope:scope,focusGoal,question:userQuestion});
     }
-    compact={...compact,business:{...compact.business,question:userQuestion||compact.business.question},memory:await records.getAnalysisMemory(ownerId,source)};
+    const growthPlan=require('../../ai/growth/planner').planGrowthInvestigation({
+      goal:focusGoal,report:compact
+    });
+    compact={...compact,business:{...compact.business,question:userQuestion||compact.business.question},
+      memory:await records.getAnalysisMemory(ownerId,source),growthPlan};
     const session=require('../../ai/business/foundation').defaultFoundation().prepare(compact,{ownerId,runId:analysisId,goalRef:job.data.goalRef});
     compact=session.context;
     const snapshot={snapshot_id:compact.snapshot.id,snapshot_cutoff:compact.snapshot.cutoff,as_of:compact.snapshot.asOf,
