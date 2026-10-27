@@ -3,7 +3,7 @@ const {scoreDaily}=require('./agentScore');
 const GOALS=['activation','retention','conversion','revenue'];
 const asText=(x,max=1200)=>typeof x==='string'?x.slice(0,max):'';
 function createDailyBrief({ownerId,day,source='all',goals=['activation'],
- analyses=[],targets=[],learning=null,strategies={}}){
+ analyses=[],targets=[],learning=null,strategies={},channelObservations=null}){
  if(!ownerId||!/^\d{4}-\d{2}-\d{2}$/.test(day)||!Array.isArray(goals)||
   !goals.length||goals.some(x=>!GOALS.includes(x))||new Set(goals).size!==goals.length||
   !Array.isArray(analyses)||!Array.isArray(targets))throw Error('AI 日报构建参数无效');
@@ -77,6 +77,7 @@ function createDailyBrief({ownerId,day,source='all',goals=['activation'],
    selfEvaluation:autoLearning,
    nextDayLearning:goals.map(goal=>({goal,version:strategies[goal]?.version??null,
     policy:strategies[goal]?.policy||null})),
+   channelObservations:channelObservations||{available:false,reason:'not-collected'},
    humanApprovalsRequired:true,automatedExternalActions:0,
    warnings:[...warnings,...qualityReasons,
     '日报仅整合已完成的 AI 调查及原始指标快照；模型建议并不证明原因或预计收益',
