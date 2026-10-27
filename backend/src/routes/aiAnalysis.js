@@ -33,6 +33,18 @@ router.get('/growth-seo/gsc/report',handle(async(req,res)=>{
   const report=require('../ai/growth/gscService').summarizeGsc(record);
   res.json({available:true,report,paidCalls:0});
 }));
+router.get('/growth-seo/gsc/sitemaps',handle(async(req,res)=>{
+  const result=await require('../ai/growth/gscService').createGscService()
+   .sitemaps(req.user.user_id);
+  res.json({...result,paidCalls:0});
+}));
+router.post('/growth-seo/gsc/inspect',handle(async(req,res)=>{
+  if(typeof req.body?.inspectionUrl!=='string'||req.body.inspectionUrl.length>1500)
+   return res.status(400).json({error:'请输入有效的待检查 HTTPS 页面 URL'});
+  const result=await require('../ai/growth/gscService').createGscService()
+   .inspect(req.user.user_id,req.body.inspectionUrl);
+  res.json({result,paidCalls:0,readOnly:true});
+}));
 router.post('/growth-seo/gsc/sync',handle(async(req,res)=>{
   const {startDate,endDate}=req.body||{};
   const result=await require('../ai/growth/gscService').createGscService()
