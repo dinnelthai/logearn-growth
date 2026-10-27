@@ -44,10 +44,13 @@ function createInvestigationTimeline({
     throw Object.assign(Error('分析关联不一致或记录不可访问，请核查'),{status:409});
    }
    suggestions=(await recordsApi.listSuggestionsByAnalysis(analysis.id,ownerId)).slice(0,100);
-   // The N+1 calls are bounded at 100 suggestions; never read another owner.
-   const reviews=await Promise.all(suggestions.map(s=>
-     recordsApi.listRetrospectivesBySuggestion(s.id,ownerId)));
-   retrospectives=reviews.flat().map(r=>({
+   // One owner-scoped SQL fetch, even if the analysis produced many actions.
+   const reviews=await recordsApi.listRetrospectivesByAnalysis(analysis.id,ownerId);
+   const suggestionIds=new Set(suggestions.map(s=>s.id));
+   if(!Array.isArray(reviews)||reviews.some(r=>r.owner_id!==ownerId||
+     !suggestionIds.has(r.suggestion_id)))
+    throw Object.assign(Error('复盘关联不一致或记录不可访问'),{status:409});
+   retrospectives=reviews.map(r=>({
      id:r.id,suggestionId:r.suggestion_id,createdAt:r.created_at,
      conclusion:r.conclusion,confidence:r.confidence,
      hasImprovement:r.has_improvement,hasCausality:r.has_causality,
