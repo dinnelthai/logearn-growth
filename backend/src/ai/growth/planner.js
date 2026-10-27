@@ -8,14 +8,18 @@ function planGrowthInvestigation({goal='activation',report,maxSkills=3}={}){
  if(!Number.isInteger(maxSkills)||maxSkills<1||maxSkills>6)throw Error('技能数量限制无效');
  if(!report||typeof report!=='object'||!report.business?.scope||!report.period)
   throw Error('必须提供现有业务报告作为任务规划依据');
+ const triage=require('./triage').detectGrowthSignals(report);
+ const alertIds=new Set(triage.signals.map(signal=>signal.candidateId));
  const priority=(report.candidates||[]).filter(c=>c&&typeof c.metric==='string').slice(0,20);
+ const ranked=[...priority].sort((a,b)=>Number(alertIds.has(b.id))-Number(alertIds.has(a.id)));
  const available=goalMap[goal].map(getSkill);
  const ordered=available.map((skill,i)=>({
-  skill,match:priority.findIndex(c=>skill.signals.includes(c.metric)),order:i
+  skill,match:ranked.findIndex(c=>skill.signals.includes(c.metric)),order:i
  })).sort((a,b)=>(a.match<0?999:a.match)-(b.match<0?999:b.match)||a.order-b.order);
  const selected=ordered.slice(0,maxSkills);
  return {
   version:'growth-plan-v1',goal,scope:report.business.scope,period:report.period,
+  triage,
   sourceSnapshot:report.snapshot?.id||null,requiresApprovalForActions:true,
   steps:selected.map(({skill})=>({
    skillId:skill.id,skillVersion:skill.version,label:skill.label,
