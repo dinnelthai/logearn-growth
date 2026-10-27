@@ -75,3 +75,14 @@ export const previewSeoSnapshot=(snapshotId,startDate=null,endDate=null)=>aiFetc
 export const previewKolPerformance=(start,end)=>aiFetch('/api/ai-analysis/growth-kol/preview',{
  method:'POST',body:JSON.stringify({start,end,source:'all'})
 });
+
+export const getGscConnection=()=>aiFetch('/api/ai-analysis/growth-seo/gsc/connection');
+export const saveGscSite=siteUrl=>aiFetch('/api/ai-analysis/growth-seo/gsc/settings',{
+ method:'PUT',body:JSON.stringify({siteUrl})
+});
+export const syncGscPerformance=(startDate,endDate)=>aiFetch(
+ '/api/ai-analysis/growth-seo/gsc/sync',{
+  method:'POST',body:JSON.stringify({startDate,endDate})
+ });
+export const getGscPerformance=(range=null)=>aiFetch('/api/ai-analysis/growth-seo/gsc/report'+
+ (range?'?'+new URLSearchParams(range):''));
