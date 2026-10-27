@@ -105,3 +105,13 @@ Accept a new component only when it:
 - New `backend/test/agentInvestigationCheckpoint.test.js` covers durable read-back, owner isolation, ordered writes, identical replay, conflicting replay and unknown model calls.
 - Local verification: Node v22.16.0; `NODE_PATH=<existing-extracted-dependencies> node --test test/agentInvestigationCheckpoint.test.js test/agentTrace.test.js test/agentFoundation.test.js` -> **4 tests passed** on a patched local copy. Not CI against clean checkout.
 - Still **not automatic mid-run resume**. Reconstructing messages, tool execution sequence, budget, and checkpoint consistency before worker restart remains outstanding; unknown paid calls must continue to block restart. Raw tool results may contain sensitive information and must remain server-side.
+
+## Implementation checkpoint 6 — read-only checkpoint inspection (2026-10-27)
+
+- Added `backend/src/ai/business/checkpointState.js` to inspect a persisted AI call journal without sending requests. It distinguishes empty journals, saved responses, partially recorded tool batches, ambiguous paid-call attempts, mismatched prompt versions and invalid tool checkpoints.
+- `traceStore.list()` now returns trace IDs and round indexes alongside existing journal metadata. No schema change.
+- New authenticated `GET /api/ai-analysis/jobs/:jobId/checkpoint` looks up the owning analysis record **before** reading its private SQLite call journal. Response returns counts and a reason code only; it omits raw prompts, responses and tool results.
+- Added unit tests (`backend/test/checkpointState.test.js`) and HTTP authorization test (`backend/test/checkpointHttp.test.js`).
+- **Local verification:** a mirrored standalone checkpoint inspector passed 4/4 unit tests with Node 22.16.0. HTTP test is committed but not verified against a clean repository checkout or actual database connections. GitHub CI and full end-to-end tests remain outstanding.
+- **Important:** `canAutoResume` is always false by design. This is an inspection feature, not permission to restart a paid model call. Saved responses, prompt versions, source-data snapshots, and completed tool results must be validated together before any actual resume orchestration is enabled.
+- Next slice: ensure complete investigation transcript can be reconstructed deterministically and independently verified against the original model prompt, source snapshot and tool outputs; then test process termination/restart without duplicate DeRouter calls. Avoid additional AI frameworks until these tests expose a proven need.
