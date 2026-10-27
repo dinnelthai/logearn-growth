@@ -150,3 +150,12 @@ Accept a new component only when it:
 - The baseline ZIP supplied by the user (not an exact copy of the current GitHub feature branch) was independently extracted into a local environment. Its original seven AI test files passed **14/14** on Node v22.16.0. This establishes only the *old code baseline*, not the new feature branch.
 - GitHub Actions API returned `total_count: 0` workflow runs when checked after the workflow commit; **no CI pass claimed**. Confirm repository Actions settings and triggered workflow status before merge. If Actions is disabled, enabling Actions requires repository settings access and is not simulated.
 - Next: require an actual clean-checkout CI pass, then implement a restart simulator for persisted tool checkpoints. Keep PR draft until that evidence exists.
+
+## Implementation checkpoint 11 — GitHub CI and restart persistence simulation (2026-10-27)
+
+- Added `.github/workflows/ai-infrastructure.yml` with dependency install, JavaScript syntax checks and an offline Node test suite for the new AI infrastructure paths.
+- GitHub Actions **push and PR workflows passed** on commit `1da0d007` and then again after documentation updates (`a614f988`). This independently tests the actual GitHub repository branch, unlike previous uploaded-ZIP-only checks.
+- Added `backend/test/agentRestartPersistence.test.js`. It writes a real SQLite journal file, closes the connection to simulate worker resource loss, reopens it, confirms the saved model response and tool evidence survive, and confirms an ambiguous paid call prevents replay. No LLM, Redis, Postgres, or external data calls.
+- The CI test suite was extended to include the restart simulation. **Both** latest push and PR workflows passed at commit `5e345353` (GitHub Actions runs `40504688281`, `40504696464`).
+- Local original uploaded backend ZIP AI baseline tests also passed **14/14**, but are **not** evidence of the PR branch; prefer the GitHub CI runs above.
+- Remaining limitations: SQLite reconnect is not a killed OS worker process or fully resumed investigation. No automatic runtime continuation was enabled. Source consistency, paid-call unknowns, and reconstructed transcript limits still apply. A true worker-kill end-to-end acceptance test and operational review remain required before enabling automatic resume.
