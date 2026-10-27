@@ -23,7 +23,24 @@ async function businessAnalysis(job) {
     analysisId,ownerId,records,traceStore
   });
   if(executionClaim.action==='completed')return executionClaim.result;
+  const token=executionClaim.token;
+  let leaseError=null,renewing=false;
+  const heartbeat=setInterval(async()=>{
+    if(renewing)return;
+    renewing=true;
+    try {
+      const ok=await records.renewAnalysisLease(analysisId,ownerId,token);
+      if(!ok)leaseError=Error('AI 执行租约已失效');
+    }catch(error){leaseError=error;}
+    finally{renewing=false;}
+  },20000);
+  heartbeat.unref?.();
+  const beforeStep=async()=>{
+    if(leaseError)throw leaseError;
+    await records.assertAnalysisLease(analysisId,ownerId,token);
+  };
   try {
+    await beforeStep();
     await job.progress(10);
     const duration=end-start,source=scope.source;
     let compact;
@@ -41,14 +58,14 @@ async function businessAnalysis(job) {
     compact=session.context;
     const snapshot={snapshot_id:compact.snapshot.id,snapshot_cutoff:compact.snapshot.cutoff,as_of:compact.snapshot.asOf,
       history_complete:compact.snapshot.historyComplete,events_complete_through:compact.snapshot.eventsCompleteThrough};
-    await records.updateAnalysisSnapshot(analysisId,compact);await job.progress(40);
+    await records.updateAnalysisSnapshot(analysisId,compact,ownerId,token);await job.progress(40);
     const investigate=async query=>{
       if(query.tool)return session.investigate(query);
       const ids={north:['active_users','new_users','returning_users'],growth:['activation_rate','d7','registered_users'],weekly:['weekly_core']}[query.kind];
       if(!ids)throw Error('未实现该调查工具：'+query.kind);
       return session.investigate({tool:'query_metrics',input:{metrics:ids,scope:{source:query.source||source},start:query.start??start,end:query.end??end}});
     };
-    const result=await runTask({context:compact,prompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,validate:value=>{validateAnalysis(value);session.validate(value);}});
+    const result=await runTask({context:compact,prompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,validate:value=>{validateAnalysis(value);session.validate(value);}});
     const {analysis}=result;
     await job.progress(85);
     const suggestions=analysis.suggestions.map(s=>({analysisId,ownerId,businessProblem:s.problem,dataEvidence:s.evidence,
@@ -56,8 +73,10 @@ async function businessAnalysis(job) {
       applicableScope:{...s.scope,source},expectedImpact:s.expectedImpact,impactBasis:s.impactBasis,validationMetrics:s.validationMetrics,reviewConditions:s.reviewConditions}));
     const saved={summary:analysis.summary,keyFindings:analysis.keyFindings,suggestionsCount:analysis.suggestions.length,
       claims:analysis.claims,evidenceIds:compact.evidence.map(e=>e.id),goalVersion:compact.goal?.version||null,candidates:compact.candidates,routing:result.routing,calls:result.calls,additionalEvidence:result.evidence,cost:result.cost,analysisId};
-    await records.completeAnalysis(analysisId,ownerId,suggestions,saved,result);await job.progress(100);
+    await beforeStep();
+    await records.completeAnalysis(analysisId,ownerId,suggestions,saved,result,token);await job.progress(100);
     return saved;
-  }catch(error){await records.updateAnalysisStatus(analysisId,'failed',null,error.message);throw error;}
+  }catch(error){await records.failClaimedAnalysis(analysisId,ownerId,token,error.message);throw error;}
+  finally{clearInterval(heartbeat);}
 }
 module.exports={businessAnalysis};
