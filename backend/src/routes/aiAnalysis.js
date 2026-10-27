@@ -26,6 +26,7 @@ router.get('/growth-agent/status',handle(async(req,res)=>{
   const health=authorized
     ?await require('../ai/growth/agentSchedulerHealth').createSchedulerHealth().status()
     :null;
+  const budget=authorized?await require('../ai/growth/autonomyBudget').autonomyBudgetStatus(ownerId):null;
   res.json({version:'growth-autonomy-v1',
     schedulerConfigured:configured,
     paidDailyDispatchConfigured:process.env.AI_AUTONOMY_ENABLED==='1'&&
@@ -35,6 +36,9 @@ router.get('/growth-agent/status',handle(async(req,res)=>{
     schedulerHealth:health||{observed:false,live:false,stale:true,status:
       authorized?'never-run':'not-authorized'},
     defaultSafeMode:true,externalActionsEnabled:false,
+    dailyPaidBudget:budget,
+    researchDiscoveryConfigured:authorized&&process.env.AI_RESEARCH_DISCOVERY_ENABLED==='1',
+    canarySafetyConfigured:authorized&&process.env.AI_PROMPT_AUTO_ROLLBACK_ENABLED==='1',
     latestBrief:briefs[0]||null,targetCount:targets.filter(t=>t.active).length,
     modelCallsOnThisRequest:0});
 }));
