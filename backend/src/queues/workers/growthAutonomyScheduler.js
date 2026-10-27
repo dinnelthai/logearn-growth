@@ -52,6 +52,15 @@ async function tick({now=Date.now(),dryRun=false,runOwner=tickAutonomousOwner,
      results.push({ownerId,backfillDaysAgo:lag,status:'error',reason:error.message});
     }
    }
+   if(process.env.AI_RESEARCH_DISCOVERY_ENABLED==='1'&&!leaseLost){
+    try{
+     const db=require('../../db/connection');
+     const changes=require('../../ai/business/context').createContextStore(db).listChanges(ownerId);
+     const research=require('../../ai/growth/researchQuestions').createResearchQuestions(db)
+       .plan(ownerId,changes,{source:settings.source,now});
+     results.push({ownerId,researchNew:research.inserted.length,paidCalls:0,status:'research-discovery'});
+    }catch(error){results.push({ownerId,status:'error',reason:'research-discovery: '+error.message})}
+   }
   }
   if(outbox){
    const {sendAgentWebhook}=require('../../ai/growth/agentWebhook');

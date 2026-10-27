@@ -12,6 +12,24 @@ function createRouter({db,registry}){
  router.get('/capabilities',handle(async(req,res)=>res.json({tools:registry.listCapabilities(context(req))})));
  router.post('/tools/:id',handle(async(req,res)=>res.json(await registry.executeTool(req.params.id,req.body.input||{},context(req)))));
  router.get('/evidence/:id',handle(async(req,res)=>res.json(evidence.get(req.params.id,context(req)))));
+ router.get('/research/questions',handle(async(req,res)=>{
+  const items=require('../ai/growth/researchQuestions').createResearchQuestions(db)
+   .list(String(req.user.user_id),{status:req.query.status||'awaiting-review',
+     limit:req.query.limit==null?30:Number(req.query.limit)});
+  res.json({questions:items});
+ }));
+ router.post('/research/scan',handle(async(req,res)=>{
+  if(process.env.AI_RESEARCH_DISCOVERY_ENABLED!=='1')return res.status(409).json({error:'自主发现尚未启用'});
+  const ownerId=String(req.user.user_id);
+  const result=require('../ai/growth/researchQuestions').createResearchQuestions(db)
+   .plan(ownerId,store.listChanges(ownerId),{source:req.body?.source||'all'});
+  res.json(result);
+ }));
+ router.post('/research/questions/:id/decision',handle(async(req,res)=>{
+  const result=require('../ai/growth/researchQuestions').createResearchQuestions(db)
+   .decide(String(req.user.user_id),req.params.id,req.body?.action);
+  res.status(result.changed?200:409).json(result);
+ }));
  router.get('/runs/:id/trace',handle(async(req,res)=>res.json({calls:require('../ai/business/trace').createTraceStore(db).list(req.user.user_id,req.params.id)})));
  return router;
 }
