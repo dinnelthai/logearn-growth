@@ -9,6 +9,70 @@ const paging=req=>{
   if(!Number.isSafeInteger(limit)||limit<1||limit>100||!Number.isSafeInteger(offset)||offset<0)throw Object.assign(Error('分页参数无效'),{status:400});
   return {limit,offset,status:req.query.status||null};
 };
+// Growth Agent autonomy: owner-scoped, evidence-backed brief and goals.
+// GET is read-only; /refresh never starts a paid model job.
+router.get('/growth-agent/status',handle(async(req,res)=>{
+  const ownerId=req.user.user_id;
+  const store=require('../ai/growth/agentStore').createAgentStore();
+  const source=req.query.source||'all';
+  const [briefs,targets]=await Promise.all([
+    store.listBriefs(ownerId,{source,limit:1}),store.targets(ownerId,{source})
+  ]);
+  res.json({version:'growth-autonomy-v1',
+    schedulerConfigured:process.env.AI_AUTONOMY_ENABLED==='1',
+    paidDailyDispatchConfigured:process.env.AI_AUTONOMY_ENABLED==='1'&&
+      process.env.AI_AUTONOMY_PAID_DAILY_ENABLED==='1',
+    schedulerRunning:'not-verified-from-http',
+    defaultSafeMode:true,externalActionsEnabled:false,
+    latestBrief:briefs[0]||null,targetCount:targets.filter(t=>t.active).length,
+    modelCallsOnThisRequest:0});
+}));
+router.get('/growth-agent/targets',handle(async(req,res)=>{
+  const items=await require('../ai/growth/agentStore').createAgentStore()
+    .targets(req.user.user_id,{source:req.query.source||'all'});
+  res.json({targets:items,supportedMetrics:require('../ai/growth/agentScore').SUPPORTED,
+    metricDefinitions:require('../analytics/businessPriorities').definitions,
+    note:'仅根据用户配置的明确目标打分；未设置目标时不会虚构分数'});
+}));
+router.put('/growth-agent/targets',handle(async(req,res)=>{
+  const saved=await require('../ai/growth/agentStore').createAgentStore()
+    .setTarget(req.user.user_id,req.body||{});
+  res.json({target:saved});
+}));
+router.get('/growth-agent/briefs',handle(async(req,res)=>{
+  const limit=Number(req.query.limit||30);
+  const items=await require('../ai/growth/agentStore').createAgentStore()
+    .listBriefs(req.user.user_id,{source:req.query.source||'all',limit});
+  res.json({briefs:items});
+}));
+router.get('/growth-agent/briefs/:day',handle(async(req,res)=>{
+  const day=req.params.day,source=req.query.source||'all';
+  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(day))
+   return res.status(400).json({error:'日期格式无效'});
+  const brief=await require('../ai/growth/agentStore').createAgentStore()
+    .getBrief(req.user.user_id,day,source);
+  if(!brief)return res.status(404).json({error:'日报不存在或没有访问权限'});
+  res.json({brief});
+}));
+router.get('/growth-agent/learning',handle(async(req,res)=>{
+  const ownerId=req.user.user_id,source=req.query.source||'all',
+    store=require('../ai/growth/agentStore').createAgentStore();
+  const feedback=await store.feedback(ownerId,{source,limit:100});
+  const judgements=require('../ai/growth/agentLearning').judgeHistory(feedback);
+  const goals=['activation','retention','conversion','revenue'];
+  const policies=await Promise.all(goals.map(goal=>store.getStrategy(ownerId,goal,source)));
+  res.json({assessment:require('../ai/growth/agentLearning').summarizeJudgements(judgements),
+    strategies:Object.fromEntries(goals.map((goal,i)=>[goal,policies[i]])),
+    interpretation:'历史成熟复盘的观测符合率，不是预测准确率或因果效果'});
+}));
+router.post('/growth-agent/refresh',handle(async(req,res)=>{
+  const ownerId=req.user.user_id,source=req.body?.source||'all',
+    goals=req.body?.goals||['activation','retention','conversion','revenue'];
+  const result=await require('../ai/growth/agentAutonomy').tickAutonomousOwner({
+    ownerId,source,goals,allowPaidDispatch:false
+  });
+  res.json({...result,paidModelCallsStarted:0,externalActions:0});
+}));
 // Connected Search Console settings: server-side API credentials only, no
 // credentials are accepted from or returned to the browser.
 router.get('/growth-seo/gsc/connection',handle(async(req,res)=>{
