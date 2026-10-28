@@ -44,7 +44,7 @@ export function createSegmentsAggPage(ctx) {
     const reqId = ++inflight
     $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted si-loading" role="status">正在从 /api/metrics/segments 加载…</p></div>'
     const configKey = JSON.stringify(c)
-    let metrics
+    let metrics,staleError=null
     try {
       metrics = await fetchSegmentsMetrics({
         as_of: ctx.dataStore.meta.asOf,
@@ -56,6 +56,7 @@ export function createSegmentsAggPage(ctx) {
       if (reqId !== inflight) return
       if(previousMetrics && previousConfig===configKey){
         metrics=previousMetrics
+        staleError=err.message||String(err)
         $('#as-data-status').textContent='数据更新失败 · 保留上次结果：'+(err.message||err)
       }else{
       $('#as-output').innerHTML = viewState({kind:'error',title:'分群加载失败',description:err.message||String(err),actionLabel:'重新运行',actionAttr:'data-segments-retry'});
@@ -71,6 +72,7 @@ export function createSegmentsAggPage(ctx) {
     const tags = metrics.tags || {}
 
     $('#as-output').innerHTML = `
+      ${staleError?viewState({kind:'partial',title:'保留上一次相同条件的分析结果',description:'新数据加载失败：'+staleError+'。以下内容来自上次快照，请核对数据时间后再下钻。',actionLabel:'重新运行',actionAttr:'data-segments-retry'}):''}
       <div class="a-context"><span class="a-chip">服务端分群 · ${ctx.dataStore.meta.storage==='hologres'?'实时用户与行为事实':'user_features'}</span><span>asOf ${clock(asof)} · 共 ${fmt(metrics.total || 0)} 人</span></div>
       <div class="a-summary a-four">
         ${stat('Telegram 已绑定', fmt(tags.telegram_bound || 0), `未知 ${fmt(tags.telegram_binding_unknown || 0)}`)}
@@ -98,6 +100,7 @@ export function createSegmentsAggPage(ctx) {
       <div id="as-compare-agg-mount"></div>
       <p class="a-muted">${ctx.dataStore.meta.storage==='hologres'?'覆盖注册账号及已观测登录用户，按远程行为实时分类。未激活表示当前事件历史内未观测到有效分析，不证明历史从未分析；事实更新采用弱一致快照。':'分类基于 rollup 的 user_features；人群对比和下钻由服务端计算。'}</p>`
 
+    $('#as-output').querySelector('[data-segments-retry]')?.addEventListener('click',()=>draw(c))
     $('#as-output').querySelectorAll('[data-seg]').forEach(b => {
       b.onclick = () => openCached(b.dataset.seg, cacheId, b.dataset.seg)
     })
