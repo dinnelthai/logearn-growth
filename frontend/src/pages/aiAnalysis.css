@@ -389,3 +389,39 @@
   .ai-gsc-settings .ai-gsc-controls { display: block; }
   .ai-gsc-settings .ai-gsc-controls > * { margin-bottom: 8px; }
 }
+
+/* Growth Agent workbench: factual first-screen status, not diagnostic JSON */
+#la-studio .ai-analysis-page {max-width:1440px;width:100%;min-width:0;}
+#la-studio .ai-quick-status {display:grid;gap:20px;border-radius:14px;padding:24px;min-width:0;}
+#la-studio .ai-quick-heading {display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;}
+#la-studio .ai-quick-heading h1 {margin:0 0 8px;font-size:24px;line-height:1.3;}
+#la-studio .ai-quick-heading p {margin:0;color:light-dark(#5e6d81,#a6b3c4);}
+#la-studio .ai-quick-grid {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;}
+#la-studio .ai-quick-grid > div {min-width:0;padding:16px;border:1px solid light-dark(#dfe5ec,#344256);border-radius:10px;background:light-dark(#f8fafc,#202b3a);}
+#la-studio .ai-quick-grid strong {font-size:12px;color:light-dark(#5c6b7c,#aebacc);}
+#la-studio .ai-quick-grid p {font-size:20px;line-height:1.35;font-weight:700;margin:8px 0;}
+#la-studio .ai-quick-grid small {display:block;font-size:12px;color:light-dark(#526478,#aebacc);overflow-wrap:anywhere;}
+#la-studio .ai-quick-next {padding:14px 16px;border-left:3px solid light-dark(#4963b2,#8ca9f5);background:light-dark(#f3f6fc,#202c3f);border-radius:0 8px 8px 0;}
+#la-studio .ai-quick-next h2 {font-size:15px;margin:0 0 8px;}
+#la-studio .ai-quick-next p {margin:0;}
+#la-studio .ai-system-settings, #la-studio .ai-new-analysis {min-width:0;border:1px solid light-dark(#d9e2ec,#364355);border-radius:12px;overflow:hidden;}
+#la-studio .ai-system-settings > summary, #la-studio .ai-new-analysis > summary {padding:16px 20px;font-size:14px;font-weight:650;cursor:pointer;background:light-dark(#f8fafc,#202b3a);}
+#la-studio .ai-system-settings > .a-card {margin:0;}
+#la-studio .ai-new-analysis > form {padding:16px 20px;margin:0;}
+#la-studio .ai-system-settings:focus-within, #la-studio .ai-new-analysis:focus-within {outline:2px solid light-dark(#597be0,#9bb5ff);outline-offset:1px;}
+#la-studio .ai-task-identity {font-size:12px;color:light-dark(#57697e,#aab8c8);overflow-wrap:anywhere;}
+#la-studio .ai-task-history {width:100%;max-width:100%;overflow-x:auto;border:1px solid light-dark(#dbe3ec,#354458);border-radius:10px;}
+#la-studio .ai-task-history table {border-collapse:collapse;width:100%;min-width:660px;font-size:13px;}
+#la-studio .ai-task-history th, #la-studio .ai-task-history td {padding:12px 13px;text-align:left;vertical-align:middle;border-bottom:1px solid light-dark(#e5eaf0,#2e3d50);}
+#la-studio .ai-task-history th {font-size:12px;color:light-dark(#54677e,#a9b7c8);font-weight:650;}
+#la-studio .ai-task-history td:first-child {max-width:320px;overflow-wrap:anywhere;}
+#la-studio .ai-task-history td small {display:block;opacity:.75;font-size:11px;margin-top:4px;overflow-wrap:anywhere;}
+#la-studio .ai-quick-status button:focus-visible,#la-studio .ai-task-history button:focus-visible,#la-studio .ai-new-analysis summary:focus-visible {outline:2px solid light-dark(#4963b2,#a3b6ff);outline-offset:3px;}
+@media (max-width:1100px){#la-studio .ai-quick-grid {grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media (max-width:650px){
+ #la-studio .ai-quick-status {padding:16px;}
+ #la-studio .ai-quick-heading h1 {font-size:21px;}
+ #la-studio .ai-quick-grid {grid-template-columns:1fr;}
+ #la-studio .ai-quick-heading > button {width:100%;}
+ #la-studio .ai-analysis-page .a-card {min-width:0;}
+}
