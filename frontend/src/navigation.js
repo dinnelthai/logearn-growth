@@ -11,6 +11,13 @@ export function mountSectionNavigation(root,navigate){
   const media=globalThis.matchMedia?.('(max-width: 900px)');
   const isMobile=()=>media?.matches??false;
   let activeKey=null;
+  const preferenceKey='logearn.sidebar.collapsed';
+  const groupsKey='logearn.sidebar.closed-groups';
+  let closedGroups;try{const value=JSON.parse(globalThis.localStorage?.getItem(groupsKey)||'[]');closedGroups=new Set(Array.isArray(value)?value:[])}catch{closedGroups=new Set()}
+  const saveGroups=()=>{try{globalThis.localStorage?.setItem(groupsKey,JSON.stringify([...closedGroups]))}catch{}};
+  const desktopPreference=()=>{try{return globalThis.localStorage?.getItem(preferenceKey)==='true'}catch{return false}};
+  const rememberDesktop=value=>{try{globalThis.localStorage?.setItem(preferenceKey,String(value))}catch{}};
+  parents.forEach(button=>{const label=button.querySelector?.('.nav-label')?.textContent?.trim()||button.textContent?.trim();if(label){button.setAttribute('aria-label',label);button.setAttribute('title',label)}});
 
   const setCollapsed=(collapsed,{restoreFocus=false}={})=>{
     root.classList.toggle('sidebar-collapsed',collapsed);
@@ -22,15 +29,15 @@ export function mountSectionNavigation(root,navigate){
     }
     if(restoreFocus)toggle?.focus();
   };
-  setCollapsed(isMobile());
-  toggle?.addEventListener('click',()=>setCollapsed(!root.classList.contains('sidebar-collapsed')));
+  setCollapsed(isMobile()||desktopPreference());
+  toggle?.addEventListener('click',()=>{const next=!root.classList.contains('sidebar-collapsed');setCollapsed(next);if(!isMobile())rememberDesktop(next)});
   backdrop?.addEventListener('click',()=>setCollapsed(true,{restoreFocus:true}));
   root.addEventListener?.('keydown',event=>{
     if(event.key==='Escape'&&isMobile()&&!root.classList.contains('sidebar-collapsed')){
       event.preventDefault();setCollapsed(true,{restoreFocus:true});
     }
   });
-  media?.addEventListener?.('change',()=>setCollapsed(isMobile()));
+  media?.addEventListener?.('change',()=>setCollapsed(isMobile()||desktopPreference()));
 
   const closeMobile=()=>{if(isMobile())setCollapsed(true)};
   const findGroup=key=>sections.find(group=>group.dataset.navigationSection===key);
@@ -45,7 +52,7 @@ export function mountSectionNavigation(root,navigate){
     if(!current)return;
     activeKey=current.dataset.navigationSection;
     remembered.set(activeKey,mode);
-    sections.forEach(group=>{group.hidden=isSingle(group)||group!==current});
+    sections.forEach(group=>{group.hidden=isSingle(group)||group!==current||closedGroups.has(group.dataset.navigationSection)});
     buttons.forEach(button=>{
       const selected=button.dataset.mode===canonical;
       button.setAttribute('aria-pressed',String(selected));
@@ -55,7 +62,7 @@ export function mountSectionNavigation(root,navigate){
       const selected=button.dataset.section===activeKey;
       button.setAttribute('aria-pressed',String(selected));
       if(!isSingle(findGroup(button.dataset.section)))
-        button.setAttribute('aria-expanded',String(selected));
+        button.setAttribute('aria-expanded',String(selected&&!findGroup(button.dataset.section).hidden));
     });
   }
 
@@ -63,12 +70,18 @@ export function mountSectionNavigation(root,navigate){
     button.onclick=()=>{
       const key=button.dataset.section,group=findGroup(key);
       if(!group)return;
+      if(!isMobile()&&root.classList.contains('sidebar-collapsed')){
+        setCollapsed(false);rememberDesktop(false);
+        if(key===activeKey&&!isSingle(group)){closedGroups.delete(key);saveGroups();group.hidden=false;button.setAttribute('aria-expanded','true');return}
+      }
       if(key===activeKey&&!isSingle(group)){
         // Clicking an already-active parent toggles its nested page list.
         group.hidden=!group.hidden;
+        if(group.hidden)closedGroups.add(key);else closedGroups.delete(key);saveGroups();
         button.setAttribute('aria-expanded',String(!group.hidden));
         return;
       }
+      closedGroups.delete(key);saveGroups();
       const choices=visibleButtons(group);
       const last=remembered.get(key);
       const selected=choices.find(item=>item.dataset.mode===last)

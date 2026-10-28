@@ -2,7 +2,7 @@
 #la-studio {
  --a-bg:#0b0f17; --a-panel:#151d29; --a-text:#f1f5f9; --a-muted:#94a3b8;
  --a-border:#263244; --a-accent:#91a6ff; --a-tint:#263555; --a-shadow:transparent;
- --workspace-sidebar:#0f1520; color-scheme:dark; background:var(--a-bg); color:var(--a-text);
+ --sidebar-compact-width:64px; --workspace-sidebar:#0f1520; color-scheme:dark; background:var(--a-bg); color:var(--a-text);
  min-height:100vh; padding:0 0 0 248px; border:0; border-radius:0;
  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
 }
@@ -34,8 +34,8 @@
 #la-studio button:disabled { opacity:.48; cursor:not-allowed; }
 #la-studio :is(th,td) { border-color:var(--a-border); }
 #la-studio .a-footer { margin:0 32px; color:var(--a-muted); }
-#la-studio.sidebar-collapsed { padding-left:0; }
-#la-studio.sidebar-collapsed .app-sidebar { display:none; }
+#la-studio.sidebar-collapsed { padding-left:var(--sidebar-compact-width); }
+#la-studio.sidebar-collapsed .app-sidebar { display:flex; width:var(--sidebar-compact-width); padding:18px 8px 16px; }
 @media(max-width:900px){#la-studio{padding-left:0}#la-studio .app-sidebar{width:min(280px,85vw);box-shadow:0 8px 24px #0008}#la-studio.sidebar-collapsed .app-sidebar{display:none}#la-studio .a-top{padding:12px 16px}#la-studio .a-head{padding:24px 16px 16px}#la-studio .a-layout{padding:0 16px 24px}#la-studio .a-footer{margin:0 16px}}
 @media(max-width:600px){#la-studio .toolbar-title{display:none}#la-studio .a-top{gap:8px}#la-studio .a-badge{font-size:11px}#la-studio .a-layout{display:block}#la-studio .a-config{margin-bottom:16px}#la-studio .a-scroll{max-width:100%;overflow-x:auto}}
 #la-studio .sidebar-brand img { display:block; width:100%; max-width:174px; height:auto; background:transparent; border-radius:0; padding:0; box-sizing:border-box; }
@@ -172,4 +172,29 @@ html:has(#la-studio) > body { padding:0 !important; background:#0b0f17 !importan
 }
 @media(prefers-reduced-motion:reduce){
   #la-studio .a-topnav .nav-chevron { transition:none; }
+}
+
+/* Compact desktop navigation retains the actual section controls. */
+@media (min-width:901px) {
+  #la-studio.sidebar-collapsed .sidebar-brand { height:42px; padding:0; }
+  #la-studio.sidebar-collapsed .sidebar-brand img,
+  #la-studio.sidebar-collapsed .sidebar-brand span,
+  #la-studio.sidebar-collapsed .sidebar-bottom,
+  #la-studio.sidebar-collapsed .nav-label,
+  #la-studio.sidebar-collapsed .nav-chevron,
+  #la-studio.sidebar-collapsed .nav-children { display:none !important; }
+  #la-studio.sidebar-collapsed .a-topnav .a-nav { justify-content:center; min-height:44px; padding:10px; }
+}
+@media (max-width:900px) {
+  #la-studio.sidebar-collapsed { padding-left:0; }
+  #la-studio.sidebar-collapsed .app-sidebar { display:none; }
+}
+@media (min-width:901px) {
+  #la-studio.sidebar-collapsed .a-topnav .a-nav:is(:hover,:focus-visible)::after {
+    content:attr(aria-label); position:fixed; left:72px; z-index:50;
+    padding:8px 10px; border:1px solid var(--a-border); border-radius:6px;
+    background:#1b273a; color:var(--a-text); white-space:nowrap;
+    font-size:13px; font-weight:500; box-shadow:0 4px 14px #0008;
+    pointer-events:none;
+  }
 }

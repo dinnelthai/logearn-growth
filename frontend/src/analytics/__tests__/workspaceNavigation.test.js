@@ -111,3 +111,30 @@ test('nested navigation collapses the active group and remembers child selection
   expect(t.agent.attrs['aria-expanded']).toBe('true');
   expect(t.analysis.attrs['aria-current']).toBe('page');
 });
+
+test('desktop sidebar preference survives remount without storing mobile drawer state',()=>{
+  const values=new Map();vi.stubGlobal('localStorage',{getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v)});
+  const first=fixture();first.media.matches=false;mountSectionNavigation(first.root,vi.fn());
+  first.toggle.click();expect(first.classes.has('sidebar-collapsed')).toBe(true);
+  const second=fixture();second.media.matches=false;mountSectionNavigation(second.root,vi.fn());
+  expect(second.classes.has('sidebar-collapsed')).toBe(true);
+  second.media.matches=true;second.toggle.click();
+  const third=fixture();third.media.matches=false;mountSectionNavigation(third.root,vi.fn());
+  expect(third.classes.has('sidebar-collapsed')).toBe(true);
+});
+
+test('desktop collapsed group opens the sidebar so child pages remain reachable',()=>{
+ const t=fixture();t.media.matches=false;
+ const mounted=mountSectionNavigation(t.root,vi.fn());mounted.update('home');
+ t.toggle.click();t.root.querySelectorAll('[data-section]')[0].click();
+ expect(t.classes.has('sidebar-collapsed')).toBe(false);
+ expect(t.root.querySelectorAll('[data-navigation-section]')[0].hidden).toBe(false);
+});
+
+test('active group disclosure remains closed after a reload',()=>{
+ const values=new Map();vi.stubGlobal('localStorage',{getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v)});
+ const first=fixture();first.media.matches=false;const one=mountSectionNavigation(first.root,vi.fn());one.update('home');
+ first.root.querySelectorAll('[data-section]')[0].click();
+ const second=fixture();second.media.matches=false;const two=mountSectionNavigation(second.root,vi.fn());two.update('home');
+ expect(second.root.querySelectorAll('[data-navigation-section]')[0].hidden).toBe(true);
+});
