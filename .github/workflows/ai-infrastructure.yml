@@ -104,7 +104,7 @@ jobs:
           node --check src/ai/growth/kolReader.js
           node --check src/ai/business/tools/registry.js
           node --check src/ai/business/tools/adapters.js
-          node --check src/queues/workers/growthAlertMonitor.js
+          node --check src/ai/growth/monitorScheduler.js
           node --check src/ai/growth/daily.js
           node --check src/queues/workers/dailyGrowthScheduler.js
           node --check src/ai/business/workerStart.js
