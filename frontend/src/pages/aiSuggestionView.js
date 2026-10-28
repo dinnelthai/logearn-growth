@@ -35,7 +35,7 @@ export function renderAISuggestion(s,{esc,json,label,offset=7*3600000}){
       <pre>${json(evidence)}</pre>
     </details>
     ${editable?`<form data-suggestion="${esc(s.id)}" class="ai-suggestion-decision">
-      <label>实际行动记录 / 拒绝原因
+      <label>${status==='executing'?'实际执行内容 / 拒绝原因':'拒绝原因（仅拒绝时填写）'}
         <textarea name="note" maxlength="5000" placeholder="拒绝时说明理由；记录完成时填写实际执行的动作">${esc(note)}</textarea>
       </label>
       ${status==='executing'?`<label>实际执行时间（UTC+7）
