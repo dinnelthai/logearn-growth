@@ -29,6 +29,18 @@ function productChainSummary(payload){
   stages:(chain.stages||[]).slice(0,10).map(row=>pick(row,['label','visits','users'])),
   drops:(chain.drops||[]).slice(0,10).map(row=>pick(row,['from','to','unknown','unknown_users','eligible','visits','users','rate']))},
   first_value:pick(payload.first_value,['available','entered','eligible','converted','pending','unobserved','rate','median_ms','p90_ms','window_ms']),
+  // Add small, meaningful adjacent aggregate evidence. Individual entrance
+  // visits, token addresses and the unlimited dimensions remain private.
+  exposure:pick(payload.exposure,['available','exposures','clicked','exposed_users',
+    'clicked_users','unmatched_clicks','rate']),
+  entrance:pick(payload.entrance,['missing_visit_clicks','completion_available']),
+  entrance_breakdown:(payload.entrance?.rows||[]).slice(0,6)
+    .map(row=>pick(row,['value','visits','details','successes','pending','rate'])),
+  page_clicks_summary:(payload.page_clicks?.rows||[]).slice(0,6)
+    .map(row=>pick(row,['list_type','page_name','visitor_users','clicked_users',
+      'clicks','unmatched_clicks','rate'])),
+  retention_summary:(payload.retention||[]).slice(0,3)
+    .map(row=>pick(row,['day','eligible','returned','pending','rate'])),
   coverage:payload.coverage,definition:payload.definition,
   warnings:['产品链路仅提供总体统计；维度和用户级明细未发送给模型']};
 }
