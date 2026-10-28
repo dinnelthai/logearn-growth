@@ -1,17 +1,6 @@
 /* Shared visual refinements for the analytics and operations workspace. */
-#la-studio {
-  --a-bg: light-dark(#f5f7fb, #101620);
-  --a-panel: light-dark(#ffffff, #192230);
-  --a-text: light-dark(#202d43, #e7edf7);
-  --a-muted: light-dark(#64748b, #a0aec3);
-  --a-border: light-dark(#e4eaf2, #2d3a4c);
-  --a-accent: light-dark(#4b61d1, #a5b6ff);
-  --a-tint: light-dark(#eef1ff, #293654);
-  --a-shadow: light-dark(#23365b08, #00000024);
-  border-radius: 16px;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-}
+/* The shared desktop palette lives only in ui-tokens.css. */
+#la-studio { line-height: 1.6; -webkit-font-smoothing: antialiased; }
 #la-studio .a-top { padding: 20px 105px 20px 28px; gap: 30px; }
 #la-studio .a-brandmark { filter: none; }
 #la-studio .a-brand { gap: 10px; }
