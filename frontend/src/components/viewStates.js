@@ -4,7 +4,7 @@ const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({
 }[char]));
 
 const KINDS=new Set(['error','empty','partial','unavailable']);
-const ACTIONS=new Set(['data-view-retry','data-work-refresh','data-home-retry','data-funnel-retry','data-paths-retry','data-trade-retry','data-segments-retry','data-channels-retry']);
+const ACTIONS=new Set(['data-view-retry','data-work-refresh','data-home-retry','data-funnel-retry','data-paths-retry','data-trade-retry','data-segments-retry','data-channels-retry','data-page-retry','data-ci-retry','data-op-retry','data-ot-retry']);
 
 export function viewState({kind='empty',title,description='',actionLabel='',actionAttr=''}={}){
   const type=KINDS.has(kind)?kind:'empty';
