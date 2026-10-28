@@ -389,3 +389,157 @@
   .ai-gsc-settings .ai-gsc-controls { display: block; }
   .ai-gsc-settings .ai-gsc-controls > * { margin-bottom: 8px; }
 }
+
+/* Desktop-first decision area: business problem -> action -> evidence -> approval.
+   Uses the shared Growth workspace token palette. */
+#la-studio .ai-analysis-page .ai-action-list {
+  display: grid;
+  gap: var(--ui-space-4, 16px);
+  margin-block: var(--ui-space-6, 24px);
+}
+#la-studio .ai-analysis-page .ai-action-list-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+#la-studio .ai-analysis-page .ai-action-list-heading h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 680;
+}
+#la-studio .ai-analysis-page .ai-action-list-heading span {
+  color: var(--a-muted);
+  font-size: 12px;
+}
+#la-studio .ai-analysis-page .ai-suggestion {
+  display: grid;
+  gap: var(--ui-space-4, 16px);
+  margin: 0;
+  padding: var(--ui-space-5, 20px);
+  border: 1px solid var(--a-border);
+  border-radius: var(--ui-radius-md, 10px);
+  background: var(--a-panel);
+}
+#la-studio .ai-analysis-page .ai-suggestion-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 18px;
+}
+#la-studio .ai-analysis-page .ai-suggestion-heading h3 {
+  margin: 4px 0 0;
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.45;
+  color: var(--a-text);
+}
+#la-studio .ai-analysis-page .ai-suggestion-eyebrow {
+  color: var(--a-muted);
+  font-size: 11px;
+  letter-spacing: .08em;
+}
+#la-studio .ai-analysis-page .ai-suggestion-tags {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  flex: none;
+}
+#la-studio .ai-analysis-page .ai-suggestion-priority,
+#la-studio .ai-analysis-page .ai-suggestion-status {
+  display: inline-flex;
+  padding: 4px 9px;
+  border: 1px solid var(--ui-border-interactive);
+  border-radius: 99px;
+  background: var(--ui-surface-raised);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+#la-studio .ai-analysis-page .ai-suggestion-action {
+  padding: 15px 18px;
+  border-left: 3px solid var(--a-accent);
+  background: var(--ui-surface-raised);
+  border-radius: 0 var(--ui-radius-sm, 7px) var(--ui-radius-sm, 7px) 0;
+}
+#la-studio .ai-analysis-page .ai-suggestion-action strong {
+  color: var(--a-accent);
+  font-size: 12px;
+}
+#la-studio .ai-analysis-page .ai-suggestion-action p {
+  margin: 7px 0 0;
+  line-height: 1.7;
+  color: var(--a-text);
+}
+#la-studio .ai-analysis-page .ai-suggestion-reasoning {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+#la-studio .ai-analysis-page .ai-suggestion-reasoning > div {
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid var(--a-border);
+  border-radius: var(--ui-radius-sm, 7px);
+}
+#la-studio .ai-analysis-page .ai-suggestion-reasoning > div:last-child {
+  grid-column: 1 / -1;
+}
+#la-studio .ai-analysis-page .ai-suggestion-reasoning dt {
+  margin: 0 0 7px;
+  color: var(--a-muted);
+  font-size: 12px;
+}
+#la-studio .ai-analysis-page .ai-suggestion-reasoning dd {
+  margin: 0;
+  color: var(--a-text);
+  font-size: 13px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+#la-studio .ai-analysis-page .ai-suggestion-evidence {
+  margin: 0;
+  border-top: 1px solid var(--a-border);
+  padding-top: 14px;
+}
+#la-studio .ai-analysis-page .ai-suggestion-evidence summary {
+  cursor: pointer;
+  color: var(--a-accent);
+  font-size: 13px;
+  font-weight: 550;
+}
+#la-studio .ai-analysis-page .ai-suggestion-evidence p { color: var(--a-muted); }
+#la-studio .ai-analysis-page .ai-suggestion-evidence pre {
+  background: var(--ui-input-bg);
+  border: 1px solid var(--a-border);
+  padding: 14px;
+  border-radius: var(--ui-radius-sm, 7px);
+  max-height: 320px;
+}
+#la-studio .ai-analysis-page .ai-suggestion-decision {
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--a-border);
+}
+#la-studio .ai-analysis-page .ai-suggestion-decision textarea {
+  max-width: 100%;
+  min-height: 90px;
+  background: var(--ui-input-bg);
+  border-color: var(--ui-border-interactive);
+  border-radius: var(--ui-radius-sm, 7px);
+}
+#la-studio .ai-analysis-page .ai-suggestion-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+#la-studio .ai-analysis-page .ai-suggestion-record {
+  padding: 12px 15px;
+  border: 1px solid var(--a-border);
+  border-radius: var(--ui-radius-sm, 7px);
+  background: var(--ui-surface-raised);
+}
+#la-studio .ai-analysis-page .ai-suggestion-record p { margin: 6px 0; }
+#la-studio .ai-analysis-page .ai-suggestion-record small { color: var(--a-muted); }
