@@ -4,7 +4,7 @@
 const cron=require('node-cron');
 const {createMonitorControl}=require('./monitorControl');
 const {createSchedulerHealth}=require('./agentSchedulerHealth');
-const {scanDailyAlerts}=require('./monitor');
+const {scanFreeGrowth}=require('./liveObservation');
 const {createAlertStore}=require('./alertStore');
 const {createInvestigationStore}=require('./investigationStore');
 const GOALS=['activation','retention'];
@@ -15,7 +15,7 @@ let busy=false;
 function isStarted(){return scheduler!==null}
 
 async function runOnce({control=createMonitorControl(),
- health=createSchedulerHealth(),scan=scanDailyAlerts,
+ health=createSchedulerHealth(),scan=scanFreeGrowth,
  alerts=createAlertStore(),proposals=createInvestigationStore(),now=Date.now()}={}){
  if(busy)return {status:'already-running-local',scans:0};
  busy=true;
@@ -24,6 +24,7 @@ async function runOnce({control=createMonitorControl(),
   lease=await health.begin({name:LEASE,now,leaseMs:600000});
   if(!lease)return {status:'already-running-other-instance',scans:0};
   let scans=0,errors=0,skipped=0;
+  const observationCache=new Map();
   // A disabled owner is never selected. Recheck before each goal so toggling
   // OFF prevents further work even while a previous goal is finishing.
   for(const ownerId of await control.enabledOwners()){
@@ -34,10 +35,14 @@ async function runOnce({control=createMonitorControl(),
       goalSummary.push({goal,status:'disabled'});skipped++;continue;
      }
      const found=await scan({ownerId,goal,source:'all',store:alerts,
-      proposalStore:proposals,now:Date.now()});
+      proposalStore:proposals,now:Date.now(),cache:observationCache});
      scans++;
      goalSummary.push({goal,status:found.status,
       observed:found.observed||0,newObservations:found.newObservations||0,
+      proposedInvestigations:found.proposedInvestigations||0,
+      baselineDay:found.baselineDay||null,currentDay:found.currentDay||null,
+      baseline:found.baseline||null,current:found.current||null,
+      dataQuality:found.quality||null,channelQuality:found.channelQuality||null,
       reason:found.reason||null});
     }catch(error){
      errors++;goalSummary.push({goal,status:'error',reason:String(error.message).slice(0,180)});
@@ -47,7 +52,7 @@ async function runOnce({control=createMonitorControl(),
    // If the operator disabled this account while we were processing the list,
    // do not rewrite its last real scan record with a synthetic skipped run.
    if(goalSummary.every(g=>g.status==='disabled'))continue;
-   try{await control.recordScan(ownerId,{status:errors&&goalSummary.some(x=>x.status==='error')?'error':
+   try{await control.recordScan(ownerId,{status:goalSummary.some(x=>x.status==='error')?'error':
     goalSummary.some(x=>x.status==='scanned')?'scanned':'skipped',
     summary:{goals:goalSummary}})}
    catch(error){errors++;console.error('[growth-monitor] result persistence',error.message)}
