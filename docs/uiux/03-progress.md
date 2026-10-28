@@ -90,3 +90,14 @@ AI 详情使用后端检查点更新“需要处理”，并保留原因与记�
 | 自动 CI | 新增 `.github/workflows/frontend-uiux.yml`，在 `codex/uiux-rebuild` 的前端文件变更上执行 `npm ci`、`node --check`、完整 `npm test` 与 `npm run build`；只读仓库权限，无外部模型调用或业务数据库连接 | 以 GitHub Actions 具体运行结果为准；本段写入时不预先宣称通过 |
 
 开发范围继续限定桌面端。未改 Growth SQL、事件统计口径、生产数据库或模型 Worker。与此前仅做语法检查不同，本轮补了自动构建和测试流程，但 CI 成功与否必须以实际 Actions 日志核对。
+
+## 2026-10-28：真实 GitHub Actions 前端测试结果
+
+- GitHub Actions：[`Growth desktop UI regression` 成功运行](https://github.com/dinnelthai/logearn-growth/actions/runs/40706341423)。
+- 提交基线：`3c9cc2e41da42eae27f07079cdc0eeaacf256d8a`。
+- **Vitest：80 个测试文件通过、1 个跳过；329 个用例通过、4 个跳过，共 333 个。**
+- **Vite Build：成功**（Node.js 22，`npm ci --ignore-scripts --no-audit --no-fund`）。
+- 第一轮运行中有 2 个失败断言：`aiRecoveryPage.test.js` 对“需要人工处理”的旧文字期望，以及 `workspaceNavigation.test.js` 未模拟生产的单入口导航分组。已更新测试，第二轮全绿。
+- 自动 CI 范围为离线前端测试与构建，不连接生产数据库、不触发真实付费模型调用；仍需浏览器端校验侧栏、快捷导航焦点、真实 AI 状态、全部页面视觉和分页下钻。
+
+当前里程碑：**本轮涉及的启动、导航、AI 恢复保护、运营交互可通过全量前端回归**；全站 UI/UX 项目本身仍在进行中，不能将此项 CI 通过等同于最终视觉与业务 E2E 验收。
