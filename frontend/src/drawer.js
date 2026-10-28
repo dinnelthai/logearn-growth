@@ -107,9 +107,13 @@ export function createDrawer(dialog, {onAnalyze,onAnalyzeRemote,getContext,onUse
       let searchTimer=null
       cancelPendingSearch=()=>{clearTimeout(searchTimer);searchTimer=null}
       select('input').oninput=event=>{
+        if(session!==epoch)return
         query=event.target.value;page=0
-        clearTimeout(searchTimer)
-        searchTimer=setTimeout(load,200)
+        // Invalidate the old result immediately, before the debounce runs:
+        // stale rows must not be actionable under a newly typed query.
+        ++request;loading=true;error=null;rows=[];renderRows()
+        cancelPendingSearch()
+        searchTimer=setTimeout(()=>{searchTimer=null;load()},200)
       }
       select('[data-prev]').onclick=()=>{if(page>0){page--;load()}}
       select('[data-next]').onclick=()=>{page++;load()}
