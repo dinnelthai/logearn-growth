@@ -69,7 +69,32 @@ function main(args=process.argv.slice(2)){
   ' / $'+SETTINGS.AI_RELAY_COST_PER_1K_OUTPUT+' per 1K tokens');
  console.log('Daily limits: $'+SETTINGS.AI_MAX_DAILY_COST+' (estimated), '+
   SETTINGS.AI_MAX_DAILY_TOKENS+' tokens; alert $'+SETTINGS.AI_COST_ALERT_THRESHOLD);
- console.log('Example 100k input + 20k output tokens: $'+costFromUsage(100000,20000).toFixed(6));
+ console.log('Example 80k input + 20k output tokens: .toFixed(6));
+ if(args.includes('--dry-run')){
+  console.log('DRY RUN only: .env was not changed, API key will never be printed.');
+  return;
+ }
+ if(updated===original){
+  console.log('No change: settings already match the selected profile.');
+  return;
+ }
+ const backup=file+'.backup-'+Date.now()+'-'+randomBytes(3).toString('hex');
+ fs.writeFileSync(backup,original,{mode:0o600,flag:'wx'});
+ const tmp=file+'.tmp-'+process.pid+'-'+randomBytes(3).toString('hex');
+ try{
+  fs.writeFileSync(tmp,updated,{mode:0o600,flag:'wx'});
+  fs.renameSync(tmp,file);
+  fs.chmodSync(file,0o600);
+ }catch(error){try{fs.unlinkSync(tmp)}catch{}throw error}
+ console.log('Updated backend/.env; private backup created at '+path.basename(backup));
+ console.log('Restart the Web backend and AI Worker to load the new environment.');
+ console.log('IMPORTANT: provider billing may differ from the screenshot; reconcile with relay invoice.');
+}
+if(require.main===module){
+ try{main()}catch(error){console.error('Growth LLM setup failed:',error.message);process.exitCode=1}
+}
+module.exports={SETTINGS,PRICES_PER_MILLION,updateEnv,costFromUsage,main};
++costFromUsage(80000,20000).toFixed(6));
  if(args.includes('--dry-run')){
   console.log('DRY RUN only: .env was not changed, API key will never be printed.');
   return;
