@@ -22,6 +22,17 @@ test('real PG: default-off, CAS and owner isolation survive restarts',
   const after=await control.get(alice,{now:now+100});
   assert.equal(after.lastScanStatus,'scanned');
   assert.deepEqual(after.lastScanSummary.goals,[{goal:'activation'}]);
+  assert.equal(after.lastScanSummary.history.length,1);
+  assert.equal(after.lastScanSummary.history[0].status,'scanned');
+  await control.recordScan(alice,{status:'skipped',summary:{goals:[{goal:'retention',status:'coverage-unverified'}]},
+    now:now+86400000});
+  const history=(await control.get(alice)).lastScanSummary.history;
+  assert.equal(history.length,2);
+  assert.equal(history[0].status,'scanned');
+  assert.equal(history[1].status,'skipped');
+  await control.recordScan(alice,{status:'scanned',summary:{goals:[]},now:now+86400000+60000});
+  assert.equal((await control.get(alice)).lastScanSummary.history.length,2,
+   'repeat same business day replaces that day instead of duplicating');
   const disabled=await control.set(alice,{enabled:false,expectedVersion:1,now:now+100});
   assert.equal(disabled.enabled,false);
   assert.equal(disabled.version,2);

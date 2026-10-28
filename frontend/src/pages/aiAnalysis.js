@@ -122,12 +122,32 @@ export function createAIAnalysis(ctx){
              ${monitorControl.enabled&&!monitorControl.workerOnline?'（已保存开启状态，但后端定时器未就绪）':''}</p>
           ${monitorControl.lastScanAt?'<p>最近扫描：'+esc(new Date(monitorControl.lastScanAt).toLocaleString('zh-CN'))+
             ' · '+esc(monitorControl.lastScanStatus||'未知')+'</p>':'<p>暂无定时扫描记录。</p>'}
+          ${(monitorControl.lastScanSummary?.goals||[]).map(g=>`
+            <article class="a-card">
+              <strong>${esc(g.goal==='activation'?'拉新 / 激活':g.goal==='retention'?'留存':'其他')} ·
+                ${esc(g.currentDay||'未取得数据')}</strong>
+              <p>观测状态：${esc(g.status==='scanned'?'通过数据完整性校验':
+                g.status==='coverage-unverified'?'数据覆盖尚未验证':
+                g.status==='error'?'查询错误':g.status||'未知')}
+                ${g.channelQuality==='truncated'?' · 渠道拆分超出限制':''}</p>
+              ${(g.changes||[]).map(c=>`
+                <p>${esc(c.metric)}：${esc(c.baseline)} → ${esc(c.current)}
+                   （${esc(c.delta>=0?'+':'')}${esc(c.delta)}；${c.relativeChange==null?'无可比基数':esc((c.relativeChange*100).toFixed(1))+'%'}）
+                   ${g.dataQuality?.complete?'':' · 仅供观察，不能确认真实下降'}</p>
+                ${(c.bySource||[]).slice(0,3).map(x=>`<small>${esc(x.source)}：
+                   ${esc(x.baseline)} → ${esc(x.current)}（${esc(x.delta>=0?'+':'')}${esc(x.delta)}）</small>`).join('')}
+              `).join('')}
+              ${g.reason?'<p>'+esc(g.reason)+'</p>':''}
+            </article>`).join('')}
           ${monitorControl.allowed===false&&!monitorControl.error?'<p>此账号尚未获得监控授权，请在服务器配置允许的账号。</p>':''}
           <button class="a-button" type="button" data-monitor-toggle
             ${!monitorControl.allowed||monitorControl.error?'disabled':''}>
             ${monitorControl.enabled?'关闭自动监控':'开启自动监控'}
           </button>
-          <p>开关保存在服务器。后台每天曼谷时间 10:30 扫描已有完整日报；不需要额外 Worker。关闭后不再开始新的扫描，正在执行的一次可能完成。</p>
+          <button class="a-button" type="button" data-monitor-export
+            ${!monitorControl.lastScanSummary?.history?.length?'disabled':''}>复制最近14天诊断摘要</button>
+          <small>仅包含天级汇总、渠道人数变化与质量状态；不包含用户 ID、Cookie 或 API 密钥。复制后可直接发给我排查。</small>
+          <p>开关保存在服务器。后台每天曼谷时间 10:30 直接读取现有增长数据，无需预先生成付费 AI 日报，也不需要额外 Worker。关闭后不再开始新的扫描，正在执行的一次可能完成。</p>
         </section>
         <section class="a-card"><h2>跨日增长告警</h2>
         <p>基于相邻完整业务日、相同目标和采集范围的已保存结果；仅提示观测变化，不宣称因果。扫描不调用 AI。</p>
@@ -148,7 +168,7 @@ export function createAIAnalysis(ctx){
         ${proposalData.error?'<p role="status">提案查询暂不可用：'+esc(proposalData.error)+'</p>':''}
         ${(proposalData.proposals||[]).slice(0,30).map(p=>`<article>
           <p>${esc(p.metric)} · ${esc(p.source)} · ${esc(p.status)} · ${esc(day(Number(p.period_end)))}</p>
-          <p>证据：${esc(p.diagnosis?.dataQuality?.status==='traceable-observation'?'原始日报与快照可追溯':'证据不完整，先核查')}。首次分析用户不等于新注册。</p>
+          <p>证据：${esc(p.diagnosis?.dataQuality?.status==='traceable-observation'?'证据期间与源端快照可追溯':'证据不完整，先核查')}。首次分析用户不等于新注册。</p>
            ${p.diagnosis?.observation?'<p>已观察：'+esc(p.diagnosis.observation.baseline)+' → '+esc(p.diagnosis.observation.current)+'；原因未知</p>':''}
            <p>调查需人工批准，可能产生模型费用；运营方案仍由负责人决定。</p>
           <button class="a-button" data-case-timeline="${esc(p.id)}">查看完整链路</button>
@@ -274,6 +294,22 @@ export function createAIAnalysis(ctx){
         }catch(error){if(token===generation)message('切换监控失败：'+error.message)}
         finally{busy=false;if(monitorToggle.isConnected)monitorToggle.disabled=false}
       };
+      const exportMonitor=host.querySelector('[data-monitor-export]');
+      if(exportMonitor)exportMonitor.onclick=async()=>{
+        try{
+          const payload={version:'growth-observations-v1',
+            generatedAt:new Date().toISOString(),
+            history:(monitorControl.lastScanSummary?.history||[]).map(x=>({
+              day:x.day,at:x.at,status:x.status,
+              goals:(x.goals||[]).map(g=>({goal:g.goal,status:g.status,
+                baselineDay:g.baselineDay,currentDay:g.currentDay,baseline:g.baseline,
+                current:g.current,changes:g.changes,dataQuality:g.dataQuality,
+                channelQuality:g.channelQuality,reason:g.reason}))
+            }))};
+          await navigator.clipboard.writeText(JSON.stringify(payload,null,2));
+          if(token===generation)message('已复制近14天业务观测摘要，可发送给我进一步分析。');
+        }catch(error){if(token===generation)message('复制失败，请检查浏览器剪贴板权限：'+error.message)}
+      };
       const scanGrowthButton=host.querySelector('[data-scan-growth-alerts]');
       if(scanGrowthButton)scanGrowthButton.onclick=async e=>{
         if(busy)return;busy=true;const button=e.currentTarget;button.disabled=true;
@@ -319,8 +355,14 @@ export function createAIAnalysis(ctx){
             来源 ${esc(timeline.alert.source)} · 优先级 ${esc(timeline.alert.priority)}</p>
             <p>原始观测（提案时冻结）：${esc(obs.baseline??'未知')} → ${esc(obs.observed??'未知')}
             · 变化 ${esc(obs.absolute??'未知')}；不构成因果证明。</p>
-            <p>证据分析 ID：${esc(obs.evidence?.baselineAnalysisId||'未知')} →
-            ${esc(obs.evidence?.currentAnalysisId||'未知')}</p>
+            ${diagnosis.dataQuality?.provenance?.type==='source-day-query'?
+              '<p>原始源端数据截止：'+esc(diagnosis.dataQuality.provenance.cutoff)+' · 无付费 AI 日报依赖</p>':
+              '<p>原始 AI 日报：'+esc(obs.evidence?.baselineAnalysisId||'未知')+' → '+
+              esc(obs.evidence?.currentAnalysisId||'未知')+'</p>'}
+            ${(diagnosis.channelObservation||[]).length?'<h4>来源变化（非因果归因）</h4>'+
+              '<ul>'+diagnosis.channelObservation.map(x=>'<li>'+esc(x.source)+': '+
+              esc(x.baseline)+' → '+esc(x.current)+' ('+
+              esc(x.delta>=0?'+':'')+esc(x.delta)+')</li>').join('')+'</ul>':''}
             <p>证据状态：${esc(diagnosis.dataQuality?.status==='traceable-observation'?'可溯源观测':'需核查')}；原因未确认。</p>
             <h4>建议核查的问题（非自动运营计划）</h4>
             ${(diagnosis.investigationQuestions||[]).length?

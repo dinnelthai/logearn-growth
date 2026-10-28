@@ -27,9 +27,19 @@ function diagnoseProposal(proposal){
   Number.isSafeInteger(e.periodStart)&&e.periodStart>0&&
   Number.isSafeInteger(e.periodEnd)&&e.periodEnd===periodEnd&&
   e.periodEnd-e.periodStart===86400000;
- const traced=validCounts&&['baselineAnalysisId','currentAnalysisId',
+ const analysisTraced=validCounts&&['baselineAnalysisId','currentAnalysisId',
   'baselineSnapshotId','currentSnapshotId'].every(k=>
    typeof b[k]==='string'&&b[k].length>0);
+ const sourceTraced=validCounts&&b.origin==='hologres-source-observation'&&
+   b.historyComplete===true&&
+   typeof b.sourceSnapshotId==='string'&&!!b.sourceSnapshotId&&
+   Number.isFinite(Date.parse(b.sourceCutoff))&&
+   Number.isFinite(Date.parse(b.eventsCompleteThrough))&&
+   Date.parse(b.eventsCompleteThrough)>=e.periodEnd&&
+   b.currentPeriodStart===e.periodStart&&b.currentPeriodEnd===e.periodEnd&&
+   b.baselinePeriodEnd===e.periodStart&&
+   b.baselinePeriodStart===e.periodStart-86400000;
+ const traced=analysisTraced||sourceTraced;
  const observed=validCounts?{
   baseline:e.baseline,current:e.observed,absolute:e.observed-e.baseline,
   relativeChange:(e.observed-e.baseline)/e.baseline,
@@ -43,12 +53,18 @@ function diagnoseProposal(proposal){
   observation:observed,
   dataQuality:{
    status:traced?'traceable-observation':'needs-evidence-review',
-   provenance:traced?{baselineAnalysisId:b.baselineAnalysisId,
-    currentAnalysisId:b.currentAnalysisId,
-    baselineSnapshotId:b.baselineSnapshotId,currentSnapshotId:b.currentSnapshotId}:null,
+   provenance:analysisTraced?{type:'completed-analysis',
+    baselineAnalysisId:b.baselineAnalysisId,currentAnalysisId:b.currentAnalysisId,
+    baselineSnapshotId:b.baselineSnapshotId,currentSnapshotId:b.currentSnapshotId}:
+    sourceTraced?{type:'source-day-query',snapshotId:b.sourceSnapshotId,
+     cutoff:b.sourceCutoff,eventsCompleteThrough:b.eventsCompleteThrough,
+     baselinePeriodStart:b.baselinePeriodStart}:null,
    limitations:traced?['原始日报在检测时已通过数据覆盖检查；当前数据仍需独立复核']:
     ['原始时间窗口、计数或快照溯源缺失，暂不能当作可信的变化结论']
   },
+  channelObservation:sourceTraced&&Array.isArray(b.channelBreakdown)?
+    b.channelBreakdown.slice(0,8).filter(x=>typeof x.source==='string'&&
+     Number.isFinite(x.delta)):[],
   investigationQuestions:traced?[...questions,
    '哪些同时期产品、渠道或采集变化可能解释该现象？需要何种独立证据？']:[],
   humanDecision:'由运营负责人决定是否批准进一步调查以及如何制定运营方案',
