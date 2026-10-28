@@ -89,6 +89,7 @@ function optionalRouter(modulePath) {
   };
 }
 app.use('/api/growth-agent', requireAuth, require('./routes/growthAgent').defaultRouter())
+app.use('/api/growth-workspace', requireAuth, require('./routes/growthWorkspace').createRouter())
 app.use('/api/business-analysis', requireAuth, require('./routes/businessAnalysis'))
 
 // AI Configuration and Management

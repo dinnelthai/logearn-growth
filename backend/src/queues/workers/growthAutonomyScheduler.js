@@ -56,6 +56,14 @@ async function tick({now=Date.now(),dryRun=false,runOwner=tickAutonomousOwner,
     try{const outcome=require('../../ai/optimization/canarySafety').checkCanary(require('../../db/connection'),ownerId,{now});results.push({ownerId,status:'canary-safety',canaryAction:outcome.action,canaryStatus:outcome.status});}
     catch(error){results.push({ownerId,status:'error',reason:'canary-safety: '+error.message});}
    }
+   if(process.env.GROWTH_WORKSPACE_DISCOVERY_ENABLED==='1'&&!leaseLost){
+    try{
+     const evidence=require('../../ai/growth/workspace/dailyTick').dailyWorkspaceTick({
+      db:require('../../db/connection'),ownerId,now
+     });
+     results.push({ownerId,status:'workspace',newProblems:evidence.newProblems,reportId:evidence.reportId,paidCalls:0});
+    }catch(error){results.push({ownerId,status:'error',reason:'workspace: '+error.message})}
+   }
    if(process.env.AI_RESEARCH_DISCOVERY_ENABLED==='1'&&!leaseLost){
     try{
      const db=require('../../db/connection');

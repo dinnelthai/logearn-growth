@@ -1,4 +1,5 @@
 import {getToken} from '../auth/authClient.js'
+import {mountGrowthDecisionWorkspace} from './growthDecisionWorkspace.js'
 const base=(import.meta.env.VITE_BACKEND_BASE_URL??'http://localhost:3001')
 async function request(path,method='GET',body){
  const response=await fetch(base+path,{method,headers:{'Content-Type':'application/json',Authorization:'Bearer '+getToken()},...(body?{body:JSON.stringify(body)}:{})})
@@ -9,9 +10,11 @@ async function request(path,method='GET',body){
 export function createGrowthAgentControl(ctx){
  const host=()=>ctx.$('#as-output')
  let generation=0
+ let workspaceDispose=null
  const esc=ctx.esc
  const safe=v=>esc(v==null?'未知':String(v))
  async function draw(){
+  if(workspaceDispose){workspaceDispose();workspaceDispose=null}
   ctx.clear();const token=++generation
   host().innerHTML='<section class="a-card a-details">正在读取 AI Growth Agent 状态…</section>'
   const paths=[
@@ -70,6 +73,9 @@ export function createGrowthAgentControl(ctx){
    </tbody></table></div>
    <p class="a-muted">候选必须先通过真实独立评估，然后人工审批、零流量发布及分阶段灰度。本页面不会直接批准或上线模型提示词。</p>
   </section>`
+  const workspaceRoot=document.createElement('div')
+  host().prepend(workspaceRoot)
+  workspaceDispose=mountGrowthDecisionWorkspace(workspaceRoot)
   host().querySelector('[data-refresh]').onclick=draw
   host().querySelector('[data-scan]').onclick=async()=>{const node=host().querySelector('[data-research-message]');try{const result=await request('/api/growth-agent/research/scan','POST',{source:'all'});node.textContent='新增 '+result.inserted.length+' 个研究问题';await draw()}catch(e){node.textContent=e.message}}
   host().querySelectorAll('[data-dispatch]').forEach(button=>button.onclick=async()=>{
@@ -84,5 +90,5 @@ export function createGrowthAgentControl(ctx){
    catch(e){button.disabled=false;button.title=e.message;host().querySelector('[data-research-message]').textContent=e.message}
   })
  }
- return {draw,dispose(){generation++}}
+ return {draw,dispose(){generation++;if(workspaceDispose)workspaceDispose()}}
 }
