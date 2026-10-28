@@ -333,3 +333,55 @@ html:has(#la-studio) > body { padding:0 !important; background:#0b0f17 !importan
   line-height: 1.5;
 }
 #la-studio .la-session-expired .a-button { flex: none; }
+
+/* Shared desktop empty/error/partial-state system: consistent hierarchy and recovery. */
+#la-studio .ui-view-state {
+  max-width: 100%;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  border-radius: 10px;
+}
+#la-studio .ui-view-state-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+#la-studio .ui-view-state-heading h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+#la-studio .ui-view-state-symbol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border: 1px solid #35445e;
+  border-radius: 8px;
+  background: #1c2a3d;
+  color: #b5c3da;
+  font-weight: 750;
+}
+#la-studio .ui-view-state-error .ui-view-state-symbol {
+  color: #ffbeb3;
+  border-color: #8c4641;
+  background: #41232a;
+}
+#la-studio .ui-view-state p {
+  margin: 0;
+  max-width: 72ch;
+  overflow-wrap: anywhere;
+  line-height: 1.65;
+  font-size: 13px;
+  color: var(--a-muted);
+}
+#la-studio .ui-view-state .a-button { margin-top: 4px; }
+#la-studio .operations-workbench [data-work-filter][aria-pressed="true"] {
+  border-color: #91a6ff;
+}
