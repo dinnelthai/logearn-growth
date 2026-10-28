@@ -69,7 +69,7 @@ function main(args=process.argv.slice(2)){
   ' / $'+SETTINGS.AI_RELAY_COST_PER_1K_OUTPUT+' per 1K tokens');
  console.log('Daily limits: $'+SETTINGS.AI_MAX_DAILY_COST+' (estimated), '+
   SETTINGS.AI_MAX_DAILY_TOKENS+' tokens; alert $'+SETTINGS.AI_COST_ALERT_THRESHOLD);
- console.log('Example 80k input + 20k output tokens: .toFixed(6));
+ console.log('Example 80k input + 20k output tokens: $'+costFromUsage(80000,20000).toFixed(6));
  if(args.includes('--dry-run')){
   console.log('DRY RUN only: .env was not changed, API key will never be printed.');
   return;
