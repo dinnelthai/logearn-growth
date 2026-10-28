@@ -101,93 +101,14 @@ async function anomalyDetection(job) {
       // 继续进行，但没有维度数据
     }
 
-    // 5. AI 分析每个异常
+    // One bounded model request per correlated anomaly batch rather than per
+    // metric. Each original metric retains an explicit analysis/error status.
     const client = createClient();
-
-    for (let i = 0; i < anomalies.length; i++) {
-      const anomaly = anomalies[i];
-
-      await updateProgress(
-        job,
-        60 + (i / anomalies.length) * 35,
-        `AI analyzing ${anomaly.metric}`
-      );
-
-      // 构建分析上下文
-      let contextInfo = `
-指标异常详情：
-- 指标名称：${anomaly.metric}
-- 日期：${formatDate(dateTs)}
-- 当前值：${anomaly.current}
-- 前一天：${anomaly.previous}
-- 变化：${anomaly.change}% (${anomaly.trend === 'up' ? '上升' : '下降'})
-- 严重程度：${anomaly.severity}
-`;
-
-      // 添加增长维度信息（如果有）
-      if (growthContext && growthContext.dimensions) {
-        contextInfo += `
-\n增长维度拆解：`;
-
-        if (growthContext.dimensions.source) {
-          const topSources = growthContext.dimensions.source.slice(0, 3);
-          contextInfo += `\n按来源：${topSources.map(s =>
-            `${s.value}(当前${s.current}, 前期${s.previous}, 变化${s.delta > 0 ? '+' : ''}${s.delta})`
-          ).join(', ')}`;
-        }
-
-        if (growthContext.dimensions.device) {
-          contextInfo += `\n按设备：${growthContext.dimensions.device.slice(0, 3).map(d =>
-            `${d.value}(${d.current})`
-          ).join(', ')}`;
-        }
-      }
-
-      const messages = [
-        {
-          role: 'system',
-          content: `你是一个增长数据分析专家，擅长解释指标异常和提供可操作的建议。
-
-分析要点：
-1. 基于真实数据进行判断
-2. 考虑常见的影响因素（季节性、营销活动、产品变更、竞品动态、技术问题）
-3. 结合维度数据（来源、设备等）定位问题
-4. 给出具体、可操作的建议
-
-输出要求：
-- 原因分析：列出 3-5 个最可能的原因，按概率排序
-- 受影响维度：指出哪些维度受影响最大
-- 建议行动：给出 3 个具体的行动建议，按优先级排序`
-        },
-        {
-          role: 'user',
-          content: contextInfo
-        }
-      ];
-
-      try {
-        const response = await client.chat(messages, {
-          userId: job.data.userId || 'ai-system',
-          metadata: {
-            jobId: job.id,
-            metric: anomaly.metric,
-            date: formatDate(dateTs)
-          }
-        });
-
-        anomaly.aiAnalysis = response.content;
-        anomaly.fromCache = response.fromCache;
-
-        logger.info(`AI analysis completed for ${anomaly.metric}`, {
-          fromCache: response.fromCache,
-          analysisLength: response.content.length
-        });
-      } catch (error) {
-        logger.error(`AI analysis failed for ${anomaly.metric}`, error);
-        anomaly.aiAnalysis = '分析失败，请稍后重试';
-        anomaly.error = error.message;
-      }
-    }
+    await require('./batchAnomalies').analyzeBatches(anomalies,{
+      client,context:growthContext,date:formatDate(dateTs),
+      userId:job.data.userId||'ai-system',jobId:job.id
+    });
+    await updateProgress(job, 95, 'AI anomaly batches finished');
 
     await updateProgress(job, 100, 'Analysis complete');
 
