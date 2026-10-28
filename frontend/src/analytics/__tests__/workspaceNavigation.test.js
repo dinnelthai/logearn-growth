@@ -138,3 +138,17 @@ test('active group disclosure remains closed after a reload',()=>{
  const second=fixture();second.media.matches=false;const two=mountSectionNavigation(second.root,vi.fn());two.update('home');
  expect(second.root.querySelectorAll('[data-navigation-section]')[0].hidden).toBe(true);
 });
+
+test('desktop navigation keeps a readable current-location breadcrumb',()=>{
+  const t=fixture()
+  t.media.matches=false
+  const title={textContent:'增长运营工作区'}
+  const original=t.root.querySelector
+  t.root.querySelector=selector=>selector==='.toolbar-title'?title:original(selector)
+  t.agent.querySelector=selector=>selector==='.nav-label'?{textContent:'AI Growth Agent'}:null
+  t.analysis.textContent='AI 增长分析'
+  const mounted=mountSectionNavigation(t.root,vi.fn())
+  mounted.update('ai-analysis')
+  expect(title.textContent).toBe('AI Growth Agent / AI 增长分析')
+  expect(t.agent.attrs['aria-current']).toBe('page')
+})
