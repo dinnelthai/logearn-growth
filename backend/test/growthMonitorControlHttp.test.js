@@ -19,9 +19,7 @@ const control={
 };
 require.cache[path]={id:path,filename:path,loaded:true,exports:{createMonitorControl:()=>control}};
 const router=require('../src/routes/aiAnalysis');
-test('monitor HTTP is owner allowlisted, versioned and does not imply worker started',async()=>{
- const old=process.env.AI_DAILY_OWNER_IDS;
- process.env.AI_DAILY_OWNER_IDS='alice';
+test('monitor HTTP controls each authenticated account independently without allowlist',async()=>{
  const app=express();app.use(express.json());
  app.use((req,_res,next)=>{req.user={user_id:req.headers['x-owner']||'alice'};next()});
  app.use('/api/ai-analysis',router);
@@ -32,18 +30,18 @@ test('monitor HTTP is owner allowlisted, versioned and does not imply worker sta
   ...(method==='PUT'?{body:JSON.stringify(data)}:{})
  });return {status:resp.status,body:await resp.json()}};
  try{
-  assert.equal((await request('bob')).body.allowed,false);
-  assert.equal((await request('bob','PUT',{enabled:true,expectedVersion:0})).status,403);
+  assert.equal((await request('bob')).body.allowed,true);
+  assert.equal((await request('bob')).body.enabled,false);
   assert.equal(writes,0);
   assert.equal((await request('alice')).body.status,'disabled');
   let r=await request('alice','PUT',{enabled:true,expectedVersion:0});
   assert.equal(r.status,200);assert.equal(r.body.enabled,true);
-  assert.equal(r.body.workerOnline,false);assert.equal(r.body.status,'waiting-for-worker');
+  assert.equal(r.body.workerOnline,false);assert.equal(r.body.status,'waiting-for-backend');
   assert.equal((await request('alice','PUT',{enabled:false,expectedVersion:0})).status,409);
   r=await request('alice','PUT',{enabled:false,expectedVersion:1});
   assert.equal(r.status,200);assert.equal(r.body.enabled,false);assert.equal(writes,2);
+  assert.equal((await request('bob')).body.enabled,false);
  }finally{
-  if(old===undefined)delete process.env.AI_DAILY_OWNER_IDS;else process.env.AI_DAILY_OWNER_IDS=old;
   await new Promise(r=>server.close(r));
  }
 });
