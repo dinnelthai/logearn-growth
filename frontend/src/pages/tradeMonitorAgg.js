@@ -12,6 +12,8 @@ export function createTradeMonitorAggPage(ctx) {
   let inflight = 0
 
   async function draw(c) {
+    chartLifecycle.dispose()
+    nativeChart = null
     clearNative()
     const reqId = ++inflight
     $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted si-loading" role="status">正在从 /api/metrics/trades 加载…</p></div>'
