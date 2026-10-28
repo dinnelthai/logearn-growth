@@ -41,9 +41,21 @@ function createMonitorControl(query=(sql,params)=>pool.query(sql,params)){
    !Number.isSafeInteger(now)||now<0||
    !summary||typeof summary!=='object'||Array.isArray(summary))
    throw Error('监控扫描结果无效');
+  // A single leased monitor invocation writes one owner's summary per day.
+  // Retain at most 14 small diagnostic snapshots in the existing JSONB field.
+  // This is operator-visible evidence, not another analytics database.
+  const prior=await query(`SELECT last_scan_at,last_scan_status,last_scan_summary
+    FROM ai_growth_monitor_settings WHERE owner_id=$1`,[ownerId]);
+  const row=prior.rows[0]||{},existing=row.last_scan_summary||{};
+  const day=t=>new Date(t+7*3600000).toISOString().slice(0,10);
+  const historical=Array.isArray(existing.history)?existing.history.slice(-14):
+   row.last_scan_at!=null?[{day:day(Number(row.last_scan_at)),
+    at:Number(row.last_scan_at),status:row.last_scan_status,goals:existing.goals||[]}]:[];
+  const history=[...historical.filter(entry=>entry?.day!==day(now)),
+   {day:day(now),at:now,status,goals:Array.isArray(summary.goals)?summary.goals:[]}].slice(-14);
   await query(`UPDATE ai_growth_monitor_settings
     SET last_scan_at=$2,last_scan_status=$3,last_scan_summary=$4::jsonb
-    WHERE owner_id=$1`,[ownerId,now,status,JSON.stringify(summary)]);
+    WHERE owner_id=$1`,[ownerId,now,status,JSON.stringify({...summary,history})]);
  }
  return {get,set,enabledOwners,recordScan};
 }
