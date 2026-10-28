@@ -26,15 +26,16 @@ function createMonitorControl(query=(sql,params)=>pool.query(sql,params)){
   owner(ownerId);stamp(now);
   if(typeof enabled!=='boolean'||!Number.isSafeInteger(expectedVersion)||expectedVersion<0)
    throw Object.assign(Error('监控开关参数无效'),{status:400});
-  const result=await query(`INSERT INTO ai_growth_monitor_settings
-     (owner_id,enabled,version,updated_at) SELECT $1,$2,1,$3 WHERE $4=0
-     ON CONFLICT(owner_id) DO UPDATE SET
-       enabled=EXCLUDED.enabled,version=ai_growth_monitor_settings.version+1,
-       updated_at=EXCLUDED.updated_at
-     WHERE ai_growth_monitor_settings.version=$4
-     RETURNING *`,[ownerId,enabled,now,expectedVersion]);
-  // Insert may only be made at version zero. If an existing row was
-  // concurrently created, the ON CONFLICT version condition fails closed.
+  // Separate atomic INSERT/UPDATE paths; both check the expected version.
+  // A stale browser cannot overwrite another operator's decision.
+  const result=expectedVersion===0
+   ?await query(`INSERT INTO ai_growth_monitor_settings
+       (owner_id,enabled,version,updated_at) VALUES($1,$2,1,$3)
+       ON CONFLICT(owner_id) DO NOTHING RETURNING *`,[ownerId,enabled,now])
+   :await query(`UPDATE ai_growth_monitor_settings SET
+       enabled=$2,version=version+1,updated_at=$3
+       WHERE owner_id=$1 AND version=$4 RETURNING *`,
+     [ownerId,enabled,now,expectedVersion]);
   if(!result.rows.length)throw Object.assign(Error('状态已改变，请刷新后重试'),{status:409});
   return view(result.rows[0],now);
  }
