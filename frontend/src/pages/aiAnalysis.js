@@ -18,6 +18,20 @@ export function createAIAnalysis(ctx){
   const json=v=>esc(JSON.stringify(v,null,2));
   function dispose(){generation++;clearTimeout(timer);timer=null;polling=false;}
   function message(text){const target=$('#as-output')?.querySelector('[data-ai-message]');if(target)target.textContent=text;}
+  function applyHistoryFilter(){
+    const host=$('#as-output');
+    if(!host)return;
+    let shown=0;
+    [...host.querySelectorAll('[data-ai-history-row]')].forEach(row=>{
+      const kind=row.dataset.aiHistoryStatus;
+      const matches=historyFilter==='all'||(historyFilter==='processing'
+        ?['processing','pending'].includes(kind):historyFilter===kind);
+      row.hidden=!matches;
+      if(matches)shown++;
+    });
+    const empty=host.querySelector('[data-ai-history-empty]');
+    if(empty)empty.hidden=shown!==0;
+  }
   async function draw(){
     ctx.clear?.();
     const token=++generation;clearTimeout(timer);polling=false;
@@ -52,6 +66,7 @@ export function createAIAnalysis(ctx){
           <label>状态<select data-ai-history-filter aria-label="筛选历史分析">
           <option value="all" ${historyFilter==='all'?'selected':''}>全部</option>
           <option value="processing" ${historyFilter==='processing'?'selected':''}>处理中</option>
+          <option value="attention" ${historyFilter==='attention'?'selected':''}>需人工处理</option>
           <option value="failed" ${historyFilter==='failed'?'selected':''}>失败</option>
           <option value="completed" ${historyFilter==='completed'?'selected':''}>已完成</option>
           </select></label><button class="a-button" data-refresh>刷新</button></div>
@@ -563,17 +578,6 @@ export function createAIAnalysis(ctx){
       };
       host.querySelectorAll('[data-analysis]').forEach(b=>b.onclick=()=>open(b.dataset.analysis));
       const historySelect=host.querySelector('[data-ai-history-filter]');
-      const applyHistoryFilter=()=>{
-        let shown=0;
-        [...host.querySelectorAll('[data-ai-history-row]')].forEach(row=>{
-          const kind=row.dataset.aiHistoryStatus;
-          row.hidden=historyFilter!=='all'&&(historyFilter==='processing'
-            ?!['processing','pending','attention'].includes(kind):kind!==historyFilter);
-          if(!row.hidden)shown++;
-        });
-        const empty=host.querySelector('[data-ai-history-empty]');
-        if(empty)empty.hidden=shown!==0;
-      };
       if(historySelect){
         historySelect.addEventListener('change',()=>{
           historyFilter=historySelect.value;
@@ -644,12 +648,10 @@ export function createAIAnalysis(ctx){
         const historyRow=rows.find(el=>el.dataset.analysisId===id);
         if(historyRow){
           historyRow.dataset.aiHistoryStatus=state.kind;
-          const filter=$('#as-output').querySelector('[data-ai-history-filter]');
-          if(filter)historyRow.hidden=filter.value!=='all'&&
-            (filter.value==='processing'?!['processing','pending','attention'].includes(state.kind):filter.value!==state.kind);
           const rowBadge=historyRow.querySelector('[data-ai-history-badge]');
           if(rowBadge){rowBadge.textContent=state.text;rowBadge.className='ai-state ai-state-'+state.kind;}
         }
+        applyHistoryFilter();
         if(checkpoint.requiresHumanReview){
           const summary=panel.querySelector('[data-detail-summary]');
           if(summary&&!r.result?.summary)summary.textContent='调查需要人工核查，尚未形成完整结论。请检查未完成工具和模型调用状态。';
