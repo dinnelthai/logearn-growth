@@ -7,7 +7,7 @@ async function aiSchemaReady(db=require('../../db/aiPool')){
    to_regclass('public.ai_suggestions') AS suggestions,
    to_regclass('public.ai_usage_logs') AS usage_logs,
    to_regclass('public.idx_ai_usage_owner_trace') AS trace_index,
-   (SELECT ARRAY_AGG(column_name) FROM information_schema.columns
+   (SELECT ARRAY_AGG(column_name::text) FROM information_schema.columns
       WHERE table_schema='public' AND table_name='ai_usage_logs'
         AND column_name = ANY($1::text[])) AS usage_columns`,
    [['trace_id','round','cost_known']]);

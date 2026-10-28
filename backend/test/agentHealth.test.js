@@ -31,3 +31,7 @@ test('migration readiness requires the complete usage schema, not just tables',a
  assert.equal(await aiSchemaReady(mock({...base,usage_logs:null})),false);
  assert.equal(await aiSchemaReady(mock({})),false);
 });
+test('schema query returns a PostgreSQL text array understood by the pg driver',async()=>{
+ let sql; await aiSchemaReady({query:async(s)=>{sql=s;return {rows:[{}]}}});
+ assert.match(sql,/ARRAY_AGG\(column_name::text\)/);
+});
