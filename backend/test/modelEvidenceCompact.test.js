@@ -1,9 +1,13 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
 const {forModel}=require('../src/ai/business/modelEvidence');
-test('small tool results remain exact and archived payload is never mutated',()=>{
+test('small tool results are projected without mutating original evidence',()=>{
  const input={status:'ok',evidence:[{id:'e',metricId:'active_users',value:12}]};
- assert.equal(forModel(input),input);
+ const before=JSON.stringify(input);const projected=forModel(input);
+ assert.notEqual(projected,input);
+ assert.equal(projected.evidence[0].value,12);
+ assert.equal(projected.evidence[0].id,'e');
+ assert.equal(JSON.stringify(input),before);
 });
 test('large tool results are a bounded transport view with provenance and quality',()=>{
  const original={status:'ok',evidence:[{id:'e1',metricId:'funnel',definitionVersion:'1',
