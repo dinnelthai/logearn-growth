@@ -122,7 +122,7 @@ jobs:
         env:
           NODE_ENV: test
         run: |
-          node --test test/agentFoundation.test.js test/agentFollowupRunner.test.js test/agentCapabilityContext.test.js test/agentContextBudget.test.js test/modelEvidenceCompact.test.js test/agentTokenFollowup.test.js test/batchAnomalies.test.js test/aiUsageBudget.test.js test/aiRelayProvider.test.js test/growthCostAudit.test.js test/growthCrossDay.test.js test/growthAlertMonitorScheduler.test.js test/growthInbox.test.js test/growthSharedReport.test.js test/growthSharedDailyDispatch.test.js test/growthSharedSnapshotCache.test.js test/hologresExplain.test.js test/growthEfficiencyAudit.test.js test/growthDailySignalGate.test.js test/aiCostUnknownGuard.test.js test/growthWorkspaceHttp.test.js test/growthWorkspaceMetric.test.js
+          node --test test/agentFoundation.test.js test/agentFollowupRunner.test.js test/agentCapabilityContext.test.js test/agentContextBudget.test.js test/modelEvidenceCompact.test.js test/agentTokenFollowup.test.js test/batchAnomalies.test.js test/aiUsageBudget.test.js test/aiRelayProvider.test.js test/growthCostAudit.test.js test/growthCrossDay.test.js test/growthAlertMonitorScheduler.test.js test/growthDiagnosis.test.js test/growthInbox.test.js test/growthSharedReport.test.js test/growthSharedDailyDispatch.test.js test/growthSharedSnapshotCache.test.js test/hologresExplain.test.js test/growthEfficiencyAudit.test.js test/growthDailySignalGate.test.js test/aiCostUnknownGuard.test.js test/growthWorkspaceHttp.test.js test/growthWorkspaceMetric.test.js
 
   ai-integration:
     runs-on: ubuntu-latest
