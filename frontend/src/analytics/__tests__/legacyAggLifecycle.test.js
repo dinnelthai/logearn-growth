@@ -1,6 +1,7 @@
 import {test,expect,vi,beforeEach} from 'vitest'
 
-vi.mock('../../api/metrics.js',()=>({
+vi.mock('../../api/metrics.js',async(importOriginal)=>({
+  ...(await importOriginal()),
   fetchChannelMetrics:vi.fn(),
   fetchPathsMetrics:vi.fn(),
   fetchTradeMetrics:vi.fn()
