@@ -258,3 +258,58 @@ html:has(#la-studio) > body { padding:0 !important; background:#0b0f17 !importan
     align-self: start;
   }
 }
+
+/* Desktop AI investigation workflow: visible state, compact history and clear result. */
+@media (min-width: 901px) {
+  #la-studio .ai-history-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  #la-studio .ai-history-heading > h2 { margin: 0 auto 0 0; }
+  #la-studio .ai-history-heading > label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--a-muted);
+    font-size: 12px;
+  }
+  #la-studio .ai-history-heading select {
+    width: auto;
+    min-width: 112px;
+    padding: 6px 30px 6px 10px;
+  }
+  #la-studio .ai-history-row[hidden] { display: none; }
+  #la-studio .ai-history-title[aria-pressed="true"] { color: #c4d2ff; }
+  #la-studio .ai-history-row:has(.ai-history-title[aria-pressed="true"]) {
+    border-color: #647bb1;
+    background: #202e42;
+  }
+  #la-studio .ai-detail-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  #la-studio .ai-detail-heading h2 { margin: 0; flex: 1; min-width: 0; }
+  #la-studio .ai-state-attention {
+    background: #46361f;
+    border: 1px solid #8d6734;
+    color: #ffd390;
+  }
+  #la-studio [data-checkpoint-result] {
+    padding: 12px 14px;
+    border: 1px solid #42506b;
+    border-radius: 8px;
+    background: #1a2536;
+    color: #d1def0;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+  #la-studio .ai-result [data-retry-analysis]:disabled {
+    opacity: .68;
+  }
+}
