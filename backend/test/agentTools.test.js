@@ -13,7 +13,8 @@ test('tools discover schema, reuse existing analysis, keep empty audience and re
  assert.equal(result.evidence[0].value.rows,undefined);
  assert.equal(result.cursor,undefined,'row-level pagination is not exposed to the Agent');
  assert.equal(result.evidence[0].value.omittedNonStatisticalFields>0,true);
- await assert.rejects(()=>t.registry.executeTool('get_funnel',{cursor:result.cursor},{...t.context,ownerId:'bob'}),/权限/);
+ const forged=Buffer.from(JSON.stringify({tool:'get_funnel',evidenceId:result.evidence[0].id,offset:1})).toString('base64url');
+ await assert.rejects(()=>t.registry.executeTool('get_funnel',{cursor:forged},{...t.context,ownerId:'bob'}),/权限/);
  await assert.rejects(()=>t.registry.executeTool('get_funnel',{scope:{source:'all'}},t.context),/范围/);
  await assert.rejects(()=>t.registry.executeTool('get_funnel',{filters:{sql:'1=1; DROP TABLE users'}},t.context),/字段|过滤/);
  await assert.rejects(()=>t.registry.executeTool('query_metrics',{metrics:['invented']},t.context),/指标/);
