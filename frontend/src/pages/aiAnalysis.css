@@ -543,3 +543,85 @@
 }
 #la-studio .ai-analysis-page .ai-suggestion-record p { margin: 6px 0; }
 #la-studio .ai-analysis-page .ai-suggestion-record small { color: var(--a-muted); }
+
+/* Operational review queue: explicit readiness, visible feedback and deliberate actions. */
+#la-studio .ai-analysis-page .ai-workspace-notice {
+  display: block;
+  margin: 0 0 var(--ui-space-4, 16px);
+  padding: 13px 16px;
+  border: 1px solid var(--ui-border-interactive);
+  border-left: 3px solid var(--a-accent);
+  border-radius: var(--ui-radius-sm, 7px);
+  background: var(--ui-surface-raised);
+  color: var(--a-text);
+  font-size: 13px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+#la-studio .ai-analysis-page .ai-workspace-notice[hidden] { display: none; }
+#la-studio .ai-analysis-page .ai-review-heading {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+#la-studio .ai-analysis-page .ai-review-heading h2 { margin: 0; }
+#la-studio .ai-analysis-page .ai-review-heading > span {
+  color: var(--a-muted);
+  font-size: 12px;
+}
+#la-studio .ai-analysis-page .ai-review-queue {
+  display: grid;
+  gap: 11px;
+  margin-top: 16px;
+}
+#la-studio .ai-analysis-page .ai-review-queue-item {
+  padding: 16px;
+  border: 1px solid var(--a-border);
+  background: var(--ui-surface-raised);
+  border-radius: var(--ui-radius-md, 10px);
+}
+#la-studio .ai-analysis-page .ai-review-queue-primary {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: start;
+}
+#la-studio .ai-analysis-page .ai-review-queue-primary strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+#la-studio .ai-analysis-page .ai-review-queue-state {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 99px;
+  border: 1px solid var(--ui-border-interactive);
+  color: var(--a-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+#la-studio .ai-analysis-page .ai-review-queue-state.is-ready {
+  color: var(--a-green);
+  border-color: #457e6a;
+  background: #1c3a32;
+}
+#la-studio .ai-analysis-page .ai-review-queue-item p {
+  margin: 8px 0 12px;
+  color: var(--a-muted);
+  font-size: 12px;
+  line-height: 1.65;
+}
+#la-studio .ai-analysis-page .ai-review-queue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+#la-studio .ai-analysis-page .ai-review-warning {
+  padding: 13px;
+  border: 1px solid var(--ui-warning-border);
+  color: var(--ui-warning);
+  border-radius: var(--ui-radius-sm, 7px);
+  overflow-wrap: anywhere;
+}
