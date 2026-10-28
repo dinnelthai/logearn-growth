@@ -1,5 +1,6 @@
 import './aiAnalysis.css';
 import {loadingState} from './loadingState.js';
+import {deriveAnalysisState,formatAnalysisTime,checkpointReason} from './aiTaskState.js';
 import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead,getGrowthInvestigationTimeline,getSeoImports,importSeoSnapshot,previewSeoSnapshot,previewKolPerformance,getGscConnection,saveGscSite,syncGscPerformance,getGscPerformance,getGscSitemaps,inspectGscUrl,getAutonomyStatus,getAutonomyTargets,saveAutonomyTarget,getAutonomyBriefs,getAutonomyLearning,refreshAutonomyBrief} from '../api/aiAnalysis.js';
 const DAY=86400000,OFFSET=7*3600000;
 const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
@@ -25,7 +26,34 @@ export function createAIAnalysis(ctx){
     try{
       const [list,reviews,costs,reviewQueue,inbox,alertData,proposalData,noticeData,budgetData,seoData,gscConnection,gscSnapshot,agentStatus,agentTargets,agentBriefs,agentLearning]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]})),getGrowthAlerts().catch(error=>({alerts:[],error:error.message})),getGrowthInvestigations().catch(error=>({proposals:[],error:error.message})),getGrowthNotifications().catch(error=>({notifications:[],error:error.message})),getGrowthBudget().catch(error=>({limit:0,reservedCalls:0,remainingCalls:0,error:error.message})),getSeoImports().catch(error=>({imports:[],error:error.message})),getGscConnection().catch(error=>({configured:false,sites:[],error:error.message})),getGscPerformance().catch(error=>({available:false,error:error.message})),getAutonomyStatus().catch(error=>({schedulerConfigured:false,error:error.message})),getAutonomyTargets().catch(error=>({targets:[],supportedMetrics:[],error:error.message})),getAutonomyBriefs().catch(error=>({briefs:[],error:error.message})),getAutonomyLearning().catch(error=>({assessment:null,strategies:{},error:error.message}))]);
       if(token!==generation)return;
+      // Read a single latest task and its checkpoint; don't infer task state from a list label.
+      const latestId=list.records?.[0]?.id;
+      const [latestDetail,latestCheckpoint]=latestId?await Promise.all([
+        getAnalysisDetail(latestId).catch(()=>null),
+        getJobCheckpoint(latestId).catch(()=>null)
+      ]):[null,null];
+      if(token!==generation)return;
+      const latestState=latestId?deriveAnalysisState(latestDetail,latestCheckpoint):null;
       host.innerHTML=`<div class="si-page ai-analysis-page">
+        <section class="a-card ai-quick-status" aria-labelledby="ai-overview-title">
+          <div class="ai-quick-heading"><div><h1 id="ai-overview-title">AI Growth Agent · 运营概览</h1>
+            <p>先查看当前任务与待处理事项，再决定是否创建新分析。自动调度与手动分析分别运行。</p></div>
+            <button class="a-button a-primary" type="button" data-start-analysis>新建分析</button></div>
+          <div class="ai-quick-grid">
+            <div><strong>最新分析</strong><p>${latestId?esc(latestState.label):'暂无任务'}</p><small>${latestId?'ID '+esc(latestId):'尚未提交过分析'}</small></div>
+            <div><strong>需处理事项</strong><p>${esc(inbox.error?'状态未知':inbox.counts?.total??'未知')}</p><small>查看下方真实运营待办</small></div>
+            <div><strong>最近日报</strong><p>${agentBriefs.briefs?.[0]?esc(agentBriefs.briefs[0].day):'暂无数据'}</p><small>${agentBriefs.briefs?.[0]?esc(agentBriefs.briefs[0].status):'没有已保存日报'}</small></div>
+            <div><strong>自动调度</strong><p>${agentStatus.error?'状态不可用':agentStatus.schedulerRunning?'运行中':agentStatus.schedulerConfigured?'未确认运行':'未启用'}</p><small>不影响允许的手动分析</small></div>
+          </div>
+          ${latestId?`<p role="${latestState.key==='blocked'||latestState.key==='failed'?'alert':'status'}"><strong>当前最新：</strong>${esc(latestDetail?.title||latestId)} · ${esc(latestState.label)} ${latestState.reason?'· '+esc(latestState.reason):''} ${latestState.stale?'· 状态可能未同步':''}
+            <button class="a-button" data-analysis="${esc(latestId)}">查看该任务</button></p>
+            <p class="a-muted">最近状态时间：${esc(formatAnalysisTime(latestState.lastUpdated))}</p>`:'<p>暂无分析任务。可手动创建分析；不必先启用自动调度。</p>'}
+          <div class="ai-quick-next"><h2>需要你处理</h2>
+            ${latestState?.key==='blocked'?`<p>${esc(latestState.reason)} <button class="a-button" data-analysis="${esc(latestId)}">查看阻塞详情</button></p>`:
+              inbox.tasks?.length?`<p>${esc(inbox.tasks[0].title)} · ${esc(inbox.tasks[0].status)}。请在下方运营待办中核实。</p>`:
+              '<p>当前没有已确认的待处理事项；数据不可用时不代表业务正常。</p>'}
+          </div>
+        </section>
         <section class="a-card ai-agent-autonomy">
           <h2>AI Growth Agent · 自主运营驾驶舱</h2>
           <p>每日指标评价 → AI 经营分析 → 行动建议 → 成熟复盘 → 下一轮调查策略。实际运营操作需人工批准。</p>
@@ -96,6 +124,7 @@ export function createAIAnalysis(ctx){
         </section>
         <section class="a-card"><h1>AI 业务增长助手</h1><p>主动发起分析，按业务证据排优先级；记录行动后主动复盘。所有分析与复盘均使用同一 DeRouter 模型。</p>
         <p>累计调用 ${esc(costs.total_calls)} 次 · Token ${esc(costs.total_tokens??0)} · 估算费用 $${esc(costs.total_cost??0)}（${esc(costs.unknown_cost_calls??0)} 次调用费率未配置，金额不代表免费）</p>
+        <details class="ai-new-analysis" data-analysis-setup><summary>新建主动分析 · 配置任务（可能产生模型费用）</summary>
         <form data-ai-form><label>分析标题<input name="title" required maxlength="200" value="业务增长分析"></label>
         <label>开始日期<input name="start" type="date" required value="${defaults.start}"></label>
         <label>结束日期（含当日）<input name="end" type="date" required value="${defaults.end}"></label>
@@ -105,7 +134,7 @@ export function createAIAnalysis(ctx){
         <p>专项技能只允许全来源分析；SEO 不会把搜索点击假设成交易转化，KOL 不会把 CRM 归组等同于合作增量。</p>
         <label>分析方式<select name="modelMode"><option value="auto">自动调查（单模型）</option><option value="complex">深度调查（同一模型）</option></select></label>
         <label>业务背景与问题<textarea name="question" maxlength="5000" placeholder="当前目标、资源约束、近期活动、产品改动，以及你想解决的问题"></textarea></label>
-        <button class="a-button" type="submit" ${busy?'disabled':''}>开始分析</button></form>
+        <button class="a-button" type="submit" ${busy?'disabled':''}>开始分析</button></form></details>
         <p>时间按 UTC+7，最多31天。当前支持来源范围；不会把活动或用户群当作已筛选。</p>
         <button class="a-button" type="button" data-health>检查运行状态</button><pre data-health-result></pre><p data-ai-message role="status"></p></section>
         <section class="a-card"><h2>Growth 运营待办</h2>
@@ -236,7 +265,9 @@ export function createAIAnalysis(ctx){
         </section>
         <section class="a-card" data-specialist-preview><p>选择一个 SEO 快照或读取 KOL 观察结果查看证据。</p></section>
         <section class="a-card"><h2>历史分析</h2><button class="a-button" data-refresh>刷新</button>
-        ${list.records.length?list.records.map(r=>`<p><button class="a-button" data-analysis="${esc(r.id)}">${esc(r.title)}</button> · ${esc(label(r.status))} · 建议 ${esc(r.suggestion_count)} 条</p>`).join(''):'<p>尚无分析，点击开始后才会调用模型。</p>'}</section>
+        <div class="ai-task-history"><table><thead><tr><th>任务</th><th>创建时间</th><th>后端状态</th><th>建议</th><th>操作</th></tr></thead><tbody>
+        ${list.records.length?list.records.slice(0,20).map(r=>`<tr><td><strong>${esc(r.title)}</strong><small>${esc(r.id)}</small></td><td>${esc(formatAnalysisTime(r.created_at))}</td><td>${esc(r.status==='processing'?'执行状态待核查':label(r.status))}</td><td>${esc(r.suggestion_count??'未知')}</td><td><button class="a-button" data-analysis="${esc(r.id)}">详情</button></td></tr>`).join(''):'<tr><td colspan="5">暂无已保存分析</td></tr>'}
+        </tbody></table></div></section>
         <section class="a-card" data-detail><p>选择一条分析查看证据和建议。</p></section>
         <section class="a-card"><h2>待复盘行动</h2>
         <p>依据完整的曼谷业务日和已采集数据水位判定，只有你已执行的行动可复盘。查看无需模型费用。</p>
@@ -465,6 +496,11 @@ export function createAIAnalysis(ctx){
         finally{busy=false;if(button.isConnected)button.disabled=false}
       };
       host.querySelectorAll('[data-analysis]').forEach(b=>b.onclick=()=>open(b.dataset.analysis));
+      host.querySelector('[data-start-analysis]')?.addEventListener('click',()=>{
+        const setup=host.querySelector('[data-analysis-setup]');
+        if(setup)setup.open=true;
+        host.querySelector('[data-ai-form] [name="title"]')?.focus();
+      });
       host.querySelector('[data-ai-form]').onsubmit=async e=>{
         e.preventDefault();if(busy)return;busy=true;const button=e.target.querySelector('button');button.disabled=true;
         const form=new FormData(e.target),requestKey=crypto.randomUUID();
