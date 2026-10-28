@@ -7,7 +7,9 @@ let isConnected = false;
 // No credentials are logged. URL credentials and TLS are supported while
 // preserving legacy REDIS_HOST / REDIS_PORT only when no URL was supplied.
 function cacheConnectionConfig(env=process.env){
- const raw=env.REDIS_URL||env.BULL_REDIS_URL||null;
+ // Match getBullRedisConfig() exactly: a dedicated TCP Bull URL wins over
+ // REDIS_URL (which some deployments use for an HTTPS REST cache endpoint).
+ const raw=env.BULL_REDIS_URL||env.REDIS_URL||null;
  if(raw){
   const url=new URL(raw);
   if(!['redis:','rediss:'].includes(url.protocol))
@@ -36,7 +38,7 @@ function cacheConnectionConfig(env=process.env){
 function createClient() {
   if (client) return client;
 
-  // Use the same REDIS_URL contract as Bull's ai-analysis queue. The old
+  // Use the same Redis URL precedence as Bull's ai-analysis queue. The old
   // cache/LLM limiter silently ignored REDIS_URL and dialed localhost:6379,
   // even when Bull (correctly) used the configured SSH tunnel at :16379.
   const config = cacheConnectionConfig(process.env);
