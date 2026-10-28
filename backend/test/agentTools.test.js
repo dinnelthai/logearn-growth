@@ -55,3 +55,39 @@ test('product chain returns bounded aggregate metrics without individual details
  assert.equal(v.product_chain.users,90);assert.equal(v.first_value.rate,0.5);assert.equal(v.product_chain.dimensions,undefined);assert.equal(v.events,undefined);assert.doesNotMatch(JSON.stringify(v),/private/);
  }finally{t.db.close()}
 });
+
+test('product-chain summary preserves conversion denominators and maturity without entry-level details',async()=>{
+ const t=setup({maxResultBytes:4500,runAnalysis:async()=>({payload:{
+  product_chain:{visits:80,users:70,pending:9,
+   stages:[{label:'详情',visits:80,users:70},{label:'分析',visits:36,users:34}],
+   drops:[{from:'详情',to:'分析',eligible:50,users:14,unknown:7,rate:0.28}],
+   quality:{trade_unknown_visits:12,detail_events:101},
+   dimensions:{source:Array.from({length:1000},(_,i)=>({users:1,value:'src'+i}))}},
+  first_value:{available:true,entered:70,eligible:50,converted:30,pending:20,rate:0.6},
+  exposure:{available:true,exposures:400,clicked:88,clicked_users:60,rate:0.22,
+   session_id:'secret-session'},
+  entrance:{missing_visit_clicks:15,completion_available:true,rows:[
+   {value:'signals',visits:80,details:60,successes:20,rate:0.25,
+    user_ids:['secret-user']} ]},
+  page_clicks:{rows:[{page_name:'signals',visitor_users:100,clicked_users:40,
+   rate:0.4,list_key:'private-list-key'}]},
+  retention:[{day:7,eligible:35,returned:9,pending:10,rate:9/35}],
+  events:[{user_id:'secret-user'}],lists:{all:['secret-user']},
+  coverage:'partial',definition:'业务访客总量'
+ }})});
+ try{
+  const result=await t.registry.executeTool('get_product_chain',{},t.context);
+  assert.equal(result.status,'ok');
+  const v=result.evidence[0].value;
+  assert.equal(v.product_chain.stages[1].users,34);
+  assert.equal(v.product_chain.drops[0].eligible,50);
+  assert.equal(v.first_value.eligible,50);
+  assert.equal(v.exposure.exposures,400);
+  assert.equal(v.retention_summary[0].eligible,35);
+  assert.equal(v.entrance_breakdown[0].successes,20);
+  assert.equal(v.page_clicks_summary[0].visitor_users,100);
+  const text=JSON.stringify(v);
+  assert.doesNotMatch(text,/secret-user|secret-session|private-list-key/);
+  assert.equal(v.product_chain.dimensions,undefined);
+ }finally{t.db.close()}
+});
