@@ -15,7 +15,25 @@ export function createWorkbench(ctx){
   const aiButton=host().querySelector('[data-work-ai]');if(aiButton)aiButton.onclick=()=>ctx.navigate?.('ai-analysis');
   const crmHost=host().querySelector('[data-work-crm]');if(oldCrm&&crmHost)crmHost.replaceWith(oldCrm);else if(crmHost)crm=mountUserCrm(crmHost,ctx,{onSaved:async()=>{const token=epoch;try{const r=await fetchWorkbench();if(token===epoch&&crmHost.isConnected){data=r;render(true)}}catch(e){if(token===epoch)host().querySelector('[data-work-error]').textContent=e.message}}});
   host().querySelector('[data-work-refresh]').onclick=refresh;host().querySelectorAll('[data-work-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.workFilter;page=0;render()});host().querySelector('[data-work-prev]').onclick=()=>{page--;render()};host().querySelector('[data-work-next]').onclick=()=>{page++;render()}
-  host().querySelectorAll('[data-work-open]').forEach(b=>b.onclick=()=>{const t=data.tasks.find(t=>t.id===b.dataset.workOpen);if(t.type==='kol')ctx.openKol(t.target);else if(t.type==='activity'||t.type==='activity_start')ctx.openActivity(t.target);else if(t.type==='task')ctx.openOperationTask(t.target);else ctx.openUserProfile(t.target)})
+  host().querySelectorAll('[data-work-open]').forEach(b=>b.onclick=()=>{
+    const t=data?.tasks?.find(task=>task.id===b.dataset.workOpen);
+    if(!t||!t.target){
+      const error=host().querySelector('[data-work-error]');
+      if(error)error.textContent='待办记录已更新或目标不存在，请刷新后重试。';
+      return;
+    }
+    const actions={
+      kol:ctx.openKol,activity:ctx.openActivity,activity_start:ctx.openActivity,
+      task:ctx.openOperationTask,user:ctx.openUserProfile,conversion:ctx.openUserProfile
+    };
+    const open=actions[t.type];
+    if(typeof open!=='function'){
+      const error=host().querySelector('[data-work-error]');
+      if(error)error.textContent='当前待办类型暂不能打开，请检查相关模块。';
+      return;
+    }
+    open(t.target);
+  })
   host().querySelectorAll('[data-work-status]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{const token=epoch,t=data.tasks.find(t=>t.id===b.dataset.workStatus);await setFollowupStatus(t.id,t.status==='done'?'open':'done');if(token===epoch&&b.isConnected)await refresh()}catch(e){if(b.isConnected){host().querySelector('[data-work-error]').textContent=e.message;b.disabled=false}}})
  }
  async function refresh(){
@@ -38,6 +56,6 @@ export function createWorkbench(ctx){
     if(button?.isConnected){button.disabled=false;button.textContent='刷新';}
   }
  }
- async function draw(){crm?.dispose();ctx.clear();const token=++epoch;host().innerHTML=loadingState('正在加载运营待办…');try{const [r,ai]=await Promise.all([fetchWorkbench(),getGrowthInbox().catch(e=>({error:e.message}))]);if(token!==epoch)return;data=r;aiInbox=ai;page=0;render()}catch(e){if(token===epoch){host().innerHTML=viewState({kind:'error',title:'运营待办加载失败',description:e.message,actionLabel:'重试',actionAttr:'data-work-refresh'});host().querySelector('[data-work-refresh]')?.addEventListener('click',draw)}}}
+ async function draw(){crm?.dispose();ctx.clear();const token=++epoch;host().innerHTML=loadingState('正在加载运营待办…');try{const [r,ai]=await Promise.all([fetchWorkbench(),getGrowthInbox().catch(e=>({error:e.message}))]);if(token!==epoch)return;data=r;aiInbox=ai;render()}catch(e){if(token===epoch){host().innerHTML=viewState({kind:'error',title:'运营待办加载失败',description:e.message,actionLabel:'重试',actionAttr:'data-work-refresh'});host().querySelector('[data-work-refresh]')?.addEventListener('click',draw)}}}
  return {draw,dispose(){epoch++;crm?.dispose()}}
 }
