@@ -14,7 +14,7 @@
 | 用户能力 | 已有代码 | 需补齐的连接 |
 | --- | --- | --- |
 | 异常和数据质量判断 | `ai/growth/triage`, `crossDay`, `alertStore` | 多目标扫描与成熟样本约束 |
-| 无模型定时扫描 | `queues/workers/growthAlertMonitor` + `monitor` | 原先单目标配置；覆盖拉新/激活/留存 |
+| 无模型定时扫描 | `ai/growth/monitorScheduler` + `monitor` | 原先单目标配置；覆盖拉新/激活/留存 |
 | 深度调查与审批 | `planner`, `investigationStore`, `investigationTimeline` | 已观察事实、推测和数据不足分层展示 |
 | 问题列表与去重 | `inbox`, `workspace/discovery`, `workspace/store` | 同一事件的优先级与关联入口一致 |
 | 人工执行/结果复盘 | `actionWorkflow`, `reviewQueue`, `operationTasks` | 从问题进入人工行动、复盘可回溯 |
@@ -36,20 +36,16 @@
 - 没有真实标注异常样本时，不能宣称诊断准确率或业务提升，只能确认测试契约。
 - 达到范围内验收即冻结 V1；另起 issue 才能新增需求。
 
-## 启用方式和回滚（保持默认 OFF）
+## 启用方式（2026-10-28 简化）
 
-现有进程：`cd backend && npm run worker:growth-monitor`。
-只有设置 `AI_GROWTH_ALERT_MONITOR_ENABLED=1` 才真正调度；`--dry-run` 只校验目标/用户配置，绝不查询或写入业务数据。
-`AI_DAILY_OWNER_IDS` 是经过授权的账户列表；`AI_GROWTH_ALERT_GOALS=activation,retention` 可同时扫描核心目标。
-不配置此新环境变量时沿用旧 `AI_DAILY_GOAL`；也未配置则默认检查 activation 与 retention。
-`AI_GROWTH_ALERT_SOURCE` 可单独指定监控来源，未设置则使用 `AI_DAILY_SOURCE` 或 `all`。
-继续用原有 Postgres 告警表和告警审批接口；不引入新数据库或模型供应商。
+日常操作只需在 **AI 分析 → 增长异常自动监控** 中开启当前账号。
 
-- 拉新：`new_users` 是首次观测到筹码分析，**不是新注册**；激活一侧同时监测 `active_users`。
-- 留存：当前无人值守告警只对 `returning_users` 人数变化进行保守检测。D7 成熟留存率和 24h 激活率可在现有业务报告 / 人工批准的深度调查中查看，但尚未加入无人值守跨日比例异常判定，以避免不同 Cohort 的分母错比。
-- 发现异常后写入原有 `ai_growth_alerts`、`ai_growth_investigation_proposals`；相同告警按稳定 fingerprint 更新，提案只能人工批准付费分析。
-- 新增 `diagnosis` 仅提出应该核查的事实与问题，没有自动制定运营方案。
-- 如监控造成错误：删除/关闭 `AI_GROWTH_ALERT_MONITOR_ENABLED` 即停止新扫描；已有告警不自动删除，需人工审阅。
+- 定时任务随现有 HTTP 后端启动，使用已有 `node-cron`；无需单独 Worker、监控专用账号白名单或监控环境变量。
+- 默认保持账号关闭。开启后，曼谷时间每天 10:30 扫描激活与回访两个已有日报目标（只读、零模型调用）。
+- 启动前仍必须确保原有 AI PostgreSQL 迁移已完成（按已有安全迁移流程，禁止隐式写业务库）。
+- 多副本使用现有数据库 scheduler health 租约互斥；告警继续由原有稳定 fingerprint 去重。
+- 关闭页面开关即停止该账号后续扫描；后台进程日志以 `[growth-monitor]` 为前缀。
+- 详细参见 [GROWTH_MONITOR_UI_TOGGLE.md](./GROWTH_MONITOR_UI_TOGGLE.md)。
 
 ## 测试证据与尚缺真实验收
 
