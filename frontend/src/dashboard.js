@@ -10,6 +10,7 @@ import {mountTagAudience} from './pages/tagAudience.js';
 import {createKolCrm} from './pages/kolCrm.js';
 import {mountSectionNavigation} from './navigation.js';
 import {createViewHistory,INTERNAL_VIEWS} from './navigationHistory.js';
+import {mountWorkspaceQuickJump} from './workspaceQuickJump.js';
 import {renderDataTable} from './components/dataTable.js';
 
 import {createActivityMonitor} from './pages/activityMonitor.js'
@@ -217,6 +218,7 @@ const viewHistory=createViewHistory({
   validModes:[...new Set($('[data-mode]').filter(el=>!el.hidden&&!el.disabled).map(el=>el.dataset.mode).concat(INTERNAL_VIEWS))],
   onNavigate:view=>navigate(view,{history:false})
 });
+mountWorkspaceQuickJump(root,navigate);
 function navigate(nextMode,options={}){if(options.platform){audience=null;task=null;pages.segments.configureAudience?.(null);if(Number.isFinite(options.asOf))asof=options.asOf}navigationGeneration++;mode=nextMode==='tasks'?'north':nextMode;root.dataset.currentMode=mode;if(options.history!==false)viewHistory.push(mode);sectionNavigation.update(mode);$('#as-title').textContent=pageTitle();$('#as-sub').textContent=pageSub();renderSteps();syncFilterControls();if(options.platform){const sel=$('#as-range');if([...sel.options].some(o=>o.value===String(options.days)))sel.value=String(options.days);$('#as-source').value='all'}if((task||audience)&&AUDIENCE_MODES.has(mode))$('#as-source').value=audience?.source||'all';run()}
 globalThis.__refreshRemoteAnalytics=async meta=>{
   if(!Number.isFinite(Date.parse(meta.as_of)))throw new Error('数据截止时间无效')
