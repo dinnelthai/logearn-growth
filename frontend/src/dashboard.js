@@ -214,7 +214,7 @@ function run(){if(mode==='growth-agent-control'){current=null;closeDrill();if($(
 // Route only known page IDs; never store user IDs, analysis filters or tokens in URLs.
 const viewHistory=createViewHistory({
   location:globalThis.location,history:globalThis.history,eventTarget:globalThis,
-  validModes:[...new Set([...$('[data-mode]')].filter(el=>!el.hidden).map(el=>el.dataset.mode).concat(INTERNAL_VIEWS))],
+  validModes:[...new Set($('[data-mode]').filter(el=>!el.hidden&&!el.disabled).map(el=>el.dataset.mode).concat(INTERNAL_VIEWS))],
   onNavigate:view=>navigate(view,{history:false})
 });
 function navigate(nextMode,options={}){if(options.platform){audience=null;task=null;pages.segments.configureAudience?.(null);if(Number.isFinite(options.asOf))asof=options.asOf}navigationGeneration++;mode=nextMode==='tasks'?'north':nextMode;root.dataset.currentMode=mode;if(options.history!==false)viewHistory.push(mode);sectionNavigation.update(mode);$('#as-title').textContent=pageTitle();$('#as-sub').textContent=pageSub();renderSteps();syncFilterControls();if(options.platform){const sel=$('#as-range');if([...sel.options].some(o=>o.value===String(options.days)))sel.value=String(options.days);$('#as-source').value='all'}if((task||audience)&&AUDIENCE_MODES.has(mode))$('#as-source').value=audience?.source||'all';run()}
