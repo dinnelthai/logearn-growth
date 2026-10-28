@@ -98,7 +98,7 @@ class CostTracker {
   /**
    * 检查今日成本是否超限
    */
-  async checkDailyLimit(maxDailyCost, ownerId = null) {
+  async checkDailyLimit(maxDailyCost, ownerId = null, maxDailyTokens = 100000) {
     const stats = await this.getTodayStats(ownerId);
     const totalCost = stats.reduce((sum, stat) => sum + parseFloat(stat.total_cost || 0), 0);
     // A zero-dollar estimate is not proof of free usage. Once an unknown-priced
@@ -113,6 +113,11 @@ class CostTracker {
       );
     }
 
+    if(!Number.isSafeInteger(maxDailyTokens)||maxDailyTokens<1)
+      throw Error('每日 Token 配额必须为正整数');
+    const usedTokens=stats.reduce((sum,stat)=>sum+Number(stat.total_tokens||0),0);
+    if(usedTokens>=maxDailyTokens)
+      throw Error('每日 Token 配额已耗尽：'+usedTokens+' / '+maxDailyTokens);
     return totalCost;
   }
 

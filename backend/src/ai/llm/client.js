@@ -9,6 +9,7 @@ const CostTracker = require('./costTracker');
 const { llmCache, rateLimit } = require('../../cache');
 const logger = require('../../utils/logger');
 const { v4: uuidv4 } = require('uuid');
+const {normalizeUsage}=require('./usage');
 
 // WebSocket handlers for streaming
 let llmStream;
@@ -80,8 +81,10 @@ class LLMClient {
         }
       }
 
-      // 3. 检查成本限制
-      await this.costTracker.checkDailyLimit(this.config.maxDailyCost, userId);
+      // Unknown tariff is not free. Block BEFORE the first paid request.
+      if(!this.modelInfo.pricingKnown)
+        throw Error('模型中转站单价未配置，禁止付费调用：请设置 AI_RELAY_COST_PER_1K_INPUT / OUTPUT');
+      await this.costTracker.checkDailyLimit(this.config.maxDailyCost, userId, this.config.maxDailyTokens);
 
       // 4. 调用对应的 provider
       const response = await this.provider.chat({
@@ -98,14 +101,14 @@ class LLMClient {
       // Record the actual provider usage once before publishing a reusable response.
       const duration = Date.now() - startTime;
       const usage = await this.trackUsage(response, duration, options);
-      if (!options.skipCache) {
+      if (!options.skipCache && usage.usage.known) {
         await llmCache.set(messages, this.model, response, {
           ...options, ttl: options.cacheTTL || 86400, metadata: options.metadata
         });
       }
 
       return {
-        ...response,
+        ...response, usage:usage.usage,
         model: this.model, provider: this.modelInfo.provider, cost: usage.cost, costKnown: usage.costKnown,
         fromCache: false,
         cached: false
@@ -148,22 +151,24 @@ class LLMClient {
    * 记录使用情况和成本
    */
   async trackUsage(response, duration, options = {}) {
+    const tokens=normalizeUsage(response.usage);
     const usage = {
       ownerId: options.userId,
       operationType: options.operationType || 'analysis',
       operationId: options.operationId || options.metadata?.analysisId || options.metadata?.suggestionId || 'legacy',
       model: this.model,
       provider: this.modelInfo.provider,
-      inputTokens: response.usage.inputTokens,
-      outputTokens: response.usage.outputTokens,
-      totalTokens: response.usage.totalTokens,
-      cost: this.calculateCost(response.usage),
-      costKnown: this.modelInfo.costPer1kInput > 0 && this.modelInfo.costPer1kOutput > 0,
+      inputTokens: tokens.inputTokens,
+      outputTokens: tokens.outputTokens,
+      totalTokens: tokens.totalTokens,
+      cost: tokens.known?this.calculateCost(tokens):0,
+      costKnown: tokens.known && this.modelInfo.pricingKnown,
       duration,
       timestamp: new Date()
     };
 
     await this.costTracker.track(usage);
+    usage.usage=tokens;
 
     if (this.config.enableMetrics) {
       logger.info('LLM usage:', usage);
@@ -211,6 +216,7 @@ class LLMClient {
    */
   async chatStream(messages, options = {}) {
     const streamId = options.streamId || uuidv4();
+    options={...options,cacheScope:options.userId||'anonymous',endpoint:this.provider.client.baseURL};
     const startTime = Date.now();
 
     try {
@@ -262,7 +268,9 @@ class LLMClient {
       }
 
       // 3. Check cost limit
-      await this.costTracker.checkDailyLimit(this.config.maxDailyCost, userId);
+      if(!this.modelInfo.pricingKnown)
+        throw Error('模型中转站单价未配置，禁止付费流式调用');
+      await this.costTracker.checkDailyLimit(this.config.maxDailyCost, userId, this.config.maxDailyTokens);
 
       // 4. Emit stream start
       llmStream.emitStart(streamId, { model: this.model });
@@ -295,33 +303,20 @@ class LLMClient {
         }
       }
 
-      // 7. Emit completion
-      const cost = usage ? this.calculateCost(usage) : 0;
-      llmStream.emitComplete(streamId, fullContent, { usage, cost });
+      // Normalize the relay's snake_case usage before charging or caching.
+      const normalized=normalizeUsage(usage);
+      const cost=normalized.known?this.calculateCost(normalized):0;
+      const duration=Date.now()-startTime;
+      const tracked=await this.trackUsage({content:fullContent,usage:normalized},duration,options);
+      llmStream.emitComplete(streamId,fullContent,{usage:normalized,cost,costKnown:tracked.costKnown});
 
       // 8. Cache the result
-      if (!options.skipCache) {
-        await llmCache.set(messages, this.model, {
-          content: fullContent,
-          usage
-        }, {
-          ttl: options.cacheTTL || 86400,
-          metadata: options.metadata
-        });
+      if (!options.skipCache && normalized.known) {
+        await llmCache.set(messages,this.model,{content:fullContent,usage:normalized},
+         {...options,ttl:options.cacheTTL||86400,metadata:options.metadata});
       }
-
-      // 9. Track usage
-      const duration = Date.now() - startTime;
-      if (usage) {
-        await this.trackUsage({ content: fullContent, usage }, duration, options);
-      }
-
-      return {
-        streamId,
-        content: fullContent,
-        usage,
-        fromCache: false
-      };
+      return {streamId,content:fullContent,usage:normalized,
+       cost:tracked.cost,costKnown:tracked.costKnown,fromCache:false};
     } catch (error) {
       logger.error('LLM stream error:', error);
       llmStream.emitError(streamId, error);
