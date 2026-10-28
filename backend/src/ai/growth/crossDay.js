@@ -3,7 +3,7 @@
 // Fail closed on mismatched windows, source, owner, or incomplete event coverage.
 const {createHash}=require('node:crypto');
 const DAY=86400000,OFFSET=7*3600000;
-const COUNTS=['active_users','new_users','returning_users'];
+// A count observed for multiple daily goal reports must not become two alerts.\n// Acquisition/activation own first-time and active analysis counts; retention\n// owns returning analysis users. Rate-based D7 signals require mature cohorts\n// and are deliberately not inferred from these counts.\nconst METRICS_BY_GOAL=Object.freeze({\n activation:['active_users','new_users'],retention:['returning_users']\n});
 function unpack(record){
  const context=record?.data_snapshot;
  const period=context?.period;
@@ -35,7 +35,7 @@ function compareDailySnapshots(previous,current,{minBaseline=20,minAbsolute=5,mi
  if(left.ownerId!==right.ownerId||left.scope!==right.scope||left.goal!==right.goal||
     left.end!==right.start)return {comparable:false,reason:'incompatible-period-or-scope',signals:[]};
  const signals=[];
- for(const metric of COUNTS){
+ for(const metric of METRICS_BY_GOAL[left.goal]||[]){
   const a=left.totals[metric],b=right.totals[metric];
   if(!Number.isSafeInteger(a)||!Number.isSafeInteger(b)||a<minBaseline||b<0)continue;
   const diff=b-a,ratio=diff/a;
