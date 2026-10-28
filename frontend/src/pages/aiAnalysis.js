@@ -112,7 +112,7 @@ export function createAIAnalysis(ctx){
         <p>只读工作台：待审批、待执行、待复盘与失败调查。不会自动执行外部运营动作。</p>
         <p>当前待办 ${esc(inbox.counts?.total??0)} 条 · 等待审批 ${esc(inbox.counts?.approval??0)} · 待复盘 ${esc(inbox.counts?.review??0)}</p>
         ${(inbox.warnings||[]).map(w=>'<p>'+esc(w)+'</p>').join('')}
-        ${(inbox.tasks||[]).slice(0,20).map(t=>`<p>${esc(t.priority)} · ${esc(t.title)} · ${esc(t.status)} ${t.analysisId?'<button class="a-button" data-analysis="'+esc(t.analysisId)+'">查看分析</button>':''}${t.proposalId?'<button class="a-button" data-case-timeline="'+esc(t.proposalId)+'">查看链路</button>':''}</p>`).join('')||'<p>目前没有需要处理的运营待办。</p>'}
+        ${(inbox.tasks||[]).slice(0,20).map(t=>`<p>${esc(t.priority)} · ${esc(t.title)} · ${esc(t.status)}${t.source?' · 来源 '+esc(t.source):''}${t.evidenceStatus?' · '+esc(t.evidenceStatus==='traceable-observation'?'证据可追溯':'证据待核查'):''} ${t.analysisId?'<button class="a-button" data-analysis="'+esc(t.analysisId)+'">查看分析</button>':''}${t.proposalId?'<button class="a-button" data-case-timeline="'+esc(t.proposalId)+'">查看链路</button>':''}</p>`).join('')||'<p>目前没有需要处理的运营待办。</p>'}
         </section>
         <section class="a-card"><h2>跨日增长告警</h2>
         <p>基于相邻完整业务日、相同目标和采集范围的已保存结果；仅提示观测变化，不宣称因果。扫描不调用 AI。</p>
