@@ -139,3 +139,11 @@ AI 详情使用后端检查点更新“需要处理”，并保留原因与记�
 | TEST-02 | `channelInsightsPage.test.js` 加了真实渠道旧结果刷新回归，`lazyPage.test.js` 对齐安全转义 | 全量构建和单测结果以 Actions 为准 |
 
 本次不包含移动端；保持现有业务 SQL、业务指标、AI 费用账本、Worker、后端任务调度原状。不声称页面端到端或视觉验收通过；下一步仍需在开发机对复杂筛选、用户下钻、图表布局以及真实账号状态进行人工交互检查。
+
+### 本批次 GitHub Actions 验证
+
+- [运行 #40709582315](https://github.com/dinnelthai/logearn-growth/actions/runs/40709582315)，验证代码提交 `576980a87e2e5753c596857ab9678b21838b1a3b`，结论：**success**。
+- **Vitest：80 个文件通过、1 个文件跳过；332 个测试通过、4 个跳过（共 336）。**
+- **Vite Build：成功**，Node 22 + npm ci 离线前端验证。
+- 本批次最初的 `lazyPage.test.js` 断言仍预期 HTML `>` 不被转义；更改为公共组件的 `&gt;` 安全转义预期后，全量测试通过。
+- 此次 CI 不代表真实浏览器截图、真实账号登录、付费 Agent 执行或业务端到端验收；代码提交后仅追加文档。
