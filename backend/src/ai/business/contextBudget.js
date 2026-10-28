@@ -1,7 +1,13 @@
 'use strict';
 // These are model-facing summaries, not changes to stored/source evidence.
 // Omissions remain explicit so the model cannot mistake an excerpt for full history.
-const text=(value,limit)=>typeof value==='string'?value.slice(0,limit):'';
+const text=(value,limit)=>{
+ if(typeof value!=='string')return '';
+ if(Buffer.byteLength(value,'utf8')<=limit)return value;
+ // Truncate on a UTF-8 byte boundary; never emit a replacement character.
+ return Buffer.from(value,'utf8').subarray(0,limit).toString('utf8')
+  .replace(/\uFFFD+$/g,'');
+};
 const boundedJson=(value,limit)=>{
  if(value==null)return null;
  const serialized=JSON.stringify(value);
@@ -19,7 +25,7 @@ function compactChanges(rows,{limit=16,maxContent=650}={}){
  }));
  return {items,meta:{
   total:rows.length,shown:items.length,omitted:rows.length-items.length,
-  truncatedEntries:selected.filter(x=>String(x.content||'').length>maxContent).length,
+  truncatedEntries:selected.filter(x=>Buffer.byteLength(String(x.content||''),'utf8')>maxContent).length,
   note:'仅为模型上下文摘要，未展示的历史记录仍在原始台账；不能据此断言不存在其他变更'
  }};
 }

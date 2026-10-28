@@ -10,7 +10,7 @@ test('large business changes never flood new model context or mutate source',()=
  const {items,meta}=compactChanges(rows);
  assert.equal(items.length,16);assert.equal(meta.omitted,84);
  assert.equal(items[0].id,'c0');
- assert.ok(items.every(x=>x.content.length<=650));
+ assert.ok(items.every(x=>Buffer.byteLength(x.content,'utf8')<=650));
  assert.ok(Buffer.byteLength(JSON.stringify({items,meta}))<25000);
  assert.equal(JSON.stringify(rows),original);
 });
@@ -23,6 +23,6 @@ test('recent memory is bounded while preserving some older negative evidence',()
  assert.ok(view.items.length<=16);
  assert.equal(view.meta.omitted,30-view.items.length);
  assert.ok(view.items.some(x=>x.id==='m25'&&x.effectiveness==='ineffective'));
- assert.ok(view.items.every(x=>x.business_problem.length<=360));
+ assert.ok(view.items.every(x=>Buffer.byteLength(x.business_problem,'utf8')<=360));
  assert.equal(JSON.stringify(rows),original);
 });
