@@ -38,7 +38,7 @@
 #la-studio.sidebar-collapsed .app-sidebar { display:none; }
 @media(max-width:900px){#la-studio{padding-left:0}#la-studio .app-sidebar{width:min(280px,85vw);box-shadow:0 8px 24px #0008}#la-studio.sidebar-collapsed .app-sidebar{display:none}#la-studio .a-top{padding:12px 16px}#la-studio .a-head{padding:24px 16px 16px}#la-studio .a-layout{padding:0 16px 24px}#la-studio .a-footer{margin:0 16px}}
 @media(max-width:600px){#la-studio .toolbar-title{display:none}#la-studio .a-top{gap:8px}#la-studio .a-badge{font-size:11px}#la-studio .a-layout{display:block}#la-studio .a-config{margin-bottom:16px}#la-studio .a-scroll{max-width:100%;overflow-x:auto}}
-#la-studio .sidebar-brand img { background:#fff; border-radius:5px; padding:5px; box-sizing:content-box; }
+#la-studio .sidebar-brand img { display:block; width:100%; max-width:174px; height:auto; background:transparent; border-radius:0; padding:0; box-sizing:border-box; }
 #la-studio .ai-analysis-page { max-width:1500px; display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,340px); gap:16px; }
 #la-studio .ai-decision-hero,#la-studio .ai-status-grid,#la-studio .ai-new-analysis,#la-studio .ai-advanced { grid-column:1/-1; }
 #la-studio .ai-decision-hero { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:8px 0 12px; }
