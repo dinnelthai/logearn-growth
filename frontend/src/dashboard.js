@@ -10,6 +10,7 @@ import {mountTagAudience} from './pages/tagAudience.js';
 import {createKolCrm} from './pages/kolCrm.js';
 import {mountSectionNavigation} from './navigation.js';
 import {createViewHistory,INTERNAL_VIEWS} from './navigationHistory.js';
+import {renderDataTable} from './components/dataTable.js';
 
 import {createActivityMonitor} from './pages/activityMonitor.js'
 
@@ -88,7 +89,7 @@ const usersById=new Map(allUsers.map(u=>[u.id,u]));
 let users=allUsers;
 globalThis.LogEarnAnalyticsData={contract:DATA_CONTRACT,snapshot:dataStore,isMock:dataStore.meta.source==='mock',isAgg};
 const fmt=n=>n.toLocaleString('en-US'),pct=(a,b)=>b?(a/b*100).toFixed(1)+'%':'—',date=t=>new Date(t+7*3600000).toISOString().slice(5,10).replace('-','/'),clock=t=>new Date(t+7*3600000).toISOString().slice(5,16).replace('T',' '),daynum=t=>Math.floor((t-base)/day), esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const table=(heads,rows)=>`<div class="a-scroll"><table><thead><tr>${heads.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+const table=renderDataTable;
 const stat=(l,v,s)=>`<div class="a-stat"><div class="a-muted">${l}</div><div class="a-statvalue">${v}</div><div class="a-muted">${s}</div></div>`;
 $('#as-source').innerHTML='<option value="all">全部来源</option>'+[...new Set([...users.flatMap(u=>[u.source,...u.events.map(e=>e.entry_source)].filter(Boolean)),...(dataStore.meta.sources??[])])].map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
 $('#as-strategy').innerHTML='<option value="all">全部策略</option>'+[...new Set([...users.flatMap(u=>u.events.map(e=>e.strategy).filter(Boolean)),...(dataStore.meta.strategies??[])])].map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
