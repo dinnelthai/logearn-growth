@@ -1,4 +1,5 @@
 import {createBehaviorPathsPage} from './behaviorPaths.js'
+import {viewState} from '../components/viewStates.js'
 import { fetchPathsMetrics } from '../api/metrics.js'
 import { fetchDrillUsers, fetchUserTimeline } from '../api/drill.js'
 import { createChartLifecycle } from './chartLifecycle.js'
@@ -71,7 +72,8 @@ export function createPathsAggPage(ctx) {
       })
     } catch (err) {
       if (reqId !== inflight) return
-      $('#as-output').innerHTML = `<div class="a-card"><h2>行为路径加载失败</h2><p>${esc(err.message || err)}</p></div>`
+      $('#as-output').innerHTML = viewState({kind:'error',title:'行为路径加载失败',description:err.message||String(err),actionLabel:'重新运行',actionAttr:'data-paths-retry'});
+      $('#as-output').querySelector('[data-paths-retry]')?.addEventListener('click',()=>draw(c))
       return
     }
     if (reqId !== inflight) return
