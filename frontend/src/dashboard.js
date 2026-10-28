@@ -262,7 +262,7 @@ const pages={
   'login-conversion':createLazyPage(pageContext,()=>import('./pages/conversionScenes.js').then(m=>ctx=>m.createConversionPage(ctx,'login'))),
   'invite-conversion':createLazyPage(pageContext,()=>import('./pages/conversionScenes.js').then(m=>ctx=>m.createConversionPage(ctx,'invite'))),
   'operations-compare':createLazyPage(pageContext,()=>import('./pages/operationsComparison.js').then(m=>m.createOperationsComparison)),
-  workbench:createLazyPage({...pageContext,openKol:id=>navigate('crm',{beforeEnter:()=>pages.crm.openKol(id)}),openActivity:id=>navigate('activities',{beforeEnter:()=>pages.activities.openActivity(id)}),openUserProfile:(id,c)=>userProfile.open(id,c)},()=>import('./pages/workbench.js').then(m=>m.createWorkbench)),
+  workbench:createLazyPage({...pageContext,openKol:id=>navigate('crm',{beforeEnter:()=>pages.crm.openKol(id,{returnToWorkbench:true})}),openActivity:id=>navigate('activities',{beforeEnter:()=>pages.activities.openActivity(id,{returnToWorkbench:true})}),openUserProfile:(id,c)=>userProfile.open(id,c)},()=>import('./pages/workbench.js').then(m=>m.createWorkbench)),
   'my-monitor':createLazyPage({...pageContext,navigate},()=>import('./pages/myMonitor.js').then(m=>m.createMyMonitor)),
   activities:createActivityMonitor({...pageContext,analyzeTag,analyzeAudience:applyAudience,openKol:id=>navigate('crm',{beforeEnter:()=>pages.crm.openKol(id)})}),
   crm:createKolCrm({...pageContext,analyzeAudience:applyAudience,openActivity:id=>navigate('activities',{beforeEnter:()=>pages.activities.openActivity(id)}),createActivityForKol:kol=>navigate('activities',{beforeEnter:()=>pages.activities.startForKol(kol)})}),
