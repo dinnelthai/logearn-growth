@@ -3,6 +3,7 @@
  * 用于对比不同模型的效果和成本
  */
 
+require('dotenv').config({path:require('node:path').join(__dirname,'../../../.env'),quiet:true});
 const { createClient, getAvailableModels } = require('./index');
 
 async function testBasicChat(client, modelName) {
@@ -27,7 +28,7 @@ async function testBasicChat(client, modelName) {
   const startTime = Date.now();
 
   try {
-    const response = await client.chat(messages);
+    const response = await client.chat(messages, {maxTokens:256,skipCache:true});
     const duration = Date.now() - startTime;
 
     console.log('Response:', response.content);
@@ -158,7 +159,7 @@ async function main() {
 }
 
 if (require.main === module) {
-  main().catch(console.error);
+  main().catch(error=>{console.error('LLM smoke test failed:',error.message);process.exitCode=1;});
 }
 
 module.exports = {
