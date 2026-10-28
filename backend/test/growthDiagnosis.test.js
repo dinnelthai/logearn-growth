@@ -37,3 +37,26 @@ test('retention questions explicitly require mature cohorts and no automatic ope
  assert.equal(result.externalActions,0);
  assert.equal(result.humanDecision.includes('运营负责人'),true);
 });
+
+test('source-day alerts carry replay-bounded provenance, not fabricated AI analysis IDs',()=>{
+ const end=Date.parse('2026-10-27T17:00:00Z');
+ const p={metric:'new_users',source:'all',goal:'activation',period_end:end,
+  evidence:{baseline:100,observed:50,periodStart:end-86400000,periodEnd:end,
+   evidence:{origin:'hologres-source-observation',sourceSnapshotId:'snapshot-id',
+    sourceCutoff:new Date(end+3600000).toISOString(),
+    eventsCompleteThrough:new Date(end).toISOString(),historyComplete:true,
+    baselinePeriodStart:end-2*86400000,baselinePeriodEnd:end-86400000,
+    currentPeriodStart:end-86400000,currentPeriodEnd:end,
+    channelBreakdown:[{metric:'new_users',source:'seo',baseline:80,current:35,delta:-45}]
+   }}};
+ const result=diagnoseProposal(p);
+ assert.equal(result.dataQuality.status,'traceable-observation');
+ assert.equal(result.dataQuality.provenance.type,'source-day-query');
+ assert.equal(result.dataQuality.provenance.baselineAnalysisId,undefined);
+ assert.equal(result.channelObservation[0].delta,-45);
+ assert.equal(result.causalConclusion,null);
+ const spoof=diagnoseProposal({...p,evidence:{...p.evidence,evidence:{
+  ...p.evidence.evidence,historyComplete:false}}});
+ assert.equal(spoof.dataQuality.status,'needs-evidence-review');
+ assert.equal(spoof.channelObservation.length,0);
+});
