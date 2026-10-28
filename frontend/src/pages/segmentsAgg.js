@@ -43,7 +43,9 @@ export function createSegmentsAggPage(ctx) {
     clearNative()
     const reqId = ++inflight
     $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted si-loading" role="status">正在从 /api/metrics/segments 加载…</p></div>'
-    const configKey = JSON.stringify(c)
+    // Include the aggregate snapshot cutoff; same UI filters on a newer snapshot
+    // must not display stale members/counts from the earlier dataset.
+    const configKey = JSON.stringify({config:c,asOf:ctx.dataStore.meta.asOf})
     let metrics,staleError=null
     try {
       metrics = await fetchSegmentsMetrics({
@@ -57,7 +59,7 @@ export function createSegmentsAggPage(ctx) {
       if(previousMetrics && previousConfig===configKey){
         metrics=previousMetrics
         staleError=err.message||String(err)
-        $('#as-data-status').textContent='数据更新失败 · 保留上次结果：'+(err.message||err)
+        const statusNode=$('#as-data-status');if(statusNode)statusNode.textContent='数据更新失败 · 保留上次相同快照结果：'+(err.message||err)
       }else{
       $('#as-output').innerHTML = viewState({kind:'error',title:'分群加载失败',description:err.message||String(err),actionLabel:'重新运行',actionAttr:'data-segments-retry'});
       $('#as-output').querySelector('[data-segments-retry]')?.addEventListener('click',()=>draw(c))
