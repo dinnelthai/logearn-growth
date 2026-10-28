@@ -114,17 +114,18 @@ function statView(value,{depth=0,maxRows=MAX_GROUPS}={}){
  if(hidden)result.omittedNonStatisticalFields=hidden;
  return result;
 }
+const numericFact=value=>typeof value==='number'&&Number.isFinite(value)?value:null;
 function modelEvidence(row){
  if(!row||typeof row!=='object')return {value:null,warnings:['缺少证据结构']};
  return {
   id:typeof row.id==='string'?row.id:null,
   metricId:typeof row.metricId==='string'?row.metricId:null,
-  definitionVersion:row.definitionVersion??null,
-  unit:row.unit??null,
+  definitionVersion:typeof row.definitionVersion==='string'?safeText(row.definitionVersion,60):null,
+  unit:typeof row.unit==='string'?safeText(row.unit,60):null,
   value:typeof row.value==='number'||row.value==null?row.value??null:
    row.value&&typeof row.value==='object'?statView(row.value):{omitted:'non-numeric-value'},
-  numerator:row.numerator??null,denominator:row.denominator??null,
-  sampleSize:row.sampleSize??null,
+  numerator:numericFact(row.numerator),denominator:numericFact(row.denominator),
+  sampleSize:numericFact(row.sampleSize),
   period:statView(row.period||{}),
   filters:{source:safeText(row.filters?.scope?.source||row.filters?.source||'all',120)},
   sourceVersions:{events:safeText(row.sourceVersions?.events||'',120),
