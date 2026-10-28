@@ -299,7 +299,9 @@ router.get('/growth-budget',handle(async(req,res)=>{
 router.get('/growth-investigations',handle(async(req,res)=>{
   const proposals=await require('../ai/growth/investigationStore')
     .createInvestigationStore().list(req.user.user_id,{limit:100});
-  res.json({version:'growth-investigation-proposals-v1',proposals,
+  const {diagnoseProposal}=require('../ai/growth/diagnosis');
+  res.json({version:'growth-investigation-proposals-v1',
+    proposals:proposals.map(p=>({...p,diagnosis:diagnoseProposal(p)})),
     requiresHumanApproval:true,automaticPaidCalls:false});
 }));
 router.get('/growth-investigations/:id/timeline',handle(async(req,res)=>{
