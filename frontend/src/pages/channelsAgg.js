@@ -92,5 +92,5 @@ export function createChannelsAggPage(ctx) {
       openDrill('渠道访问用户', `${date(c.start)}–${date(c.end - 86400000)}`, { start: c.start, end: c.end, channel })
   }
 
-  return { draw, dispose() {} }
+  return { draw, dispose() { inflight++ } }
 }
