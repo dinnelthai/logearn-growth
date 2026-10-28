@@ -82,3 +82,19 @@ test('flush invalidates in-flight fills',async()=>{
  await old;
  assert.equal(await cache.get('status'),null);
 });
+
+test('an L2 lookup started before deletion cannot repopulate invalidated L1',async()=>{
+ let resolveGet;
+ const shared={
+  get:()=>new Promise(resolve=>{resolveGet=resolve}),
+  set:async()=>{},del:async()=>{}
+ };
+ const cache=createCache({shared});
+ const key='snapshot:abcd1234';
+ const pending=cache.get(key);
+ await new Promise(resolve=>setImmediate(resolve));
+ await cache.del(key);
+ resolveGet({value:{stale:true},expiresAt:Date.now()+30000});
+ assert.equal(await pending,null);
+ assert.equal(cache.l1.get(key),undefined);
+});
