@@ -371,6 +371,25 @@ router.post('/growth-notifications/:id/read',handle(async(req,res)=>{
   if(!notice)return res.status(404).json({error:'通知不存在或无权限'});
   res.json({notification:notice});
 }));
+// Monitor is opt-in per authorized owner; the worker runs as a separate process.
+// The status is based on a recent worker heartbeat, not just an env variable.
+const monitorAllowed=ownerId=>(process.env.AI_DAILY_OWNER_IDS||'')
+ .split(',').map(x=>x.trim()).filter(Boolean).includes(String(ownerId));
+router.get('/growth-alerts/monitor-control',handle(async(req,res)=>{
+ const ownerId=String(req.user.user_id);
+ if(!monitorAllowed(ownerId))return res.json({allowed:false,enabled:false,
+  workerOnline:false,status:'not-authorized',reason:'服务端未授权此账号使用自动增长监控'});
+ const control=require('../ai/growth/monitorControl').createMonitorControl();
+ res.json({...await control.get(ownerId),allowed:true,
+  note:'开关控制自动异常扫描，不开启付费 AI 调查或外部运营操作'});
+}));
+router.put('/growth-alerts/monitor-control',handle(async(req,res)=>{
+ const ownerId=String(req.user.user_id);
+ if(!monitorAllowed(ownerId))return res.status(403).json({error:'当前账号未获自动增长监控授权'});
+ const {enabled,expectedVersion}=req.body||{};
+ const control=require('../ai/growth/monitorControl').createMonitorControl();
+ res.json({...await control.set(ownerId,{enabled,expectedVersion}),allowed:true});
+}));
 router.get('/growth-alerts',handle(async(req,res)=>{
   const store=require('../ai/growth/alertStore').createAlertStore();
   const includeResolved=req.query.resolved==='1';
