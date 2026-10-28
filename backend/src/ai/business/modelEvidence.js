@@ -1,41 +1,41 @@
 'use strict';
-// This is a model transport view only. Tool evidence, query results and the
-// execution transcript are archived in their original form before this runs.
-const CORE=['id','metricId','definitionVersion','unit','value','numerator','denominator',
- 'sampleSize','period','filters','sourceVersions','watermarks','coverage','warnings','page'];
-function excerpt(value,depth=0){
- if(depth>=5)return Array.isArray(value)?{omittedItems:value.length}:'[nested detail omitted]';
- if(Array.isArray(value))return value.length>4
-  ?{sample:value.slice(0,4).map(v=>excerpt(v,depth+1)),omittedItems:value.length-4}
-  :value.map(v=>excerpt(v,depth+1));
- if(value&&typeof value==='object'){
-  const entries=Object.entries(value),parts=entries.slice(0,35)
-   .map(([key,v])=>[key,excerpt(v,depth+1)]);
-  return {...Object.fromEntries(parts),...(entries.length>35?{omittedFields:entries.length-35}:{})};
- }
- if(typeof value==='string'&&value.length>1200)return value.slice(0,1200)+' [text truncated]';
- return value;
-}
+const {modelEvidence,safeText}=require('./modelTransport');
+// Every output follows a positive aggregate-only schema, including small
+// results. Old size-only trimming leaked entire user-level "rows" when short.
 function forModel(result,{maxBytes=12000}={}){
- if(!result||Buffer.byteLength(JSON.stringify(result))<=maxBytes)return result;
- if(result.status!=='ok'||!Array.isArray(result.evidence))return result;
- const evidence=result.evidence.map(row=>{
-  const copy=Object.fromEntries(CORE.filter(k=>row&&Object.hasOwn(row,k)).map(k=>[k,k==='value'?excerpt(row[k]):excerpt(row[k])]));
-  return copy;
- });
- let view={status:result.status,evidence,cursor:result.cursor,
-  warnings:[...(result.warnings||[]),'模型只收到分页/摘要，原始调查结果仍在证据库']};
- // Hard transport bound: preserve the identity and data quality of each
- // evidence item even when its nested value cannot fit.
- if(Buffer.byteLength(JSON.stringify(view))>maxBytes){
-  view={status:result.status,evidence:result.evidence.map(row=>({
-   id:row.id,metricId:row.metricId,definitionVersion:row.definitionVersion,
-   value:typeof row.value==='number'||row.value==null?row.value:{omitted:true,reason:'large-object; query evidence by ID'},
-   unit:row.unit,period:row.period,coverage:excerpt(row.coverage,1),
-   sourceVersions:excerpt(row.sourceVersions,1),watermarks:excerpt(row.watermarks,1),
-   warnings:['大对象已归档，模型未接收原始明细']
-  })),cursor:result.cursor,warnings:['结果摘要已截断；不可据此断言缺失值为零']};
- }
- return view;
+ if(!Number.isSafeInteger(maxBytes)||maxBytes<1024||maxBytes>64000)
+  throw Error('模型证据字节预算无效');
+ const rows=Array.isArray(result?.evidence)?result.evidence:[];
+ const basic={status:['ok','unavailable','error'].includes(result?.status)?result.status:'unavailable',
+  evidence:rows.slice(0,24).map(modelEvidence),
+  warnings:[...(result?.warnings||[]).slice(0,7).map(x=>safeText(x)),
+   ...(rows.some(r=>r?.value&&typeof r.value==='object')?
+     ['模型仅接收白名单业务统计；行级明细未传输，遗漏不代表零']:[])],
+  ...(rows.length>24?{omittedEvidence:rows.length-24}:{}),
+  ...(result?.cursor?{moreAvailable:true}:{}),
+  transport:'aggregated-business-v1'};
+ const fits=o=>Buffer.byteLength(JSON.stringify(o),'utf8')<=maxBytes;
+ if(fits(basic))return basic;
+ let evidence=basic.evidence.map(e=>({...e,
+  value:typeof e.value==='number'||e.value==null?e.value:{omitted:true},
+  warnings:['仅保留证据元信息，统计摘要超出模型传输预算'],
+  coverage:e.coverage,watermarks:e.watermarks}));
+ let view={...basic,evidence,warnings:['部分维度摘要已省略；不允许将缺失视为零']};
+ if(fits(view))return view;
+ evidence=evidence.slice(0,6).map(e=>({id:e.id,metricId:e.metricId,
+  definitionVersion:e.definitionVersion,unit:e.unit,
+  value:typeof e.value==='number'||e.value==null?e.value:null,
+  numerator:e.numerator,denominator:e.denominator,sampleSize:e.sampleSize,
+  period:e.period,coverage:{status:'partial',note:'摘要过大'},
+  warnings:['需要以证据ID查询更窄的统计范围']}));
+ view={status:basic.status,evidence,
+  omittedEvidence:rows.length-evidence.length,
+  warnings:['只传输可核对的证据身份和统计数值；其他数据已归档，不能视为零'],
+  transport:'aggregated-business-v1'};
+ if(fits(view))return view;
+ // Fail closed instead of sending oversized or unsanitized data to the model.
+ return {status:'unavailable',evidence:[],warnings:[
+  '统计结果超出模型传输预算；原始证据留在内部档案，请缩小查询范围'],
+  transport:'aggregated-business-v1',omittedEvidence:rows.length};
 }
 module.exports={forModel};

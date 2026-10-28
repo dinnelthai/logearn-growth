@@ -10,9 +10,11 @@ test('tools discover schema, reuse existing analysis, keep empty audience and re
  assert.ok(t.registry.listCapabilities(t.context).find(t=>t.id==='get_funnel').inputSchema);
  const result=await t.registry.executeTool('get_funnel',{scope:{cohortId:'c'},steps:['token','chip'],limit:2},t.context);
  assert.equal(result.status,'ok');assert.deepEqual(t.seen[0].audience,[]);assert.equal(t.seen[0].kind,'funnel');assert.equal(result.evidence[0].value.users,12);
- assert.equal(result.evidence[0].value.rows.length,2);assert.ok(result.cursor);
- const next=await t.registry.executeTool('get_funnel',{cursor:result.cursor,limit:2},t.context);assert.equal(next.evidence[0].value.rows[0].id,'c');
- await assert.rejects(()=>t.registry.executeTool('get_funnel',{cursor:result.cursor},{...t.context,ownerId:'bob'}),/权限/);
+ assert.equal(result.evidence[0].value.rows,undefined);
+ assert.equal(result.cursor,undefined,'row-level pagination is not exposed to the Agent');
+ assert.equal(result.evidence[0].value.omittedNonStatisticalFields>0,true);
+ const forged=Buffer.from(JSON.stringify({tool:'get_funnel',evidenceId:result.evidence[0].id,offset:1})).toString('base64url');
+ await assert.rejects(()=>t.registry.executeTool('get_funnel',{cursor:forged},{...t.context,ownerId:'bob'}),/权限/);
  await assert.rejects(()=>t.registry.executeTool('get_funnel',{scope:{source:'all'}},t.context),/范围/);
  await assert.rejects(()=>t.registry.executeTool('get_funnel',{filters:{sql:'1=1; DROP TABLE users'}},t.context),/字段|过滤/);
  await assert.rejects(()=>t.registry.executeTool('query_metrics',{metrics:['invented']},t.context),/指标/);
@@ -51,5 +53,41 @@ test('product chain returns bounded aggregate metrics without individual details
  const t=setup({maxResultBytes:5000,runAnalysis:async()=>({payload:{product_chain:{visits:100,users:90,pending:4,stages:[{label:'详情',users:90}],drops:[{users:10}],quality:{detail_events:100},dimensions:{source:Array.from({length:1000},(_,i)=>({value:'source'+i,users:1}))}},first_value:{eligible:80,converted:40,rate:0.5},entrance:{rows:[{user_id:'private'}]},events:[{user_id:'private'}]}})});try{
  const r=await t.registry.executeTool('get_product_chain',{},t.context);const v=r.evidence[0].value;
  assert.equal(v.product_chain.users,90);assert.equal(v.first_value.rate,0.5);assert.equal(v.product_chain.dimensions,undefined);assert.equal(v.events,undefined);assert.doesNotMatch(JSON.stringify(v),/private/);
+ }finally{t.db.close()}
+});
+
+test('product-chain summary preserves conversion denominators and maturity without entry-level details',async()=>{
+ const t=setup({maxResultBytes:4500,runAnalysis:async()=>({payload:{
+  product_chain:{visits:80,users:70,pending:9,
+   stages:[{label:'详情',visits:80,users:70},{label:'分析',visits:36,users:34}],
+   drops:[{from:'详情',to:'分析',eligible:50,users:14,unknown:7,rate:0.28}],
+   quality:{trade_unknown_visits:12,detail_events:101},
+   dimensions:{source:Array.from({length:1000},(_,i)=>({users:1,value:'src'+i}))}},
+  first_value:{available:true,entered:70,eligible:50,converted:30,pending:20,rate:0.6},
+  exposure:{available:true,exposures:400,clicked:88,clicked_users:60,rate:0.22,
+   session_id:'secret-session'},
+  entrance:{missing_visit_clicks:15,completion_available:true,rows:[
+   {value:'signals',visits:80,details:60,successes:20,rate:0.25,
+    user_ids:['secret-user']} ]},
+  page_clicks:{rows:[{page_name:'signals',visitor_users:100,clicked_users:40,
+   rate:0.4,list_key:'private-list-key'}]},
+  retention:[{day:7,eligible:35,returned:9,pending:10,rate:9/35}],
+  events:[{user_id:'secret-user'}],lists:{all:['secret-user']},
+  coverage:'partial',definition:'业务访客总量'
+ }})});
+ try{
+  const result=await t.registry.executeTool('get_product_chain',{},t.context);
+  assert.equal(result.status,'ok');
+  const v=result.evidence[0].value;
+  assert.equal(v.product_chain.stages[1].users,34);
+  assert.equal(v.product_chain.drops[0].eligible,50);
+  assert.equal(v.first_value.eligible,50);
+  assert.equal(v.exposure.exposures,400);
+  assert.equal(v.retention_summary[0].eligible,35);
+  assert.equal(v.entrance_breakdown[0].successes,20);
+  assert.equal(v.page_clicks_summary[0].visitor_users,100);
+  const text=JSON.stringify(v);
+  assert.doesNotMatch(text,/secret-user|secret-session|private-list-key/);
+  assert.equal(v.product_chain.dimensions,undefined);
  }finally{t.db.close()}
 });

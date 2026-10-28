@@ -1,0 +1,245 @@
+'use strict';
+// Positive, business-statistics-only transport for ALL model-bound evidence.
+// Raw business data and immutable evidence are retained in existing stores;
+// this projection is exclusively for outbound model messages.
+const MAX_TEXT=260, MAX_GROUPS=12, MAX_DEPTH=7;
+const numeric=new Set([
+ 'active_users','new_users','returning_users','registered_users','users','visits',
+ 'total','count','counts','events','sessions','transactions','traders','trades',
+ 'current','previous','fresh','resumed','continuing','absent','delta','change',
+ 'rate','score','eligible','activated','returned','pending','unobserved','unknown',
+ 'unknown_users','unmatched','converted','entered','total_entered','total_converted',
+ 'pending_count','drop_off_users','visitors','median_ms','p90_ms','window_ms',
+ 'median_conversion_ms','lag_ms','sampleSize','numerator','denominator','value',
+ 'first_at','latest_at','firstAt','latestAt','start','end','previousStart','previousEnd',
+ 'requested_end','previous_start','previous_end','as_of','asOf','generatedAt',
+ 'missing_id_events','linked_events','missing_source_events','started_events',
+ 'finished_events','source_rate','linked_rate','d7_users','chip_events',
+ 'login_users','volume_usd','cost_usd','volume','missing_values','excluded_trades',
+ 'users_current','users_previous','sessions_count','visits_count','total_users',
+ 'candidate_count','candidateCount','groups_count','mature','mature_users',
+ 'absolute','affected','gap','progress','omittedItems',
+ 'conversion_rate','previous_conversion_rate','total_conversion_rate',
+ 'activation_rate','activation_interval','median_age_days','retention_rate',
+ 'registeredUsers','clicks','impressions','ctr','position','likes','shares','comments',
+ 'duration_ms','value_usd','daily_count','day_count','sample_size','size',
+ 'periodStart','periodEnd','baseline','observed','target','changePct','percentage',
+ 'started','finished','missing_visit_context','missing_session','manual_requests',
+ 'requests_missing_visit','trade_unknown_visits','trade_records','trade_events',
+ 'trades_missing_visit','trade_records_missing_token','versioned_detail_events',
+ 'detail_events','available_count','unavailable_count','maturityDays','days',
+ 'inputTokens','outputTokens','totalTokens','knownCostUsd',
+ 'exposures','clicked','exposed_users','clicked_users','unmatched_clicks','missing_visit_clicks',
+ 'visitor_users','clicks','details','successes','day',
+ 'confidence_interval_low','confidence_interval_high','min','max',
+ 'week','weekStart','weekEnd','targetValue','effectivenessScore','evidenceCount'
+]);
+const flags=new Set(['available','historyComplete','history_complete','complete',
+ 'truncated','mature','known','coverageVerified','platformSync','conversionAttribution',
+ 'eventsComplete','hasMatureData','isComplete','partial','dataIncomplete',
+ 'completion_available']);
+const categories=new Set(['source','device','version','app_version','user_stage',
+ 'entry_module','label','key','metric','metricId','unit','status','goal','focusGoal',
+ 'type','kind','priority','direction','platform','channel','date','timezone',
+ 'association','family','definitionVersion','ruleVersion','user_pool',
+ 'scope','qualityStatus','category','name','period','state','browser',
+ 'coverage','quality',
+ 'os','event_name','group','metricName','currency','trafficSource',
+ 'list_type','page_name']);
+const notes=new Set(['definition','warnings','warning','reason','error','interpretation',
+ 'priorityExplanation','scoreExplanation','summary','note','description',
+ 'notAvailableReason','coverageNote','qualityNote']);
+const groups=new Set(['totals','days','growth','change','dimensions','channels','associations',
+ 'groups','cohorts','families','versions','quality','coverage','diagnostic_coverage',
+ 'activation_interval','retention_interval','interval','stages','steps','drops',
+ 'product_chain','first_value','trade','d7','d30','registration','attribution',
+ 'exposure','entrance','entrance_breakdown','page_clicks_summary','retention_summary',
+ 'funnels','paths','pages','summary','sample','byCurrency','trends','rates','counts',
+ 'metrics','series','distribution','sources','bySource','period','filters',
+ 'sourceVersions','watermarks','goal','current','previous','weekly','northStar',
+ 'candidate','candidates','result','data','snapshots','snapshot']);
+const ids=new Set(['snapshot_id','snapshotId','as_of','eventsCompleteThrough',
+ 'events_complete_through','cutoff','asOf','queryFingerprint']);
+const privacy=/\b(?:user|session|wallet|account|token_visit|strategy_run|user_id|session_id|cookie|email|phone)[:=][^\s,;]+|[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}|\b0x[a-fA-F0-9]{35,}\b|\b(?:[0-9a-fA-F]{8}-){4}[0-9a-fA-F]{12}\b|https?:\/\/\S+|\b(?:\d[\s-]?){12,}\b/gi;
+const safeText=(x,max=MAX_TEXT)=>typeof x==='string'
+ ? x.slice(0,max).replace(privacy,'[detail withheld]') : null;
+function primitive(v,key){
+ if(v==null)return null; // unknown stays unknown, never becomes 0
+ if(typeof v==='number')return Number.isFinite(v)&& (numeric.has(key)||key==='value')?v:undefined;
+ if(typeof v==='boolean')return flags.has(key)?v:undefined;
+ if(typeof v==='string'){
+  if(notes.has(key))return safeText(v);
+  if(categories.has(key)||ids.has(key))
+   return v.length<=120?safeText(v,120):'[label omitted]';
+  return undefined;
+ }
+ return undefined;
+}
+function statView(value,{depth=0,maxRows=MAX_GROUPS}={}){
+ if(depth>MAX_DEPTH)return {omitted:'nested-depth'};
+ if(Array.isArray(value)){
+  const view=value.slice(0,maxRows).map(item=>typeof item==='string'?
+   safeText(item):statView(item,{depth:depth+1,maxRows})).filter(x=>x!==undefined);
+  return view.length<value.length?{items:view,omittedItems:value.length-view.length}:view;
+ }
+ if(!value||typeof value!=='object')return value;
+ const result={};let hidden=0;
+ for(const [key,v] of Object.entries(value)){
+  if(key==='rows'||key==='lists'||key==='members'||key==='userIds'||
+    key==='user_ids'||key==='events'||key==='raw'||key==='payload'||
+    key==='list_key'||key==='usersById'||key==='user_key'||
+    (key==='events'&&v&&typeof v==='object')){
+   hidden++;continue;
+  }
+  if(Array.isArray(v)){
+   if(!groups.has(key)){hidden++;continue}
+   result[key]=statView(v,{depth:depth+1,maxRows});continue;
+  }
+  if(v&&typeof v==='object'){
+   if(!groups.has(key)){hidden++;continue}
+   result[key]=statView(v,{depth:depth+1,maxRows});continue;
+  }
+  // A dimension bucket's textual category is meaningful business metadata,
+  // but it is never an arbitrary row identity or account string.
+  if(key==='value'&&typeof v==='string'&&
+   (typeof value.current==='number'||typeof value.previous==='number'||
+    typeof value.users==='number'||typeof value.visits==='number'||
+    typeof value.exposures==='number')){
+   result.value=safeText(v,80);
+   continue;
+  }
+  const safe=primitive(v,key);
+  if(safe===undefined){hidden++;continue}
+  result[key]=safe;
+ }
+ if(hidden)result.omittedNonStatisticalFields=hidden;
+ return result;
+}
+const numericFact=value=>typeof value==='number'&&Number.isFinite(value)?value:null;
+function modelEvidence(row){
+ if(!row||typeof row!=='object')return {value:null,warnings:['缺少证据结构']};
+ return {
+  id:typeof row.id==='string'?row.id:null,
+  metricId:typeof row.metricId==='string'?row.metricId:null,
+  definitionVersion:typeof row.definitionVersion==='string'?safeText(row.definitionVersion,60):null,
+  unit:typeof row.unit==='string'?safeText(row.unit,60):null,
+  value:typeof row.value==='number'||row.value==null?row.value??null:
+   row.value&&typeof row.value==='object'?statView(row.value):{omitted:'non-numeric-value'},
+  numerator:numericFact(row.numerator),denominator:numericFact(row.denominator),
+  sampleSize:numericFact(row.sampleSize),
+  period:statView(row.period||{}),
+  filters:{source:safeText(row.filters?.scope?.source||row.filters?.source||'all',120)},
+  sourceVersions:{events:safeText(row.sourceVersions?.events||'',120),
+   searchConsole:safeText(row.sourceVersions?.searchConsole||'',120),
+   operatorRecords:safeText(row.sourceVersions?.operatorRecords||'',120)},
+  watermarks:{events:safeText(row.watermarks?.events||'',120),
+   eventsCompleteThrough:safeText(row.watermarks?.eventsCompleteThrough||'',120),
+   trades:safeText(row.watermarks?.trades||'',120),
+   registrations:safeText(row.watermarks?.registrations||'',120)},
+  coverage:statView(row.coverage||{status:'unknown'}),
+  warnings:(row.warnings||[]).slice(0,6).map(s=>safeText(s))
+ };
+}
+function modelQuery(query){
+ const input=query?.input||{};
+ return {tool:typeof query?.tool==='string'?safeText(query.tool,90):null,
+  ...(query?.kind?{kind:safeText(query.kind,40)}:{}),
+  input:{
+   ...(Number.isSafeInteger(input.start)?{start:input.start}:{}),
+   ...(Number.isSafeInteger(input.end)?{end:input.end}:{}),
+   ...(Number.isSafeInteger(input.hours)?{hours:input.hours}:{}),
+   ...(Array.isArray(input.metrics)?{metrics:input.metrics.slice(0,10).map(x=>safeText(x,80))}:{}),
+   ...(Array.isArray(input.steps)?{steps:input.steps.slice(0,8).map(x=>safeText(x,80))}:{}),
+   ...(input.scope?.source?{scope:{source:safeText(input.scope.source,120)}}:{})
+  }};
+}
+function modelContext(raw){
+ const scope=raw.business?.scope||{};
+ const evidence=Array.isArray(raw.evidence)?raw.evidence:[];
+ const candidates=Array.isArray(raw.candidates)?raw.candidates:[];
+ const capabilities=Array.isArray(raw.capabilities)?raw.capabilities:[];
+ const context={
+  transportVersion:'aggregated-business-v1',
+  business:{
+   product:'LogEarn',focusGoal:raw.focusGoal||raw.business?.focusGoal||null,
+   scope:{source:safeText(scope.source||'all',120),
+    fixedAudience:!!(scope.activityId||scope.cohortId)},
+   question:safeText(raw.business?.question||'',400)
+  },
+  period:statView(raw.period||{}),
+  snapshot:{
+   id:typeof raw.snapshot?.id==='string'?safeText(raw.snapshot.id,120):null,
+   asOf:raw.snapshot?.asOf||null,
+   cutoff:raw.snapshot?.cutoff||null,
+   historyComplete:raw.snapshot?.historyComplete===true,
+   eventsCompleteThrough:raw.snapshot?.eventsCompleteThrough||null
+  },
+  definitions:Object.fromEntries(Object.entries(raw.definitions||{}).slice(0,20)
+   .filter(([id,text])=>/^[a-z][a-z0-9_]{1,70}$/.test(id)&&typeof text==='string')
+   .map(([id,text])=>[id,safeText(text,240)])),
+  current:statView(raw.current||{}),
+  previous:statView(raw.previous||{}),
+  growth:statView(raw.growth||{}),
+  weekly:statView(raw.weekly||{}),
+  candidates:candidates.slice(0,12).map(x=>statView(x)),
+  candidatesMeta:{total:candidates.length,shown:Math.min(candidates.length,12)},
+  evidence:evidence.slice(0,40).map(modelEvidence),
+  evidenceMeta:{total:evidence.length,shown:Math.min(evidence.length,40)},
+  warnings:(raw.warnings||[]).slice(0,12).map(x=>safeText(x)),
+  goal:raw.goal?{id:safeText(raw.goal.id||'',120),
+   value:Number.isFinite(raw.goal.value)?raw.goal.value:null,
+   deadline:raw.goal.deadline||null,priority:raw.goal.priority||null,
+   version:raw.goal.version||null}:null,
+  capabilities:capabilities.slice(0,18).map(x=>({
+   id:x.id,description:safeText(x.description||'',150),
+   inputSchema:x.inputSchema,
+   supportedScopes:x.supportedScopes
+  })),
+  growthPlan:Array.isArray(raw.growthPlan?.steps)?
+   {steps:raw.growthPlan.steps.slice(0,8).map(step=>({
+    id:safeText(step.id||'',120),
+    tools:Array.isArray(step.tools)?step.tools.slice(0,8)
+      .map(tool=>safeText(tool,100)):[],
+    reason:safeText(step.reason||'',160)
+   }))}:null,
+  omissions:{
+   rawMembersOmitted:true,rawEventsOmitted:true,
+   memoryAndManualActionsOmitted:true,
+   note:'原始用户/事件明细及操作记录仅保存在业务库；模型仅接收聚合统计与可追溯证据ID，未知值不是零'
+  }
+ };
+ // Strict cap for the first model message (before the conservative
+ // bytes-as-tokens preflight). Do not hide unknown data as zeros.
+ const fits=()=>Buffer.byteLength(JSON.stringify(context),'utf8')<=22000;
+ if(!fits()){
+  context.evidence=context.evidence.slice(0,18);
+  context.evidenceMeta.shown=context.evidence.length;
+  context.candidates=context.candidates.slice(0,6);
+  context.candidatesMeta.shown=context.candidates.length;
+  context.growth={change:context.growth.change||{},
+   channels:Array.isArray(context.growth.channels)?
+    context.growth.channels.slice(0,6):[],
+   quality:context.growth.quality||{},
+   coverage:context.growth.coverage||{status:'unknown'}};
+  context.warnings=context.warnings.slice(0,6);
+  context.omissions.additionalAggregatesOmitted=true;
+ }
+ if(!fits()){
+  context.evidence=context.evidence.slice(0,10).map(e=>({
+   id:e.id,metricId:e.metricId,definitionVersion:e.definitionVersion,
+   unit:e.unit,value:typeof e.value==='number'||e.value==null?e.value:null,
+   numerator:e.numerator,denominator:e.denominator,
+   sampleSize:e.sampleSize,period:e.period,
+   coverage:e.coverage,watermarks:e.watermarks,
+   warnings:['统计维度已缩略，原始证据保存在业务系统']}));
+  context.evidenceMeta.shown=context.evidence.length;
+  context.capabilities=context.capabilities.map(x=>({
+   id:x.id,description:x.description,inputSchema:x.inputSchema}));
+  context.current={totals:context.current.totals||{}};
+  context.previous={totals:context.previous.totals||{}};
+  context.warnings=context.warnings.slice(0,4);
+ }
+ if(!fits())throw Error('聚合模型上下文仍超出22000字节预算；需要缩小业务期间或来源');
+ return context;
+}
+module.exports={statView,modelEvidence,modelContext,modelQuery,safeText};
