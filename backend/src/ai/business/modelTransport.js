@@ -29,19 +29,23 @@ const numeric=new Set([
  'trades_missing_visit','trade_records_missing_token','versioned_detail_events',
  'detail_events','available_count','unavailable_count','maturityDays','days',
  'inputTokens','outputTokens','totalTokens','knownCostUsd',
+ 'exposures','clicked','exposed_users','clicked_users','unmatched_clicks','missing_visit_clicks',
+ 'visitor_users','clicks','details','successes','day',
  'confidence_interval_low','confidence_interval_high','min','max',
  'week','weekStart','weekEnd','targetValue','effectivenessScore','evidenceCount'
 ]);
 const flags=new Set(['available','historyComplete','history_complete','complete',
  'truncated','mature','known','coverageVerified','platformSync','conversionAttribution',
- 'eventsComplete','hasMatureData','isComplete','partial','dataIncomplete']);
+ 'eventsComplete','hasMatureData','isComplete','partial','dataIncomplete',
+ 'completion_available']);
 const categories=new Set(['source','device','version','app_version','user_stage',
  'entry_module','label','key','metric','metricId','unit','status','goal','focusGoal',
  'type','kind','priority','direction','platform','channel','date','timezone',
  'association','family','definitionVersion','ruleVersion','user_pool',
  'scope','qualityStatus','category','name','period','state','browser',
  'coverage','quality',
- 'os','event_name','group','metricName','currency','trafficSource']);
+ 'os','event_name','group','metricName','currency','trafficSource',
+ 'list_type','page_name']);
 const notes=new Set(['definition','warnings','warning','reason','error','interpretation',
  'priorityExplanation','scoreExplanation','summary','note','description',
  'notAvailableReason','coverageNote','qualityNote']);
@@ -49,6 +53,7 @@ const groups=new Set(['totals','days','growth','change','dimensions','channels',
  'groups','cohorts','families','versions','quality','coverage','diagnostic_coverage',
  'activation_interval','retention_interval','interval','stages','steps','drops',
  'product_chain','first_value','trade','d7','d30','registration','attribution',
+ 'exposure','entrance','entrance_breakdown','page_clicks_summary','retention_summary',
  'funnels','paths','pages','summary','sample','byCurrency','trends','rates','counts',
  'metrics','series','distribution','sources','bySource','period','filters',
  'sourceVersions','watermarks','goal','current','previous','weekly','northStar',
