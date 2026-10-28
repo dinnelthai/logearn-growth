@@ -3,7 +3,13 @@
 // Fail closed on mismatched windows, source, owner, or incomplete event coverage.
 const {createHash}=require('node:crypto');
 const DAY=86400000,OFFSET=7*3600000;
-// A count observed for multiple daily goal reports must not become two alerts.\n// Acquisition/activation own first-time and active analysis counts; retention\n// owns returning analysis users. Rate-based D7 signals require mature cohorts\n// and are deliberately not inferred from these counts.\nconst METRICS_BY_GOAL=Object.freeze({\n activation:['active_users','new_users'],retention:['returning_users']\n});
+// A count observed for multiple daily goal reports must not become two alerts.
+// Acquisition/activation own first-time and active analysis counts; retention
+// owns returning analysis users. Rate-based D7 signals require mature cohorts
+// and are deliberately not inferred from these counts.
+const METRICS_BY_GOAL=Object.freeze({
+ activation:['active_users','new_users'],retention:['returning_users']
+});
 function unpack(record){
  const context=record?.data_snapshot;
  const period=context?.period;
