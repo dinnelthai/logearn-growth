@@ -38,6 +38,11 @@ export const getGrowthReviewQueue=()=>aiFetch('/api/ai-analysis/growth-review-qu
 
 export const getGrowthInbox=()=>aiFetch('/api/ai-analysis/growth-inbox');
 
+export const getGrowthMonitorControl=()=>aiFetch('/api/ai-analysis/growth-alerts/monitor-control');
+export const setGrowthMonitorControl=(enabled,expectedVersion)=>aiFetch(
+ '/api/ai-analysis/growth-alerts/monitor-control',{
+ method:'PUT',body:JSON.stringify({enabled,expectedVersion})
+});
 export const getGrowthAlerts=(includeResolved=false)=>aiFetch('/api/ai-analysis/growth-alerts'+(includeResolved?'?resolved=1':''));
 export const scanGrowthAlerts=(goal='activation',source='all')=>aiFetch('/api/ai-analysis/growth-alerts/scan',{
   method:'POST',body:JSON.stringify({goal,source})

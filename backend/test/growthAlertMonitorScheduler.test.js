@@ -24,7 +24,7 @@ test('daily monitor visits authorized owners and both goal families independentl
   return {status:'scanned',observed:1,newObservations:0};
  };
  const results=await tick({env,now:NOW,scanner,store:{marker:'store'},
-  proposalStore:{marker:'proposals'}});
+  proposalStore:{marker:'proposals'},control:{get:async()=>({enabled:true}),recordScan:async()=>{}}});
  assert.equal(results.length,4);
  assert.deepEqual(calls.map(x=>[x.ownerId,x.goal]),[
   ['alice','activation'],['alice','retention'],['bob','activation'],['bob','retention']
@@ -41,4 +41,19 @@ test('dry-run never reads the database or starts a scanner',async()=>{
  assert.equal(calls,0);
  assert.deepEqual(results.map(x=>x.goal),['activation','retention']);
  assert.ok(results.every(x=>x.status==='dry-run'));
+});
+
+test('disabled owners never scan; turning off between goals prevents next scan',async()=>{
+ const calls=[];let reads=0;
+ const control={
+  get:async ownerId=>({enabled:ownerId==='alice'&&++reads===1}),
+  recordScan:async(ownerId,{status})=>{calls.push('record:'+ownerId+':'+status)}
+ };
+ const results=await tick({
+  now:NOW,env:{AI_DAILY_OWNER_IDS:'alice,bob',AI_GROWTH_ALERT_GOALS:'activation,retention'},
+  control,store:{},proposalStore:{},scanner:async({ownerId,goal})=>{
+   calls.push(ownerId+':'+goal);return {status:'scanned',observed:1}}
+ });
+ assert.deepEqual(calls,['alice:activation','record:alice:scanned']);
+ assert.deepEqual(results.map(x=>x.status),['scanned','disabled','disabled','disabled']);
 });
