@@ -143,6 +143,12 @@ async function compareModels(models) {
 }
 
 async function main() {
+  // A provider call can be billable even if saving its usage subsequently fails.
+  // Verify the ledger schema BEFORE starting the paid smoke-test request.
+  const {aiSchemaReady}=require('../business/health');
+  if(!await aiSchemaReady()){
+    throw Error('AI 计费表尚未升级（trace_id / round / cost_known / 唯一索引），拒绝发起付费测试。请在确认数据库身份后执行已授权的 npm run migrate:ai。');
+  }
   console.log('Available models:');
   const models = getAvailableModels();
   console.table(models);

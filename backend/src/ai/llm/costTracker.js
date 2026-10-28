@@ -9,6 +9,10 @@ const pool = require('../../db/pool');
 const logger = require('../../utils/logger');
 
 class CostTracker {
+  constructor({schemaReady=()=>require('../business/health').aiSchemaReady()}={}){
+    this.schemaReady=schemaReady;
+  }
+
   /**
    * 记录一次实际模型调用
    */
@@ -102,6 +106,11 @@ class CostTracker {
    * 检查今日成本是否超限
    */
   async checkDailyLimit(maxDailyCost, ownerId = null, maxDailyTokens = 100000) {
+    // This check happens BEFORE the provider request. A stale usage table
+    // could otherwise accept paid inference then fail to journal its cost.
+    if(!await this.schemaReady()){
+      throw Error('AI 计费表版本过旧，已阻止付费调用；需在正确的独立 AI 数据库执行已授权迁移');
+    }
     const stats = await this.getTodayStats(ownerId);
     const totalCost = stats.reduce((sum, stat) => sum + parseFloat(stat.total_cost || 0), 0);
     // A zero-dollar estimate is not proof of free usage. Once an unknown-priced
