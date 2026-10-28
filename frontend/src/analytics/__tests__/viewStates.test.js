@@ -20,3 +20,27 @@ test('empty and partial states do not imply zero values or create unsupported bu
  expect(viewState({kind:'empty',actionLabel:'危险操作',actionAttr:'onclick="run()"'}))
   .not.toContain('onclick=')
 })
+
+test('all aggregated report errors have an explicit user-triggered retry affordance',()=>{
+ for(const actionAttr of [
+   'data-funnel-retry','data-paths-retry','data-trade-retry',
+   'data-segments-retry','data-channels-retry'
+ ]){
+  const html=viewState({kind:'error',title:'数据请求失败',description:'HTTP 503',actionLabel:'重新运行',actionAttr})
+  expect(html).toContain('type="button"')
+  expect(html).toContain(actionAttr)
+  expect(html).toContain('role="alert"')
+ }
+})
+
+test('a stale report is marked partial, not completed or empty',()=>{
+ const html=viewState({
+  kind:'partial',title:'保留上一次相同条件的分析结果',
+  description:'新数据加载失败：HTTP 503。以下内容来自上次快照。',
+  actionLabel:'重新运行',actionAttr:'data-segments-retry'
+ })
+ expect(html).toContain('ui-view-state-partial')
+ expect(html).toContain('role="status"')
+ expect(html).toContain('上次快照')
+ expect(html).toContain('data-segments-retry')
+})
