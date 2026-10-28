@@ -576,13 +576,13 @@ export function createAIAnalysis(ctx){
     try{
       const r=await getAnalysisDetail(id);if(token!==generation||selected!==id)return;
       const panel=$('#as-output').querySelector('[data-detail]');if(!panel)return;
-      panel.innerHTML=`<h2>${esc(r.title)} · ${esc(label(r.status))}</h2>
+      panel.innerHTML=`<h2 data-detail-title>${esc(r.title)} · ${esc(label(r.status))}</h2>
       ${r.error_message?`<p role="alert">${esc(r.error_message)}</p>`:''}
       <p data-checkpoint-result role="status">正在读取调查检查点…</p>
       ${r.status==='failed'&&!r.cancel_requested?'<button class="a-button" data-retry-analysis>重试分析</button>':''}
       ${['pending','processing'].includes(r.status)&&!r.cancel_requested?'<button class="a-button" type="button" data-cancel-analysis>取消任务</button>':''}
       ${r.cancel_requested?'<p role="status">任务已取消，不会继续新的模型调用；先前发出的请求仍可能计费。</p>':''}
-      <p>${esc(r.result?.summary||(r.status==='failed'?'分析未完成；请查看失败原因和检查点后再决定下一步。':r.status==='processing'?'分析正在进行。':r.status==='completed'?'已完成；暂无摘要。':'任务已排队；请确认 AI Worker 正在运行。'))}</p>
+      <p data-detail-summary>${esc(r.result?.summary||(r.status==='failed'?'分析未完成；请查看失败原因和检查点后再决定下一步。':r.status==='processing'?'分析正在进行。':r.status==='completed'?'已完成；暂无摘要。':'任务已排队；请确认 AI Worker 正在运行。'))}</p>
       ${(r.result?.keyFindings||[]).map(f=>`<p>${esc(f)}</p>`).join('')}
       ${r.result?.routing?`<p>调查方式：${esc(r.result.routing.reason)}</p>`:''}
       ${(r.result?.evidenceIds||[]).map(eid=>`<button class="a-button" data-evidence="${esc(eid)}">查看证据 ${esc(eid.slice(0,8))}</button>`).join('')}<pre data-evidence-result></pre>
@@ -609,7 +609,13 @@ export function createAIAnalysis(ctx){
           'requires-validation-before-resume':'调查记录已保存，但尚未完成恢复验证',
           'noncontiguous-rounds':'调查步骤记录不连续，需人工核查'
         };
-        if(checkpoint.leaseExpired&&checkpoint.recordStatus==='processing'){
+        if(r.status==='processing'&&checkpoint.recordStatus==='processing'&&checkpoint.requiresHumanReview){
+          const title=panel.querySelector('[data-detail-title]');
+          const summary=panel.querySelector('[data-detail-summary]');
+          if(title)title.textContent=r.title+' · 需要处理';
+          if(summary&&!r.result?.summary)summary.textContent='调查需要人工检查；请查看检查点和原因。';
+        }
+        if(checkpoint.leaseExpired&&checkpoint.recordStatus==='processing'&&!['blocked','partial-tools'].includes(checkpoint.state)){
           const existing=panel.querySelector('[data-resume-analysis]');
           if(!existing){
             const button=document.createElement('button');

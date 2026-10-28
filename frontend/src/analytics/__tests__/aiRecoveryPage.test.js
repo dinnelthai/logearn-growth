@@ -4,9 +4,10 @@ import * as api from '../../api/aiAnalysis.js'
 import {createAIAnalysis} from '../../pages/aiAnalysis.js'
 function setup({withTimeline=false,withGsc=false}={}){
  const button={dataset:{analysis:'a'}},cancel={isConnected:true,addEventListener(_event,fn){this.click=fn}},checkpoint={textContent:'',after(el){this.button=el}},message={textContent:''};
+ const heading={textContent:''}, summary={textContent:''};
  const timeline={innerHTML:'',textContent:'',querySelector(){return null}};
  const caseButton={dataset:{caseTimeline:'proposal-1'},disabled:false,isConnected:true};
- const panel={isConnected:true,innerHTML:'',querySelector(s){return ({'[data-checkpoint-result]':checkpoint,'[data-cancel-analysis]':cancel,'[data-resume-analysis]':checkpoint.button})[s]||null},querySelectorAll(){return []}};
+ const panel={isConnected:true,innerHTML:'',querySelector(s){return ({'[data-checkpoint-result]':checkpoint,'[data-cancel-analysis]':cancel,'[data-resume-analysis]':checkpoint.button,'[data-detail-title]':heading,'[data-detail-summary]':summary})[s]||null},querySelectorAll(){return []}};
  const nodes={'[data-detail]':panel,'[data-ai-message]':message,'[data-health]':{},'[data-refresh]':{},'[data-ai-form]':{}};
  const gscButton={disabled:false,isConnected:true};
  const monitorButton={disabled:false,isConnected:true};nodes['[data-monitor-toggle]']=monitorButton;
@@ -29,7 +30,7 @@ function setup({withTimeline=false,withGsc=false}={}){
 
  api.getAnalysisDetail.mockResolvedValue({id:'a',title:'task',status:'processing',suggestions:[]});
  api.getJobCheckpoint.mockResolvedValue({recordStatus:'processing',leaseExpired:true,completedRounds:1,completedTools:0,pendingTools:0});
- const page=createAIAnalysis({$:()=>host,esc:s=>String(s??'')});return {page,button,cancel,checkpoint,message,panel,caseButton,timeline,host,gscButton,monitorButton};
+ const page=createAIAnalysis({$:()=>host,esc:s=>String(s??'')});return {page,button,cancel,checkpoint,message,panel,caseButton,timeline,host,gscButton,monitorButton,heading,summary};
 }
 afterEach(()=>{vi.restoreAllMocks();vi.unstubAllGlobals()})
 test('expired task can request recovery and displays the cost notice',async()=>{
@@ -154,4 +155,16 @@ test('monitor request failure disables the control with a message',async()=>{
  expect(t.host.innerHTML).toContain('data-monitor-toggle');
  expect(t.host.innerHTML).toContain('disabled');
  t.page.dispose();
+});
+
+test('incomplete investigation is presented as needing human attention rather than running',async()=>{
+ const t=setup();api.getJobCheckpoint.mockResolvedValue({recordStatus:'processing',leaseExpired:false,state:'partial-tools',reason:'tool-execution-incomplete',requiresHumanReview:true,completedRounds:2,completedTools:6,pendingTools:4});
+ await t.page.draw();await t.button.onclick();await vi.waitFor(()=>expect(t.heading.textContent).toContain('需要处理'));
+ expect(t.summary.textContent).not.toContain('分析正在进行');expect(t.checkpoint.button).toBeUndefined();t.page.dispose();
+});
+
+test('expired task with incomplete tools does not offer automatic recovery',async()=>{
+ const t=setup();api.getJobCheckpoint.mockResolvedValue({recordStatus:'processing',leaseExpired:true,state:'partial-tools',reason:'tool-execution-incomplete',requiresHumanReview:true,completedRounds:2,completedTools:6,pendingTools:4});
+ await t.page.draw();await t.button.onclick();await vi.waitFor(()=>expect(t.checkpoint.textContent).toContain('调查工具执行不完整'));
+ expect(t.checkpoint.button).toBeUndefined();expect(api.resumeAnalysis).not.toHaveBeenCalled();t.page.dispose();
 });
