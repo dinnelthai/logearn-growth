@@ -80,7 +80,7 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
       traceStore?.begin(traceContext,round);
       const client=clientFactory({model});
       try{
-        response=await client.chat(messages,{userId:ownerId,operationId,operationType,runId,traceId,promptVersions,temperature:0.3,maxTokens:outputBudget});
+        response=await client.chat(messages,{userId:ownerId,operationId,operationType,runId,traceId,round,promptVersions,temperature:0.3,maxTokens:outputBudget});
       }catch(error){
         traceStore?.unknown(traceContext,round);
         await paidCalls?.finish?.(round,'unknown');

@@ -20,8 +20,9 @@ class CostTracker {
           owner_id, operation_type, operation_id,
           model_provider, model_name,
           input_tokens, output_tokens, total_tokens, cost_usd,
-          duration_ms, from_cache, created_at, cost_known
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+          duration_ms, from_cache, created_at, cost_known, trace_id, round
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+          ON CONFLICT (owner_id, trace_id) WHERE trace_id IS NOT NULL DO NOTHING`,
         [
           usage.ownerId || 'system',
           usage.operationType || 'analysis',
@@ -35,7 +36,9 @@ class CostTracker {
           usage.duration,
           false,
           Date.now(),
-          usage.costKnown !== false
+          usage.costKnown !== false,
+          usage.traceId || null,
+          Number.isSafeInteger(usage.round) && usage.round >= 0 ? usage.round : null
         ]
       );
     } catch (error) {

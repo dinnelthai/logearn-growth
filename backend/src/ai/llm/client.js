@@ -156,6 +156,8 @@ class LLMClient {
       ownerId: options.userId,
       operationType: options.operationType || 'analysis',
       operationId: options.operationId || options.metadata?.analysisId || options.metadata?.suggestionId || 'legacy',
+      traceId: options.traceId || null,
+      round: Number.isSafeInteger(options.round) ? options.round : null,
       model: this.model,
       provider: this.modelInfo.provider,
       inputTokens: tokens.inputTokens,
