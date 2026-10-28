@@ -58,7 +58,8 @@ export function deriveAnalysisState(record, checkpoint, now = Date.now()) {
   return {
     key, label: LABELS[key], taskId: id, backendStatus: status ?? null,
     lastUpdated, stale, reason,
-    canCancel: ['queued','running'].includes(key) && !record?.cancel_requested,
+    canCancel: (['queued','running'].includes(key) ||
+      (key === 'blocked' && status === 'processing')) && !record?.cancel_requested,
     // Only show retry for a failure with a verified, empty model-call journal.
     // The server still makes the final paid-call safety decision.
     canRetry: key === 'failed' && checkpoint?.state === 'not-started' &&
