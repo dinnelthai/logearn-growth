@@ -742,10 +742,44 @@ export function createAIAnalysis(ctx){
         finally{busy=false;if(button?.isConnected)button.disabled=false}
       });
       panel.querySelectorAll('[data-suggestion]').forEach(form=>form.onsubmit=async e=>{
-        e.preventDefault();if(busy)return;busy=true;
-        const data=new FormData(form),state=e.submitter.value,note=data.get('note'),at=data.get('executedAt');
-        try{await updateSuggestionStatus(form.dataset.suggestion,{userStatus:state,actualAction:state==='executed'?note:undefined,rejectionReason:state==='rejected'?note:undefined,executedAt:state==='executed'&&at?Date.parse(at+':00+07:00'):undefined});if(token===generation)await open(id);}
-        catch(error){message(error.message);}finally{busy=false;}
+        e.preventDefault();
+        if(busy)return;
+        const state=e.submitter?.value;
+        if(!['adopted','executing','executed','rejected'].includes(state))return;
+        const data=new FormData(form);
+        const note=String(data.get('note')||'').trim();
+        const at=data.get('executedAt');
+        if(state==='rejected'&&!note){
+          message('请填写拒绝原因，便于之后追溯决策。');
+          form.elements?.namedItem?.('note')?.focus?.();
+          return;
+        }
+        if(state==='executed'&&!note){
+          message('请记录实际执行的动作，不能只把建议标记为完成。');
+          form.elements?.namedItem?.('note')?.focus?.();
+          return;
+        }
+        const executedAt=state==='executed'&&at?Date.parse(at+':00+07:00'):undefined;
+        if(at&&state==='executed'&&!Number.isFinite(executedAt)){
+          message('执行时间格式无效，请核对后重试。');
+          return;
+        }
+        busy=true;
+        const buttons=[...(form.querySelectorAll?.('button')||[])];
+        buttons.forEach(button=>button.disabled=true);
+        try{
+          await updateSuggestionStatus(form.dataset.suggestion,{
+            userStatus:state,
+            actualAction:state==='executed'?note:undefined,
+            rejectionReason:state==='rejected'?note:undefined,
+            executedAt
+          });
+          if(token===generation&&request===detailRequest)await open(id);
+        }catch(error){message(error.message)}
+        finally{
+          busy=false;
+          buttons.forEach(button=>{if(button.isConnected)button.disabled=false});
+        }
       });
       panel.querySelectorAll('[data-review]').forEach(button=>button.onclick=async()=>{
         if(busy)return;busy=true;button.disabled=true;
