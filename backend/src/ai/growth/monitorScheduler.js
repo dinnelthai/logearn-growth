@@ -43,6 +43,7 @@ async function runOnce({control=createMonitorControl(),
       baselineDay:found.baselineDay||null,currentDay:found.currentDay||null,
       baseline:found.baseline||null,current:found.current||null,
       dataQuality:found.quality||null,channelQuality:found.channelQuality||null,
+      changes:Array.isArray(found.changes)?found.changes.slice(0,3):[],
       reason:found.reason||null});
     }catch(error){
      errors++;goalSummary.push({goal,status:'error',reason:String(error.message).slice(0,180)});
