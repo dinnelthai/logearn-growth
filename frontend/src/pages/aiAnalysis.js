@@ -1,13 +1,15 @@
 import './aiAnalysis.css';
 import {loadingState} from './loadingState.js';
 import {TASK_LABELS,displayTaskStatus,canOfferTaskResume,canOfferTaskRetry,shouldPollTask} from './aiTaskStatus.js';
+import {renderAISuggestion} from './aiSuggestionView.js';
+import {viewState} from '../components/viewStates.js';
 import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,getGrowthMonitorControl,setGrowthMonitorControl,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead,getGrowthInvestigationTimeline,getSeoImports,importSeoSnapshot,previewSeoSnapshot,previewKolPerformance,getGscConnection,saveGscSite,syncGscPerformance,getGscPerformance,getGscSitemaps,inspectGscUrl,getAutonomyStatus,getAutonomyTargets,saveAutonomyTarget,getAutonomyBriefs,getAutonomyLearning,refreshAutonomyBrief} from '../api/aiAnalysis.js';
 const DAY=86400000,OFFSET=7*3600000;
 const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
 export function createAIAnalysis(ctx){
   const {$,esc}=ctx;
-  let generation=0,timer=null,selected=null,busy=false,polling=false,historyFilter='all';
+  let generation=0,detailRequest=0,timer=null,selected=null,busy=false,polling=false,historyFilter='all';
   const defaults={start:day(Date.now()-7*DAY),end:day(Date.now()-DAY)};
   const gscDates={start:new Date(Date.now()-30*DAY).toISOString().slice(0,10),
     end:new Date(Date.now()-3*DAY).toISOString().slice(0,10)};
@@ -16,7 +18,7 @@ export function createAIAnalysis(ctx){
   const formatPosition=v=>v==null?'—':Number(v).toFixed(1);
   const label=s=>TASK_LABELS[s]||s;
   const json=v=>esc(JSON.stringify(v,null,2));
-  function dispose(){generation++;clearTimeout(timer);timer=null;polling=false;}
+  function dispose(){generation++;detailRequest++;clearTimeout(timer);timer=null;polling=false;}
   function message(text){const target=$('#as-output')?.querySelector('[data-ai-message]');if(target)target.textContent=text;}
   function applyHistoryFilter(){
     const host=$('#as-output');
@@ -34,12 +36,12 @@ export function createAIAnalysis(ctx){
   }
   async function draw(){
     ctx.clear?.();
-    const token=++generation;clearTimeout(timer);polling=false;
+    const token=++generation;detailRequest++;clearTimeout(timer);polling=false;
     const host=$('#as-output');host.innerHTML=loadingState('正在加载主动业务分析…');
     try{
       const [list,reviews,costs,reviewQueue,inbox,alertData,monitorControl,proposalData,noticeData,budgetData,seoData,gscConnection,gscSnapshot,agentStatus,agentTargets,agentBriefs,agentLearning]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]})),getGrowthAlerts().catch(error=>({alerts:[],error:error.message})),getGrowthMonitorControl().catch(error=>({allowed:false,enabled:false,error:error.message})),getGrowthInvestigations().catch(error=>({proposals:[],error:error.message})),getGrowthNotifications().catch(error=>({notifications:[],error:error.message})),getGrowthBudget().catch(error=>({limit:0,reservedCalls:0,remainingCalls:0,error:error.message})),getSeoImports().catch(error=>({imports:[],error:error.message})),getGscConnection().catch(error=>({configured:false,sites:[],error:error.message})),getGscPerformance().catch(error=>({available:false,error:error.message})),getAutonomyStatus().catch(error=>({schedulerConfigured:false,error:error.message})),getAutonomyTargets().catch(error=>({targets:[],supportedMetrics:[],error:error.message})),getAutonomyBriefs().catch(error=>({briefs:[],error:error.message})),getAutonomyLearning().catch(error=>({assessment:null,strategies:{},error:error.message}))]);
       if(token!==generation)return;
-      if(!selected&&list.records?.[0])selected=list.records[0].id;
+      if(!list.records?.some(r=>r.id===selected))selected=list.records?.[0]?.id??null;
       host.innerHTML=`<div class="si-page ai-analysis-page">
         <section class="ai-decision-hero"><div><span class="ai-eyebrow">GROWTH INTELLIGENCE</span><h1>增长决策工作台</h1><p>发现问题 · 核查证据 · 制定行动 · 持续复盘</p></div><a class="a-button a-primary" href="#ai-new-analysis">新建分析</a></section>
         <div class="ai-status-grid" aria-label="经营与任务状态">
@@ -601,9 +603,16 @@ export function createAIAnalysis(ctx){
     }catch(error){if(token===generation)host.innerHTML=`<section class="a-card"><p>${esc(error.message)}</p><button class="a-button" data-retry>重新加载</button></section>`;host.querySelector('[data-retry]')?.addEventListener('click',draw);}
   }
   async function open(id){
-    selected=id;clearTimeout(timer);const token=generation;
+    selected=id;clearTimeout(timer);
+    const token=generation,request=++detailRequest;
+    const loadingPanel=$('#as-output')?.querySelector('[data-detail]');
+    if(loadingPanel)loadingPanel.innerHTML=loadingState('正在读取分析详情…');
+    $('#as-output')?.querySelectorAll('[data-ai-history-row]').forEach(row=>{
+      row.querySelector('[data-analysis]')?.setAttribute('aria-pressed',String(row.dataset.analysisId===id));
+    });
     try{
-      const r=await getAnalysisDetail(id);if(token!==generation||selected!==id)return;
+      const r=await getAnalysisDetail(id);
+      if(token!==generation||request!==detailRequest||selected!==id)return;
       const panel=$('#as-output').querySelector('[data-detail]');if(!panel)return;
       panel.innerHTML=`<div class="ai-detail-heading"><h2 data-detail-title>${esc(r.title)} · ${esc(label(r.status))}</h2><span data-detail-badge class="ai-state ai-state-${esc(displayTaskStatus(r).kind)}">${esc(displayTaskStatus(r).text)}</span></div>
       ${r.error_message?`<p role="alert">${esc(r.error_message)}</p>`:''}
@@ -612,24 +621,17 @@ export function createAIAnalysis(ctx){
       ${['pending','processing'].includes(r.status)&&!r.cancel_requested?'<button class="a-button" type="button" data-cancel-analysis>取消任务</button>':''}
       ${r.cancel_requested?'<p role="status">任务已取消，不会继续新的模型调用；先前发出的请求仍可能计费。</p>':''}
       <p data-detail-summary>${esc(r.result?.summary||(r.status==='failed'?'分析未完成；请查看失败原因和检查点后再决定下一步。':r.status==='processing'?'分析正在进行。':r.status==='completed'?'已完成；暂无摘要。':'任务已排队；请确认 AI Worker 正在运行。'))}</p>
-      ${(r.result?.keyFindings||[]).map(f=>`<p>${esc(f)}</p>`).join('')}
+      ${(r.result?.keyFindings||[]).length?`<section class="ai-findings" aria-label="关键发现"><h3>关键发现</h3><ul>${r.result.keyFindings.map(f=>`<li>${esc(f)}</li>`).join('')}</ul></section>`:''}
       ${r.result?.routing?`<p>调查方式：${esc(r.result.routing.reason)}</p>`:''}
       ${(r.result?.evidenceIds||[]).map(eid=>`<button class="a-button" data-evidence="${esc(eid)}">查看证据 ${esc(eid.slice(0,8))}</button>`).join('')}<pre data-evidence-result></pre>
-      ${(r.suggestions||[]).map(s=>`<article class="ai-suggestion"><h3>${esc(s.priority)} · ${esc(s.business_problem)}</h3><p>${esc(s.action)}</p><p>排序依据：${esc(s.priority_reason)}</p><p>假设：${esc(s.hypothesis)}</p><p>不确定性：${esc((s.uncertainties||[]).join('；'))}</p>
-        <details><summary>数据证据与验证条件</summary><pre>${json({evidence:s.data_evidence,scope:s.applicable_scope,validation:s.validation_metrics,review:s.review_conditions,impact:s.expected_impact,basis:s.impact_basis})}</pre></details>
-        <p>状态：${esc(label(s.user_status))}</p><form data-suggestion="${esc(s.id)}">
-        <label>实际行动 / 拒绝原因<textarea name="note" maxlength="5000">${esc(s.actual_action||s.rejection_reason||'')}</textarea></label>
-        <label>实际执行时间（UTC+7）<input name="executedAt" type="datetime-local" value="${s.executed_at?new Date(Number(s.executed_at)+OFFSET).toISOString().slice(0,16):''}"></label>
-        ${s.user_status==='pending'?'<button class="a-button" name="status" value="adopted">人工批准采纳</button>':''}
-        ${s.user_status==='adopted'?'<button class="a-button" name="status" value="executing">开始执行</button>':''}
-        ${s.user_status==='executing'?'<button class="a-button" name="status" value="executed">记录已执行</button>':''}
-        ${['pending','adopted','executing'].includes(s.user_status)?'<button class="a-button" name="status" value="rejected">拒绝</button>':''}
-        </form>
-        ${s.user_status==='executed'?`<button class="a-button" data-review="${esc(s.id)}">复盘执行效果</button>`:''}</article>`).join('')}
+      <section class="ai-action-list" aria-label="人工决策与执行">
+        <div class="ai-action-list-heading"><h3>行动建议</h3><span>${(r.suggestions||[]).length} 条</span></div>
+        ${(r.suggestions||[]).length?(r.suggestions||[]).map(item=>renderAISuggestion(item,{esc,json,label,offset:OFFSET})).join(''):'<p class="a-muted">尚无可执行行动建议；不代表业务没有问题。</p>'}
+      </section>
       <details><summary>业务快照、目标优先级及模型调用记录</summary><pre>${json({snapshot:r.data_snapshot,calls:r.result?.calls})}</pre></details>`;
       // Diagnostics are owner-scoped and intentionally do not expose model prompts.
       getJobCheckpoint(id).then(checkpoint=>{
-        if(token!==generation||selected!==id||!panel.isConnected)return;
+        if(token!==generation||request!==detailRequest||selected!==id||!panel.isConnected)return;
         const target=panel.querySelector('[data-checkpoint-result]');
         if(!target)return;
         const reasons={
@@ -700,7 +702,7 @@ export function createAIAnalysis(ctx){
           (checkpoint.leaseExpired?' · 执行租约已过期':'')+
           (state.kind==='attention'?' · 不会自动续跑；需人工核查后操作':'');
       }).catch(error=>{
-        if(token===generation&&selected===id&&panel.isConnected){
+        if(token===generation&&request===detailRequest&&selected===id&&panel.isConnected){
           clearTimeout(timer);timer=null;
           const target=panel.querySelector('[data-checkpoint-result]');
           if(target)target.textContent='检查点暂不可用：'+error.message+'。已暂停自动状态刷新，请人工确认。';
@@ -750,7 +752,16 @@ export function createAIAnalysis(ctx){
         catch(error){message(error.message);}finally{busy=false;if(button.isConnected)button.disabled=false;}
       });
       if(shouldPollTask(r)&&!polling)timer=setTimeout(()=>open(id),3000);
-    }catch(error){if(token===generation)message(error.message);}
+    }catch(error){
+      if(token!==generation||request!==detailRequest||selected!==id)return;
+      const panel=$('#as-output')?.querySelector('[data-detail]');
+      if(panel){
+        panel.innerHTML=viewState({kind:'error',title:'分析详情加载失败',
+          description:error.message||String(error),actionLabel:'重新读取详情',actionAttr:'data-ai-detail-retry'});
+        panel.querySelector?.('[data-ai-detail-retry]')?.addEventListener?.('click',()=>open(id));
+      }
+      message(error.message);
+    }
   }
   async function pollReview(id,token){
     polling=true;
