@@ -285,3 +285,65 @@ test('rejecting an AI action requires a recorded reason instead of a silent stat
   expect(noteField.focus).toHaveBeenCalledOnce()
   t.page.dispose()
 })
+
+test('review queue requires cost confirmation before creating an AI retrospective',async()=>{
+  const t=setup()
+  const reviewButton={dataset:{readyReview:'s-ready'},isConnected:true,disabled:false}
+  const originalQuery=t.host.querySelectorAll
+  t.host.querySelectorAll=selector=>selector==='[data-ready-review]'?[reviewButton]:originalQuery(selector)
+  api.getGrowthReviewQueue.mockResolvedValue({entries:[{
+    suggestionId:'s-ready',analysisId:'a',title:'Follow-up activation',
+    status:'ready'
+  }]})
+  await t.page.draw()
+  expect(t.host.innerHTML).toContain('data-ready-review="s-ready"')
+  expect(t.host.innerHTML).toContain('可能产生费用')
+  vi.stubGlobal('confirm',vi.fn(()=>false))
+  await reviewButton.onclick()
+  expect(api.createRetrospective).not.toHaveBeenCalled()
+  vi.stubGlobal('confirm',vi.fn(()=>true))
+  api.createRetrospective.mockResolvedValue({status:'pending',jobId:'review-1'})
+  api.getJobStatus.mockResolvedValue({state:'active',progress:25})
+  await reviewButton.onclick()
+  await vi.waitFor(()=>expect(api.getJobStatus).toHaveBeenCalledWith('review-1'))
+  expect(api.createRetrospective).toHaveBeenCalledTimes(1)
+  expect(api.createRetrospective.mock.calls[0][0]).toBe('s-ready')
+  expect(t.message.textContent).toContain('复盘状态')
+  t.page.dispose()
+})
+
+test('review failure remains visible and is not automatically re-dispatched',async()=>{
+  const t=setup()
+  const button={dataset:{readyReview:'s-ready'},isConnected:true,disabled:false}
+  const originalQuery=t.host.querySelectorAll
+  t.host.querySelectorAll=selector=>selector==='[data-ready-review]'?[button]:originalQuery(selector)
+  api.getGrowthReviewQueue.mockResolvedValue({entries:[{
+    suggestionId:'s-ready',title:'Follow-up',status:'ready'
+  }]})
+  vi.stubGlobal('confirm',vi.fn(()=>true))
+  api.createRetrospective.mockResolvedValue({status:'pending',jobId:'review-failed'})
+  api.getJobStatus.mockResolvedValue({state:'failed',error:'Review worker unavailable'})
+  await t.page.draw()
+  await button.onclick()
+  await vi.waitFor(()=>expect(t.message.textContent).toContain('Review worker unavailable'))
+  expect(api.createRetrospective).toHaveBeenCalledTimes(1)
+  t.page.dispose()
+})
+
+test('a completed existing review shows stored results rather than dispatching another job',async()=>{
+  const t=setup()
+  const button={dataset:{readyReview:'s-complete'},isConnected:true,disabled:false}
+  const originalQuery=t.host.querySelectorAll
+  t.host.querySelectorAll=selector=>selector==='[data-ready-review]'?[button]:originalQuery(selector)
+  api.getGrowthReviewQueue.mockResolvedValue({entries:[{
+    suggestionId:'s-complete',title:'Execution record',status:'ready'
+  }]})
+  vi.stubGlobal('confirm',vi.fn(()=>true))
+  api.createRetrospective.mockResolvedValue({status:'completed',jobId:'persisted-review',result:{}})
+  await t.page.draw()
+  await button.onclick()
+  expect(api.createRetrospective).toHaveBeenCalledTimes(1)
+  expect(api.getJobStatus).not.toHaveBeenCalled()
+  expect(api.getRetrospectives).toHaveBeenCalledTimes(2)
+  t.page.dispose()
+})
