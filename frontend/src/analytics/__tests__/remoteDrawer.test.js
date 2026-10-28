@@ -73,6 +73,9 @@ test('remote drill refetches the last real page after a list shrinks',async()=>{
   await vi.waitFor(()=>expect(t.nodes['[data-count]'].textContent).toContain('第 1 / 1 页'))
   expect(fetchPage.mock.calls.map(([c])=>c.offset)).toEqual([0,12,24,0])
   expect(t.nodes['[data-list]'].innerHTML).toContain('user:1')
+  expect(t.nodes['[data-list]'].innerHTML).toContain('role="region"')
+  expect(t.nodes['[data-list]'].innerHTML).toContain('tabindex="0"')
+  expect(t.nodes['[data-list]'].innerHTML).toContain('<th scope="col">用户</th>')
   t.drawer.close()
 })
 
