@@ -1,5 +1,6 @@
 import './aiAnalysis.css';
 import {loadingState} from './loadingState.js';
+import {TASK_LABELS,displayTaskStatus,canOfferTaskResume,canOfferTaskRetry,shouldPollTask} from './aiTaskStatus.js';
 import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,getGrowthMonitorControl,setGrowthMonitorControl,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead,getGrowthInvestigationTimeline,getSeoImports,importSeoSnapshot,previewSeoSnapshot,previewKolPerformance,getGscConnection,saveGscSite,syncGscPerformance,getGscPerformance,getGscSitemaps,inspectGscUrl,getAutonomyStatus,getAutonomyTargets,saveAutonomyTarget,getAutonomyBriefs,getAutonomyLearning,refreshAutonomyBrief} from '../api/aiAnalysis.js';
 const DAY=86400000,OFFSET=7*3600000;
 const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
@@ -13,8 +14,7 @@ export function createAIAnalysis(ctx){
   const formatCount=v=>v==null?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0});
   const formatPercent=v=>v==null?'—':(100*Number(v)).toFixed(2)+'%';
   const formatPosition=v=>v==null?'—':Number(v).toFixed(1);
-  const statusText={pending:'等待执行',processing:'分析中',completed:'已完成',failed:'失败',adopted:'已采纳',executed:'已执行',executing:'执行中',rejected:'已拒绝',invalid:'已失效'};
-  const label=s=>statusText[s]||s;
+  const label=s=>TASK_LABELS[s]||s;
   const json=v=>esc(JSON.stringify(v,null,2));
   function dispose(){generation++;clearTimeout(timer);timer=null;polling=false;}
   function message(text){const target=$('#as-output')?.querySelector('[data-ai-message]');if(target)target.textContent=text;}
@@ -25,7 +25,7 @@ export function createAIAnalysis(ctx){
     try{
       const [list,reviews,costs,reviewQueue,inbox,alertData,monitorControl,proposalData,noticeData,budgetData,seoData,gscConnection,gscSnapshot,agentStatus,agentTargets,agentBriefs,agentLearning]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]})),getGrowthAlerts().catch(error=>({alerts:[],error:error.message})),getGrowthMonitorControl().catch(error=>({allowed:false,enabled:false,error:error.message})),getGrowthInvestigations().catch(error=>({proposals:[],error:error.message})),getGrowthNotifications().catch(error=>({notifications:[],error:error.message})),getGrowthBudget().catch(error=>({limit:0,reservedCalls:0,remainingCalls:0,error:error.message})),getSeoImports().catch(error=>({imports:[],error:error.message})),getGscConnection().catch(error=>({configured:false,sites:[],error:error.message})),getGscPerformance().catch(error=>({available:false,error:error.message})),getAutonomyStatus().catch(error=>({schedulerConfigured:false,error:error.message})),getAutonomyTargets().catch(error=>({targets:[],supportedMetrics:[],error:error.message})),getAutonomyBriefs().catch(error=>({briefs:[],error:error.message})),getAutonomyLearning().catch(error=>({assessment:null,strategies:{},error:error.message}))]);
       if(token!==generation)return;
-      if(!selected&&list.records?.[0]&&['completed','failed'].includes(list.records[0].status))selected=list.records[0].id;
+      if(!selected&&list.records?.[0])selected=list.records[0].id;
       host.innerHTML=`<div class="si-page ai-analysis-page">
         <section class="ai-decision-hero"><div><span class="ai-eyebrow">GROWTH INTELLIGENCE</span><h1>增长决策工作台</h1><p>发现问题 · 核查证据 · 制定行动 · 持续复盘</p></div><a class="a-button a-primary" href="#ai-new-analysis">新建分析</a></section>
         <div class="ai-status-grid" aria-label="经营与任务状态">
@@ -49,7 +49,7 @@ export function createAIAnalysis(ctx){
         <p>时间按 UTC+7，最多31天。当前支持来源范围；不会把活动或用户群当作已筛选。</p>
         <button class="a-button" type="button" data-health>检查运行状态</button><pre data-health-result></pre><p data-ai-message role="status"></p></details>
         <section class="a-card ai-history"><h2>历史分析</h2><button class="a-button" data-refresh>刷新</button>
-        ${list.records.length?`<div class="ai-history-list" role="list">${list.records.map(r=>`<div class="ai-history-row" role="listitem"><button type="button" class="ai-history-title" data-analysis="${esc(r.id)}">${esc(r.title)}</button><span class="ai-state ai-state-${['completed','failed','pending','processing'].includes(r.status)?r.status:'unknown'}">${esc(label(r.status))}</span><span class="ai-history-meta">建议 ${esc(r.suggestion_count??'未知')} 条</span></div>`).join('')}</div>`:'<p>尚无分析，点击开始后才会调用模型。</p>'}</section>
+        ${list.records.length?`<div class="ai-history-list" role="list">${list.records.map(r=>`<div class="ai-history-row" data-ai-history-row data-analysis-id="${esc(r.id)}" role="listitem"><button type="button" class="ai-history-title" data-analysis="${esc(r.id)}" aria-pressed="${selected===r.id}">${esc(r.title)}</button><span data-ai-history-badge class="ai-state ai-state-${esc(displayTaskStatus(r).kind)}">${esc(displayTaskStatus(r).text)}</span><span class="ai-history-meta">建议 ${esc(r.suggestion_count??'未知')} 条</span></div>`).join('')}</div>`:'<p>尚无分析，点击开始后才会调用模型。</p>'}</section>
         <section class="a-card ai-result" data-detail><p>选择一条分析查看证据和建议。</p></section>
         <section class="a-card ai-review"><h2>待复盘行动</h2>
         <p>依据完整的曼谷业务日和已采集数据水位判定，只有你已执行的行动可复盘。查看无需模型费用。</p>
@@ -576,10 +576,10 @@ export function createAIAnalysis(ctx){
     try{
       const r=await getAnalysisDetail(id);if(token!==generation||selected!==id)return;
       const panel=$('#as-output').querySelector('[data-detail]');if(!panel)return;
-      panel.innerHTML=`<h2 data-detail-title>${esc(r.title)} · ${esc(label(r.status))}</h2>
+      panel.innerHTML=`<div class="ai-detail-heading"><h2 data-detail-title>${esc(r.title)} · ${esc(label(r.status))}</h2><span data-detail-badge class="ai-state ai-state-${esc(displayTaskStatus(r).kind)}">${esc(displayTaskStatus(r).text)}</span></div>
       ${r.error_message?`<p role="alert">${esc(r.error_message)}</p>`:''}
       <p data-checkpoint-result role="status">正在读取调查检查点…</p>
-      ${r.status==='failed'&&!r.cancel_requested?'<button class="a-button" data-retry-analysis>重试分析</button>':''}
+      ${r.status==='failed'&&!r.cancel_requested?'<button class="a-button" data-retry-analysis disabled title="正在核对调查检查点">检查后重试</button>':''}
       ${['pending','processing'].includes(r.status)&&!r.cancel_requested?'<button class="a-button" type="button" data-cancel-analysis>取消任务</button>':''}
       ${r.cancel_requested?'<p role="status">任务已取消，不会继续新的模型调用；先前发出的请求仍可能计费。</p>':''}
       <p data-detail-summary>${esc(r.result?.summary||(r.status==='failed'?'分析未完成；请查看失败原因和检查点后再决定下一步。':r.status==='processing'?'分析正在进行。':r.status==='completed'?'已完成；暂无摘要。':'任务已排队；请确认 AI Worker 正在运行。'))}</p>
@@ -609,13 +609,30 @@ export function createAIAnalysis(ctx){
           'requires-validation-before-resume':'调查记录已保存，但尚未完成恢复验证',
           'noncontiguous-rounds':'调查步骤记录不连续，需人工核查'
         };
-        if(r.status==='processing'&&checkpoint.recordStatus==='processing'&&checkpoint.requiresHumanReview){
-          const title=panel.querySelector('[data-detail-title]');
-          const summary=panel.querySelector('[data-detail-summary]');
-          if(title)title.textContent=r.title+' · 需要处理';
-          if(summary&&!r.result?.summary)summary.textContent='调查需要人工检查；请查看检查点和原因。';
+        const state=displayTaskStatus(r,checkpoint);
+        const title=panel.querySelector('[data-detail-title]');
+        if(title)title.textContent=r.title+' · '+state.text;
+        const badge=panel.querySelector('[data-detail-badge]');
+        if(badge){badge.textContent=state.text;badge.className='ai-state ai-state-'+state.kind;}
+        const historyRow=[...$('#as-output').querySelectorAll('[data-ai-history-row]')]
+          .find(el=>el.dataset.analysisId===id);
+        if(historyRow){
+          const rowBadge=historyRow.querySelector('[data-ai-history-badge]');
+          if(rowBadge){rowBadge.textContent=state.text;rowBadge.className='ai-state ai-state-'+state.kind;}
         }
-        if(checkpoint.leaseExpired&&checkpoint.recordStatus==='processing'&&!['blocked','partial-tools'].includes(checkpoint.state)){
+        if(checkpoint.requiresHumanReview){
+          const summary=panel.querySelector('[data-detail-summary]');
+          if(summary&&!r.result?.summary)summary.textContent='调查需要人工核查，尚未形成完整结论。请检查未完成工具和模型调用状态。';
+        }
+        if(!shouldPollTask(r,checkpoint)){clearTimeout(timer);timer=null;}
+        const retry=panel.querySelector('[data-retry-analysis]');
+        if(retry){
+          const safe=canOfferTaskRetry(r,checkpoint);
+          retry.disabled=!safe;
+          retry.textContent=safe?'重试分析（可能付费）':'暂不可安全重试';
+          retry.title=safe?'请先确认已发起的模型调用和费用':'检查点状态未确认或存在未完成的模型调用';
+        }
+        if(canOfferTaskResume(r,checkpoint)){
           const existing=panel.querySelector('[data-resume-analysis]');
           if(!existing){
             const button=document.createElement('button');
@@ -633,16 +650,20 @@ export function createAIAnalysis(ctx){
             target.after(button);
           }
         }
-        target.textContent='已保存模型轮次：'+checkpoint.completedRounds+
-          ' · 工具结果：'+checkpoint.completedTools+
-          ' · 待完成工具：'+checkpoint.pendingTools+
+        target.textContent=(state.kind==='attention'?'需要人工处理 · ':'调查检查点 · ')+
+          (checkpoint.reason?(reasons[checkpoint.reason]||checkpoint.reason)+' · ':'')+
+          '已保存模型轮次：'+(checkpoint.completedRounds??'未知')+
+          ' · 工具结果：'+(checkpoint.completedTools??'未知')+
+          ' · 待完成工具：'+(checkpoint.pendingTools??'未知')+
           (checkpoint.leaseExpired?' · 执行租约已过期':'')+
-          (checkpoint.reason?' · '+(reasons[checkpoint.reason]||checkpoint.reason):'')+
-          (checkpoint.requiresHumanReview?' · 需要人工处理':'');
+          (state.kind==='attention'?' · 不会自动续跑或产生新模型调用':'');
       }).catch(error=>{
         if(token===generation&&selected===id&&panel.isConnected){
+          clearTimeout(timer);timer=null;
           const target=panel.querySelector('[data-checkpoint-result]');
-          if(target)target.textContent='检查点暂不可用：'+error.message;
+          if(target)target.textContent='检查点暂不可用：'+error.message+'。已暂停自动状态刷新，请人工确认。';
+          const retry=panel.querySelector('[data-retry-analysis]');
+          if(retry){retry.disabled=true;retry.textContent='暂不可安全重试';}
         }
       });
       panel.querySelectorAll('[data-evidence]').forEach(button=>button.onclick=async()=>{try{const evidence=await getEvidence(button.dataset.evidence);if(token===generation&&selected===id)panel.querySelector('[data-evidence-result]').textContent=JSON.stringify(evidence,null,2);}catch(error){message(error.message);}});
@@ -667,7 +688,7 @@ export function createAIAnalysis(ctx){
         try{const result=await createRetrospective(button.dataset.review,crypto.randomUUID());if(token!==generation)return;message('复盘已启动，任务完成后刷新记录。');pollReview(result.jobId,token);}
         catch(error){message(error.message);}finally{busy=false;if(button.isConnected)button.disabled=false;}
       });
-      if(['pending','processing'].includes(r.status)&&!polling)timer=setTimeout(()=>open(id),3000);
+      if(shouldPollTask(r)&&!polling)timer=setTimeout(()=>open(id),3000);
     }catch(error){if(token===generation)message(error.message);}
   }
   async function pollReview(id,token){
