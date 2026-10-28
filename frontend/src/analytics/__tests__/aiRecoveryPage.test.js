@@ -129,7 +129,7 @@ test('proposal cards bind the real case ID and distinguish traceable evidence fr
  }]});
  await t.page.draw();
  expect(t.host.innerHTML).toContain('data-case-timeline="proposal-1"');
- expect(t.host.innerHTML).toContain('原始日报与快照可追溯');
+ expect(t.host.innerHTML).toContain('证据期间与源端快照可追溯');
  expect(t.host.innerHTML).toContain('已观察：100 → 60');
  expect(t.host.innerHTML).toContain('原因未知');
  expect(api.createBusinessAnalysis).not.toHaveBeenCalled();
