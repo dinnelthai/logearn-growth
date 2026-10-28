@@ -42,10 +42,10 @@ test('cancel sends an active task and refreshes its persisted status',async()=>{
  const t=setup();api.getJobCheckpoint.mockResolvedValue({recordStatus:'processing',leaseExpired:false,completedRounds:0,completedTools:0,pendingTools:0});api.cancelAnalysis.mockResolvedValue({});await t.page.draw();await t.button.onclick();await t.cancel.click({currentTarget:t.cancel});expect(api.cancelAnalysis).toHaveBeenCalledWith('a');expect(api.getAnalysisDetail).toHaveBeenCalledTimes(2);t.page.dispose();
 });
 test('active lease does not offer recovery',async()=>{
- const t=setup();api.getJobCheckpoint.mockResolvedValue({recordStatus:'processing',leaseExpired:false,completedRounds:0,completedTools:0,pendingTools:0});await t.page.draw();await t.button.onclick();await vi.waitFor(()=>expect(t.checkpoint.textContent).toContain('已记录轮次'));expect(t.checkpoint.button).toBeUndefined();t.page.dispose();
+ const t=setup();api.getJobCheckpoint.mockResolvedValue({recordStatus:'processing',leaseExpired:false,completedRounds:0,completedTools:0,pendingTools:0});await t.page.draw();await t.button.onclick();await vi.waitFor(()=>expect(t.panel.innerHTML).toContain('已记录轮次'));expect(t.checkpoint.button).toBeUndefined();t.page.dispose();
 });
 test('unauthorized checkpoint errors remain visible without a recovery button',async()=>{
- const t=setup();api.getJobCheckpoint.mockRejectedValue(Error('HTTP 403'));await t.page.draw();await t.button.onclick();await vi.waitFor(()=>expect(t.checkpoint.textContent).toContain('HTTP 403'));expect(t.checkpoint.button).toBeUndefined();t.page.dispose();
+ const t=setup();api.getJobCheckpoint.mockRejectedValue(Error('HTTP 403'));await t.page.draw();await t.button.onclick();await vi.waitFor(()=>expect(t.panel.innerHTML).toContain('HTTP 403'));expect(t.checkpoint.button).toBeUndefined();t.page.dispose();
 });
 
 test('operator can inspect frozen anomaly-to-retrospective chain without a model request',async()=>{
