@@ -7,6 +7,36 @@ async function start() {
   const status=document.getElementById('as-data-status')
   const badge=document.getElementById('as-data-badge')
   const root=document.getElementById('la-studio')
+  // Existing sessions may expire during long analysis sessions. Never retry
+  // possibly billable requests automatically; offer an explicit login action.
+  globalThis.addEventListener?.('logearn:session-expired',()=>{
+    if(document.getElementById('la-session-expired'))return;
+    const notice=document.createElement('div');
+    notice.id='la-session-expired';
+    notice.className='la-session-expired';
+    notice.setAttribute('role','alert');
+    const label=document.createElement('span');
+    label.textContent='登录已失效，当前数据请求已停止。重新登录后可继续查看页面。';
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='a-button a-primary';
+    button.textContent='重新登录';
+    button.addEventListener('click',async()=>{
+      button.disabled=true;
+      try{
+        const {logout}=await import('./auth/authClient.js');
+        await logout();
+        location.reload();
+      }catch{
+        button.disabled=false;
+        label.textContent='无法完成重新登录，请刷新页面后重新登录。';
+      }
+    });
+    notice.append(label,button);
+    const top=root.querySelector('.a-top');
+    if(top)top.insertAdjacentElement('afterend',notice);
+    else root.prepend(notice);
+  });
 
   // ── Auth gate ───────────────────────────────────────────────────────────────
   // Only active when backend URL is configured; skipped in JSON-only mode.
