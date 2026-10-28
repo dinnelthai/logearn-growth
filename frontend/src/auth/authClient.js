@@ -12,7 +12,8 @@ export function getToken() {
 
 /** Informs the already-mounted desktop shell about an expired login. No retries. */
 export function notifyExpiredSession(response) {
-  if(response?.status!==401||!getToken())return;
+  if(response?.status!==401)return;
+  try{if(!getToken())return;}catch{return;}
   if(typeof globalThis.CustomEvent!=='function')return;
   globalThis.dispatchEvent?.(new globalThis.CustomEvent('logearn:session-expired'));
 }
