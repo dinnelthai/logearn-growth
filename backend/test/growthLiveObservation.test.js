@@ -47,7 +47,7 @@ test('only attested source days create deduplicable evidence-backed alerts and m
   proposalStore:{propose:async(_,alert)=>{proposed.push(alert);return {id:'proposal'}}},
   load:f.load});
  assert.equal(result.status,'scanned');assert.equal(result.newObservations,2);
- assert.equal(result.proposedInvestigations,1);
+ assert.equal(result.proposedInvestigations,2);
  assert.equal(observed[0].metric,'active_users');
  assert.equal(observed[1].metric,'new_users');
  assert.equal(observed[0].evidence.origin,'hologres-source-observation');
