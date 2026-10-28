@@ -130,3 +130,27 @@ test('free-form nested identity keys are not accidentally treated as aggregates'
  assert.equal(x.channels[0].users,7);
  assert.equal(x.mystery,undefined);
 });
+
+test('huge aggregate reports are bounded before any paid request without coercing unknowns to zero',()=>{
+ const raw={business:{scope:{source:'all'}},focusGoal:'activation',
+  current:{totals:{active_users:100,new_users:40}},
+  previous:{totals:{active_users:130,new_users:60}},
+  growth:{channels:Array.from({length:400},(_,i)=>({
+   source:'campaign-'+i,users:300-i,eligible:250-i,activated:120-i,
+   d7:{eligible:100,returned:25,rate:0.25},
+   definition:'Cohort attribution is observational '.repeat(20)
+  })),quality:{history_complete:false}},
+  candidates:Array.from({length:200},(_,i)=>({metric:'active_users',
+   score:100-i,source:'campaign-'+i,reason:'test '.repeat(100)})),
+  evidence:Array.from({length:100},(_,i)=>({
+   id:'evidence-'+i,metricId:'activation_rate',definitionVersion:'1',
+   value:{channels:Array.from({length:100},(_,j)=>({source:'s'+j,users:10}))},
+   numerator:10,denominator:100,coverage:{status:'partial'}}))};
+ const projected=modelContext(raw);
+ assert.ok(Buffer.byteLength(JSON.stringify(projected),'utf8')<=22000);
+ assert.equal(projected.current.totals.active_users,100);
+ assert.equal(projected.previous.totals.new_users,60);
+ assert.equal(projected.evidenceMeta.total,100);
+ assert.ok(projected.evidenceMeta.shown<=40);
+ assert.equal(projected.growth.quality.history_complete,false);
+});
