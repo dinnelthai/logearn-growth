@@ -18,6 +18,7 @@ const numeric=new Set([
  'login_users','volume_usd','cost_usd','volume','missing_values','excluded_trades',
  'users_current','users_previous','sessions_count','visits_count','total_users',
  'candidate_count','candidateCount','groups_count','mature','mature_users',
+ 'absolute','affected','gap','progress','omittedItems',
  'conversion_rate','previous_conversion_rate','total_conversion_rate',
  'activation_rate','activation_interval','median_age_days','retention_rate',
  'registeredUsers','clicks','impressions','ctr','position','likes','shares','comments',
@@ -39,6 +40,7 @@ const categories=new Set(['source','device','version','app_version','user_stage'
  'type','kind','priority','direction','platform','channel','date','timezone',
  'association','family','definitionVersion','ruleVersion','user_pool',
  'scope','qualityStatus','category','name','period','state','browser',
+ 'coverage','quality',
  'os','event_name','group','metricName','currency','trafficSource']);
 const notes=new Set(['definition','warnings','warning','reason','error','interpretation',
  'priorityExplanation','scoreExplanation','summary','note','description',
@@ -47,7 +49,7 @@ const groups=new Set(['totals','days','growth','change','dimensions','channels',
  'groups','cohorts','families','quality','coverage','diagnostic_coverage',
  'activation_interval','retention_interval','interval','stages','steps','drops',
  'product_chain','first_value','trade','d7','d30','registration','attribution',
- 'funnels','paths','summary','sample','byCurrency','trends','rates','counts',
+ 'funnels','paths','pages','summary','sample','byCurrency','trends','rates','counts',
  'metrics','series','distribution','sources','bySource','period','filters',
  'sourceVersions','watermarks','goal','current','previous','weekly','northStar',
  'candidate','candidates','result','data','snapshots','snapshot']);
@@ -71,7 +73,8 @@ function primitive(v,key){
 function statView(value,{depth=0,maxRows=MAX_GROUPS}={}){
  if(depth>MAX_DEPTH)return {omitted:'nested-depth'};
  if(Array.isArray(value)){
-  const view=value.slice(0,maxRows).map(item=>statView(item,{depth:depth+1,maxRows})).filter(x=>x!==undefined);
+  const view=value.slice(0,maxRows).map(item=>typeof item==='string'?
+   safeText(item):statView(item,{depth:depth+1,maxRows})).filter(x=>x!==undefined);
   return view.length<value.length?{items:view,omittedItems:value.length-view.length}:view;
  }
  if(!value||typeof value!=='object')return value;
@@ -105,13 +108,18 @@ function modelEvidence(row){
   definitionVersion:row.definitionVersion??null,
   unit:row.unit??null,
   value:typeof row.value==='number'||row.value==null?row.value??null:
-   statView(row.value),
+   row.value&&typeof row.value==='object'?statView(row.value):{omitted:'non-numeric-value'},
   numerator:row.numerator??null,denominator:row.denominator??null,
   sampleSize:row.sampleSize??null,
   period:statView(row.period||{}),
   filters:{source:safeText(row.filters?.scope?.source||row.filters?.source||'all',120)},
-  sourceVersions:statView(row.sourceVersions||{}),
-  watermarks:statView(row.watermarks||{}),
+  sourceVersions:{events:safeText(row.sourceVersions?.events||'',120),
+   searchConsole:safeText(row.sourceVersions?.searchConsole||'',120),
+   operatorRecords:safeText(row.sourceVersions?.operatorRecords||'',120)},
+  watermarks:{events:safeText(row.watermarks?.events||'',120),
+   eventsCompleteThrough:safeText(row.watermarks?.eventsCompleteThrough||'',120),
+   trades:safeText(row.watermarks?.trades||'',120),
+   registrations:safeText(row.watermarks?.registrations||'',120)},
   coverage:statView(row.coverage||{status:'unknown'}),
   warnings:(row.warnings||[]).slice(0,6).map(s=>safeText(s))
  };
@@ -137,7 +145,9 @@ function modelContext(raw){
    historyComplete:raw.snapshot?.historyComplete===true,
    eventsCompleteThrough:raw.snapshot?.eventsCompleteThrough||null
   },
-  definitions:statView(raw.definitions||{}),
+  definitions:Object.fromEntries(Object.entries(raw.definitions||{}).slice(0,20)
+   .filter(([id,text])=>/^[a-z][a-z0-9_]{1,70}$/.test(id)&&typeof text==='string')
+   .map(([id,text])=>[id,safeText(text,240)])),
   current:statView(raw.current||{}),
   previous:statView(raw.previous||{}),
   growth:statView(raw.growth||{}),
@@ -156,7 +166,13 @@ function modelContext(raw){
    inputSchema:x.inputSchema,
    supportedScopes:x.supportedScopes
   })),
-  growthPlan:raw.growthPlan?statView(raw.growthPlan):null,
+  growthPlan:Array.isArray(raw.growthPlan?.steps)?
+   {steps:raw.growthPlan.steps.slice(0,8).map(step=>({
+    id:safeText(step.id||'',120),
+    tools:Array.isArray(step.tools)?step.tools.slice(0,8)
+      .map(tool=>safeText(tool,100)):[],
+    reason:safeText(step.reason||'',160)
+   }))}:null,
   omissions:{
    rawMembersOmitted:true,rawEventsOmitted:true,
    memoryAndManualActionsOmitted:true,
