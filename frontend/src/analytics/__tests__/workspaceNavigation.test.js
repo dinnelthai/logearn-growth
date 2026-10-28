@@ -22,8 +22,8 @@ function fixture(){
   const agent=makeButton({section:'agent'})
   agent.textContent='AI Growth Agent'
   const groups=[
-    {dataset:{navigationSection:'overview'},hidden:false,querySelectorAll:()=>[home]},
-    {dataset:{navigationSection:'agent'},hidden:true,querySelectorAll:()=>[analysis]}
+    {dataset:{navigationSection:'overview',single:'false'},hidden:false,querySelectorAll:()=>[home]},
+    {dataset:{navigationSection:'agent',single:'false'},hidden:true,querySelectorAll:()=>[analysis]}
   ]
   const toggle=makeButton()
   const backdrop=makeButton()
@@ -68,7 +68,7 @@ test('mobile navigation opens, closes on selection and supports Escape',()=>{
   expect(t.backdrop.tabIndex).toBe(0)
   mounted.update('ai-analysis')
   expect(t.agent.attrs['aria-pressed']).toBe('true')
-  expect(t.nav.attrs['aria-label']).toBe('AI Growth Agent页面')
+  expect(t.agent.attrs['aria-expanded']).toBe('true')
   t.analysis.click()
   expect(navigate).toHaveBeenCalledWith('ai-analysis')
   expect(t.classes.has('sidebar-collapsed')).toBe(true)
@@ -94,3 +94,20 @@ test('desktop breakpoint restores sidebar, backdrop can close mobile drawer',()=
   expect(t.classes.has('sidebar-collapsed')).toBe(false)
   expect(t.backdrop.tabIndex).toBe(-1)
 })
+
+test('nested navigation collapses the active group and remembers child selection',()=>{
+  const t=fixture();
+  const go=vi.fn(mode=>mounted.update(mode));
+  const mounted=mountSectionNavigation(t.root,go);
+  mounted.update('home');
+  expect(t.agent.attrs['aria-expanded']).toBe('false');
+  t.agent.click();
+  expect(go).toHaveBeenCalledWith('ai-analysis');
+  expect(t.agent.attrs['aria-expanded']).toBe('true');
+  expect(t.root.classList.contains('sidebar-collapsed')).toBe(true);
+  t.agent.click();
+  expect(t.agent.attrs['aria-expanded']).toBe('false');
+  t.agent.click();
+  expect(t.agent.attrs['aria-expanded']).toBe('true');
+  expect(t.analysis.attrs['aria-current']).toBe('page');
+});
