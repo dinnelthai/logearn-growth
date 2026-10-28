@@ -124,6 +124,19 @@ function modelEvidence(row){
   warnings:(row.warnings||[]).slice(0,6).map(s=>safeText(s))
  };
 }
+function modelQuery(query){
+ const input=query?.input||{};
+ return {tool:typeof query?.tool==='string'?safeText(query.tool,90):null,
+  ...(query?.kind?{kind:safeText(query.kind,40)}:{}),
+  input:{
+   ...(Number.isSafeInteger(input.start)?{start:input.start}:{}),
+   ...(Number.isSafeInteger(input.end)?{end:input.end}:{}),
+   ...(Number.isSafeInteger(input.hours)?{hours:input.hours}:{}),
+   ...(Array.isArray(input.metrics)?{metrics:input.metrics.slice(0,10).map(x=>safeText(x,80))}:{}),
+   ...(Array.isArray(input.steps)?{steps:input.steps.slice(0,8).map(x=>safeText(x,80))}:{}),
+   ...(input.scope?.source?{scope:{source:safeText(input.scope.source,120)}}:{})
+  }};
+}
 function modelContext(raw){
  const scope=raw.business?.scope||{};
  const evidence=Array.isArray(raw.evidence)?raw.evidence:[];
@@ -179,6 +192,38 @@ function modelContext(raw){
    note:'原始用户/事件明细及操作记录仅保存在业务库；模型仅接收聚合统计与可追溯证据ID，未知值不是零'
   }
  };
+ // Strict cap for the first model message (before the conservative
+ // bytes-as-tokens preflight). Do not hide unknown data as zeros.
+ const fits=()=>Buffer.byteLength(JSON.stringify(context),'utf8')<=22000;
+ if(!fits()){
+  context.evidence=context.evidence.slice(0,18);
+  context.evidenceMeta.shown=context.evidence.length;
+  context.candidates=context.candidates.slice(0,6);
+  context.candidatesMeta.shown=context.candidates.length;
+  context.growth={change:context.growth.change||{},
+   channels:Array.isArray(context.growth.channels)?
+    context.growth.channels.slice(0,6):[],
+   quality:context.growth.quality||{},
+   coverage:context.growth.coverage||{status:'unknown'}};
+  context.warnings=context.warnings.slice(0,6);
+  context.omissions.additionalAggregatesOmitted=true;
+ }
+ if(!fits()){
+  context.evidence=context.evidence.slice(0,10).map(e=>({
+   id:e.id,metricId:e.metricId,definitionVersion:e.definitionVersion,
+   unit:e.unit,value:typeof e.value==='number'||e.value==null?e.value:null,
+   numerator:e.numerator,denominator:e.denominator,
+   sampleSize:e.sampleSize,period:e.period,
+   coverage:e.coverage,watermarks:e.watermarks,
+   warnings:['统计维度已缩略，原始证据保存在业务系统']}));
+  context.evidenceMeta.shown=context.evidence.length;
+  context.capabilities=context.capabilities.map(x=>({
+   id:x.id,description:x.description,inputSchema:x.inputSchema}));
+  context.current={totals:context.current.totals||{}};
+  context.previous={totals:context.previous.totals||{}};
+  context.warnings=context.warnings.slice(0,4);
+ }
+ if(!fits())throw Error('聚合模型上下文仍超出22000字节预算；需要缩小业务期间或来源');
  return context;
 }
-module.exports={statView,modelEvidence,modelContext,safeText};
+module.exports={statView,modelEvidence,modelContext,modelQuery,safeText};
