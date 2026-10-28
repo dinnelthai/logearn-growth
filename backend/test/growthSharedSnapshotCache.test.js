@@ -49,3 +49,36 @@ test('L2 outage is fail-soft; no live key is sent to shared store',async()=>{
  assert.deepEqual(await a.cached('snapshot:abcd1234',async()=>{calls++;return {value:3}}),{value:3});
  assert.equal(a.getStats().l2.errors>=1,true);
 });
+
+test('deleting a key during in-flight load does not resurrect stale value',async()=>{
+ const cache=createCache();
+ let resolveLoad;
+ const old=cache.cached('status',()=>new Promise(resolve=>{resolveLoad=resolve}));
+ await new Promise(resolve=>setImmediate(resolve));
+ await cache.del('status');
+ resolveLoad({stale:true});
+ assert.deepEqual(await old,{stale:true},'original caller still receives its response');
+ assert.equal(await cache.get('status'),null,'deleted key must stay deleted');
+ assert.deepEqual(await cache.cached('status',async()=>({fresh:true})),{fresh:true});
+});
+test('a newer load after deletion cannot be overwritten by older completion',async()=>{
+ const cache=createCache();
+ let resolveOld;
+ const old=cache.cached('status',()=>new Promise(resolve=>{resolveOld=resolve}));
+ await new Promise(resolve=>setImmediate(resolve));
+ await cache.del('status');
+ assert.deepEqual(await cache.cached('status',async()=>({fresh:true})),{fresh:true});
+ resolveOld({stale:true});
+ await old;
+ assert.deepEqual((await cache.get('status')).value,{fresh:true});
+});
+test('flush invalidates in-flight fills',async()=>{
+ const cache=createCache();
+ let resolveOld;
+ const old=cache.cached('status',()=>new Promise(resolve=>{resolveOld=resolve}));
+ await new Promise(resolve=>setImmediate(resolve));
+ cache.flush();
+ resolveOld({stale:true});
+ await old;
+ assert.equal(await cache.get('status'),null);
+});
