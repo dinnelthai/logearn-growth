@@ -5,13 +5,13 @@
 export function renderAIReviewQueue(queue,{esc}){
   if(queue?.error)return `<p class="ai-review-warning" role="alert">
     复盘排期暂不可用：${esc(queue.error)}。不能将读取失败视为没有待复盘行动。</p>`;
-  const entries=queue?.entries||[];
+  const entries=Array.isArray(queue?.entries)?queue.entries:[];
   if(!entries.length)return '<p class="a-muted">暂无待复盘行动。</p>';
   return `<div class="ai-review-queue" role="list">${entries.map(item=>{
     const ready=item.status==='ready'&&Boolean(item.suggestionId);
     const waiting=item.status==='waiting';
     const timestamp=Number(item.earliestReviewAt);
-    const validTime=Number.isSafeInteger(timestamp)&&timestamp>=0&&timestamp<8.64e15;
+    const validTime=item.earliestReviewAt!=null&&Number.isSafeInteger(timestamp)&&timestamp>=0&&timestamp<8.64e15-7*3600000;
     const earliest=validTime?new Date(timestamp+7*3600000).toISOString().slice(0,10):'尚未确认';
     const status=ready?'已达到复盘条件':waiting?'等待观察期和数据水位':'资格待核查';
     return `<article class="ai-review-queue-item" role="listitem">
