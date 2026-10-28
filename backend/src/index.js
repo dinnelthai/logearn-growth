@@ -164,4 +164,10 @@ try {
   console.warn('WebSocket initialization skipped:', error.message);
 }
 
-server.listen(PORT, require('./middleware/localDevLogin').enabled()?'127.0.0.1':undefined, () => console.log(`Backend (HTTP + WebSocket) running on http://localhost:${PORT}`));
+server.listen(PORT, require('./middleware/localDevLogin').enabled()?'127.0.0.1':undefined, () => {
+ console.log(`Backend (HTTP + WebSocket) running on http://localhost:${PORT}`);
+ // No extra Worker/PM2 service: one lightweight cron in each HTTP process.
+ // PostgreSQL's existing scheduler lease prevents concurrent replicas scanning.
+ try{require('./ai/growth/monitorScheduler').start()}
+ catch(error){console.error('[growth-monitor] scheduler startup failed',error.message)}
+});

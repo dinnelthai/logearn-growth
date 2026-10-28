@@ -1,59 +1,61 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
-const {monitorConfig,tick}=require('../src/queues/workers/growthAlertMonitor');
-const NOW=Date.parse('2026-10-28T02:00:00Z');
-test('monitor defaults to the two core goal families, preserving legacy single-goal env',()=>{
- const base={AI_DAILY_OWNER_IDS:'alice,bob',AI_DAILY_SOURCE:'all'};
- assert.deepEqual(monitorConfig(base).goals,['activation','retention']);
- assert.deepEqual(monitorConfig({...base,AI_DAILY_GOAL:'activation'}).goals,['activation']);
- assert.deepEqual(monitorConfig({...base,AI_DAILY_GOAL:'activation',
-  AI_GROWTH_ALERT_GOALS:'activation,retention'}).goals,['activation','retention']);
- assert.throws(()=>monitorConfig({...base,AI_GROWTH_ALERT_GOALS:'activation,activation'}),/只支持/);
- assert.throws(()=>monitorConfig({...base,AI_GROWTH_ALERT_GOALS:'revenue'}),/只支持/);
- assert.throws(()=>monitorConfig({...base,AI_DAILY_OWNER_IDS:'alice,alice'}),/唯一/);
-});
-test('daily monitor visits authorized owners and both goal families independently, without paid work',async()=>{
- const env={AI_DAILY_OWNER_IDS:'alice,bob',AI_GROWTH_ALERT_GOALS:'activation,retention',
-  AI_DAILY_SOURCE:'seo'};
- const calls=[];
- const scanner=async({ownerId,goal,source,now,store,proposalStore})=>{
-  calls.push({ownerId,goal,source,now});
-  assert.equal(store.marker,'store');
-  assert.equal(proposalStore.marker,'proposals');
-  if(ownerId==='alice'&&goal==='retention')throw Error('temporary failure');
-  return {status:'scanned',observed:1,newObservations:0};
- };
- const results=await tick({env,now:NOW,scanner,store:{marker:'store'},
-  proposalStore:{marker:'proposals'},control:{get:async()=>({enabled:true}),recordScan:async()=>{}}});
- assert.equal(results.length,4);
- assert.deepEqual(calls.map(x=>[x.ownerId,x.goal]),[
-  ['alice','activation'],['alice','retention'],['bob','activation'],['bob','retention']
- ]);
- assert.equal(results.filter(x=>x.status==='error').length,1);
- assert.ok(results.every(x=>x.source==='seo'||x.status==='error'));
- assert.equal(results.filter(x=>x.newObservations>0).length,0);
-});
-test('dry-run never reads the database or starts a scanner',async()=>{
- let calls=0;
- const results=await tick({dryRun:true,now:NOW,
-  env:{AI_DAILY_OWNER_IDS:'alice',AI_GROWTH_ALERT_GOALS:'activation,retention'},
-  scanner:async()=>{calls++;throw Error('must not scan')}});
- assert.equal(calls,0);
- assert.deepEqual(results.map(x=>x.goal),['activation','retention']);
- assert.ok(results.every(x=>x.status==='dry-run'));
-});
-
-test('disabled owners never scan; turning off between goals prevents next scan',async()=>{
- const calls=[];let reads=0;
+const {runOnce,GOALS}=require('../src/ai/growth/monitorScheduler');
+test('one in-process scan follows persisted opt-ins and maintains human approval boundary',async()=>{
+ const reads=[],calls=[],summaries=[];
  const control={
-  get:async ownerId=>({enabled:ownerId==='alice'&&++reads===1}),
-  recordScan:async(ownerId,{status})=>{calls.push('record:'+ownerId+':'+status)}
+  enabledOwners:async()=>['alice','bob'],
+  get:async id=>({enabled:id==='alice'}),
+  recordScan:async(id,value)=>summaries.push([id,value])
  };
- const results=await tick({
-  now:NOW,env:{AI_DAILY_OWNER_IDS:'alice,bob',AI_GROWTH_ALERT_GOALS:'activation,retention'},
-  control,store:{},proposalStore:{},scanner:async({ownerId,goal})=>{
-   calls.push(ownerId+':'+goal);return {status:'scanned',observed:1}}
+ let claims=0,finishes=0;
+ const health={
+  begin:async arg=>{claims++;assert.equal(arg.name,'growth-monitor');return {name:'growth-monitor',token:'lease'}},
+  finish:async(_lease,result)=>{finishes++;assert.equal(result.outcome,'succeeded')}
+ };
+ const result=await runOnce({control,health,
+  alerts:{},proposals:{},scan:async({ownerId,goal,source})=>{
+   calls.push([ownerId,goal,source]);return {status:'scanned',observed:1,newObservations:0}
+  }});
+ assert.deepEqual(GOALS,['activation','retention']);
+ assert.deepEqual(calls,[['alice','activation','all'],['alice','retention','all']]);
+ assert.equal(summaries.length,1);assert.equal(summaries[0][0],'alice');
+ assert.equal(result.status,'succeeded');assert.equal(result.scans,2);
+ assert.equal(claims,1);assert.equal(finishes,1);
+});
+test('turning off between goals prevents further scans',async()=>{
+ let reads=0;const called=[];
+ const result=await runOnce({
+  control:{enabledOwners:async()=>['alice'],get:async()=>({enabled:++reads===1}),
+   recordScan:async()=>{}},
+  health:{begin:async()=>({name:'growth-monitor',token:'1'}),finish:async()=>{}},
+  alerts:{},proposals:{},scan:async({goal})=>{called.push(goal);return {status:'scanned'}}
  });
- assert.deepEqual(calls,['alice:activation','record:alice:scanned']);
- assert.deepEqual(results.map(x=>x.status),['scanned','disabled','disabled','disabled']);
+ assert.deepEqual(called,['activation']);
+ assert.equal(result.skipped,1);
+});
+test('a second instance cannot scan without the existing DB lease',async()=>{
+ let called=false;
+ const result=await runOnce({
+  health:{begin:async()=>null},
+  control:{enabledOwners:async()=>{called=true;return []}},
+  alerts:{},proposals:{},scan:async()=>{throw Error('must not scan')}
+ });
+ assert.equal(result.status,'already-running-other-instance');
+ assert.equal(called,false);
+});
+test('failure of one goal is contained and recorded for that owner',async()=>{
+ const summaries=[];
+ const result=await runOnce({
+  control:{enabledOwners:async()=>['alice'],get:async()=>({enabled:true}),
+   recordScan:async(_,value)=>summaries.push(value)},
+  health:{begin:async()=>({name:'growth-monitor',token:'1'}),finish:async()=>{}},
+  alerts:{},proposals:{},scan:async({goal})=>{
+   if(goal==='activation')throw Error('upstream unavailable');
+   return {status:'scanned',observed:1};
+  }
+ });
+ assert.equal(result.status,'partial');assert.equal(result.errors,1);
+ assert.equal(summaries[0].status,'error');
+ assert.deepEqual(summaries[0].summary.goals.map(g=>g.status),['error','scanned']);
 });
