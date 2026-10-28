@@ -19,7 +19,7 @@ describe('AI task display state is derived from persisted evidence',()=>{
     expect(state.key).toBe('blocked');
     expect(state.label).toBe('需要人工处理');
     expect(state.canResume).toBe(false);
-    expect(state.canCancel).toBe(false);
+    expect(state.canCancel).toBe(true);
   });
   it('does not use an expired lease as permission to resume paid work',()=>{
     const state=deriveAnalysisState(record('processing'),checkpoint({leaseExpired:true}));
