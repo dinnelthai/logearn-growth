@@ -12,16 +12,24 @@ test('usage accepts normalized and relay-native shapes but never invents missing
  assert.equal(normalizeUsage(undefined).known,false);
  assert.equal(normalizeUsage({prompt_tokens:-1,completion_tokens:1}).known,false);
 });
-test('pricing is known only with both explicit relay rates, including zero/free',()=>{
- const p1=process.env.AI_RELAY_COST_PER_1K_INPUT,p2=process.env.AI_RELAY_COST_PER_1K_OUTPUT;
+test('unknown and placeholder zero prices fail closed unless free service is verified',()=>{
+ const p1=process.env.AI_RELAY_COST_PER_1K_INPUT,p2=process.env.AI_RELAY_COST_PER_1K_OUTPUT,free=process.env.AI_RELAY_FREE_TIER_VERIFIED;
  try{
-  delete process.env.AI_RELAY_COST_PER_1K_INPUT;delete process.env.AI_RELAY_COST_PER_1K_OUTPUT;
+  delete process.env.AI_RELAY_COST_PER_1K_INPUT;delete process.env.AI_RELAY_COST_PER_1K_OUTPUT;delete process.env.AI_RELAY_FREE_TIER_VERIFIED;
   assert.equal(getModelInfo(getConfig().defaultModel).pricingKnown,false);
   process.env.AI_RELAY_COST_PER_1K_INPUT='0';process.env.AI_RELAY_COST_PER_1K_OUTPUT='0';
+  assert.equal(getModelInfo(getConfig().defaultModel).pricingKnown,false);
+  process.env.AI_RELAY_FREE_TIER_VERIFIED='1';
   assert.equal(getModelInfo(getConfig().defaultModel).pricingKnown,true);
+  delete process.env.AI_RELAY_FREE_TIER_VERIFIED;
+  process.env.AI_RELAY_COST_PER_1K_INPUT='0.003';process.env.AI_RELAY_COST_PER_1K_OUTPUT='0.015';
+  assert.equal(getModelInfo(getConfig().defaultModel).pricingKnown,true);
+  process.env.AI_RELAY_COST_PER_1K_OUTPUT='0';
+  assert.equal(getModelInfo(getConfig().defaultModel).pricingKnown,false);
  }finally{
   if(p1===undefined)delete process.env.AI_RELAY_COST_PER_1K_INPUT;else process.env.AI_RELAY_COST_PER_1K_INPUT=p1;
   if(p2===undefined)delete process.env.AI_RELAY_COST_PER_1K_OUTPUT;else process.env.AI_RELAY_COST_PER_1K_OUTPUT=p2;
+  if(free===undefined)delete process.env.AI_RELAY_FREE_TIER_VERIFIED;else process.env.AI_RELAY_FREE_TIER_VERIFIED=free;
  }
 });
 test('daily token guard rejects a consumed budget independently of dollar cost',async()=>{

@@ -62,10 +62,10 @@ function getModelInfo(modelName) {
   }
   // Missing relay prices must not silently mean that paid inference is free.
   // An explicitly configured pair of zero prices is a confirmed free tier.
-  const pricingKnown=Object.hasOwn(process.env,'AI_RELAY_COST_PER_1K_INPUT') &&
-    Object.hasOwn(process.env,'AI_RELAY_COST_PER_1K_OUTPUT') &&
-    process.env.AI_RELAY_COST_PER_1K_INPUT!=='' &&
-    process.env.AI_RELAY_COST_PER_1K_OUTPUT!=='';
+  // Example env files used to contain 0/0 placeholders. Do not mistake those
+  // for a verified free model. Paid rates require two positive prices.
+  const pricingKnown=(input>0&&output>0)||
+    (input===0&&output===0&&process.env.AI_RELAY_FREE_TIER_VERIFIED==='1');
   const model = {
     ...LLM_MODELS['claude-sonnet-4-6'],
     costPer1kInput: input,
