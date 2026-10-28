@@ -24,7 +24,7 @@ export function createAIAnalysis(ctx){
     const token=++generation;clearTimeout(timer);polling=false;
     const host=$('#as-output');host.innerHTML=loadingState('正在加载主动业务分析…');
     try{
-      const [list,reviews,costs,reviewQueue,inbox,alertData,proposalData,noticeData,budgetData,seoData,gscConnection,gscSnapshot,agentStatus,agentTargets,agentBriefs,agentLearning]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]})),getGrowthAlerts().catch(error=>({alerts:[],error:error.message})),getGrowthInvestigations().catch(error=>({proposals:[],error:error.message})),getGrowthNotifications().catch(error=>({notifications:[],error:error.message})),getGrowthBudget().catch(error=>({limit:0,reservedCalls:0,remainingCalls:0,error:error.message})),getSeoImports().catch(error=>({imports:[],error:error.message})),getGscConnection().catch(error=>({configured:false,sites:[],error:error.message})),getGscPerformance().catch(error=>({available:false,error:error.message})),getAutonomyStatus().catch(error=>({schedulerConfigured:false,error:error.message})),getAutonomyTargets().catch(error=>({targets:[],supportedMetrics:[],error:error.message})),getAutonomyBriefs().catch(error=>({briefs:[],error:error.message})),getAutonomyLearning().catch(error=>({assessment:null,strategies:{},error:error.message}))]);
+      const [list,reviews,costs,reviewQueue,inbox,alertData,proposalData,noticeData,budgetData,seoData,gscConnection,gscSnapshot,agentStatus,agentTargets,agentBriefs,agentLearning]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:null,error:error.message,warnings:[error.message]})),getGrowthAlerts().catch(error=>({alerts:[],error:error.message})),getGrowthInvestigations().catch(error=>({proposals:[],error:error.message})),getGrowthNotifications().catch(error=>({notifications:[],error:error.message})),getGrowthBudget().catch(error=>({limit:0,reservedCalls:0,remainingCalls:0,error:error.message})),getSeoImports().catch(error=>({imports:[],error:error.message})),getGscConnection().catch(error=>({configured:false,sites:[],error:error.message})),getGscPerformance().catch(error=>({available:false,error:error.message})),getAutonomyStatus().catch(error=>({schedulerConfigured:false,error:error.message})),getAutonomyTargets().catch(error=>({targets:[],supportedMetrics:[],error:error.message})),getAutonomyBriefs().catch(error=>({briefs:[],error:error.message})),getAutonomyLearning().catch(error=>({assessment:null,strategies:{},error:error.message}))]);
       if(token!==generation)return;
       // Read a single latest task and its checkpoint; don't infer task state from a list label.
       const latestId=list.records?.[0]?.id;
@@ -54,6 +54,7 @@ export function createAIAnalysis(ctx){
               '<p>当前没有已确认的待处理事项；数据不可用时不代表业务正常。</p>'}
           </div>
         </section>
+        <details class="ai-system-settings"><summary>Agent 调度、运营目标与历史学习（按需展开）</summary>
         <section class="a-card ai-agent-autonomy">
           <h2>AI Growth Agent · 自主运营驾驶舱</h2>
           <p>每日指标评价 → AI 经营分析 → 行动建议 → 成熟复盘 → 下一轮调查策略。实际运营操作需人工批准。</p>
@@ -121,7 +122,7 @@ export function createAIAnalysis(ctx){
           ${Object.entries(agentLearning.strategies||{}).filter(([,v])=>v).map(([goal,value])=>
             `<p>${esc(goal)} 策略 v${esc(value.version)} ·
               重点核查：${esc((value.policy?.focusMetrics||[]).join('、')||'保持原规则')}</p>`).join('')}
-        </section>
+        </section></details>
         <section class="a-card"><h1>AI 业务增长助手</h1><p>主动发起分析，按业务证据排优先级；记录行动后主动复盘。所有分析与复盘均使用同一 DeRouter 模型。</p>
         <p>累计调用 ${esc(costs.total_calls)} 次 · Token ${esc(costs.total_tokens??0)} · 估算费用 $${esc(costs.total_cost??0)}（${esc(costs.unknown_cost_calls??0)} 次调用费率未配置，金额不代表免费）</p>
         <details class="ai-new-analysis" data-analysis-setup><summary>新建主动分析 · 配置任务（可能产生模型费用）</summary>
@@ -498,23 +499,41 @@ export function createAIAnalysis(ctx){
       host.querySelectorAll('[data-analysis]').forEach(b=>b.onclick=()=>open(b.dataset.analysis));
       host.querySelector('[data-start-analysis]')?.addEventListener('click',()=>{
         const setup=host.querySelector('[data-analysis-setup]');
-        if(setup)setup.open=true;
+        if(setup){setup.open=true;setup.scrollIntoView?.({block:'start',behavior:'smooth'});}
         host.querySelector('[data-ai-form] [name="title"]')?.focus();
       });
       host.querySelector('[data-ai-form]').onsubmit=async e=>{
-        e.preventDefault();if(busy)return;busy=true;const button=e.target.querySelector('button');button.disabled=true;
+        e.preventDefault();if(busy)return;
         const form=new FormData(e.target),requestKey=crypto.randomUUID();
-        defaults.start=form.get('start');defaults.end=form.get('end');
+        const start=String(form.get('start')||''),end=String(form.get('end')||'');
+        const startMs=timestamp(start),endMs=timestamp(end),skill=String(form.get('skillId')||'');
+        const goal=String(form.get('goal')||''),source=String(form.get('source')||'all').trim()||'all';
+        if(!Number.isFinite(startMs)||!Number.isFinite(endMs)||endMs<startMs||endMs-startMs>=31*DAY){
+          message('请选择有效的时间范围：结束时间不能早于开始时间，且最多31天。');return;
+        }
+        if(skill && (source!=='all'||(skill==='seo-organic'&&!['activation','conversion'].includes(goal))||
+          (skill==='kol-impact'&&!['conversion','revenue'].includes(goal)))){
+          message('专项技能与目标或来源不兼容：SEO 仅激活/转化，KOL 仅转化/收入，且必须使用全来源。');return;
+        }
+        busy=true;const button=e.target.querySelector('button');button.disabled=true;
+        defaults.start=start;defaults.end=end;
         try{
           const result=await createBusinessAnalysis({requestKey,title:form.get('title'),dateRangeStart:timestamp(defaults.start),dateRangeEnd:timestamp(defaults.end)+DAY,
-            businessScope:{source:form.get('source').trim()||'all'},focusGoal:form.get('goal'),userQuestion:form.get('question'),modelMode:form.get('modelMode'),skillId:form.get('skillId')||null});
+            businessScope:{source},focusGoal:goal,userQuestion:form.get('question'),modelMode:form.get('modelMode'),skillId:form.get('skillId')||null});
           if(token!==generation)return;
           selected=result.analysisId;await draw();
         }catch(error){if(token===generation)message(error.message);}
         finally{busy=false;if(button.isConnected)button.disabled=false;const current=$('#as-output')?.querySelector('[data-ai-form] button');if(current)current.disabled=false;}
       };
       if(selected)await open(selected);
-    }catch(error){if(token===generation)host.innerHTML=`<section class="a-card"><p>${esc(error.message)}</p><button class="a-button" data-retry>重新加载</button></section>`;host.querySelector('[data-retry]')?.addEventListener('click',draw);}
+    }catch(error){
+      if(token!==generation)return;
+      const auth=error.status===401;
+      host.innerHTML=`<section class="a-card"><h2>${auth?'登录已失效':error.status===403?'无权访问':'页面读取失败'}</h2>
+        <p role="alert">${esc(error.message)}</p>
+        <button class="a-button" data-retry>${auth?'重新登录':'重新加载'}</button></section>`;
+      host.querySelector('[data-retry]')?.addEventListener('click',auth?()=>location.reload():draw);
+    }
   }
   async function open(id){
     selected=id;clearTimeout(timer);const token=generation;
@@ -597,7 +616,17 @@ export function createAIAnalysis(ctx){
       });
       panel.scrollIntoView?.({block:'start',behavior:'smooth'});
       if(['queued','running'].includes(view.key)&&!polling)timer=setTimeout(()=>open(id),5000);
-    }catch(error){if(token===generation)message(error.message);}
+    }catch(error){
+      if(token!==generation)return;
+      const panel=$('#as-output')?.querySelector('[data-detail]');
+      if(panel){
+        panel.innerHTML=`<h2>${error.status===401?'登录已失效':error.status===403?'无权限查看任务':'任务详情不可用'}</h2>
+          <p role="alert">${esc(error.message)}</p>
+          ${error.status===401?'<button class="a-button" data-relogin>重新登录</button>':''}`;
+        panel.querySelector('[data-relogin]')?.addEventListener('click',()=>location.reload());
+      }
+      message(error.message);
+    }
   }
   async function pollReview(id,token){
     polling=true;
