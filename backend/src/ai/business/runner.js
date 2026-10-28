@@ -96,8 +96,13 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
     let value;
     try { value=parseJSON(response.content); }
     catch(error) { lastError=error; routing={tier:'complex',reason:'模型输出无法解析，由当前模型重试'}; const correction='输出无法解析，请完成原任务并返回完整合法 JSON。'; if(saved){if(saved.result?.followup?.kind!=='parse-error'||saved.result.followup.content!==correction)throw Error('解析纠正消息断点不一致');}
-      else traceStore?.saveFollowup?.(callTrace,round,correction,'parse-error'); messages.push({role:'assistant',content:response.content},{role:'user',content:correction});continue; }
-    messages.push({role:'assistant',content:response.content});
+      else traceStore?.saveFollowup?.(callTrace,round,correction,'parse-error'); messages.push({role:'assistant',content:compactToolReplies?String(response.content).slice(-3000):response.content},{role:'user',content:correction});continue; }
+    // A tool-use round needs the requested queries, not the entire prior
+    // analysis prose. The unmodified completion is still in the trace journal.
+    const hasQueries=Array.isArray(value.investigations)&&value.investigations.length>0;
+    const assistantReply=compactToolReplies&&hasQueries?
+      JSON.stringify({investigations:value.investigations,reason:String(value.reason||'').slice(0,320)}):response.content;
+    messages.push({role:'assistant',content:assistantReply});
     if (Array.isArray(value.investigations) && value.investigations.length) {
       if (!investigate) throw Error('该任务暂不支持请求的补充调查，任务未完成');
       if (value.investigations.length>6) throw Error('补充查询过多，请缩小问题范围或提高调查能力');
