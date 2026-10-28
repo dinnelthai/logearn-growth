@@ -44,3 +44,6 @@ test('advertised tool input fields match execution validation',()=>{
  assert.equal('dimensions' in schema('query_metrics'),true);
  }finally{t.db.close()}
 });
+test('tool schemas advertise the authorized historical time window',()=>{
+ const t=setup();try{const p=t.registry.listCapabilities(t.context)[0].inputSchema.properties;assert.equal(p.start.minimum,period.start-(period.end-period.start));assert.equal(p.start.maximum,period.end);assert.equal(p.end.maximum,period.end)}finally{t.db.close()}
+});
