@@ -17,4 +17,9 @@ async function weeklyCoreFacts(s,{end,source='all'}={}){
   return weeklyCore(rows.map(r=>({...r,current_days:Number(r.current_days),previous_days:Number(r.previous_days)})),w,s,source)
  })
 }
-module.exports={weeklyCoreFacts,weeklyCoreQuery}
+async function weeklyCorePayload(s,{end,source='all'}={}){
+ const window=weeklyCoreWindow(Date.parse(s.as_of),end);
+ return remote.cached(JSON.stringify(['weekly-core-payload-v1',s.snapshot_id,window.end,source]),
+  async()=>{const facts=await weeklyCoreFacts(s,{end,source});return facts.payload});
+}
+module.exports={weeklyCoreFacts,weeklyCorePayload,weeklyCoreQuery}

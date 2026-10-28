@@ -24,8 +24,9 @@ confirming source list, strategy list, event-type facets and event counts match.
 ## 2. Cross-process cache
 Default disabled. Requires BOTH `GROWTH_SHARED_CACHE_URL` and a unique
 `GROWTH_SHARED_CACHE_NAMESPACE` for each environment, database and events source.
-Only immutable snapshot ID / weekly-core facts qualify; live status,
-owner-private reports and LLM outputs are never stored. Disable the env key
+Only immutable snapshot metadata, aggregate-only weekly-core **payloads** and
+snapshot-pinned north-star summaries qualify. Raw weekly-core user_key lists,
+live status, owner-private reports and LLM outputs are never stored. Disable the env key
 if Redis availability or eviction behavior causes issues. Compare L2 hits,
 Hologres query count, P50/P95, and snapshot parity.
 

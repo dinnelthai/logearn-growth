@@ -6,12 +6,12 @@ const MAX_BYTES=4*1024*1024;
 function immutable(key){
  if(typeof key!=='string'||key.length>500)return false;
  if(/^snapshot:[A-Za-z0-9_-]{6,128}$/.test(key))return true;
- if(!key.startsWith('["weekly-core-v1",')&&
+ if(!key.startsWith('["weekly-core-payload-v1",')&&
     !key.startsWith('["business-north-v3",'))return false;
  try{
   const p=JSON.parse(key);
   const id=typeof p[1]==='string'&&p[1].length>=6&&p[1].length<=128;
-  if(p[0]==='weekly-core-v1')return p.length===4&&id&&
+  if(p[0]==='weekly-core-payload-v1')return p.length===4&&id&&
    Number.isSafeInteger(p[2])&&p[2]>0&&
    typeof p[3]==='string'&&p[3].length>0&&p[3].length<=200;
   // Business north star results are aggregated and pinned to one exact
@@ -38,6 +38,11 @@ function createSharedStore({client,namespace,clock=Date.now}={}){
   },
   async set(key,value,ttl){
    if(!immutable(key)||!Number.isFinite(ttl)||ttl<=0||ttl>900)return false;
+   // Only aggregate counts; raw weekly-core user_key lists stay in process L1.
+   if(key.startsWith('["weekly-core-payload-v1",')&&
+     (value==null||typeof value!=='object'||Array.isArray(value)||
+      Object.hasOwn(value,'members')||Object.hasOwn(value,'lists')||
+      value.available!==true||!Number.isFinite(value.users)))return false;
    const expiresAt=clock()+Math.floor(ttl*1000),row=JSON.stringify({v:1,expiresAt,value});
    if(Buffer.byteLength(row,'utf8')>MAX_BYTES)return false;
    await client.set(redisKey(key),row,'EX',Math.ceil(ttl));
