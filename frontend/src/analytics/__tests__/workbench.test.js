@@ -44,3 +44,41 @@ test('manual refresh clamps pagination when the available tasks shrink',async()=
  expect(t.host.innerHTML).toContain('任务0')
  t.page.dispose()
 })
+
+test('returning from a KOL or activity detail restores the previously selected workbench page',async()=>{
+ const many=Array.from({length:45},(_,i)=>({...data.tasks[0],id:'t'+i,title:'任务'+i,due_at:50}))
+ fetchWorkbench.mockResolvedValue({...data,tasks:many})
+ const t=setup()
+ await t.page.draw()
+ t.host.querySelector('[data-work-next]').onclick()
+ t.host.querySelector('[data-work-next]').onclick()
+ expect(t.host.innerHTML).toContain('第 3/3 页')
+ expect(t.host.innerHTML).toContain('任务44')
+ t.page.dispose()
+ // Simulate the workspace router re-entering workbench after visiting CRM.
+ await t.page.draw()
+ expect(t.host.innerHTML).toContain('第 3/3 页')
+ expect(t.host.innerHTML).toContain('任务44')
+ t.page.dispose()
+})
+
+test('an outdated workbench target is not opened after the task has disappeared',async()=>{
+ const t=setup()
+ await t.page.draw()
+ t.open.dataset.workOpen='unknown-task'
+ expect(()=>t.open.onclick()).not.toThrow()
+ expect(t.ctx.openUserProfile).not.toHaveBeenCalled()
+ expect(t.host.querySelector('[data-work-error]').textContent).toContain('目标不存在')
+ t.page.dispose()
+})
+
+test('workbench handles unsupported targets without silently opening an unrelated profile',async()=>{
+ const t=setup()
+ fetchWorkbench.mockResolvedValue({...data,tasks:[{...data.tasks[0],type:'unsupported',id:'other-task'}]})
+ t.open.dataset.workOpen='other-task'
+ await t.page.draw()
+ t.open.onclick()
+ expect(t.ctx.openUserProfile).not.toHaveBeenCalled()
+ expect(t.host.querySelector('[data-work-error]').textContent).toContain('暂不能打开')
+ t.page.dispose()
+})
