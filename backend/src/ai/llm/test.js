@@ -165,7 +165,11 @@ async function main() {
 }
 
 if (require.main === module) {
-  main().catch(error=>{console.error('LLM smoke test failed:',error.message);process.exitCode=1;});
+  main().catch(error=>{console.error('LLM smoke test failed:',error.message);process.exitCode=1;})
+    .finally(async()=>{
+      await require('../../db/aiPool').end();
+      await require('../../cache').redis.disconnect();
+    }).catch(error=>{console.error('LLM smoke test cleanup failed:',error.message);process.exitCode=1;});
 }
 
 module.exports = {
