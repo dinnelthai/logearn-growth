@@ -50,6 +50,8 @@ export function createPathsAggPage(ctx) {
   }
 
   async function draw(c) {
+    chartLifecycle.dispose()
+    nativeChart = null
     clearNative()
     const reqId = ++inflight
     const rangeDays = Math.ceil((c.end - c.start) / day)
