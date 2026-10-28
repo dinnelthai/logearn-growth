@@ -9,7 +9,7 @@ test('four goal reports reuse one snapshot and one set of read-only metric facts
  const service=createService({remote:{status:async()=>{calls.status++;return snapshot}},
   evidence:{
    fetchNorthStar:async(a,b,source,s)=>{calls.north++;assert.equal(s,snapshot);
-    return {totals:{active_users:10,new_users:4,returning_users:6}}},
+    return {totals:a===start?{active_users:10,new_users:4,returning_users:6}:{active_users:5,new_users:2,returning_users:3}}},
    fetchGrowthInsights:async()=>{calls.growth++;return {quality:{history_complete:true},channels:[]}},
    fetchWeeklyCore:async()=>{calls.weekly++;return {available:true,users:10}}
   }});
