@@ -8,7 +8,7 @@ test('quoted relay prices are divided by one thousand for the backend unit',()=>
  assert.equal(SETTINGS.AI_DEFAULT_MODEL,'gpt-6.1-terra');
  assert.equal(Number(SETTINGS.AI_RELAY_COST_PER_1K_INPUT)*1000,PRICES_PER_MILLION.input);
  assert.equal(Number(SETTINGS.AI_RELAY_COST_PER_1K_OUTPUT)*1000,PRICES_PER_MILLION.output);
- assert.ok(Math.abs(costFromUsage(100000,20000)-0.0133)<1e-10);
+ assert.ok(Math.abs(costFromUsage(80000,20000)-0.01197)<1e-10);
  assert.equal(SETTINGS.AI_MAX_DAILY_TOKENS,'100000');
  assert.equal(SETTINGS.AI_MAX_DAILY_COST,'0.10');
 });
