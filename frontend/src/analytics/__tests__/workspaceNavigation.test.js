@@ -142,6 +142,8 @@ test('active group disclosure remains closed after a reload',()=>{
 test('desktop navigation keeps a readable current-location breadcrumb',()=>{
   const t=fixture()
   t.media.matches=false
+  // The production Agent entry is a single-page navigation group.
+  t.root.querySelectorAll('[data-navigation-section]')[1].dataset.single='true'
   const title={textContent:'增长运营工作区'}
   const original=t.root.querySelector
   t.root.querySelector=selector=>selector==='.toolbar-title'?title:original(selector)
