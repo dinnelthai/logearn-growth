@@ -25,6 +25,35 @@ test('LLM cache and rate limiter honor REDIS_URL instead of default localhost 63
   }
  }
 });
+
+test('a dedicated Bull TCP URL wins when REDIS_URL is an HTTPS REST endpoint',()=>{
+ const previous={
+  BULL_REDIS_URL:process.env.BULL_REDIS_URL,
+  REDIS_URL:process.env.REDIS_URL,
+  REDIS_DB:process.env.REDIS_DB
+ };
+ try{
+  // Matches actual user deployment: Bull workers are healthy on :16379,
+  // while an unrelated REDIS_URL must never be passed to ioredis.
+  process.env.BULL_REDIS_URL='redis://127.0.0.1:16379';
+  process.env.REDIS_URL='https://rest.example.invalid';
+  process.env.REDIS_DB='0';
+  const cache=cacheConnectionConfig(process.env);
+  const bull=getBullRedisConfig();
+  assert.equal(cache.host,'127.0.0.1');
+  assert.equal(cache.port,16379);
+  assert.equal(cache.db,0);
+  assert.equal(cache.host,bull.host);
+  assert.equal(cache.port,bull.port);
+  assert.equal(cache.db,bull.db);
+ }finally{
+  for(const [key,value] of Object.entries(previous)){
+   if(value===undefined)delete process.env[key];
+   else process.env[key]=value;
+  }
+ }
+});
+
 test('URL auth and TLS, legacy host fallback and invalid protocols',()=>{
  const secure=cacheConnectionConfig({
   REDIS_URL:'rediss://operator:p%40ss@cache.internal:6380',REDIS_DB:'2'});
