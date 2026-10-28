@@ -661,7 +661,7 @@ export function createAIAnalysis(ctx){
         if(retry){
           const safe=canOfferTaskRetry(r,checkpoint);
           retry.disabled=!safe;
-          retry.textContent=safe?'重试分析（可能付费）':'暂不可安全重试';
+          retry.textContent=safe?'确认后重试（可能产生费用）':'暂不可安全重试';
           retry.title=safe?'请先确认已发起的模型调用和费用':'检查点状态未确认或存在未完成的模型调用';
         }
         if(canOfferTaskResume(r,checkpoint)){
@@ -669,12 +669,22 @@ export function createAIAnalysis(ctx){
           if(!existing){
             const button=document.createElement('button');
             button.className='a-button';button.type='button';button.dataset.resumeAnalysis=id;
-            button.textContent='尝试安全续跑';
+            button.textContent='人工确认后恢复（可能产生费用）';
             button.onclick=async()=>{
-              if(busy)return;busy=true;button.disabled=true;
+              if(busy)return;
+              busy=true;button.disabled=true;
               try{
+                const latest=await getJobCheckpoint(id);
+                if(!canOfferTaskResume(r,latest)){
+                  message('检查点已变化或无法确认恢复安全性，请先重新核查任务。');
+                  return;
+                }
+                const confirmed=globalThis.confirm?.(
+                  '这项调查有已保存的模型调用记录。恢复会再次验证已有检查点；如果后续需要新的模型轮次，可能产生费用。确定人工恢复吗？'
+                );
+                if(confirmed!==true)return;
                 const task=await resumeAnalysis(id);
-                message(task.notice||'恢复任务已进入队列');
+                message(task.notice||'已提交人工恢复请求；新模型调用仍可能计费。');
                 if(token===generation&&selected===id)await open(id);
               }catch(error){message(error.message)}
               finally{busy=false;if(button.isConnected)button.disabled=false}
@@ -688,7 +698,7 @@ export function createAIAnalysis(ctx){
           ' · 工具结果：'+(checkpoint.completedTools??'未知')+
           ' · 待完成工具：'+(checkpoint.pendingTools??'未知')+
           (checkpoint.leaseExpired?' · 执行租约已过期':'')+
-          (state.kind==='attention'?' · 不会自动续跑或产生新模型调用':'');
+          (state.kind==='attention'?' · 不会自动续跑；需人工核查后操作':'');
       }).catch(error=>{
         if(token===generation&&selected===id&&panel.isConnected){
           clearTimeout(timer);timer=null;
@@ -708,7 +718,26 @@ export function createAIAnalysis(ctx){
         }catch(error){message(error.message);if(button.isConnected)button.disabled=false;}
         finally{busy=false;}
       });
-      panel.querySelector('[data-retry-analysis]')?.addEventListener('click',async()=>{if(busy)return;busy=true;try{await retryAnalysis(id);if(token===generation)await open(id);}catch(error){message(error.message);}finally{busy=false;}});
+      panel.querySelector('[data-retry-analysis]')?.addEventListener('click',async()=>{
+        if(busy)return;
+        busy=true;
+        const button=panel.querySelector('[data-retry-analysis]');
+        if(button)button.disabled=true;
+        try{
+          const latest=await getJobCheckpoint(id);
+          if(!canOfferTaskRetry(r,latest)){
+            message('检查点已变化或存在可能的付费调用，禁止直接重试。');
+            return;
+          }
+          const confirmed=globalThis.confirm?.(
+            '调查记录未显示已发起的模型调用；后端仍会检查共享付费账本。重试可能产生新的模型费用，确定继续吗？'
+          );
+          if(confirmed!==true)return;
+          await retryAnalysis(id);
+          if(token===generation&&selected===id)await open(id);
+        }catch(error){message(error.message)}
+        finally{busy=false;if(button?.isConnected)button.disabled=false}
+      });
       panel.querySelectorAll('[data-suggestion]').forEach(form=>form.onsubmit=async e=>{
         e.preventDefault();if(busy)return;busy=true;
         const data=new FormData(form),state=e.submitter.value,note=data.get('note'),at=data.get('executedAt');
