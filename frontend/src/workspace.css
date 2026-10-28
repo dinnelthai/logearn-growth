@@ -107,3 +107,14 @@
 @media (prefers-reduced-motion:reduce){
   #la-studio .workspace-skip { transition:none; }
 }
+
+/* Reopen the North Star configuration on demand; legacy .a-north-page hides it. */
+html:has(#la-studio) > body { padding:0 !important; background:#0b0f17 !important; }
+#la-studio.a-north-page .a-config:not([hidden]) { display:block; }
+#la-studio.a-north-page .a-layout:has(> .a-config:not([hidden])) {
+  grid-template-columns:minmax(235px,280px) minmax(0,1fr);
+}
+#la-studio[data-current-mode="ai-analysis"] > .a-head { display:none; }
+@media(max-width:760px){
+  #la-studio.a-north-page .a-layout:has(> .a-config:not([hidden])) { grid-template-columns:minmax(0,1fr); }
+}
