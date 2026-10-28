@@ -23,3 +23,10 @@ test('missing or invalid metric output never creates false success or extra paid
  assert.equal(calls,1);assert.equal(items[0].aiAnalysis,'observed');
  assert.equal(items[1].aiAnalysis,null);assert.match(items[1].error,/缺少/);
 });
+
+test('markdown fenced JSON from relay is accepted without extra attempts',async()=>{
+ const items=[{metric:'a'}];
+ const result=await analyzeBatches(items,{client:{chat:async()=>({content:'\`\`\`json\\n{"analyses":[{"metric":"a","analysis":"ok"}]}\\n\`\`\`'})}});
+ assert.equal(result.calls,1);
+ assert.equal(items[0].aiAnalysis,'ok');
+});

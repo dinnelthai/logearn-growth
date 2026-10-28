@@ -9,7 +9,15 @@ function summarizeContext(context){
  };
 }
 function parseBatch(raw){
- const value=JSON.parse(String(raw||'').trim().replace(/^\`\`\`(?:json)?\\s*/, '').replace(/\\s*\`\`\`$/, ''));
+ let text=String(raw||'').trim();
+ const fence=String.fromCharCode(96,96,96);
+ if(text.startsWith(fence)){
+  const newline=text.indexOf('\n');
+  if(newline<0)throw Error('Invalid fenced JSON');
+  text=text.slice(newline+1).trim();
+  if(text.endsWith(fence))text=text.slice(0,-3).trim();
+ }
+ const value=JSON.parse(text);
  if(!Array.isArray(value?.analyses))throw Error('Batch response missing analyses');
  const matches=new Map();
  for(const row of value.analyses){
@@ -33,11 +41,11 @@ async function analyzeBatches(anomalies,{client,context,date,userId,jobId,batchS
    {role:'user',content:JSON.stringify({date,anomalies:items,dimensions:summarizeContext(context)})}
   ];
   try{
+   calls++;
    const response=await client.chat(messages,{
     userId,operationType:'analysis',operationId:String(jobId||'legacy-anomaly'),
     temperature:0.3,maxTokens:3000,metadata:{jobId,analysisType:'anomaly-batch',date,metrics:items.map(x=>x.metric)}
    });
-   calls++;
    const answers=parseBatch(response.content);
    for(const anomaly of slice){
     const analysis=answers.get(anomaly.metric);
@@ -46,7 +54,6 @@ async function analyzeBatches(anomalies,{client,context,date,userId,jobId,batchS
     anomaly.fromCache=response.fromCache===true;
    }
   }catch(error){
-   calls++;
    for(const anomaly of slice){
     anomaly.aiAnalysis=null;anomaly.error='本批异常分析未完成：'+String(error.message).slice(0,180);
    }
