@@ -1,5 +1,7 @@
 import "./styles.css";
 import "./polish.css";
+import "./brand-logo.css";
+import "./growth-agent-ui.css";
 
 async function start() {
   const status=document.getElementById('as-data-status')

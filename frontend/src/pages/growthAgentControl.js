@@ -11,6 +11,7 @@ export function createGrowthAgentControl(ctx){
  const host=()=>ctx.$('#as-output')
  let generation=0
  let workspaceDispose=null
+ let activeTab='workspace'
  const esc=ctx.esc
  const safe=v=>esc(v==null?'未知':String(v))
  async function draw(){
@@ -73,8 +74,53 @@ export function createGrowthAgentControl(ctx){
    </tbody></table></div>
    <p class="a-muted">候选必须先通过真实独立评估，然后人工审批、零流量发布及分阶段灰度。本页面不会直接批准或上线模型提示词。</p>
   </section>`
+  // Split the existing long page into three presentational views.
+  // Preserve all API calls, action handlers and approval gates below.
+  const sections=[...host().querySelectorAll(':scope > section')]
+  const runtimePanel=document.createElement('div')
+  runtimePanel.className='ga-runtime ga-panel'
+  runtimePanel.id='ga-panel-runtime'
+  runtimePanel.setAttribute('role','tabpanel')
+  const governancePanel=document.createElement('div')
+  governancePanel.className='ga-governance ga-panel'
+  governancePanel.id='ga-panel-governance'
+  governancePanel.setAttribute('role','tabpanel')
+  sections.slice(0,3).forEach(section=>runtimePanel.append(section))
+  sections.slice(3).forEach(section=>governancePanel.append(section))
   const workspaceRoot=document.createElement('div')
-  host().prepend(workspaceRoot)
+  workspaceRoot.className='ga-workspace ga-panel'
+  workspaceRoot.id='ga-panel-workspace'
+  workspaceRoot.setAttribute('role','tabpanel')
+  const tabNav=document.createElement('nav')
+  tabNav.className='ga-switcher'
+  tabNav.setAttribute('aria-label','Growth Agent 页面视图')
+  tabNav.innerHTML=`<div class="ga-heading"><span class="ga-eyebrow">LogEarn · Growth Intelligence</span><strong>增长决策中心</strong><small>先看问题，再看证据，最后决定行动</small></div>
+  <div class="ga-tabs" role="tablist" aria-label="切换增长工作区">
+   <button class="ga-tab" role="tab" type="button" data-ga-tab="workspace" aria-controls="ga-panel-workspace">决策工作台</button>
+   <button class="ga-tab" role="tab" type="button" data-ga-tab="runtime" aria-controls="ga-panel-runtime">运行与日报</button>
+   <button class="ga-tab" role="tab" type="button" data-ga-tab="governance" aria-controls="ga-panel-governance">研究与治理</button>
+  </div>`
+  host().classList.add('ga-control-surface')
+  host().replaceChildren(tabNav,workspaceRoot,runtimePanel,governancePanel)
+  const panels={workspace:workspaceRoot,runtime:runtimePanel,governance:governancePanel}
+  const setTab=name=>{
+   if(!panels[name])return
+   activeTab=name
+   Object.entries(panels).forEach(([key,panel])=>{panel.hidden=key!==name})
+   tabNav.querySelectorAll('[data-ga-tab]').forEach(button=>{
+    const selected=button.dataset.gaTab===name
+    button.setAttribute('aria-selected',String(selected))
+    button.tabIndex=selected?0:-1
+   })
+  }
+  tabNav.querySelectorAll('[data-ga-tab]').forEach(button=>button.addEventListener('click',()=>setTab(button.dataset.gaTab)))
+  tabNav.querySelector('[role="tablist"]').addEventListener('keydown',event=>{
+   if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return
+   const keys=Object.keys(panels),at=keys.indexOf(activeTab)
+   const next=event.key==='Home'?0:event.key==='End'?keys.length-1:(at+(event.key==='ArrowRight'?1:-1)+keys.length)%keys.length
+   event.preventDefault();setTab(keys[next]);tabNav.querySelector('[data-ga-tab="'+keys[next]+'"]').focus()
+  })
+  setTab(activeTab)
   workspaceDispose=mountGrowthDecisionWorkspace(workspaceRoot)
   host().querySelector('[data-refresh]').onclick=draw
   host().querySelector('[data-scan]').onclick=async()=>{const node=host().querySelector('[data-research-message]');try{const result=await request('/api/growth-agent/research/scan','POST',{source:'all'});node.textContent='新增 '+result.inserted.length+' 个研究问题';await draw()}catch(e){node.textContent=e.message}}
@@ -90,5 +136,5 @@ export function createGrowthAgentControl(ctx){
    catch(e){button.disabled=false;button.title=e.message;host().querySelector('[data-research-message]').textContent=e.message}
   })
  }
- return {draw,dispose(){generation++;if(workspaceDispose)workspaceDispose()}}
+ return {draw,dispose(){generation++;if(workspaceDispose)workspaceDispose();host().classList.remove('ga-control-surface')}}
 }

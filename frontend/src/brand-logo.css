@@ -1,0 +1,21 @@
+/* Single-source official LogEarn wordmark from the supplied 474×100 SVG. */
+/* Do not restyle its inner fills or recompose its letters / wings. */
+#la-studio .a-brand { min-width: 0; line-height: 1; }
+#la-studio .a-brand .a-brandmark {
+  display: block; width: 171px; height: auto; max-width: 100%;
+  filter: none; flex: none; object-fit: contain; padding: 4px 7px;
+  border-radius: 8px; background: light-dark(transparent, #fff);
+}
+#la-login-overlay .la-login-brand { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+#la-login-overlay .la-login-brand .a-brandmark {
+  display: block; width: 209px; height: auto; max-width: 100%; object-fit: contain;
+  padding: 5px 8px; border-radius: 8px; background: light-dark(transparent, #fff);
+}
+#la-login-overlay .la-login-subtitle {
+  font-size: 12px; font-weight: 500; color: light-dark(#69768a,#9aabc2);
+  letter-spacing: .01em; white-space: nowrap;
+}
+@media (max-width: 540px) {
+  #la-studio .a-brand .a-brandmark { width: 145px; padding: 3px 5px; }
+  #la-login-overlay .la-login-brand .a-brandmark { width: 188px; }
+}
