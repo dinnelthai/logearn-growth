@@ -1,13 +1,10 @@
-import {getToken} from '../auth/authClient.js';
+import {getToken,notifyExpiredSession} from '../auth/authClient.js';
 const BASE=import.meta.env.VITE_BACKEND_BASE_URL??'http://localhost:3001';
 async function aiFetch(path,options={}){
   const token=getToken();
   const response=await fetch(BASE+path,{...options,headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})}});
   const body=await response.json().catch(()=>({}));
-  if(response.status===401){
-    // Notify the shell without retrying a request or disclosing the token.
-    globalThis.dispatchEvent?.(new CustomEvent('logearn:session-expired'));
-  }
+  notifyExpiredSession(response);
   if(!response.ok)throw Object.assign(new Error(body.error||`HTTP ${response.status}`),{status:response.status});
   return body;
 }
