@@ -179,3 +179,15 @@ test('requested output cap vs relay usage is recorded without retrying provider'
   else process.env.AI_TASK_MAX_OUTPUT_TOKENS=old;
  }
 });
+
+test('malformed evidence metric metadata cannot smuggle an identifier in numeric fields',()=>{
+ const x=forModel({status:'ok',evidence:[{
+  id:'evidence-fixed-id',metricId:'activation_rate',unit:'users',
+  value:12,numerator:'user:'+forbidden,denominator:wallet,sampleSize:forbidden
+ }]});
+ assert.equal(x.evidence[0].numerator,null);
+ assert.equal(x.evidence[0].denominator,null);
+ assert.equal(x.evidence[0].sampleSize,null);
+ assert.ok(!JSON.stringify(x).includes(forbidden));
+ assert.ok(!JSON.stringify(x).includes(wallet));
+});
