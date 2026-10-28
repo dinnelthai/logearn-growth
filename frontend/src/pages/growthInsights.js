@@ -9,6 +9,7 @@ import {requestDiagnosticsMarkup,valueDiagnosticsMarkup} from './diagnostics.js'
 import {growthReportRequest} from '../api/growthReports.js'
 import {createOperationTask} from '../api/operationTasks.js'
 import {opsRequest} from '../api/ops.js'
+import {viewState} from '../components/viewStates.js'
 
 const DAY=86400000
 const rate=v=>v==null?'—':(v*100).toFixed(1)+'%'
@@ -75,6 +76,10 @@ export function createGrowthInsightsPage(ctx){
   if(tab==='ops')loadOps()
   if(tab==='reports')loadReports()
  }
+ function tabError(node,title,error,retry){
+  node.innerHTML=viewState({kind:'error',title,description:error.message||String(error),actionLabel:'重新读取',actionAttr:'data-view-retry'})
+  node.querySelector?.('[data-view-retry]')?.addEventListener?.('click',retry)
+ }
  async function loadLoss(){
   const stamp=generation,node=host().querySelector('[data-gi-content]'),m=result
   if(frozen){node.innerHTML='<section class="a-card si-panel"><p>转化损失为独立查询；历史报告不包含此结果，请用最新数据重新分析。</p></section>';return}
@@ -83,7 +88,7 @@ export function createGrowthInsightsPage(ctx){
    if(stamp!==generation||tab!=='loss'||!node.isConnected)return
    lossResult=loaded;node.innerHTML=conversionLossMarkup(ctx,loaded)
    node.querySelectorAll('[data-loss-key]').forEach(b=>b.onclick=()=>{const period=loaded.list_periods?.[b.dataset.lossKey];openObservedDrill(ctx,period?{...loaded,...period}:loaded,b.dataset.lossTitle,b.dataset.lossKey)})
-  }catch(e){if(stamp===generation&&tab==='loss'&&node.isConnected)node.innerHTML=`<section class="a-card si-panel"><p class="si-error">转化损失加载失败：${esc(e.message)}</p></section>`}
+  }catch(e){if(stamp===generation&&tab==='loss'&&node.isConnected)tabError(node,'转化损失加载失败',e,loadLoss)}
  }
  async function loadValue(){
   const stamp=generation,node=host().querySelector('[data-gi-content]'),m=result
@@ -95,7 +100,7 @@ export function createGrowthInsightsPage(ctx){
    valueResult=loaded
    node.innerHTML=`<section class="a-card si-panel"><h2>从入口到首次成功分析</h2><p>页面用户点击 → 同次Token详情 → 请求成功 → 首次成功后的回访。各段分别使用页面用户、Token访问和请求ID，不能当作同一分母直接连乘。</p><p>诊断事件连续覆盖未确认，历史未观测成功不能判为分析失败。本次分析请求来自 ${count(ctx,valueResult.request_diagnostics?.families?.analysis?.users)} 位用户，成功率仅描述已采集样本。</p></section>${valueDiagnosticsMarkup(ctx,valueResult.value_diagnostics)}${requestDiagnosticsMarkup(ctx,valueResult.request_diagnostics)}`
    node.querySelectorAll('[data-op-key]').forEach(b=>b.onclick=()=>openObservedDrill(ctx,valueResult,b.dataset.opTitle,b.dataset.opKey))
-  }catch(error){if(stamp===generation&&tab==='value'&&node.isConnected)node.innerHTML=`<section class="a-card si-panel"><p class="si-error">价值转化加载失败：${esc(error.message)}</p></section>`}
+  }catch(error){if(stamp===generation&&tab==='value'&&node.isConnected)tabError(node,'价值转化加载失败',error,loadValue)}
  }
  async function loadOps(){
   const stamp=generation,node=host().querySelector('[data-gi-content]')
@@ -105,7 +110,7 @@ export function createGrowthInsightsPage(ctx){
    const select=node.querySelector('[data-gi-batch]');let effectRequest=0;if(select)select.onchange=async()=>{const seq=++effectRequest,target=node.querySelector('[data-gi-effect]');if(!select.value){target.innerHTML='';return}target.textContent='正在读取固定名单的前后表现…';try{const d=await opsRequest('/batches/'+encodeURIComponent(select.value)+'/effect');if(seq!==effectRequest||stamp!==generation||!target.isConnected)return
     target.innerHTML=d.pending?`<p>${esc(d.reason)}</p>`:`<p>${count(ctx,d.users)} 位用户 · ${d.mature?'7天观察已结束':'观察未满7天，按已观测时长等长比较'} · 截至 ${esc(d.as_of)}</p>${table(['统计期','起止（UTC+7）','匹配用户','分析用户','分析观测次数','交易用户','已知成交额USD'],['before','after'].map((key,i)=>{const p=d[key],t=p.total;return [i?'发放后':'发放前',esc(observedTime(p.start))+' — '+esc(observedTime(p.end)),count(ctx,t?.users),count(ctx,t?.analysis_users),count(ctx,t?.analysis_events),count(ctx,t?.trade_users),count(ctx,t?.volume_usd)]}))}<p>${esc(d.definition)}</p>${[d.before,d.after].flatMap(p=>Object.values(p.errors||{})).filter(Boolean).map(e=>`<p class="si-error">${esc(e)}</p>`).join('')}`
    }catch(e){if(seq===effectRequest&&stamp===generation&&target.isConnected)target.innerHTML=`<p class="si-error">${esc(e.message)}</p>`}}
-  }catch(e){if(stamp===generation&&tab==='ops'&&node.isConnected)node.innerHTML=`<section class="a-card si-panel"><p class="si-error">${esc(e.message)}</p></section>`}
+  }catch(e){if(stamp===generation&&tab==='ops'&&node.isConnected)tabError(node,'运营动作复盘加载失败',e,loadOps)}
  }
  async function loadReports(){
   const stamp=generation,node=host().querySelector('[data-gi-content]')
@@ -113,7 +118,7 @@ export function createGrowthInsightsPage(ctx){
    node.innerHTML=`<section class="a-card si-panel"><h2>保存本次分析与结论</h2><p>保存当前统计期、来源、数据时间、口径版本、指标与固定名单。转化损失、埋点验收、请求级价值转化及OPS复盘独立查询，不包含在本报告中。</p><form data-gi-report><label>标题<input name="title" maxlength="80" required value="增长诊断 ${esc(observedTime(result.as_of).slice(0,10))}"></label><label>结论<textarea name="note" maxlength="4000" placeholder="记录发现、证据、假设与下一步"></textarea></label><button class="a-button" ${frozen?'disabled':''}>保存报告</button></form><p role="status" data-gi-report-status></p><h3>最近30份报告</h3>${table(['标题','保存时间','查看'],r.reports.map(r=>[esc(r.title),esc(observedTime(r.created_at)),`<button class="a-button" data-gi-report-open="${esc(r.id)}">查看固定结果</button>`]))}</section>`
    const form=node.querySelector('[data-gi-report]');form.onsubmit=async e=>{e.preventDefault();const button=form.querySelector('button');button.disabled=true;try{await growthReportRequest('',{...Object.fromEntries(new FormData(form)),cache_id:result.drill.cache_id});if(stamp!==generation||!node.isConnected)return;notice='分析报告已保存';render()}catch(e){if(stamp===generation&&node.isConnected){node.querySelector('[data-gi-report-status]').textContent=e.message;button.disabled=false}}}
    node.querySelectorAll('[data-gi-report-open]').forEach(b=>b.onclick=async()=>{try{const r=await growthReportRequest('/'+encodeURIComponent(b.dataset.giReportOpen));if(stamp!==generation||!node.isConnected)return;result={...r.result.payload,lists:r.result.lists,members:r.result.members};frozen=true;tab='change';source=result.source;state={days:'custom',start:new Date(result.start+25200000).toISOString().slice(0,16),end:new Date(result.end+25200000).toISOString().slice(0,16)};notice=r.title+' · '+(r.note||'未填写结论');render()}catch(e){if(stamp===generation&&node.isConnected)node.querySelector('[data-gi-report-status]').textContent=e.message}})
-  }catch(e){if(stamp===generation&&tab==='reports'&&node.isConnected)node.innerHTML=`<section class="a-card si-panel"><p class="si-error">${esc(e.message)}</p></section>`}
+  }catch(e){if(stamp===generation&&tab==='reports'&&node.isConnected)tabError(node,'已保存报告加载失败',e,loadReports)}
  }
  async function draw(options={}){
   const fixedPeriod=options.keepWindow&&result?{start:result.start,end:result.requested_end??result.end}:null
