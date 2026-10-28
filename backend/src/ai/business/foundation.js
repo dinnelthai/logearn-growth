@@ -1,10 +1,21 @@
 const {createContextStore}=require('./context'),{createEvidenceStore,reportEvidence,validateClaims}=require('./evidence'),{createTraceStore}=require('./trace');
+// The planner selects read-only skills before the model context is persisted.
+// Keep the full catalog for legacy reports without a plan.
+function modelCapabilities(registry,base,plan){
+ const catalog=registry.listCapabilities(base);
+ if(!Array.isArray(plan?.steps)||!plan.steps.length)return catalog;
+ const allowed=new Set(['query_metrics']);
+ for(const step of plan.steps)for(const id of step.tools||[])allowed.add(id);
+ return catalog.filter(tool=>allowed.has(tool.id))
+  .map(({id,version,description,inputSchema,supportedScopes})=>
+   ({id,version,description,inputSchema,supportedScopes}));
+}
 function createFoundation(db,registry){
  const contextStore=createContextStore(db),evidenceStore=createEvidenceStore(db),traceStore=createTraceStore(db);
  function prepare(report,{ownerId,runId,goalRef}){
   const base={ownerId,runId,scope:report.business.scope,period:report.period};
   if(goalRef)contextStore.pinRun(ownerId,runId,goalRef.id,goalRef.version);
-  const context={...report,goal:contextStore.getRunGoal(ownerId,runId),changes:contextStore.listChanges(ownerId),evidence:reportEvidence(report,base,evidenceStore),capabilities:registry.listCapabilities(base)};
+  const context={...report,goal:contextStore.getRunGoal(ownerId,runId),changes:contextStore.listChanges(ownerId),evidence:reportEvidence(report,base,evidenceStore),capabilities:modelCapabilities(registry,base,report.growthPlan)};
   function validate(analysis){
    analysis.claims=validateClaims(analysis.claims,base,evidenceStore);
    for(const s of analysis.suggestions){if(!Array.isArray(s.evidence?.evidenceIds)||!s.evidence.evidenceIds.length)throw Error('建议必须引用证据ID');for(const id of s.evidence.evidenceIds)evidenceStore.get(id,base);}
@@ -35,4 +46,4 @@ function createFoundation(db,registry){
  return {prepare,resume,contextStore,traceStore};
 }
 function defaultFoundation(){const db=require('../../db/connection');return createFoundation(db,require('./tools/registry').defaultRegistry());}
-module.exports={createFoundation,defaultFoundation};
+module.exports={createFoundation,defaultFoundation,modelCapabilities};

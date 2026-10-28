@@ -54,6 +54,7 @@ class CostTracker {
     const result = await pool.query(
       `SELECT
         COUNT(*) as total_calls,
+        COUNT(*) FILTER (WHERE cost_known = false) as unknown_cost_calls,
         SUM(input_tokens) as total_input_tokens,
         SUM(output_tokens) as total_output_tokens,
         SUM(total_tokens) as total_tokens,
@@ -100,7 +101,12 @@ class CostTracker {
   async checkDailyLimit(maxDailyCost, ownerId = null) {
     const stats = await this.getTodayStats(ownerId);
     const totalCost = stats.reduce((sum, stat) => sum + parseFloat(stat.total_cost || 0), 0);
-
+    // A zero-dollar estimate is not proof of free usage. Once an unknown-priced
+    // call has been recorded, dollar-based limits cannot certify remaining funds.
+    const unknown = stats.reduce((sum, stat) => sum + Number(stat.unknown_cost_calls || 0), 0);
+    if (unknown > 0) {
+      throw new Error('模型实际价格未知，美元预算无法核实；请配置中转站输入及输出单价后再付费调用');
+    }
     if (totalCost >= maxDailyCost) {
       throw new Error(
         `Daily cost limit exceeded: $${totalCost.toFixed(4)} / $${maxDailyCost}`

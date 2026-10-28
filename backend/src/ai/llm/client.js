@@ -313,7 +313,7 @@ class LLMClient {
       // 9. Track usage
       const duration = Date.now() - startTime;
       if (usage) {
-        await this.trackUsage({ content: fullContent, usage }, duration);
+        await this.trackUsage({ content: fullContent, usage }, duration, options);
       }
 
       return {
