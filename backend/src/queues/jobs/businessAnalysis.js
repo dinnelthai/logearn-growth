@@ -90,8 +90,9 @@ async function businessAnalysis(job) {
       maxSkills:Math.min(6,3+availableSpecialties.length),availableSpecialties,
       strategy:learnedStrategy
     });
+    const memoryView=require('../../ai/business/contextBudget').compactMemory(memory);
     compact={...compact,business:{...compact.business,question:userQuestion||compact.business.question},
-      memory,growthPlan};
+      memory:memoryView.items,memoryMeta:memoryView.meta,growthPlan};
     const session=require('../../ai/business/foundation').defaultFoundation().prepare(compact,{ownerId,runId:analysisId,goalRef:job.data.goalRef});
     compact=session.context;
     // Existing read-only tool registry creates archived, owner-scoped evidence.

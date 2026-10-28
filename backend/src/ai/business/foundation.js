@@ -1,3 +1,4 @@
+const {compactChanges}=require('./contextBudget');
 const {createContextStore}=require('./context'),{createEvidenceStore,reportEvidence,validateClaims}=require('./evidence'),{createTraceStore}=require('./trace');
 // The planner selects read-only skills before the model context is persisted.
 // Keep the full catalog for legacy reports without a plan.
@@ -15,7 +16,11 @@ function createFoundation(db,registry){
  function prepare(report,{ownerId,runId,goalRef}){
   const base={ownerId,runId,scope:report.business.scope,period:report.period};
   if(goalRef)contextStore.pinRun(ownerId,runId,goalRef.id,goalRef.version);
-  const context={...report,goal:contextStore.getRunGoal(ownerId,runId),changes:contextStore.listChanges(ownerId),evidence:reportEvidence(report,base,evidenceStore),capabilities:modelCapabilities(registry,base,report.growthPlan)};
+  const changeView=compactChanges(contextStore.listChanges(ownerId));
+  const context={...report,goal:contextStore.getRunGoal(ownerId,runId),
+   changes:changeView.items,changesMeta:changeView.meta,
+   evidence:reportEvidence(report,base,evidenceStore),
+   capabilities:modelCapabilities(registry,base,report.growthPlan)};
   function validate(analysis){
    analysis.claims=validateClaims(analysis.claims,base,evidenceStore);
    for(const s of analysis.suggestions){if(!Array.isArray(s.evidence?.evidenceIds)||!s.evidence.evidenceIds.length)throw Error('建议必须引用证据ID');for(const id of s.evidence.evidenceIds)evidenceStore.get(id,base);}
