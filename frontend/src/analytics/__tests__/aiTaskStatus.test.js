@@ -23,6 +23,7 @@ test('expired lease needs consistent checkpoint without uncompleted tools',()=>{
  const c={recordStatus:'processing',leaseExpired:true,pendingTools:0,state:'ready'}
  expect(canOfferTaskResume(r,c)).toBe(true)
  expect(canOfferTaskResume(r,{...c,reason:'unresolved-paid-call'})).toBe(false)
+ expect(canOfferTaskResume(r,{...c,reason:'requires-validation-before-resume'})).toBe(false)
  expect(canOfferTaskResume(r,{...c,pendingTools:2})).toBe(false)
  expect(canOfferTaskResume(r,{...c,leaseExpired:false})).toBe(false)
  expect(shouldPollTask(r,c)).toBe(true)
