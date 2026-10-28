@@ -144,6 +144,9 @@ export function createAIAnalysis(ctx){
             ${!monitorControl.allowed||monitorControl.error?'disabled':''}>
             ${monitorControl.enabled?'关闭自动监控':'开启自动监控'}
           </button>
+          <button class="a-button" type="button" data-monitor-export
+            ${!monitorControl.lastScanSummary?.history?.length?'disabled':''}>复制最近14天诊断摘要</button>
+          <small>仅包含天级汇总、渠道人数变化与质量状态；不包含用户 ID、Cookie 或 API 密钥。复制后可直接发给我排查。</small>
           <p>开关保存在服务器。后台每天曼谷时间 10:30 直接读取现有增长数据，无需预先生成付费 AI 日报，也不需要额外 Worker。关闭后不再开始新的扫描，正在执行的一次可能完成。</p>
         </section>
         <section class="a-card"><h2>跨日增长告警</h2>
@@ -290,6 +293,22 @@ export function createAIAnalysis(ctx){
           }
         }catch(error){if(token===generation)message('切换监控失败：'+error.message)}
         finally{busy=false;if(monitorToggle.isConnected)monitorToggle.disabled=false}
+      };
+      const exportMonitor=host.querySelector('[data-monitor-export]');
+      if(exportMonitor)exportMonitor.onclick=async()=>{
+        try{
+          const payload={version:'growth-observations-v1',
+            generatedAt:new Date().toISOString(),
+            history:(monitorControl.lastScanSummary?.history||[]).map(x=>({
+              day:x.day,at:x.at,status:x.status,
+              goals:(x.goals||[]).map(g=>({goal:g.goal,status:g.status,
+                baselineDay:g.baselineDay,currentDay:g.currentDay,baseline:g.baseline,
+                current:g.current,changes:g.changes,dataQuality:g.dataQuality,
+                channelQuality:g.channelQuality,reason:g.reason}))
+            }))};
+          await navigator.clipboard.writeText(JSON.stringify(payload,null,2));
+          if(token===generation)message('已复制近14天业务观测摘要，可发送给我进一步分析。');
+        }catch(error){if(token===generation)message('复制失败，请检查浏览器剪贴板权限：'+error.message)}
       };
       const scanGrowthButton=host.querySelector('[data-scan-growth-alerts]');
       if(scanGrowthButton)scanGrowthButton.onclick=async e=>{
