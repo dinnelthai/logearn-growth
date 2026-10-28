@@ -115,3 +115,10 @@ AI 详情使用后端检查点更新“需要处理”，并保留原因与记�
 | TEST-01 | 增加断言 | `viewStates.test.js` 验证新的重试控件与旧结果标识，真实结论以 GitHub Actions 完整 Vitest 和 Build 为准 |
 
 剩余：其他页面逐步迁移到共享组件；原生浏览器截图检查（不同桌面宽度）；报表筛选、下钻、AI 恢复的 E2E；全站重复 CSS 精简；性能前后对比。此次没有修改 Growth 口径、SQL、付费模型 Worker 或数据库。
+
+### 本轮离线完整回归证据
+
+- [GitHub Actions：Growth desktop UI regression](https://github.com/dinnelthai/logearn-growth/actions/runs/40708329525)，代码提交 `64cdb7cf06cdb3e537f1a376772bb0d184d295f9`，结果 **success**。
+- Vitest：80 个文件通过，1 个文件跳过；**331 个测试通过，4 个跳过**，共 335 个用例。
+- Vite Build：**成功**。
+- 已验证代码层的状态组件与设计 Token 打包可用；**尚未验证**带真实账户的页面截图、深层下钻、运营跨页和生产环境可访问性。
