@@ -29,12 +29,13 @@ async function tickAutonomousOwner({
  const enqueued=[],signalDecisions=[];
  if(allowPaidDispatch){
   enqueue ||= require('../../queues/queues').addAIAnalysisJob;
-  let paidGate=null;
+  let paidGate=null,preflightReports=null;
   if(signalGateEnabled){
    try{
     const load=preflight||((args)=>require('../../services/businessReport').createService().buildMany(args));
     const reports=await load({start:period.start,end:period.end,businessScope:{source},
      goals:required,ownerId});
+    preflightReports=reports;
     paidGate=planDailyPaidAnalysis({reports,goals:required,period,source});
    }catch(error){
     // Opt-in paid gate fails CLOSED on missing or corrupt preflight metrics.
@@ -68,7 +69,8 @@ async function tickAutonomousOwner({
      continue;
     }
    }
-   const item=await dispatchDaily({ownerId,now,goal,source,records,enqueue});
+   const item=await dispatchDaily({ownerId,now,goal,source,records,enqueue,
+    ...(paidGate?{sharedReport:preflightReports?.[goal]}:{})});
    enqueued.push({goal,status:item.status,analysisId:item.analysisId});
   }
   if(enqueued.length)analyses=await store.dailyAnalyses(ownerId,period.day,source);

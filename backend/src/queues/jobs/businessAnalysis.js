@@ -68,7 +68,10 @@ async function businessAnalysis(job) {
       if(report.period.start!==start||report.period.end!==end||report.business.scope.source!==source||report.focusGoal!==focusGoal)throw Error('AI分析范围与业务报告不一致');
       compact={...report,manualActions:store.actions(report.id,ownerId).map(({review,...action})=>({...action,review:review?{periods:review.periods,metricChanges:review.metricChanges,conclusion:review.conclusion,warnings:review.warnings}:null})),manualHistory:store.history(ownerId,source)};
     }else{
-      compact=await reportsService.build({start,end,businessScope:scope,focusGoal,question:userQuestion});
+      const seeded=require('../../ai/growth/sharedDailyReport').fromClaimedRecord(
+       executionClaim.record,{start,end,source,goal:focusGoal});
+      compact=seeded||await reportsService.build({start,end,businessScope:scope,
+       focusGoal,question:userQuestion});
     }
     // Ranked business candidates stay untouched; plan adds explainable
     // anomaly triage and permitted investigations for the existing runner.

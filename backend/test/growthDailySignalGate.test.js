@@ -4,7 +4,7 @@ const {planDailyPaidAnalysis}=require('../src/ai/growth/dailySignalGate');
 const {tickAutonomousOwner}=require('../src/ai/growth/agentAutonomy');
 const now=Date.parse('2026-10-27T05:00:00Z'),end=Date.parse('2026-10-26T17:00:00Z'),start=end-86400000;
 function report(goal,{complete=true,candidates=[],warnings=[]}={}){
- return {focusGoal:goal,business:{scope:{source:'all'}},period:{start,end},candidates,
+ return {version:'business-evidence-v1',focusGoal:goal,business:{scope:{source:'all'}},period:{start,end},candidates,
   snapshot:{id:'s1',historyComplete:complete,
    eventsCompleteThrough:complete?new Date(end).toISOString():null},
   current:{totals:{active_users:100}},previous:{totals:{active_users:100}},
@@ -36,7 +36,7 @@ function fixture(){
   const row={id:'analysis-'+(state.rows.length+1),status:'pending',
    date_range_start:input.dateRangeStart,date_range_end:input.dateRangeEnd,
    business_scope:input.businessScope,user_question:input.userQuestion,
-   filter_conditions:input.filterConditions};
+   filter_conditions:input.filterConditions,data_snapshot:input.dataSnapshot};
   state.rows.push(row);return row;
  }};
  return {state,store,records,enqueue:async()=>{state.queued++;return {id:'job'}}};
