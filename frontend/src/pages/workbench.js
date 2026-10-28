@@ -57,5 +57,5 @@ export function createWorkbench(ctx){
   }
  }
  async function draw(){crm?.dispose();ctx.clear();const token=++epoch;host().innerHTML=loadingState('正在加载运营待办…');try{const [r,ai]=await Promise.all([fetchWorkbench(),getGrowthInbox().catch(e=>({error:e.message}))]);if(token!==epoch)return;data=r;aiInbox=ai;render()}catch(e){if(token===epoch){host().innerHTML=viewState({kind:'error',title:'运营待办加载失败',description:e.message,actionLabel:'重试',actionAttr:'data-work-refresh'});host().querySelector('[data-work-refresh]')?.addEventListener('click',draw)}}}
- return {draw,dispose(){epoch++;crm?.dispose()}}
+ return {draw,hasPendingChanges:()=>crm?.hasPendingChanges?.()===true,dispose(){epoch++;crm?.dispose()}}
 }
