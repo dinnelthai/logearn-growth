@@ -1,13 +1,15 @@
-import {test,expect,vi,beforeEach} from 'vitest'
+import {test,expect,vi,beforeEach,afterEach} from 'vitest'
 vi.mock('../../api/activities.js',()=>({listActivities:vi.fn(),activityMetrics:vi.fn(),validateActivityIds:vi.fn(),createActivity:vi.fn(),activityTimeline:vi.fn(),settleActivity:vi.fn()}))
 vi.mock('../../pages/activityEvidence.js',()=>({mountActivityEvidence:vi.fn(()=>({dispose(){}}))}))
 vi.mock('../../pages/scheduledActivity.js',()=>({mountScheduledActivity:vi.fn()}))
+vi.mock('../../pages/rosterImport.js',()=>({rosterImportHTML:vi.fn(()=>'<div data-roster-import></div>'),mountRosterImport:vi.fn(()=>({dispose(){}}))}))
 import {mountScheduledActivity} from '../../pages/scheduledActivity.js'
 import {listActivities,activityMetrics} from '../../api/activities.js'
 import {createActivityMonitor} from '../../pages/activityMonitor.js'
 const a={id:'a',name:'activity',start_at:Date.now()-1000,cutoff_at:Date.now()+3600000},m={activity:a,summary:{total:3,eligible:2,completed:1,conversion_rate:.5,prior:1,active:1,inactive:0,review:0},as_of:new Date().toISOString(),daily:[],rows:[],total:0}
 function setup(){const nodes=new Map(),host={innerHTML:'',setAttribute:vi.fn(),removeAttribute:vi.fn(),querySelector:s=>s==='[data-activity-settle]'?null:(nodes.has(s)?nodes.get(s):(nodes.set(s,{}),nodes.get(s))),querySelectorAll:()=>[]};const ctx={$:()=>host,clear:vi.fn(),esc:String,fmt:String,table:()=>'',navigate:vi.fn()};return {host,ctx,page:createActivityMonitor(ctx)}}
 beforeEach(()=>{vi.resetAllMocks();listActivities.mockResolvedValue({activities:[a]})})
+afterEach(()=>vi.unstubAllGlobals())
 test('defaults to the full fixed roster with server pagination',async()=>{activityMetrics.mockResolvedValue(m);const t=setup();await t.page.draw();expect(activityMetrics).toHaveBeenCalledWith('a',{status:'all',q:'',offset:0,limit:20});expect(t.host.innerHTML).toContain('50.0%');expect(t.host.innerHTML).toContain('开始前已分析')})
 test('disposed activity metrics cannot replace another page',async()=>{let resolve;activityMetrics.mockImplementation(()=>new Promise(r=>resolve=r));const t=setup(),pending=t.page.draw();await Promise.resolve();t.page.dispose();t.host.innerHTML='other page';resolve(m);await pending;expect(t.host.innerHTML).toBe('other page')})
 test('a planned activity renders the scheduling panel without fabricated denominators or zero conversion',async()=>{activityMetrics.mockResolvedValue({pending:true,activity:{...a,schedule_state:'scheduled',start_at:Date.now()+3600000,goal:'activation'},planned_user_ids:['1','2'],performance:null,target_progress:null,rows:[]});const t=setup();await t.page.draw();expect(mountScheduledActivity).toHaveBeenCalled();expect(t.host.innerHTML).toContain('预约待开始');expect(t.host.innerHTML).not.toContain('首次分析转化率');expect(t.host.innerHTML).not.toContain('0.0%')})
@@ -47,5 +49,25 @@ test('a missing activity never opens another activity without the operator choos
  expect(activityMetrics).not.toHaveBeenCalled()
  t.host.querySelector('[data-activity-return-workbench]').onclick()
  expect(t.ctx.navigate).toHaveBeenCalledWith('workbench')
+ t.page.dispose()
+})
+
+test('an unsaved activity roster draft blocks internal switching until explicitly confirmed',async()=>{
+ activityMetrics.mockResolvedValue(m)
+ const t=setup()
+ t.page.startForUsers(['user:1'])
+ await t.page.draw()
+ expect(t.page.hasPendingChanges()).toBe(true)
+ expect(t.host.innerHTML).toContain('新建活动')
+ vi.stubGlobal('confirm',vi.fn(()=>false))
+ const selector=t.host.querySelector('[data-activity-select]')
+ const attempted={target:{value:'a'}}
+ selector.onchange(attempted)
+ expect(attempted.target.value).toBe('')
+ expect(activityMetrics).not.toHaveBeenCalled()
+ expect(t.host.innerHTML).toContain('新建活动')
+ vi.stubGlobal('confirm',vi.fn(()=>true))
+ selector.onchange({target:{value:'a'}})
+ await vi.waitFor(()=>expect(activityMetrics).toHaveBeenCalledWith('a',{status:'all',q:'',offset:0,limit:20}))
  t.page.dispose()
 })
