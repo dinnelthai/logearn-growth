@@ -117,17 +117,17 @@ export function createAIAnalysis(ctx){
         <section class="a-card"><h2>增长异常自动监控</h2>
           <p>自动检查拉新/激活与回访分析人数变化，不调用付费 AI，不自动执行运营动作。</p>
           ${monitorControl.error?'<p role="alert">监控开关不可用：'+esc(monitorControl.error)+'。请检查 AI 数据库迁移。</p>':''}
-          <p role="status">当前设置：${monitorControl.enabled?'已启用':'关闭'} · 后台监控：
-             ${monitorControl.workerOnline?'在线':'未检测到在线进程'}
-             ${monitorControl.enabled&&!monitorControl.workerOnline?'（已保存开启意愿，但扫描尚未实际运行）':''}</p>
+          <p role="status">当前设置：${monitorControl.enabled?'已启用':'关闭'} · 内置定时监控：
+             ${monitorControl.workerOnline?'已加载':'未就绪'}
+             ${monitorControl.enabled&&!monitorControl.workerOnline?'（已保存开启状态，但后端定时器未就绪）':''}</p>
           ${monitorControl.lastScanAt?'<p>最近扫描：'+esc(new Date(monitorControl.lastScanAt).toLocaleString('zh-CN'))+
-            ' · '+esc(monitorControl.lastScanStatus||'未知')+'</p>':'<p>暂无成功确认的扫描记录。</p>'}
+            ' · '+esc(monitorControl.lastScanStatus||'未知')+'</p>':'<p>暂无定时扫描记录。</p>'}
           ${monitorControl.allowed===false&&!monitorControl.error?'<p>此账号尚未获得监控授权，请在服务器配置允许的账号。</p>':''}
           <button class="a-button" type="button" data-monitor-toggle
             ${!monitorControl.allowed||monitorControl.error?'disabled':''}>
             ${monitorControl.enabled?'关闭自动监控':'开启自动监控'}
           </button>
-          <p>开关保存在服务器。关闭后不再开始新的自动扫描；正在执行的当前扫描可能完成。开启前仍需一次性部署并启动监控进程。</p>
+          <p>开关保存在服务器。后台每天曼谷时间 10:30 扫描已有完整日报；不需要额外 Worker。关闭后不再开始新的扫描，正在执行的一次可能完成。</p>
         </section>
         <section class="a-card"><h2>跨日增长告警</h2>
         <p>基于相邻完整业务日、相同目标和采集范围的已保存结果；仅提示观测变化，不宣称因果。扫描不调用 AI。</p>
@@ -269,7 +269,7 @@ export function createAIAnalysis(ctx){
           const result=await setGrowthMonitorControl(!monitorControl.enabled,monitorControl.version);
           if(token===generation){
             await draw();
-            message(result.enabled?(result.workerOnline?'自动监控已开启':'开关已开启，等待后台监控进程'):'自动监控已关闭');
+            message(result.enabled?(result.workerOnline?'自动监控已开启':'开关已开启，等待后端定时监控就绪'):'自动监控已关闭');
           }
         }catch(error){if(token===generation)message('切换监控失败：'+error.message)}
         finally{busy=false;if(monitorToggle.isConnected)monitorToggle.disabled=false}
