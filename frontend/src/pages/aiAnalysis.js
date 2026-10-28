@@ -133,8 +133,10 @@ export function createAIAnalysis(ctx){
         ${proposalData.error?'<p role="status">提案查询暂不可用：'+esc(proposalData.error)+'</p>':''}
         ${(proposalData.proposals||[]).slice(0,30).map(p=>`<article>
           <p>${esc(p.metric)} · ${esc(p.source)} · ${esc(p.status)} · ${esc(day(Number(p.period_end)))}</p>
-          <p>异常观测需要核实采集覆盖，模型分析可能产生费用；批准不代表自动执行增长动作。</p>
-          <button class="a-button" data-case-timeline="'+esc(p.id)+'">查看完整链路</button>
+          <p>证据：${esc(p.diagnosis?.dataQuality?.status==='traceable-observation'?'原始日报与快照可追溯':'证据不完整，先核查')}。首次分析用户不等于新注册。</p>
+           ${p.diagnosis?.observation?'<p>已观察：'+esc(p.diagnosis.observation.baseline)+' → '+esc(p.diagnosis.observation.current)+'；原因未知</p>':''}
+           <p>调查需人工批准，可能产生模型费用；运营方案仍由负责人决定。</p>
+          <button class="a-button" data-case-timeline="${esc(p.id)}">查看完整链路</button>
           ${p.analysis_id?'<button class="a-button" data-analysis="'+esc(p.analysis_id)+'">查看关联分析</button>':''}
           ${p.status==='proposed'?'<button class="a-button" data-growth-proposal="approve" data-proposal-id="'+esc(p.id)+'" data-proposal-version="'+esc(p.version)+'" '+(Number(budgetData.remainingCalls)<1?'disabled title="每日预算未开启或已耗尽"':'')+'>人工批准调查</button><button class="a-button" data-growth-proposal="dismiss" data-proposal-id="'+esc(p.id)+'" data-proposal-version="'+esc(p.version)+'">忽略提案</button>':''}
           </article>`).join('')||'<p>暂无待审批异常调查。</p>'}
@@ -284,6 +286,7 @@ export function createAIAnalysis(ctx){
             'retrospective-recorded':'已有复盘记录','action-closed':'行动已关闭'
           };
           const obs=timeline.originalObservation||{};
+          const diagnosis=timeline.diagnosis||{};
           panel.innerHTML=`<h3>完整调查链路 · ${esc(stages[timeline.stage]||timeline.stage)}</h3>
             <p>告警：${esc(timeline.alert.metric)} · ${esc(timeline.alert.direction)} ·
             来源 ${esc(timeline.alert.source)} · 优先级 ${esc(timeline.alert.priority)}</p>
@@ -291,6 +294,11 @@ export function createAIAnalysis(ctx){
             · 变化 ${esc(obs.absolute??'未知')}；不构成因果证明。</p>
             <p>证据分析 ID：${esc(obs.evidence?.baselineAnalysisId||'未知')} →
             ${esc(obs.evidence?.currentAnalysisId||'未知')}</p>
+            <p>证据状态：${esc(diagnosis.dataQuality?.status==='traceable-observation'?'可溯源观测':'需核查')}；原因未确认。</p>
+            <h4>建议核查的问题（非自动运营计划）</h4>
+            ${(diagnosis.investigationQuestions||[]).length?
+              '<ol>'+diagnosis.investigationQuestions.map(q=>'<li>'+esc(q)+'</li>').join('')+'</ol>':
+              '<p>证据不足，暂不提出原因假设；请先核对快照与时间窗口。</p>'}
             ${timeline.analysis?`<p>AI 调查：${esc(timeline.analysis.status)}
               ${timeline.analysis.error?' · '+esc(timeline.analysis.error):''}</p>
               <p>摘要：${esc(timeline.analysis.summary||'尚无分析结论')}</p>
