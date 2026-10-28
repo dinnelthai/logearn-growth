@@ -8,7 +8,9 @@ function forModel(result,{maxBytes=12000}={}){
  const rows=Array.isArray(result?.evidence)?result.evidence:[];
  const basic={status:['ok','unavailable','error'].includes(result?.status)?result.status:'unavailable',
   evidence:rows.slice(0,24).map(modelEvidence),
-  warnings:(result?.warnings||[]).slice(0,8).map(x=>safeText(x)),
+  warnings:[...(result?.warnings||[]).slice(0,7).map(x=>safeText(x)),
+   ...(rows.some(r=>r?.value&&typeof r.value==='object')?
+     ['模型仅接收白名单业务统计；行级明细未传输，遗漏不代表零']:[])],
   ...(rows.length>24?{omittedEvidence:rows.length-24}:{}),
   ...(result?.cursor?{moreAvailable:true}:{}),
   transport:'aggregated-business-v1'};
