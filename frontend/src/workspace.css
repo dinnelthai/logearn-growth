@@ -198,3 +198,63 @@ html:has(#la-studio) > body { padding:0 !important; background:#0b0f17 !importan
     pointer-events:none;
   }
 }
+
+/* Desktop data-workspace readability. Mobile layout is intentionally out of scope. */
+@media (min-width: 901px) {
+  #la-studio .a-top {
+    position: sticky;
+    top: 0;
+    z-index: 21;
+    min-height: 60px;
+    padding-block: 10px;
+  }
+  #la-studio .toolbar-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #b6c3d7;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #la-studio .a-layout > .a-config:not([hidden]) {
+    position: sticky;
+    top: 84px;
+    align-self: start;
+    max-height: calc(100vh - 104px);
+    overflow: auto;
+    scrollbar-width: thin;
+  }
+  #la-studio .a-scroll {
+    border: 1px solid var(--a-border);
+    border-radius: 8px;
+    background: #121a27;
+  }
+  #la-studio .a-scroll table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: max-content;
+    min-width: 100%;
+  }
+  #la-studio .a-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #202c3d;
+    color: #d4dfef;
+    font-weight: 650;
+    white-space: nowrap;
+    box-shadow: inset 0 -1px #38465d;
+  }
+  #la-studio .a-scroll tbody tr:hover > td {
+    background: #1d2a3b;
+  }
+  #la-studio .a-scroll tbody tr:focus-within > td {
+    background: #22334b;
+  }
+  #la-studio .a-scroll :is(td,th) {
+    font-variant-numeric: tabular-nums;
+  }
+  #la-studio .ai-result {
+    align-self: start;
+  }
+}
