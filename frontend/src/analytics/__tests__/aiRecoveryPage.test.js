@@ -3,7 +3,7 @@ vi.mock('../../api/aiAnalysis.js',()=>({createBusinessAnalysis:vi.fn(),getAnalys
 import * as api from '../../api/aiAnalysis.js'
 import {createAIAnalysis} from '../../pages/aiAnalysis.js'
 function setup({withTimeline=false,withGsc=false}={}){
- const button={dataset:{analysis:'a'}},cancel={isConnected:true,addEventListener(_event,fn){this.click=fn}},retry={disabled:false,textContent:''},checkpoint={textContent:'',after(el){this.button=el}},message={textContent:''};
+ const button={dataset:{analysis:'a'}},cancel={isConnected:true,addEventListener(_event,fn){this.click=fn}},retry={disabled:false,textContent:'',isConnected:true,addEventListener(_event,fn){this.click=fn}},checkpoint={textContent:'',after(el){this.button=el}},message={textContent:''};
  const heading={textContent:''}, summary={textContent:''};
  const timeline={innerHTML:'',textContent:'',querySelector(){return null}};
  const caseButton={dataset:{caseTimeline:'proposal-1'},disabled:false,isConnected:true};
