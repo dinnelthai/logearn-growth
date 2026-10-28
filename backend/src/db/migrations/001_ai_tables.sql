@@ -539,3 +539,16 @@ CREATE INDEX IF NOT EXISTS idx_growth_autonomy_paid_owner_day
 
 -- Bounded, no-paid-call retry for autonomous daily jobs; existing records remain at zero.
 ALTER TABLE ai_analysis_records ADD COLUMN IF NOT EXISTS autonomy_safe_retries INTEGER NOT NULL DEFAULT 0;
+
+-- Owner-scoped read-only monitor opt-in; no new queue or daemon.
+-- Worker presence is recorded independently from the user's enabled setting.
+CREATE TABLE IF NOT EXISTS ai_growth_monitor_settings (
+ owner_id TEXT PRIMARY KEY,
+ enabled BOOLEAN NOT NULL DEFAULT FALSE,
+ version INTEGER NOT NULL DEFAULT 1,
+ updated_at BIGINT NOT NULL,
+ worker_seen_at BIGINT,
+ last_scan_at BIGINT,
+ last_scan_status TEXT,
+ last_scan_summary JSONB
+);
