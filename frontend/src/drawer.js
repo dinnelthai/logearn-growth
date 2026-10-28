@@ -32,7 +32,7 @@ export function createDrawer(dialog, {onAnalyze,onAnalyzeRemote,getContext,onUse
         actions.querySelectorAll('[data-analyze]').forEach(button=>button.onclick=()=>{close();onAnalyze({title,description,rows:filtered,context:analysisContext,query,mode:button.dataset.analyze})})
         const pages=Math.max(1,Math.ceil(filtered.length/pageSize));page=Math.min(page,pages-1)
         const shown=filtered.slice(page*pageSize,(page+1)*pageSize)
-        select('[data-list]').innerHTML=shown.length?`<div class="a-scroll"><table><thead><tr>${columns.map(c=>`<th>${escapeHtml(c)}</th>`).join('')}</tr></thead><tbody>${shown.map(row=>`<tr>${renderRow(row).map(cell=>`<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`:'<p class="a-empty">没有匹配的用户。</p>'
+        select('[data-list]').innerHTML=shown.length?`<div class="a-scroll" role="region" aria-label="下钻明细表格" tabindex="0"><table><thead><tr>${columns.map(c=>`<th scope="col">${escapeHtml(c)}</th>`).join('')}</tr></thead><tbody>${shown.map(row=>`<tr>${renderRow(row).map(cell=>`<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`:'<p class="a-empty">没有匹配的用户。</p>'
         select('[data-count]').textContent=`共 ${filtered.length} 人 · 第 ${page+1} / ${pages} 页`
         select('[data-prev]').disabled=page===0;select('[data-next]').disabled=page>=pages-1
         select('#as-timeline').innerHTML=''
@@ -58,7 +58,7 @@ export function createDrawer(dialog, {onAnalyze,onAnalyzeRemote,getContext,onUse
       const renderRows=()=>{
         const pages=lastRemotePage(total,pageSize)+1
         select('[data-desc]').textContent=loading?`${description} · 加载中…`:`${description} · ${total} ${entity==='用户'?'位用户':'条'+entity}`
-        select('[data-list]').innerHTML=loading?'<p class="a-muted si-loading" role="status">加载中…</p>':error?`<div class="a-empty" role="alert"><p>名单加载失败：${escapeHtml(error)}</p><button class="a-button" type="button" data-remote-retry>重新加载当前页</button></div>`:rows.length?`<div class="a-scroll"><table><thead><tr>${columns.map(c=>`<th>${escapeHtml(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>{
+        select('[data-list]').innerHTML=loading?'<p class="a-muted si-loading" role="status">加载中…</p>':error?`<div class="a-empty" role="alert"><p>名单加载失败：${escapeHtml(error)}</p><button class="a-button" type="button" data-remote-retry>重新加载当前页</button></div>`:rows.length?`<div class="a-scroll" role="region" aria-label="下钻明细表格" tabindex="0"><table><thead><tr>${columns.map(c=>`<th scope="col">${escapeHtml(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>{
           const id=r.id||r.user_id
           const src=r.source||'未知'
           const first=r.first_event_at?new Date(r.first_event_at+7*3600000).toISOString().slice(5,16).replace('T',' '):'—'
