@@ -19,7 +19,7 @@ const REASONS = {
 };
 const parseTime = v => {
   if (v == null || v === '') return null;
-  const n = typeof v === 'number' ? v : /^\\d+$/.test(String(v)) ? Number(v) : Date.parse(v);
+  const n = typeof v === 'number' ? v : /^\d+$/.test(String(v)) ? Number(v) : Date.parse(v);
   return Number.isFinite(n) && n > 0 ? n : null;
 };
 export const checkpointReason = reason => REASONS[reason] || reason || null;
