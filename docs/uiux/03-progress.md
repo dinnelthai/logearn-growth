@@ -77,3 +77,16 @@ AI 详情使用后端检查点更新“需要处理”，并保留原因与记�
 **尚未验收：** 未在本执行环境运行完整 Vitest、Vite build、Playwright/截图及真实登录会话验证。GitHub 当前提交未返回 CI status。依赖和本地运行的 `localhost:5173` 不能通过本会话进行可写式操作；不将静态检查视为完整验收。截图和真实业务数据不得提交。
 
 剩余优先事项：将其余各业务页迁移到共享状态组件；收敛全站重复 CSS 和表格样式；验证历史页面前进后退与筛选草稿；对接真实 AI 失败/处理中/人工处理任务做回归；检查用户下钻、KOL/活动流转与页面生命周期；完成全站桌面验收。
+
+## 2026-10-28：导航初始化、AI 费用保护与桌面快速切换
+
+| 工作项 | 本轮代码结论 | 仍需验证 |
+| --- | --- | --- |
+| P0 导航启动异常 | 修复 `dashboard.js` 错误使用单元素查询结果调用数组遍历的问题；允许的路由统一从 `collectWorkspaceViews(root)` 生成 | 真实页面启动、刷新、浏览器前进/后退 |
+| 桌面快捷跳转 | 新增 `workspaceQuickJump.js`；顶栏按钮及 Command+K/Ctrl+K；支持搜索、方向键、Enter、Esc | 真实 Chromium 焦点、深色视觉和侧栏折叠状态 |
+| AI 费用恢复判断 | 逐一核对 `backend/src/ai/business/checkpointState.js`、`retrySafety.js` 和路由。仅失败且 `state=not-started`、`modelCalls=0` 的任务可能从头重试；租约过期的 `state=recorded` 任务提供人工恢复候选。所有操作在点击时重新 GET 检查点并要求人工确认 | 后端共享付费账本是最终仲裁；无安全新状态时不得自行放宽 |
+| AI 恢复测试 | 更新真实的 `not-started` / `recorded` / `partial-tools` 模拟数据，补拒绝人工确认与检查点竞态回归 | 需完整 Vitest 执行 |
+| 静态检查 | 7 个变更相关 JavaScript 文件解析通过；模拟检查覆盖未调用模型重试与人工恢复条件、页面搜索 | 不能代替构建或端到端测试 |
+| 自动 CI | 新增 `.github/workflows/frontend-uiux.yml`，在 `codex/uiux-rebuild` 的前端文件变更上执行 `npm ci`、`node --check`、完整 `npm test` 与 `npm run build`；只读仓库权限，无外部模型调用或业务数据库连接 | 以 GitHub Actions 具体运行结果为准；本段写入时不预先宣称通过 |
+
+开发范围继续限定桌面端。未改 Growth SQL、事件统计口径、生产数据库或模型 Worker。与此前仅做语法检查不同，本轮补了自动构建和测试流程，但 CI 成功与否必须以实际 Actions 日志核对。
