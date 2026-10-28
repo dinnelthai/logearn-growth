@@ -154,3 +154,21 @@ test('huge aggregate reports are bounded before any paid request without coercin
  assert.ok(projected.evidenceMeta.shown<=40);
  assert.equal(projected.growth.quality.history_complete,false);
 });
+
+test('requested output cap vs relay usage is recorded without retrying provider',async()=>{
+ let calls=0,options=null;
+ const result=await runTask({context:{focusGoal:'activation'},prompt:'test',
+  ownerId:'alice',operationId:'cap-diagnostic',operationType:'analysis',
+  clientFactory:()=>({modelInfo:{provider:'mock'},chat:async(_messages,opts)=>{
+   calls++;options=opts;
+   return {content:JSON.stringify({summary:'done',keyFindings:[],suggestions:[]}),
+    usage:{inputTokens:80,outputTokens:4069,totalTokens:4149},cost:0.1,provider:'mock'}
+  }})});
+ assert.equal(calls,1);
+ assert.equal(result.analysis.summary,'done');
+ assert.equal(options.maxTokens,4096); // production default passes through
+ assert.equal(result.calls[0].requestedMaxOutputTokens,4096);
+ assert.equal(result.calls[0].reportedOutputTokens,4069);
+ assert.equal(result.calls[0].outputCapDiscrepancy,false);
+ assert.equal(result.calls[0].modelTransportVersion,'aggregated-business-v1');
+});
