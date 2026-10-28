@@ -11,6 +11,7 @@ import {createKolCrm} from './pages/kolCrm.js';
 import {mountSectionNavigation} from './navigation.js';
 import {createViewHistory,INTERNAL_VIEWS} from './navigationHistory.js';
 import {mountWorkspaceQuickJump,collectWorkspaceViews} from './workspaceQuickJump.js';
+import {confirmWorkspaceLeave} from './workspaceLeaveGuard.js';
 import {renderDataTable} from './components/dataTable.js';
 
 import {createActivityMonitor} from './pages/activityMonitor.js'
@@ -219,7 +220,18 @@ const viewHistory=createViewHistory({
   onNavigate:view=>navigate(view,{history:false})
 });
 mountWorkspaceQuickJump(root,navigate);
-function navigate(nextMode,options={}){if(options.platform){audience=null;task=null;pages.segments.configureAudience?.(null);if(Number.isFinite(options.asOf))asof=options.asOf}navigationGeneration++;mode=nextMode==='tasks'?'north':nextMode;root.dataset.currentMode=mode;if(options.history!==false)viewHistory.push(mode);sectionNavigation.update(mode);$('#as-title').textContent=pageTitle();$('#as-sub').textContent=pageSub();renderSteps();syncFilterControls();if(options.platform){const sel=$('#as-range');if([...sel.options].some(o=>o.value===String(options.days)))sel.value=String(options.days);$('#as-source').value='all'}if((task||audience)&&AUDIENCE_MODES.has(mode))$('#as-source').value=audience?.source||'all';run()}
+function navigate(nextMode,options={}){
+  const destination=nextMode==='tasks'?'north':nextMode;
+  const currentPage=pages[mode==='trade-monitor'?'tradeMonitor':mode];
+  if(!confirmWorkspaceLeave(currentPage,mode,destination,
+      text=>globalThis.confirm?.(text)===true)){
+    // Browser back/forward has already updated the URL. Restore the visible
+    // route without adding a second history entry if the draft is kept.
+    if(options.history===false)viewHistory.replace(mode);
+    return false;
+  }
+  options.beforeEnter?.();
+  if(options.platform){audience=null;task=null;pages.segments.configureAudience?.(null);if(Number.isFinite(options.asOf))asof=options.asOf}navigationGeneration++;mode=nextMode==='tasks'?'north':nextMode;root.dataset.currentMode=mode;if(options.history!==false)viewHistory.push(mode);sectionNavigation.update(mode);$('#as-title').textContent=pageTitle();$('#as-sub').textContent=pageSub();renderSteps();syncFilterControls();if(options.platform){const sel=$('#as-range');if([...sel.options].some(o=>o.value===String(options.days)))sel.value=String(options.days);$('#as-source').value='all'}if((task||audience)&&AUDIENCE_MODES.has(mode))$('#as-source').value=audience?.source||'all';run()}
 globalThis.__refreshRemoteAnalytics=async meta=>{
   if(!Number.isFinite(Date.parse(meta.as_of)))throw new Error('数据截止时间无效')
   asof=Date.parse(meta.as_of);dataStore.meta.asOf=asof;dataStore.meta.snapshot_cutoff=meta.snapshot_cutoff;dataStore.meta.capabilities=meta.capabilities;
@@ -236,7 +248,7 @@ globalThis.__refreshRemoteAnalytics=async meta=>{
   await run();
 };
 const pageContext={navigate,renewAnalysisSnapshot,openOperationTask:id=>operationTaskDetail.open(id),getAudience:()=>audience,refreshCohorts:()=>{cohortManager?.refresh();tagAnalysis.draw(mode)},openUserProfile:(id,c)=>userProfile.open(id,c),dataStore,usersById,drawer,userButton,userTimeline,isMock,isAgg,setPeriod:value=>{$('#as-range').value=value;run()},getAudiencePeriod:()=>audience&&AUDIENCE_MODES.has(mode)?{startAt:audience.start,endAt:audience.end}:null,root,$,$$,names,day,base,asof,date,clock,daynum,esc,fmt,pct,table,stat,drill,closeDrill,themeMedia,getUsers:()=>users,getTradeQuality:()=>dataStore.tradeQuality,getCoverage:()=>coverage,historyComplete:dataStore.meta.historyComplete,clear:clearNative};
-const userProfile=createUserProfile({...pageContext,analyzeAudience:applyAudience,createActivityForUsers:ids=>{pages.activities.startForUsers(ids);navigate('activities')}});
+const userProfile=createUserProfile({...pageContext,analyzeAudience:applyAudience,createActivityForUsers:ids=>navigate('activities',{beforeEnter:()=>pages.activities.startForUsers(ids)})});
 const operationTaskDetail=createOperationTaskDetail({...pageContext,analyzeAudience:applyAudience,onChanged:()=>{if(mode==='workbench')pages.workbench.draw()}});
 const pages={
   'business-analysis':createLazyPage({...pageContext,navigate},()=>import('./pages/businessAnalysis.js').then(m=>m.createBusinessAnalysis)),
@@ -250,10 +262,10 @@ const pages={
   'login-conversion':createLazyPage(pageContext,()=>import('./pages/conversionScenes.js').then(m=>ctx=>m.createConversionPage(ctx,'login'))),
   'invite-conversion':createLazyPage(pageContext,()=>import('./pages/conversionScenes.js').then(m=>ctx=>m.createConversionPage(ctx,'invite'))),
   'operations-compare':createLazyPage(pageContext,()=>import('./pages/operationsComparison.js').then(m=>m.createOperationsComparison)),
-  workbench:createLazyPage({...pageContext,openKol:id=>{pages.crm.openKol(id);navigate('crm')},openActivity:id=>{pages.activities.openActivity(id);navigate('activities')},openUserProfile:(id,c)=>userProfile.open(id,c)},()=>import('./pages/workbench.js').then(m=>m.createWorkbench)),
+  workbench:createLazyPage({...pageContext,openKol:id=>navigate('crm',{beforeEnter:()=>pages.crm.openKol(id)}),openActivity:id=>navigate('activities',{beforeEnter:()=>pages.activities.openActivity(id)}),openUserProfile:(id,c)=>userProfile.open(id,c)},()=>import('./pages/workbench.js').then(m=>m.createWorkbench)),
   'my-monitor':createLazyPage({...pageContext,navigate},()=>import('./pages/myMonitor.js').then(m=>m.createMyMonitor)),
-  activities:createActivityMonitor({...pageContext,analyzeTag,analyzeAudience:applyAudience,openKol:id=>{pages.crm.openKol(id);navigate('crm')}}),
-  crm:createKolCrm({...pageContext,analyzeAudience:applyAudience,openActivity:id=>{pages.activities.openActivity(id);navigate('activities')},createActivityForKol:kol=>{pages.activities.startForKol(kol);navigate('activities')}}),
+  activities:createActivityMonitor({...pageContext,analyzeTag,analyzeAudience:applyAudience,openKol:id=>navigate('crm',{beforeEnter:()=>pages.crm.openKol(id)})}),
+  crm:createKolCrm({...pageContext,analyzeAudience:applyAudience,openActivity:id=>navigate('activities',{beforeEnter:()=>pages.activities.openActivity(id)}),createActivityForKol:kol=>navigate('activities',{beforeEnter:()=>pages.activities.startForKol(kol)})}),
   home:createLazyPage({...pageContext,navigate,onMetadata:meta=>{asof=Date.parse(meta.as_of);dataStore.meta.asOf=asof;$('#as-data-time').textContent='观测截至 '+clock(asof)+' · UTC+7'},navigatePlatform:(m,o)=>navigate(m,{...o,platform:true})},()=>import('./pages/homeMonitor.js').then(m=>m.createHomeMonitor)),
   north:createLazyPage(pageContext,()=>isAgg?import('./pages/northStarAgg.js').then(m=>m.createNorthStarAggPage):import('./pages/northStar.js').then(m=>m.createNorthStarPage)),
   channelsAgg:createChannelsAggPage(pageContext),
