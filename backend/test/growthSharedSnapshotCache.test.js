@@ -8,6 +8,8 @@ test('only immutable snapshot and weekly core keys qualify for L2',()=>{
  assert.equal(immutable('snapshot:ab1234cd5678'),true);
  assert.equal(immutable(JSON.stringify(['weekly-core-v1','snap1234',1690000000000,'all'])),true);
  assert.equal(immutable(JSON.stringify(['weekly-core-v1','snap1234',1690000000000,'owner:alice',1])),false);
+ assert.equal(immutable(JSON.stringify(['business-north-v3','snap1234',1000,2000,null])),true);
+ assert.equal(immutable(JSON.stringify(['business-north-v3','snap1234',2000,1000,'all'])),false);
 });
 test('two independent process caches reuse Redis snapshot and respect expiry + namespace',async()=>{
  let now=1000000;

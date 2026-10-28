@@ -6,12 +6,20 @@ const MAX_BYTES=4*1024*1024;
 function immutable(key){
  if(typeof key!=='string'||key.length>500)return false;
  if(/^snapshot:[A-Za-z0-9_-]{6,128}$/.test(key))return true;
- if(!key.startsWith('["weekly-core-v1",'))return false;
+ if(!key.startsWith('["weekly-core-v1",')&&
+    !key.startsWith('["business-north-v3",'))return false;
  try{
   const p=JSON.parse(key);
-  return Array.isArray(p)&&p.length===4&&p[0]==='weekly-core-v1'&&
-   typeof p[1]==='string'&&p[1].length>=6&&p[1].length<=128&&
-   Number.isSafeInteger(p[2])&&p[2]>0&&typeof p[3]==='string'&&p[3].length>0&&p[3].length<=200;
+  const id=typeof p[1]==='string'&&p[1].length>=6&&p[1].length<=128;
+  if(p[0]==='weekly-core-v1')return p.length===4&&id&&
+   Number.isSafeInteger(p[2])&&p[2]>0&&
+   typeof p[3]==='string'&&p[3].length>0&&p[3].length<=200;
+  // Business north star results are aggregated and pinned to one exact
+  // source snapshot, period and channel. Never accept arbitrary owner keys.
+  return p[0]==='business-north-v3'&&p.length===5&&id&&
+   Number.isSafeInteger(p[2])&&p[2]>=0&&Number.isSafeInteger(p[3])&&
+   p[3]>p[2]&&(p[4]===null||(typeof p[4]==='string'&&
+   p[4].length>0&&p[4].length<=200));
  }catch{return false}
 }
 function createSharedStore({client,namespace,clock=Date.now}={}){
