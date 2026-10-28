@@ -111,7 +111,7 @@ test('explicit permission, size and rate-budget errors become safe unknown tool 
   const result=await runTask({context:{},prompt:'test',ownerId:'alice',
    operationId:'case-'+status,operationType:'analysis',
    clientFactory:()=>({modelInfo:{provider:'mock'},chat:async msgs=>{
-    received.push(msgs);return {content:replies.shift(),usage:{totalTokens:9},cost:0};
+    received.push(JSON.parse(JSON.stringify(msgs)));return {content:replies.shift(),usage:{totalTokens:9},cost:0};
    }}),
    investigate:async()=>{throw Object.assign(Error(forbidden),{status})}
   });
