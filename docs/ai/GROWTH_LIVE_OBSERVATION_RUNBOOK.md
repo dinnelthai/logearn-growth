@@ -12,7 +12,7 @@
 5. 数据覆盖有明确保证且指标满足最小基数（20）、绝对变化（5）和相对变化（20%）条件时，才复用 `alertStore` 与 `investigationStore` 保存正式告警和待人批准的提案。
 6. 告警记录的源端快照 ID、查询截止时刻和观察窗口可用于追溯；不是伪造的 `completed` AI 分析记录。人工批准前不触发模型费用。
 
-每日摘要保存在原有 `ai_growth_monitor_settings.last_scan_summary`，不增加数据库表、任务队列或服务。网页会显示当天人数、相邻业务日变化、可用的渠道差额、质量限制和最近检查状态。
+每日摘要保存在原有 `ai_growth_monitor_settings.last_scan_summary`，最多保留 **14 个曼谷业务日** 的无个人身份汇总（同日重新扫描替换同日记录），不增加数据库表、任务队列或服务。网页会显示当天人数、相邻业务日变化、可用的渠道差额、质量限制和最近检查状态，并提供「复制最近14天诊断摘要」按钮。
 
 ## 数据质量限制（重要）
 
@@ -25,7 +25,7 @@
 1. 部署新 `master` 的 Web 后端与前端，并确保已执行仓库现有的 AI PostgreSQL 迁移。
 2. 在 **AI 分析 → 增长异常自动监控** 开启。无需启用 Daily AI 付费服务。
 3. 后端每天 10:30（Asia/Bangkok）执行一次；观察页上次扫描时间和 `[growth-monitor]` 日志。
-4. 至少记录 7 天，优先导出脱敏后的：每天两期人数、`dataQuality`、`status`、`changes[].bySource`、`reason`、首次异常与人工核查结果。
+4. 至少记录 7 天，在监控页面点击「复制最近14天诊断摘要」并发给我，优先分析：每天两期人数、`dataQuality`、`status`、`changes[].bySource`、`reason`、首次异常与人工核查结果。
 5. 复盘先查“采集延迟/范围错误”，再查 SEO/KOL/社群渠道和站内分析漏斗。不能把源端数据缺失当成没有用户。
 
 若 `lastScanStatus=skipped` 且子项 `status=coverage-unverified`，表示数据仍可观察但**不能证明异常真实**。若 `status=error`，排查 Hologres 连通性、SQL 超时和账号数据库权限。
