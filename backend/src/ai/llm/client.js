@@ -54,7 +54,8 @@ class LLMClient {
       const rateCheck = await rateLimit.checkLimit(
         rateLimitKey,
         parseInt(process.env.AI_RATE_LIMIT_PER_HOUR || '100', 10),
-        3600 // 1 小时
+        3600, // 1 小时
+        {failClosed:true}
       );
 
       if (!rateCheck.allowed) {
@@ -228,7 +229,8 @@ class LLMClient {
       const rateCheck = await rateLimit.checkLimit(
         rateLimitKey,
         parseInt(process.env.AI_RATE_LIMIT_PER_HOUR || '100', 10),
-        3600
+        3600,
+        {failClosed:true}
       );
 
       if (!rateCheck.allowed) {
