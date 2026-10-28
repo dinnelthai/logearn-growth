@@ -33,12 +33,13 @@ export function createGrowthAgentControl(ctx){
    '/api/ai-analysis/growth-agent/learning',
    '/api/growth-agent/research/questions',
    '/api/growth-agent/prompts/candidates',
-   '/api/growth-agent/research/questions?status=approved'
+   '/api/growth-agent/research/questions?status=approved',
+   '/api/ai-analysis/growth-agent/cost-audit?days=7'
   ]
   const wanted=new Set(readPathsForTab(activeTab))
    const results=await Promise.allSettled(paths.map(p=>wanted.has(p)?cached(p):Promise.resolve({})))
   if(token!==generation)return
-  const [status,briefs,learning,research,prompts,approved]=results.map((x,i)=>x.status==='fulfilled'?x.value:{error:String(x.reason?.message||' unavailable'),endpoint:paths[i]})
+  const [status,briefs,learning,research,prompts,approved,costAudit]=results.map((x,i)=>x.status==='fulfilled'?x.value:{error:String(x.reason?.message||' unavailable'),endpoint:paths[i]})
   const err=x=>x?.error?'<p role="alert">'+safe(x.error)+'</p>':''
   const latest=status.latestBrief
   const score=latest?.score?.value??null
@@ -62,6 +63,11 @@ export function createGrowthAgentControl(ctx){
     ${rows.map(b=>`<tr><td>${safe(b.day)}</td><td>${safe(b.status)}</td><td>${b.score?.value==null?'证据不足':safe(b.score.value)}</td><td>${Array.isArray(b.analysis_ids)?b.analysis_ids.length:'未知'}</td></tr>`).join('')||'<tr><td colspan="4">暂无已记录日报</td></tr>'}
    </tbody></table></div>
    <p class="a-muted">ready 仅表示当时配置的目标及数据检查通过，不代表建议已执行。</p>
+   <div class="ga-cost-audit"><h3>近7日 AI Token 与费用 · 只读</h3>${err(costAudit)}
+   <p>调用 ${safe(costAudit.total?.calls)} 次 · 输入 ${safe(costAudit.total?.inputTokens)} Tokens · 输出 ${safe(costAudit.total?.outputTokens)} Tokens · 已登记费用 ${safe(costAudit.total?.knownCostUsd)} · 未知费用 ${safe(costAudit.total?.unknownCostCalls)} 次</p>
+   <div class="a-scroll"><table><thead><tr><th>任务</th><th>调用次数</th><th>Tokens</th><th>未知费用</th></tr></thead><tbody>
+   ${(costAudit.topOperations||[]).slice(0,6).map(o=>`<tr><td>${safe(o.operationType)} · ${safe(o.operationId)}</td><td>${safe(o.calls)}</td><td>${safe(o.totalTokens)}</td><td>${safe(o.unknownCostCalls)}</td></tr>`).join('')||'<tr><td colspan="4">暂无已登记的模型调用</td></tr>'}
+   </tbody></table></div><small class="a-muted">未知价格或 Token 缺失时，不得把实际费用视为零。</small></div>
   </section>
   <section class="a-card a-details"><h2>自我评价与下一轮策略</h2>${err(learning)}
    <p>成熟复盘 ${learning.assessment?.reviewed??'未知'} · 观察支持 ${learning.assessment?.observedSupported??'未知'} · 观察不支持 ${learning.assessment?.observedContradicted??'未知'}</p>
