@@ -521,3 +521,29 @@ html:has(#la-studio) > body { padding:0 !important; background:#0b0f17 !importan
 @media (max-width: 900px) {
   #la-studio .workspace-jump-trigger { display: none; }
 }
+
+/* Cross-module workflow return and targeted record failure recovery (desktop). */
+#la-studio .activity-missing-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-3, 12px);
+  margin-top: var(--ui-space-4, 16px);
+  flex-wrap: wrap;
+}
+#la-studio .crm-page [data-crm-feedback],
+#la-studio .activity-page [data-activity-feedback] {
+  margin: var(--ui-space-3, 12px) 0;
+  padding: 10px 14px;
+  border: 1px solid var(--ui-border-interactive);
+  border-left: 3px solid var(--a-accent);
+  border-radius: var(--ui-radius-sm, 7px);
+  background: var(--ui-surface-raised);
+  color: var(--a-text);
+  font-size: 13px;
+  line-height: 1.6;
+}
+#la-studio .crm-page [data-crm-return-workbench],
+#la-studio .activity-page [data-activity-return-workbench] {
+  white-space: nowrap;
+  border-color: var(--ui-border-interactive);
+}
