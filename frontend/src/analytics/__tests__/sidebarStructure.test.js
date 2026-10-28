@@ -7,3 +7,13 @@ test('sidebar keeps core modes and has an accessible collapse control',()=>{
  expect(html).toContain('data-sidebar-toggle');expect(html).toContain('aria-expanded="true"')
  expect(navigationMode('growth-agent-control')).toBe('growth-agent-control')
 })
+
+test('filter toggle, main content and mobile overlay exist without changing deep-link modes',()=>{
+ expect(html).toContain('id="as-filter-toggle"')
+ expect(html).toContain('aria-controls="as-config"')
+ expect(html).toContain('id="as-main-content" role="main"')
+ expect(html).toContain('data-sidebar-backdrop')
+ expect(html).toContain('class="workspace-skip"')
+ expect(navigationMode('login-conversion')).toBe('funnel')
+ expect(navigationMode('invite-conversion')).toBe('funnel')
+})

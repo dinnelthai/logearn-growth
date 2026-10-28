@@ -49,7 +49,7 @@ export function createAIAnalysis(ctx){
         <p>时间按 UTC+7，最多31天。当前支持来源范围；不会把活动或用户群当作已筛选。</p>
         <button class="a-button" type="button" data-health>检查运行状态</button><pre data-health-result></pre><p data-ai-message role="status"></p></details>
         <section class="a-card ai-history"><h2>历史分析</h2><button class="a-button" data-refresh>刷新</button>
-        ${list.records.length?list.records.map(r=>`<p><button class="a-button" data-analysis="${esc(r.id)}">${esc(r.title)}</button> · ${esc(label(r.status))} · 建议 ${esc(r.suggestion_count)} 条</p>`).join(''):'<p>尚无分析，点击开始后才会调用模型。</p>'}</section>
+        ${list.records.length?`<div class="ai-history-list" role="list">${list.records.map(r=>`<div class="ai-history-row" role="listitem"><button type="button" class="ai-history-title" data-analysis="${esc(r.id)}">${esc(r.title)}</button><span class="ai-state ai-state-${['completed','failed','pending','processing'].includes(r.status)?r.status:'unknown'}">${esc(label(r.status))}</span><span class="ai-history-meta">建议 ${esc(r.suggestion_count??'未知')} 条</span></div>`).join('')}</div>`:'<p>尚无分析，点击开始后才会调用模型。</p>'}</section>
         <section class="a-card ai-result" data-detail><p>选择一条分析查看证据和建议。</p></section>
         <section class="a-card ai-review"><h2>待复盘行动</h2>
         <p>依据完整的曼谷业务日和已采集数据水位判定，只有你已执行的行动可复盘。查看无需模型费用。</p>
