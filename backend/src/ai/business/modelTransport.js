@@ -103,7 +103,8 @@ function statView(value,{depth=0,maxRows=MAX_GROUPS}={}){
   // but it is never an arbitrary row identity or account string.
   if(key==='value'&&typeof v==='string'&&
    (typeof value.current==='number'||typeof value.previous==='number'||
-    typeof value.users==='number')){
+    typeof value.users==='number'||typeof value.visits==='number'||
+    typeof value.exposures==='number')){
    result.value=safeText(v,80);
    continue;
   }
