@@ -29,8 +29,10 @@ function createCache({shared=null,clock=Date.now}={}){
   if(found!==undefined){stats.hits++;return {value:found,source:'L1'}}
   stats.misses++;
   if(shared&&immutable(key)){
+   const epoch=generation,version=keyVersions.get(key)||0;
    try{
     const hit=await shared.get(key);
+    if(epoch!==generation||(keyVersions.get(key)||0)!==version)return null;
     if(hit&&hit.expiresAt>clock()){
      const remaining=(hit.expiresAt-clock())/1000;
      if(remaining>0){storeLocal(key,hit.value,remaining);stats.l2Hits++;return {value:hit.value,source:'L2'}}
