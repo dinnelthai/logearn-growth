@@ -1,5 +1,6 @@
 import {getToken} from '../auth/authClient.js'
 import {mountGrowthDecisionWorkspace} from './growthDecisionWorkspace.js'
+import {readPathsForTab} from './growthAgentRequestPlan.js'
 const base=(import.meta.env.VITE_BACKEND_BASE_URL??'http://localhost:3001')
 async function request(path,method='GET',body){
  const response=await fetch(base+path,{method,headers:{'Content-Type':'application/json',Authorization:'Bearer '+getToken()},...(body?{body:JSON.stringify(body)}:{})})
@@ -12,6 +13,14 @@ export function createGrowthAgentControl(ctx){
  let generation=0
  let workspaceDispose=null
  let activeTab='workspace'
+ let ownerToken=getToken(),cache=new Map()
+ const cached=path=>{
+  const token=getToken()
+  if(token!==ownerToken){cache.clear();ownerToken=token}
+  if(!cache.has(path))cache.set(path,request(path).catch(e=>{cache.delete(path);throw e}))
+  return cache.get(path)
+ }
+ const invalidate=()=>cache.clear()
  const esc=ctx.esc
  const safe=v=>esc(v==null?'未知':String(v))
  async function draw(){
@@ -26,7 +35,8 @@ export function createGrowthAgentControl(ctx){
    '/api/growth-agent/prompts/candidates',
    '/api/growth-agent/research/questions?status=approved'
   ]
-  const results=await Promise.allSettled(paths.map(p=>request(p)))
+  const wanted=new Set(readPathsForTab(activeTab))
+   const results=await Promise.allSettled(paths.map(p=>wanted.has(p)?cached(p):Promise.resolve({})))
   if(token!==generation)return
   const [status,briefs,learning,research,prompts,approved]=results.map((x,i)=>x.status==='fulfilled'?x.value:{error:String(x.reason?.message||' unavailable'),endpoint:paths[i]})
   const err=x=>x?.error?'<p role="alert">'+safe(x.error)+'</p>':''
@@ -113,28 +123,30 @@ export function createGrowthAgentControl(ctx){
     button.tabIndex=selected?0:-1
    })
   }
-  tabNav.querySelectorAll('[data-ga-tab]').forEach(button=>button.addEventListener('click',()=>setTab(button.dataset.gaTab)))
+  tabNav.querySelectorAll('[data-ga-tab]').forEach(button=>button.addEventListener('click',()=>{
+    if(button.dataset.gaTab!==activeTab){activeTab=button.dataset.gaTab;draw()}
+   }))
   tabNav.querySelector('[role="tablist"]').addEventListener('keydown',event=>{
    if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return
    const keys=Object.keys(panels),at=keys.indexOf(activeTab)
    const next=event.key==='Home'?0:event.key==='End'?keys.length-1:(at+(event.key==='ArrowRight'?1:-1)+keys.length)%keys.length
-   event.preventDefault();setTab(keys[next]);tabNav.querySelector('[data-ga-tab="'+keys[next]+'"]').focus()
+   event.preventDefault();activeTab=keys[next];draw().then(()=>host().querySelector('[data-ga-tab="'+keys[next]+'"]')?.focus())
   })
   setTab(activeTab)
-  workspaceDispose=mountGrowthDecisionWorkspace(workspaceRoot)
-  host().querySelector('[data-refresh]').onclick=draw
-  host().querySelector('[data-scan]').onclick=async()=>{const node=host().querySelector('[data-research-message]');try{const result=await request('/api/growth-agent/research/scan','POST',{source:'all'});node.textContent='新增 '+result.inserted.length+' 个研究问题';await draw()}catch(e){node.textContent=e.message}}
+  if(activeTab==='workspace')workspaceDispose=mountGrowthDecisionWorkspace(workspaceRoot)
+  host().querySelector('[data-refresh]').onclick=()=>{invalidate();draw()}
+  host().querySelector('[data-scan]').onclick=async()=>{const node=host().querySelector('[data-research-message]');try{const result=await request('/api/growth-agent/research/scan','POST',{source:'all'});node.textContent='新增 '+result.inserted.length+' 个研究问题';invalidate();await draw()}catch(e){node.textContent=e.message}}
   host().querySelectorAll('[data-dispatch]').forEach(button=>button.onclick=async()=>{
    if(!window.confirm('确认创建这项 AI 调查？后台执行时可能调用付费模型，并需要服务端明确开启研究开关。'))return
    button.disabled=true
-   try{await request('/api/growth-agent/research/questions/'+encodeURIComponent(button.dataset.dispatch)+'/dispatch','POST',{confirmPaidAnalysis:true});await draw()}
+   try{await request('/api/growth-agent/research/questions/'+encodeURIComponent(button.dataset.dispatch)+'/dispatch','POST',{confirmPaidAnalysis:true});invalidate();await draw()}
    catch(e){button.disabled=false;button.title=e.message;window.alert(e.message)}
   })
   host().querySelectorAll('[data-review]').forEach(button=>button.onclick=async()=>{
    button.disabled=true
-   try{await request('/api/growth-agent/research/questions/'+encodeURIComponent(button.dataset.review)+'/decision','POST',{action:button.dataset.action});await draw()}
+   try{await request('/api/growth-agent/research/questions/'+encodeURIComponent(button.dataset.review)+'/decision','POST',{action:button.dataset.action});invalidate();await draw()}
    catch(e){button.disabled=false;button.title=e.message;host().querySelector('[data-research-message]').textContent=e.message}
   })
  }
- return {draw,dispose(){generation++;if(workspaceDispose)workspaceDispose();host().classList.remove('ga-control-surface')}}
+ return {draw,dispose(){generation++;cache.clear();if(workspaceDispose)workspaceDispose();host().classList.remove('ga-control-surface')}}
 }
