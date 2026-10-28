@@ -399,3 +399,123 @@ html:has(#la-studio) > body { padding:0 !important; background:#0b0f17 !importan
   font-size: 13px;
   line-height: 1.6;
 }
+
+/* Desktop command palette: discover any existing page without expanding menus. */
+@media (min-width: 901px) {
+  #la-studio .workspace-jump-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    color: #c6d4e5;
+    background: #151f2e;
+    border-color: #334358;
+    padding: 8px 11px;
+    font-size: 12px;
+  }
+  #la-studio .workspace-jump-trigger:hover {
+    border-color: #7289ba;
+    background: #1c2b42;
+  }
+  #la-studio .workspace-jump-trigger kbd {
+    margin-left: 12px;
+    padding: 3px 5px;
+    background: #27374b;
+    border: 1px solid #40516a;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 10px;
+    color: #b6c6db;
+  }
+}
+#la-studio .workspace-jump-dialog {
+  width: min(560px, calc(100vw - 48px));
+  max-width: 560px;
+  max-height: min(680px, calc(100vh - 80px));
+  padding: 0;
+  border: 1px solid #3b4d65;
+  border-radius: 14px;
+  background: #121b2a;
+  color: #eff4fc;
+  box-shadow: 0 32px 100px #000a;
+  overflow: hidden;
+  color-scheme: dark;
+}
+#la-studio .workspace-jump-dialog::backdrop {
+  background: rgb(4 10 20 / 74%);
+  backdrop-filter: blur(4px);
+}
+#la-studio .workspace-jump-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid #2b3a4d;
+}
+#la-studio .workspace-jump-head > label {
+  font-size: 13px;
+  color: #cbd7e7;
+  font-weight: 650;
+}
+#la-studio .workspace-jump-head input {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 13px;
+  font-size: 15px;
+}
+#la-studio .workspace-jump-close {
+  justify-self: end;
+  border: none;
+  background: transparent;
+  color: #aebed1;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 2px 8px;
+}
+#la-studio .workspace-jump-close:hover { color: white; }
+#la-studio .workspace-jump-results {
+  max-height: min(430px, calc(100vh - 260px));
+  overflow-y: auto;
+  padding: 9px;
+}
+#la-studio .workspace-jump-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
+  padding: 11px 13px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #eef5ff;
+  text-align: left;
+  cursor: pointer;
+}
+#la-studio .workspace-jump-item:hover,
+#la-studio .workspace-jump-item:focus-visible {
+  background: #273650;
+  border-color: #50678d;
+}
+#la-studio .workspace-jump-item-main { display: grid; gap: 3px; min-width: 0; }
+#la-studio .workspace-jump-item strong {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#la-studio .workspace-jump-item small { color: #a0b0c6; font-size: 11px; }
+#la-studio .workspace-jump-item-arrow { color: #92a8c7; font-size: 17px; }
+#la-studio .workspace-jump-empty { margin: 10px 14px; font-size: 13px; color: #b9c5d7; }
+#la-studio .workspace-jump-hint {
+  margin: 0;
+  padding: 11px 20px 14px;
+  border-top: 1px solid #2b3a4d;
+  color: #8b9bb2;
+  font-size: 11px;
+}
+@media (max-width: 900px) {
+  #la-studio .workspace-jump-trigger { display: none; }
+}
