@@ -8,6 +8,7 @@ const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
 export function createAIAnalysis(ctx){
   const {$,esc}=ctx;
   let generation=0,timer=null,selected=null,busy=false,polling=false;
+  let historyOffset=0,historyStatus='all',historySearch='';
   const defaults={start:day(Date.now()-7*DAY),end:day(Date.now()-DAY)};
   const gscDates={start:new Date(Date.now()-30*DAY).toISOString().slice(0,10),
     end:new Date(Date.now()-3*DAY).toISOString().slice(0,10)};
@@ -25,6 +26,11 @@ export function createAIAnalysis(ctx){
     const host=$('#as-output');host.innerHTML=loadingState('正在加载主动业务分析…');
     try{
       const [list,reviews,costs,reviewQueue,inbox,alertData,proposalData,noticeData,budgetData,seoData,gscConnection,gscSnapshot,agentStatus,agentTargets,agentBriefs,agentLearning]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:null,error:error.message,warnings:[error.message]})),getGrowthAlerts().catch(error=>({alerts:[],error:error.message})),getGrowthInvestigations().catch(error=>({proposals:[],error:error.message})),getGrowthNotifications().catch(error=>({notifications:[],error:error.message})),getGrowthBudget().catch(error=>({limit:0,reservedCalls:0,remainingCalls:0,error:error.message})),getSeoImports().catch(error=>({imports:[],error:error.message})),getGscConnection().catch(error=>({configured:false,sites:[],error:error.message})),getGscPerformance().catch(error=>({available:false,error:error.message})),getAutonomyStatus().catch(error=>({schedulerConfigured:false,error:error.message})),getAutonomyTargets().catch(error=>({targets:[],supportedMetrics:[],error:error.message})),getAutonomyBriefs().catch(error=>({briefs:[],error:error.message})),getAutonomyLearning().catch(error=>({assessment:null,strategies:{},error:error.message}))]);
+      if(token!==generation)return;
+      const historyPage=historyOffset||historyStatus!=='all'
+        ?await getAnalysisList({limit:'20',offset:String(historyOffset),
+          ...(historyStatus!=='all'?{status:historyStatus}:{})})
+        :list;
       if(token!==generation)return;
       // Read a single latest task and its checkpoint; don't infer task state from a list label.
       const latestId=list.records?.[0]?.id;
@@ -269,9 +275,24 @@ export function createAIAnalysis(ctx){
         </section>
         <section class="a-card" data-specialist-preview><p>选择一个 SEO 快照或读取 KOL 观察结果查看证据。</p></section>
         <section class="a-card"><h2>历史分析</h2><button class="a-button" data-refresh>刷新</button>
+        <div class="ai-history-controls">
+          <label>筛选后端状态<select data-history-status>
+            <option value="all" ${historyStatus==='all'?'selected':''}>全部</option>
+            <option value="pending" ${historyStatus==='pending'?'selected':''}>排队中</option>
+            <option value="processing" ${historyStatus==='processing'?'selected':''}>执行中（需核查）</option>
+            <option value="completed" ${historyStatus==='completed'?'selected':''}>已完成</option>
+            <option value="failed" ${historyStatus==='failed'?'selected':''}>失败或已取消</option>
+          </select></label>
+          <label>搜索当前页任务标题<input data-history-search type="search" placeholder="输入标题关键词" value="${esc(historySearch)}"></label>
+        </div>
+        <p class="a-muted">按创建时间从新到旧；每页最多20条。阻塞状态以详情检查点为准，不能从持久化状态直接推断。</p>
         <div class="ai-task-history"><table><thead><tr><th>任务</th><th>创建时间</th><th>后端状态</th><th>建议</th><th>操作</th></tr></thead><tbody>
-        ${list.records.length?list.records.slice(0,20).map(r=>`<tr><td><strong>${esc(r.title)}</strong><small>${esc(r.id)}</small></td><td>${esc(formatAnalysisTime(r.created_at))}</td><td>${esc(r.status==='processing'?'执行状态待核查':label(r.status))}</td><td>${esc(r.suggestion_count??'未知')}</td><td><button class="a-button" data-analysis="${esc(r.id)}">详情</button></td></tr>`).join(''):'<tr><td colspan="5">暂无已保存分析</td></tr>'}
-        </tbody></table></div></section>
+        ${historyPage.records?.length?historyPage.records.slice(0,20).map(r=>`<tr data-history-row data-title="${esc(String(r.title).toLocaleLowerCase())}"><td><strong>${esc(r.title)}</strong><small>${esc(r.id)}</small></td><td>${esc(formatAnalysisTime(r.created_at))}</td><td>${esc(r.status==='processing'?'执行状态待核查':r.cancel_requested?'已取消':label(r.status))}</td><td>${esc(r.suggestion_count??'未知')}</td><td><button class="a-button" data-analysis="${esc(r.id)}">详情</button></td></tr>`).join(''):'<tr><td colspan="5">当前筛选页没有已保存分析</td></tr>'}
+        </tbody></table></div>
+        <div class="ai-history-pages"><span>第 ${historyOffset/20+1} 页</span>
+          <button class="a-button" data-history-previous type="button" ${historyOffset===0?'disabled':''}>上一页</button>
+          <button class="a-button" data-history-next type="button" ${historyPage.records?.length===20?'':'disabled'}>下一页</button>
+        </div></section>
         <section class="a-card" data-detail><p>选择一条分析查看证据和建议。</p></section>
         <section class="a-card"><h2>待复盘行动</h2>
         <p>依据完整的曼谷业务日和已采集数据水位判定，只有你已执行的行动可复盘。查看无需模型费用。</p>
@@ -280,6 +301,23 @@ export function createAIAnalysis(ctx){
         <section class="a-card"><h2>复盘记录</h2>${reviews.retrospectives.map(r=>`<article><h3>${esc(r.analysis_title)}</h3><p>${esc(r.conclusion)}</p><p>置信度：${esc(r.confidence)} · ${r.has_causality?'有因果证据':'观测变化，未证明因果'}</p><p>经验：${esc(r.lessons_learned||'尚无结论')}</p></article>`).join('')||'<p>记录行动后，可主动发起复盘。</p>'}</section></div>`;
       host.querySelector('[data-health]').onclick=async()=>{try{const state=await getAgentHealth();if(token===generation)host.querySelector('[data-health-result]').textContent=JSON.stringify(state,null,2);}catch(error){if(token===generation)message(error.message);}};
       host.querySelector('[data-refresh]').onclick=()=>draw();
+      host.querySelector('[data-history-status]')?.addEventListener('change',e=>{
+        historyStatus=e.target.value;historyOffset=0;draw();
+      });
+      const updateHistorySearch=value=>{
+        historySearch=value.toLocaleLowerCase();
+        host.querySelectorAll('[data-history-row]').forEach(row=>{
+          row.hidden=!String(row.dataset.title||'').includes(historySearch);
+        });
+      };
+      host.querySelector('[data-history-search]')?.addEventListener('input',e=>updateHistorySearch(e.target.value));
+      updateHistorySearch(historySearch);
+      host.querySelector('[data-history-previous]')?.addEventListener('click',()=>{
+        historyOffset=Math.max(0,historyOffset-20);draw();
+      });
+      host.querySelector('[data-history-next]')?.addEventListener('click',()=>{
+        historyOffset+=20;draw();
+      });
       const scanGrowthButton=host.querySelector('[data-scan-growth-alerts]');
       if(scanGrowthButton)scanGrowthButton.onclick=async e=>{
         if(busy)return;busy=true;const button=e.currentTarget;button.disabled=true;
