@@ -4,21 +4,7 @@ const {audit}=require('../scripts/auditBusinessAnalysisE2E');
 const id='791c561b-a26c-46e8-bb60-2e4173a49f6d';
 test('read-only audit correlates persisted analysis with model usage and does not claim frontend success',async()=>{
  const sqls=[];
- const pool={query:async(sql,values)=>{
-  assert.deepEqual(values,['alice',id].reverse().reverse()); // overridden below for record identity
-  sqls.push(sql);
-  if(sql.includes('ai_analysis_records'))return {rows:[{
-   status:'completed',model_name:'gpt-6.1-terra',
-   result:{summary:'actual insight',evidenceIds:['e1'],
-    calls:[{traceId:'trace-1',modelTransportVersion:'aggregated-business-v1'}]}
-  }]};
-  if(sql.includes('ai_usage_logs'))return {rows:[{
-   model_name:'gpt-6.1-terra',trace_id:'trace-1',total_tokens:139,
-   input_tokens:100,output_tokens:39,cost_usd:'0.000020',cost_known:true}]};
-  if(sql.includes('ai_suggestions'))return {rows:[{n:2}]};
-  throw Error('unexpected SQL');
- }};
- // The analysis record uses analysis ID first; ledger and suggestion use owner first.
+ const pool={query:null};
  pool.query=async(sql,values)=>{
   assert.equal(values.length,2);
   sqls.push(sql);
