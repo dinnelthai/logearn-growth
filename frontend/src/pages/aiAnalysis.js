@@ -519,15 +519,28 @@ export function createAIAnalysis(ctx){
   async function open(id){
     selected=id;clearTimeout(timer);const token=generation;
     try{
-      const r=await getAnalysisDetail(id);if(token!==generation||selected!==id)return;
+      const [r,checkpointRead]=await Promise.all([
+        getAnalysisDetail(id),
+        getJobCheckpoint(id).then(value=>({value}),error=>({error}))
+      ]);
+      if(token!==generation||selected!==id)return;
+      const checkpoint=checkpointRead.value||null;
+      const view=deriveAnalysisState(r,checkpoint);
       const panel=$('#as-output').querySelector('[data-detail]');if(!panel)return;
-      panel.innerHTML=`<h2>${esc(r.title)} · ${esc(label(r.status))}</h2>
+      panel.innerHTML=`<h2>${esc(r.title)} · ${esc(view.label)}</h2>
+      <p class="ai-task-identity">任务 ID：${esc(r.id)} · 创建：${esc(formatAnalysisTime(r.created_at))} · 最近记录：${esc(formatAnalysisTime(view.lastUpdated))}</p>
+      <p role="${view.key==='blocked'||view.key==='failed'?'alert':'status'}">${esc(view.reason||'任务状态来自已保存记录与检查点。')}${view.stale?' · 状态可能未同步，请检查诊断':''}</p>
       ${r.error_message?`<p role="alert">${esc(r.error_message)}</p>`:''}
-      <p data-checkpoint-result role="status">正在读取调查检查点…</p>
-      ${r.status==='failed'&&!r.cancel_requested?'<button class="a-button" data-retry-analysis>重试分析</button>':''}
-      ${['pending','processing'].includes(r.status)&&!r.cancel_requested?'<button class="a-button" type="button" data-cancel-analysis>取消任务</button>':''}
+      <p data-checkpoint-result role="status">${checkpoint?
+        '检查点：'+esc(checkpoint.state||'未知')+' · 已记录轮次 '+esc(checkpoint.completedRounds??'未知')+
+        ' · 已完成工具 '+esc(checkpoint.completedTools??'未知')+' · 未完成工具 '+esc(checkpoint.pendingTools??'未知')+
+        (checkpoint.reason?' · '+esc(checkpointReason(checkpoint.reason)):'') :
+        '检查点不可用'+(checkpointRead.error?'：'+esc(checkpointRead.error.message):'')+'；不能确认可恢复性。'}</p>
+      ${view.canRetry?'<button class="a-button" data-retry-analysis>核验后重试（可能付费）</button>':''}
+      ${view.canResume?'<button class="a-button" data-resume-analysis>核验后续跑（可能付费）</button>':''}
+      ${view.canCancel?'<button class="a-button" type="button" data-cancel-analysis>取消任务</button>':''}
       ${r.cancel_requested?'<p role="status">任务已取消，不会继续新的模型调用；先前发出的请求仍可能计费。</p>':''}
-      <p>${esc(r.result?.summary||'任务已排队；请确认 AI Worker 正在运行。')}</p>
+      <h3>业务结论</h3><p>${view.key==='completed'?esc(r.result?.summary||'已完成但没有可显示的文字摘要'): '尚无可用分析结论。请先查看上方任务状态与错误诊断。'}</p>
       ${(r.result?.keyFindings||[]).map(f=>`<p>${esc(f)}</p>`).join('')}
       ${r.result?.routing?`<p>调查方式：${esc(r.result.routing.reason)}</p>`:''}
       ${(r.result?.evidenceIds||[]).map(eid=>`<button class="a-button" data-evidence="${esc(eid)}">查看证据 ${esc(eid.slice(0,8))}</button>`).join('')}<pre data-evidence-result></pre>
@@ -543,46 +556,15 @@ export function createAIAnalysis(ctx){
         </form>
         ${s.user_status==='executed'?`<button class="a-button" data-review="${esc(s.id)}">复盘执行效果</button>`:''}</article>`).join('')}
       <details><summary>业务快照、目标优先级及模型调用记录</summary><pre>${json({snapshot:r.data_snapshot,calls:r.result?.calls})}</pre></details>`;
-      // Diagnostics are owner-scoped and intentionally do not expose model prompts.
-      getJobCheckpoint(id).then(checkpoint=>{
-        if(token!==generation||selected!==id||!panel.isConnected)return;
-        const target=panel.querySelector('[data-checkpoint-result]');
-        if(!target)return;
-        const reasons={
-          'unresolved-paid-call':'模型调用状态未确认，必须人工核查，不能直接重试',
-          'tool-execution-incomplete':'调查工具执行不完整，尚不允许自动续跑',
-          'requires-validation-before-resume':'调查记录已保存，但尚未完成恢复验证',
-          'noncontiguous-rounds':'调查步骤记录不连续，需人工核查'
-        };
-        if(checkpoint.leaseExpired&&checkpoint.recordStatus==='processing'){
-          const existing=panel.querySelector('[data-resume-analysis]');
-          if(!existing){
-            const button=document.createElement('button');
-            button.className='a-button';button.type='button';button.dataset.resumeAnalysis=id;
-            button.textContent='尝试安全续跑';
-            button.onclick=async()=>{
-              if(busy)return;busy=true;button.disabled=true;
-              try{
-                const task=await resumeAnalysis(id);
-                message(task.notice||'恢复任务已进入队列');
-                if(token===generation&&selected===id)await open(id);
-              }catch(error){message(error.message)}
-              finally{busy=false;if(button.isConnected)button.disabled=false}
-            };
-            target.after(button);
-          }
-        }
-        target.textContent='已保存模型轮次：'+checkpoint.completedRounds+
-          ' · 工具结果：'+checkpoint.completedTools+
-          ' · 待完成工具：'+checkpoint.pendingTools+
-          (checkpoint.leaseExpired?' · 执行租约已过期':'')+
-          (checkpoint.reason?' · '+(reasons[checkpoint.reason]||checkpoint.reason):'')+
-          (checkpoint.requiresHumanReview?' · 需要人工处理':'');
-      }).catch(error=>{
-        if(token===generation&&selected===id&&panel.isConnected){
-          const target=panel.querySelector('[data-checkpoint-result]');
-          if(target)target.textContent='检查点暂不可用：'+error.message;
-        }
+      // Read-only checkpoint was loaded with the detail. Lease expiry is not
+      // authorization to replay tools or paid model calls.
+      panel.querySelector('[data-resume-analysis]')?.addEventListener('click',async event=>{
+        if(busy||!view.canResume)return;
+        if(!window.confirm('续跑可能发起新的付费模型请求。请确认已核查调用记录并同意继续。'))return;
+        busy=true;const button=event.currentTarget;button.disabled=true;
+        try{await resumeAnalysis(id);if(token===generation&&selected===id)await open(id);}
+        catch(error){message(error.message)}
+        finally{busy=false;if(button.isConnected)button.disabled=false;}
       });
       panel.querySelectorAll('[data-evidence]').forEach(button=>button.onclick=async()=>{try{const evidence=await getEvidence(button.dataset.evidence);if(token===generation&&selected===id)panel.querySelector('[data-evidence-result]').textContent=JSON.stringify(evidence,null,2);}catch(error){message(error.message);}});
       panel.querySelector('[data-cancel-analysis]')?.addEventListener('click',async e=>{
@@ -594,7 +576,14 @@ export function createAIAnalysis(ctx){
         }catch(error){message(error.message);if(button.isConnected)button.disabled=false;}
         finally{busy=false;}
       });
-      panel.querySelector('[data-retry-analysis]')?.addEventListener('click',async()=>{if(busy)return;busy=true;try{await retryAnalysis(id);if(token===generation)await open(id);}catch(error){message(error.message);}finally{busy=false;}});
+      panel.querySelector('[data-retry-analysis]')?.addEventListener('click',async event=>{
+        if(busy||!view.canRetry)return;
+        if(!window.confirm('此操作可能再次产生模型费用。已确认当前检查点无模型调用记录，是否继续？'))return;
+        busy=true;const button=event.currentTarget;button.disabled=true;
+        try{await retryAnalysis(id);if(token===generation&&selected===id)await open(id);}
+        catch(error){message(error.message);}
+        finally{busy=false;if(button.isConnected)button.disabled=false;}
+      });
       panel.querySelectorAll('[data-suggestion]').forEach(form=>form.onsubmit=async e=>{
         e.preventDefault();if(busy)return;busy=true;
         const data=new FormData(form),state=e.submitter.value,note=data.get('note'),at=data.get('executedAt');
@@ -606,7 +595,8 @@ export function createAIAnalysis(ctx){
         try{const result=await createRetrospective(button.dataset.review,crypto.randomUUID());if(token!==generation)return;message('复盘已启动，任务完成后刷新记录。');pollReview(result.jobId,token);}
         catch(error){message(error.message);}finally{busy=false;if(button.isConnected)button.disabled=false;}
       });
-      if(['pending','processing'].includes(r.status)&&!polling)timer=setTimeout(()=>open(id),3000);
+      panel.scrollIntoView?.({block:'start',behavior:'smooth'});
+      if(['queued','running'].includes(view.key)&&!polling)timer=setTimeout(()=>open(id),5000);
     }catch(error){if(token===generation)message(error.message);}
   }
   async function pollReview(id,token){
