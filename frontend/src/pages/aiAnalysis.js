@@ -7,7 +7,7 @@ const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
 export function createAIAnalysis(ctx){
   const {$,esc}=ctx;
-  let generation=0,timer=null,selected=null,busy=false,polling=false;
+  let generation=0,timer=null,selected=null,busy=false,polling=false,historyFilter='all';
   const defaults={start:day(Date.now()-7*DAY),end:day(Date.now()-DAY)};
   const gscDates={start:new Date(Date.now()-30*DAY).toISOString().slice(0,10),
     end:new Date(Date.now()-3*DAY).toISOString().slice(0,10)};
@@ -48,8 +48,14 @@ export function createAIAnalysis(ctx){
         <button class="a-button" type="submit" ${busy?'disabled':''}>开始分析</button></form>
         <p>时间按 UTC+7，最多31天。当前支持来源范围；不会把活动或用户群当作已筛选。</p>
         <button class="a-button" type="button" data-health>检查运行状态</button><pre data-health-result></pre><p data-ai-message role="status"></p></details>
-        <section class="a-card ai-history"><h2>历史分析</h2><button class="a-button" data-refresh>刷新</button>
-        ${list.records.length?`<div class="ai-history-list" role="list">${list.records.map(r=>`<div class="ai-history-row" data-ai-history-row data-analysis-id="${esc(r.id)}" role="listitem"><button type="button" class="ai-history-title" data-analysis="${esc(r.id)}" aria-pressed="${selected===r.id}">${esc(r.title)}</button><span data-ai-history-badge class="ai-state ai-state-${esc(displayTaskStatus(r).kind)}">${esc(displayTaskStatus(r).text)}</span><span class="ai-history-meta">建议 ${esc(r.suggestion_count??'未知')} 条</span></div>`).join('')}</div>`:'<p>尚无分析，点击开始后才会调用模型。</p>'}</section>
+        <section class="a-card ai-history"><div class="ai-history-heading"><h2>历史分析</h2>
+          <label>状态<select data-ai-history-filter aria-label="筛选历史分析">
+          <option value="all" ${historyFilter==='all'?'selected':''}>全部</option>
+          <option value="processing" ${historyFilter==='processing'?'selected':''}>处理中</option>
+          <option value="failed" ${historyFilter==='failed'?'selected':''}>失败</option>
+          <option value="completed" ${historyFilter==='completed'?'selected':''}>已完成</option>
+          </select></label><button class="a-button" data-refresh>刷新</button></div>
+        ${list.records.length?`<div class="ai-history-list" role="list">${list.records.map(r=>`<div class="ai-history-row" data-ai-history-row data-analysis-id="${esc(r.id)}" data-ai-history-status="${esc(displayTaskStatus(r).kind)}" role="listitem"><button type="button" class="ai-history-title" data-analysis="${esc(r.id)}" aria-pressed="${selected===r.id}">${esc(r.title)}</button><span data-ai-history-badge class="ai-state ai-state-${esc(displayTaskStatus(r).kind)}">${esc(displayTaskStatus(r).text)}</span><span class="ai-history-meta">建议 ${esc(r.suggestion_count??'未知')} 条</span></div>`).join('')}</div><p data-ai-history-empty hidden>当前筛选条件下没有历史分析。</p>`:'<p>尚无分析，点击开始后才会调用模型。</p>'}</section>
         <section class="a-card ai-result" data-detail><p>选择一条分析查看证据和建议。</p></section>
         <section class="a-card ai-review"><h2>待复盘行动</h2>
         <p>依据完整的曼谷业务日和已采集数据水位判定，只有你已执行的行动可复盘。查看无需模型费用。</p>
@@ -556,6 +562,25 @@ export function createAIAnalysis(ctx){
         finally{busy=false;if(button.isConnected)button.disabled=false}
       };
       host.querySelectorAll('[data-analysis]').forEach(b=>b.onclick=()=>open(b.dataset.analysis));
+      const historySelect=host.querySelector('[data-ai-history-filter]');
+      const applyHistoryFilter=()=>{
+        let shown=0;
+        [...host.querySelectorAll('[data-ai-history-row]')].forEach(row=>{
+          const kind=row.dataset.aiHistoryStatus;
+          row.hidden=historyFilter!=='all'&&(historyFilter==='processing'
+            ?!['processing','pending','attention'].includes(kind):kind!==historyFilter);
+          if(!row.hidden)shown++;
+        });
+        const empty=host.querySelector('[data-ai-history-empty]');
+        if(empty)empty.hidden=shown!==0;
+      };
+      if(historySelect){
+        historySelect.addEventListener('change',()=>{
+          historyFilter=historySelect.value;
+          applyHistoryFilter();
+        });
+        applyHistoryFilter();
+      }
       host.querySelector('[data-ai-form]').onsubmit=async e=>{
         e.preventDefault();if(busy)return;busy=true;const button=e.target.querySelector('button');button.disabled=true;
         const form=new FormData(e.target),requestKey=crypto.randomUUID();
@@ -614,9 +639,14 @@ export function createAIAnalysis(ctx){
         if(title)title.textContent=r.title+' · '+state.text;
         const badge=panel.querySelector('[data-detail-badge]');
         if(badge){badge.textContent=state.text;badge.className='ai-state ai-state-'+state.kind;}
-        const historyRow=[...$('#as-output').querySelectorAll('[data-ai-history-row]')]
-          .find(el=>el.dataset.analysisId===id);
+        const rows=[...$('#as-output').querySelectorAll('[data-ai-history-row]')];
+        rows.forEach(row=>row.querySelector('[data-analysis]')?.setAttribute('aria-pressed',String(row.dataset.analysisId===id)));
+        const historyRow=rows.find(el=>el.dataset.analysisId===id);
         if(historyRow){
+          historyRow.dataset.aiHistoryStatus=state.kind;
+          const filter=$('#as-output').querySelector('[data-ai-history-filter]');
+          if(filter)historyRow.hidden=filter.value!=='all'&&
+            (filter.value==='processing'?!['processing','pending','attention'].includes(state.kind):filter.value!==state.kind);
           const rowBadge=historyRow.querySelector('[data-ai-history-badge]');
           if(rowBadge){rowBadge.textContent=state.text;rowBadge.className='ai-state ai-state-'+state.kind;}
         }
