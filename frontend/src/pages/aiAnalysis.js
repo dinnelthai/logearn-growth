@@ -9,7 +9,7 @@ const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
 export function createAIAnalysis(ctx){
   const {$,esc}=ctx;
-  let generation=0,detailRequest=0,timer=null,selected=null,busy=false,polling=false,historyFilter='all';
+  let generation=0,detailRequest=0,displayedDetailId=null,timer=null,selected=null,busy=false,polling=false,historyFilter='all';
   const defaults={start:day(Date.now()-7*DAY),end:day(Date.now()-DAY)};
   const gscDates={start:new Date(Date.now()-30*DAY).toISOString().slice(0,10),
     end:new Date(Date.now()-3*DAY).toISOString().slice(0,10)};
@@ -18,7 +18,7 @@ export function createAIAnalysis(ctx){
   const formatPosition=v=>v==null?'—':Number(v).toFixed(1);
   const label=s=>TASK_LABELS[s]||s;
   const json=v=>esc(JSON.stringify(v,null,2));
-  function dispose(){generation++;detailRequest++;clearTimeout(timer);timer=null;polling=false;}
+  function dispose(){generation++;detailRequest++;displayedDetailId=null;clearTimeout(timer);timer=null;polling=false;}
   function message(text){const target=$('#as-output')?.querySelector('[data-ai-message]');if(target)target.textContent=text;}
   function applyHistoryFilter(){
     const host=$('#as-output');
@@ -36,7 +36,7 @@ export function createAIAnalysis(ctx){
   }
   async function draw(){
     ctx.clear?.();
-    const token=++generation;detailRequest++;clearTimeout(timer);polling=false;
+    const token=++generation;detailRequest++;displayedDetailId=null;clearTimeout(timer);polling=false;
     const host=$('#as-output');host.innerHTML=loadingState('正在加载主动业务分析…');
     try{
       const [list,reviews,costs,reviewQueue,inbox,alertData,monitorControl,proposalData,noticeData,budgetData,seoData,gscConnection,gscSnapshot,agentStatus,agentTargets,agentBriefs,agentLearning]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]})),getGrowthAlerts().catch(error=>({alerts:[],error:error.message})),getGrowthMonitorControl().catch(error=>({allowed:false,enabled:false,error:error.message})),getGrowthInvestigations().catch(error=>({proposals:[],error:error.message})),getGrowthNotifications().catch(error=>({notifications:[],error:error.message})),getGrowthBudget().catch(error=>({limit:0,reservedCalls:0,remainingCalls:0,error:error.message})),getSeoImports().catch(error=>({imports:[],error:error.message})),getGscConnection().catch(error=>({configured:false,sites:[],error:error.message})),getGscPerformance().catch(error=>({available:false,error:error.message})),getAutonomyStatus().catch(error=>({schedulerConfigured:false,error:error.message})),getAutonomyTargets().catch(error=>({targets:[],supportedMetrics:[],error:error.message})),getAutonomyBriefs().catch(error=>({briefs:[],error:error.message})),getAutonomyLearning().catch(error=>({assessment:null,strategies:{},error:error.message}))]);
@@ -606,7 +606,7 @@ export function createAIAnalysis(ctx){
     selected=id;clearTimeout(timer);
     const token=generation,request=++detailRequest;
     const loadingPanel=$('#as-output')?.querySelector('[data-detail]');
-    if(loadingPanel)loadingPanel.innerHTML=loadingState('正在读取分析详情…');
+    if(loadingPanel&&displayedDetailId!==id)loadingPanel.innerHTML=loadingState('正在读取分析详情…');
     $('#as-output')?.querySelectorAll('[data-ai-history-row]').forEach(row=>{
       row.querySelector('[data-analysis]')?.setAttribute('aria-pressed',String(row.dataset.analysisId===id));
     });
@@ -614,6 +614,7 @@ export function createAIAnalysis(ctx){
       const r=await getAnalysisDetail(id);
       if(token!==generation||request!==detailRequest||selected!==id)return;
       const panel=$('#as-output').querySelector('[data-detail]');if(!panel)return;
+      displayedDetailId=id;
       panel.innerHTML=`<div class="ai-detail-heading"><h2 data-detail-title>${esc(r.title)} · ${esc(label(r.status))}</h2><span data-detail-badge class="ai-state ai-state-${esc(displayTaskStatus(r).kind)}">${esc(displayTaskStatus(r).text)}</span></div>
       ${r.error_message?`<p role="alert">${esc(r.error_message)}</p>`:''}
       <p data-checkpoint-result role="status">正在读取调查检查点…</p>
@@ -754,6 +755,7 @@ export function createAIAnalysis(ctx){
       if(shouldPollTask(r)&&!polling)timer=setTimeout(()=>open(id),3000);
     }catch(error){
       if(token!==generation||request!==detailRequest||selected!==id)return;
+      displayedDetailId=null;
       const panel=$('#as-output')?.querySelector('[data-detail]');
       if(panel){
         panel.innerHTML=viewState({kind:'error',title:'分析详情加载失败',
