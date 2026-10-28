@@ -2,6 +2,7 @@ const {randomUUID}=require('node:crypto');
 const {resolveScope,owner}=require('../scope'),{describeMetric,listMetrics}=require('../metricRegistry');
 const {makeEvidence,fingerprint}=require('../evidence');
 const {validateRange}=require('../../../analytics/businessPriorities');
+const {statView}=require('../modelTransport');
 const fail=(message,status=400)=>{throw Object.assign(Error(message),{status})};
 const definitions={
  query_metrics:{metric:'active_users',adapter:'metrics',scopes:['source'],description:'现有北极星、增长、周核心指标'},
@@ -89,9 +90,14 @@ function createToolRegistry(deps){
    const running=operation().finally(()=>{budget.active--;});
    const result=await Promise.race([running,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(Error('工具执行超时'),{status:503})),timeoutMs);})]);
    const rawPayload=result.payload??result;
+   // The dedicated business job may contain row-level events and membership
+   // lists needed for internal analytics. Only archive a statistics-only
+   // projection in the Agent evidence store and return that projection to the
+   // model. In particular, don't trust short "rows" or nested arrays.
    const payload=id==='get_product_chain'?productChainSummary(rawPayload):rawPayload;
-   const safe=JSON.parse(JSON.stringify(payload,(key,value)=>['members','lists','list_key','user_ids','planned_user_ids'].includes(key)?undefined:value));
-   if(Buffer.byteLength(JSON.stringify(safe))>maxResultBytes)fail('工具结果超出大小预算，请缩小查询范围',422);
+   const safe=statView(payload);
+   if(Buffer.byteLength(JSON.stringify(safe))>maxResultBytes)
+     fail('统计摘要超出大小预算，请缩小查询范围',422);
    if(id==='query_metrics'){
     const entries=(safe.metrics||[]).map(m=>makeEvidence({...m,query:{tool:id,body},sourceVersions:{events:snapshot.snapshot_id},watermarks:{events:snapshot.as_of,trades:null,registrations:null},coverage:safe.coverage||{status:'unknown'},warnings:safe.warnings||[]},{...ctx,period}));
     for(const e of entries)deps.evidenceStore.save(e,ctx);return {status:'ok',evidence:entries,warnings:safe.warnings||[]};
