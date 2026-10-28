@@ -6,6 +6,7 @@ import {listKols,getKol,saveKol,fetchKolMetrics,addFollowup,linkKolActivity,unli
 import {performanceSummary,memberRows} from './memberPerformance.js'
 import {listActivities} from '../api/activities.js'
 import {observedTime} from './observedDrill.js'
+import {remotePageCorrection} from '../components/remotePaging.js'
 const STAGES=['待联系','已联系','沟通中','试用中','合作中','暂停','已结束']
 const DAY=86400000,OFFSET=25200000
 export function createKolCrm(ctx) {
@@ -127,7 +128,21 @@ export function createKolCrm(ctx) {
         const result=await getKol(selected);if(id!==epoch)return;detail=result;
         if(await loadMetrics([detail.kol],id))renderDetail()
       } else {
-        const data=await fetchKolRanking({include_trend:true,...thresholds,q,stage,assignee,sort,direction,scope,view,offset:page*50,limit:50,...(rankingPeriod||period()),snapshot_id:rankingSnapshot,list_version:listVersion});if(id!==epoch)return;rankingSnapshot=data.snapshot_id;listVersion=data.list_version;rankingPeriod={start:data.start,end:data.end};metricMeta=data;profiles=data.kols;renderList(data)
+        const data=await fetchKolRanking({include_trend:true,...thresholds,q,stage,assignee,sort,direction,scope,view,offset:page*50,limit:50,...(rankingPeriod||period()),snapshot_id:rankingSnapshot,list_version:listVersion});if(id!==epoch)return;
+        const correction=remotePageCorrection({page,total:data.total,pageSize:50});
+        if(correction.refetch){
+          // Preserve the snapshot and list version while retrieving the last
+          // valid server page; do not locally sort an incomplete page.
+          rankingSnapshot=data.snapshot_id;
+          listVersion=data.list_version;
+          rankingPeriod={start:data.start,end:data.end};
+          page=correction.page;
+          return draw();
+        }
+        page=correction.page;
+        rankingSnapshot=data.snapshot_id;listVersion=data.list_version;
+        rankingPeriod={start:data.start,end:data.end};metricMeta=data;
+        profiles=data.kols;renderList(data)
       }
     } catch(e) {if(id===epoch){host().innerHTML=`<section class="a-card si-panel"><h2>CRM 加载失败</h2><p class="si-error">${esc(e.message)}</p><button class="a-button" data-crm-retry>重试</button><button class="a-button" data-crm-return>返回列表</button></section>`;host().querySelector('[data-crm-retry]').onclick=()=>{resetRanking();draw()};host().querySelector('[data-crm-return]').onclick=()=>{selected=null;resetRanking();draw()}}}
   }
