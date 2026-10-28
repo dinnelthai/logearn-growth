@@ -23,6 +23,20 @@ function planDailyPaidAnalysis({reports,goals,period,source='all'}={}){
    decisions[goal]={status:'deferred',reason:'coverage-unverified',snapshotId:snapshot.id};
    continue;
   }
+  // A completely empty or immature metric dataset is NOT a clean day.
+  // This also prevents skipped analyses when a connector silently omits data.
+  const totals=report.current?.totals,previous=report.previous?.totals;
+  const channels=report.growth?.channels;
+  const hasCore=Number.isFinite(totals?.active_users)&&
+    Number.isFinite(previous?.active_users)&&
+    Array.isArray(channels)&&channels.length>0;
+  const mature=hasCore&&channels.some(c=>goal==='retention'?
+    Number.isFinite(c?.d7?.rate)&&Number.isFinite(c?.d7?.eligible)&&c.d7.eligible>=30:
+    Number.isFinite(c?.activation_rate)&&Number.isFinite(c?.eligible)&&c.eligible>=30);
+  if(['activation','retention'].includes(goal)&&!mature){
+   decisions[goal]={status:'deferred',reason:'insufficient-mature-samples',snapshotId:snapshot.id};
+   continue;
+  }
   const triage=detectGrowthSignals(report);
   // Economic and conversion investigations have specialist data beyond the
   // core report, therefore cannot be suppressed by an empty core signal list.

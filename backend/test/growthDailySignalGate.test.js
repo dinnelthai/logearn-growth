@@ -7,7 +7,9 @@ function report(goal,{complete=true,candidates=[],warnings=[]}={}){
  return {focusGoal:goal,business:{scope:{source:'all'}},period:{start,end},candidates,
   snapshot:{id:'s1',historyComplete:complete,
    eventsCompleteThrough:complete?new Date(end).toISOString():null},
-  growth:{quality:{truncated:false}},warnings};
+  current:{totals:{active_users:100}},previous:{totals:{active_users:100}},
+  growth:{channels:[{eligible:40,activation_rate:1,d7:{eligible:40,rate:1}}],
+   quality:{truncated:false}},warnings};
 }
 test('mature quiet days skip core goals but preserve specialist analysis',()=>{
  const goals=['activation','retention','conversion','revenue'];
@@ -28,7 +30,7 @@ test('unknown coverage is deferred; strong observed signal is dispatched',()=>{
 function fixture(){
  const state={rows:[],queued:0,brief:null,preflight:0};
  const store={dailyAnalyses:async()=>state.rows,feedback:async()=>[],
-  upsertJudgements:async()=>{},getStrategy:async()=>null,targets:async()=>[],
+  upsertJudgements:async()=>{},saveStrategy:async()=>{throw Error('unexpected learning')},getStrategy:async()=>null,targets:async()=>[],
   upsertBrief:async(_o,brief)=>{state.brief=brief;return {id:'b',status:brief.status}}};
  const records={createAnalysisRecord:async input=>{
   const row={id:'analysis-'+(state.rows.length+1),status:'pending',
@@ -61,4 +63,13 @@ test('preflight failure does not dispatch paid calls or certify a clean day',asy
  assert.equal(x.state.queued,0);
  assert.equal(out.enqueued[0].status,'deferred-evidence-quality');
  assert.equal(out.status,'blocked');assert.equal(out.score,null);
+});
+
+test('missing mature samples defer payment rather than producing a false quiet day',()=>{
+ const incomplete=report('activation');
+ incomplete.growth.channels=[];
+ const plan=planDailyPaidAnalysis({reports:{activation:incomplete},
+  goals:['activation'],period:{start,end}});
+ assert.equal(plan.decisions.activation.status,'deferred');
+ assert.equal(plan.decisions.activation.reason,'insufficient-mature-samples');
 });
