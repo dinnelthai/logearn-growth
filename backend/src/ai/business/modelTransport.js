@@ -208,8 +208,8 @@ function modelContext(raw){
    note:'原始用户/事件明细及操作记录仅保存在业务库；模型仅接收聚合统计与可追溯证据ID，未知值不是零'
   }
  };
- // Strict cap for the first model message (before the conservative
- // bytes-as-tokens preflight). Do not hide unknown data as zeros.
+ // Strict transport byte cap for the first model message, independent of
+ // the multilingual token preflight. Do not hide unknown data as zeros.
  const fits=()=>Buffer.byteLength(JSON.stringify(context),'utf8')<=22000;
  if(!fits()){
   context.evidence=context.evidence.slice(0,18);
