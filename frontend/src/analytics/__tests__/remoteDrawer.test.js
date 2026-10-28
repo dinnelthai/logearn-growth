@@ -38,6 +38,23 @@ test('closing a remote drill cancels its debounced search before another API req
   expect(fetchPage).toHaveBeenCalledTimes(1)
 })
 
+
+test('typing a new query immediately hides old rows and blocks stale group actions',async()=>{
+  const t=fixture()
+  const fetchPage=vi.fn().mockResolvedValue({total:2,rows:[{id:'user:1',source:'SEO'}]})
+  // The initial server list has loaded; a new query must not retain those
+  // visible rows or allow users to act on them during the 200ms debounce.
+  t.drawer.openRemote({title:'用户列表',description:'真实用户',fetchPage})
+  await vi.waitFor(()=>expect(t.nodes['[data-list]'].innerHTML).toContain('user:1'))
+  t.nodes.input.oninput({target:{value:'different-user'}})
+  expect(t.nodes['[data-list]'].innerHTML).toContain('加载中')
+  expect(t.nodes['[data-list]'].innerHTML).not.toContain('user:1')
+  expect(t.nodes['[data-count]'].textContent).toContain('加载中')
+  // No network request is dispatched before the debounce timer completes.
+  expect(fetchPage).toHaveBeenCalledTimes(1)
+  t.drawer.close()
+})
+
 test('remote drill refetches the last real page after a list shrinks',async()=>{
   const t=fixture()
   let calls=0
