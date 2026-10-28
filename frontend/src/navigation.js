@@ -8,7 +8,6 @@ export function mountSectionNavigation(root,navigate){
   const remembered=new Map();
   const toggle=root.querySelector('[data-sidebar-toggle]');
   const backdrop=root.querySelector('[data-sidebar-backdrop]');
-  const sidebar=root.querySelector('#app-sidebar');
   const media=globalThis.matchMedia?.('(max-width: 900px)');
   const isMobile=()=>media?.matches??false;
   let activeKey=null;
@@ -28,60 +27,19 @@ export function mountSectionNavigation(root,navigate){
       backdrop.setAttribute('aria-hidden',String(collapsed||!isMobile()));
       backdrop.tabIndex=collapsed||!isMobile()?-1:0;
     }
-    // An off-canvas mobile sidebar must not remain in the keyboard tab order.
-    if(sidebar){
-      if(isMobile()){
-        sidebar.setAttribute('role','dialog');
-        sidebar.setAttribute('aria-modal','true');
-        sidebar.setAttribute('aria-hidden',String(collapsed));
-        if(collapsed)sidebar.setAttribute('inert','');
-        else sidebar.removeAttribute('inert');
-      }else{
-        sidebar.removeAttribute('role');
-        sidebar.removeAttribute('aria-modal');
-        sidebar.removeAttribute('aria-hidden');
-        sidebar.removeAttribute('inert');
-      }
-    }
     if(restoreFocus)toggle?.focus();
-    else if(isMobile()&&!collapsed){
-      const active=sidebar?.querySelector?.('[data-section][aria-pressed="true"]')
-        ||sidebar?.querySelector?.('[data-section]');
-      active?.focus?.();
-    }
   };
   setCollapsed(isMobile()||desktopPreference());
   toggle?.addEventListener('click',()=>{const next=!root.classList.contains('sidebar-collapsed');setCollapsed(next);if(!isMobile())rememberDesktop(next)});
   backdrop?.addEventListener('click',()=>setCollapsed(true,{restoreFocus:true}));
   root.addEventListener?.('keydown',event=>{
-    if(!isMobile()||root.classList.contains('sidebar-collapsed'))return;
-    if(event.key==='Escape'){
+    if(event.key==='Escape'&&isMobile()&&!root.classList.contains('sidebar-collapsed')){
       event.preventDefault();setCollapsed(true,{restoreFocus:true});
-      return;
-    }
-    if(event.key!=='Tab'||!sidebar)return;
-    const focusables=[...sidebar.querySelectorAll('button:not([disabled]),a[href]')]
-      .filter(el=>!el.hidden&&!el.closest('[hidden]')&&el.getClientRects().length);
-    if(!focusables.length)return;
-    const first=focusables[0],last=focusables[focusables.length-1];
-    const current=globalThis.document?.activeElement;
-    if(!sidebar.contains(current)){
-      event.preventDefault();(event.shiftKey?last:first).focus();
-    }else if(event.shiftKey&&current===first){
-      event.preventDefault();last.focus();
-    }else if(!event.shiftKey&&current===last){
-      event.preventDefault();first.focus();
     }
   });
   media?.addEventListener?.('change',()=>setCollapsed(isMobile()||desktopPreference()));
 
-  const closeMobile=()=>{
-    if(isMobile()){
-      setCollapsed(true);
-      // Move keyboard focus into the newly selected page, not the hidden drawer.
-      root.querySelector('#as-main-content')?.focus?.();
-    }
-  };
+  const closeMobile=()=>{if(isMobile())setCollapsed(true)};
   const findGroup=key=>sections.find(group=>group.dataset.navigationSection===key);
   const isSingle=group=>group?.dataset.single==='true';
   const visibleButtons=group=>[...(group?.querySelectorAll('[data-mode]')||[])]
