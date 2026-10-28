@@ -26,7 +26,9 @@ test('missing or invalid metric output never creates false success or extra paid
 
 test('markdown fenced JSON from relay is accepted without extra attempts',async()=>{
  const items=[{metric:'a'}];
- const result=await analyzeBatches(items,{client:{chat:async()=>({content:'\`\`\`json\\n{"analyses":[{"metric":"a","analysis":"ok"}]}\\n\`\`\`'})}});
+ const fence=String.fromCharCode(96,96,96),newline=String.fromCharCode(10);
+ const content=fence+'json'+newline+JSON.stringify({analyses:[{metric:'a',analysis:'ok'}]})+newline+fence;
+ const result=await analyzeBatches(items,{client:{chat:async()=>({content})}});
  assert.equal(result.calls,1);
  assert.equal(items[0].aiAnalysis,'ok');
 });
