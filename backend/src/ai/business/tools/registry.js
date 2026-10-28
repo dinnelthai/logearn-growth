@@ -21,15 +21,15 @@ const definitions={
 };
 const fields=['scope','start','end','metrics','dimensions','filters','steps','hours','initial','returning','limit','cursor','siteUrl'];
 const inputSchema={type:'object',additionalProperties:false,properties:Object.fromEntries(fields.map(k=>[k,{type:['start','end','hours','limit'].includes(k)?'integer':['metrics','dimensions','steps'].includes(k)?'array':['scope','filters'].includes(k)?'object':'string'}]))};
+const allowedFields=id=>['scope','start','end','filters','limit','cursor',...(id==='get_funnel'?['steps','hours']:id==='get_retention'?['initial','returning']:id==='query_metrics'?['metrics','dimensions']:id==='get_seo_performance'?['siteUrl']:[])];
 function createToolRegistry(deps){
  const budgets=new Map(),maxQueries=deps.maxQueries??20,maxConcurrent=deps.maxConcurrent??2,maxResultBytes=deps.maxResultBytes??200000,timeoutMs=deps.timeoutMs??35000;
- function listCapabilities(context){owner(context);return Object.entries(definitions).map(([id,t])=>({id,version:'1',description:t.description,supportedScopes:t.scopes||['source','activityId','cohortId'],inputSchema,example:{start:context.period?.start,end:context.period?.end},permission:'authenticated owner and scope',limits:{maxDays:31,maxQueries,maxConcurrent,maxResultBytes,timeoutMs,maxCandidates:80000,physicalScanBytes:'not measured'}}));}
+ function listCapabilities(context){owner(context);return Object.entries(definitions).map(([id,t])=>({id,version:'1',description:t.description,supportedScopes:t.scopes||['source','activityId','cohortId'],inputSchema:{...inputSchema,properties:Object.fromEntries(allowedFields(id).map(k=>[k,inputSchema.properties[k]]))},example:{start:context.period?.start,end:context.period?.end},permission:'authenticated owner and scope',limits:{maxDays:31,maxQueries,maxConcurrent,maxResultBytes,timeoutMs,maxCandidates:80000,physicalScanBytes:'not measured'}}));}
  async function executeTool(id,input={},context){
   owner(context);if(!Object.hasOwn(definitions,id))fail('未知调查工具');
   if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(k=>!fields.includes(k)))fail('工具输入字段无效');
   const tool=definitions[id];
-  const specific=id==='get_funnel'?['steps','hours']:id==='get_retention'?['initial','returning']:id==='query_metrics'?['metrics','dimensions']:id==='get_seo_performance'?['siteUrl']:[];
-  if(Object.keys(input).some(k=>!['scope','start','end','filters','limit','cursor',...specific].includes(k)))fail('该工具不支持这些输入字段');
+  if(Object.keys(input).some(k=>!allowedFields(id).includes(k)))fail('该工具不支持这些输入字段');
   const limit=input.limit??20;if(!Number.isSafeInteger(limit)||limit<1||limit>100)fail('分页大小无效');
   const {scope,audience}=await resolveScope(input.scope||context.scope||{},context,deps.lookups);
   if(tool.scopes&&Object.keys(scope).some(k=>!tool.scopes.includes(k)))fail('该工具不支持活动或人群范围');

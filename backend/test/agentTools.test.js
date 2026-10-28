@@ -36,3 +36,11 @@ test('each queried metric keeps its own identity and definition',async()=>{
  const r=await t.registry.executeTool('query_metrics',{metrics:['d7']},t.context);assert.equal(r.evidence[0].metricId,'d7');assert.equal(r.evidence[0].value,null);assert.equal(r.evidence[0].denominator,0);
  }finally{t.db.close()}
 });
+test('advertised tool input fields match execution validation',()=>{
+ const t=setup();try{const capabilities=t.registry.listCapabilities(t.context);const schema=id=>capabilities.find(x=>x.id===id).inputSchema.properties;
+ assert.equal('dimensions' in schema('check_data_quality'),false);
+ assert.equal('hours' in schema('get_paths'),false);
+ assert.equal('hours' in schema('get_funnel'),true);
+ assert.equal('dimensions' in schema('query_metrics'),true);
+ }finally{t.db.close()}
+});
