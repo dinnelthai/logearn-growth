@@ -159,7 +159,7 @@ test('monitor request failure disables the control with a message',async()=>{
 
 test('incomplete investigation is presented as needing human attention rather than running',async()=>{
  const t=setup();api.getJobCheckpoint.mockResolvedValue({recordStatus:'processing',leaseExpired:false,state:'partial-tools',reason:'tool-execution-incomplete',requiresHumanReview:true,completedRounds:2,completedTools:6,pendingTools:4});
- await t.page.draw();await t.button.onclick();await vi.waitFor(()=>expect(t.heading.textContent).toContain('需要处理'));
+ await t.page.draw();await t.button.onclick();await vi.waitFor(()=>expect(t.heading.textContent).toContain('需要人工处理'));
  expect(t.summary.textContent).not.toContain('分析正在进行');expect(t.checkpoint.button).toBeUndefined();t.page.dispose();
 });
 
