@@ -1,5 +1,6 @@
 import {mountUserCrm} from './userCrm.js'
 import {loadingState} from './loadingState.js'
+import {viewState} from '../components/viewStates.js'
 import {fetchWorkbench,setFollowupStatus} from '../api/userOperations.js'
 import {observedTime} from './observedDrill.js'
 import {getGrowthInbox} from '../api/aiAnalysis.js'
@@ -37,6 +38,6 @@ export function createWorkbench(ctx){
     if(button?.isConnected){button.disabled=false;button.textContent='刷新';}
   }
  }
- async function draw(){crm?.dispose();ctx.clear();const token=++epoch;host().innerHTML=loadingState('正在加载运营待办…');try{const [r,ai]=await Promise.all([fetchWorkbench(),getGrowthInbox().catch(e=>({error:e.message}))]);if(token!==epoch)return;data=r;aiInbox=ai;page=0;render()}catch(e){if(token===epoch)host().innerHTML=`<section class="a-card si-panel"><p class="si-error">${esc(e.message)}</p><button class="a-button" data-work-refresh>重试</button></section>`;host().querySelector('[data-work-refresh]')?.addEventListener('click',draw)}}
+ async function draw(){crm?.dispose();ctx.clear();const token=++epoch;host().innerHTML=loadingState('正在加载运营待办…');try{const [r,ai]=await Promise.all([fetchWorkbench(),getGrowthInbox().catch(e=>({error:e.message}))]);if(token!==epoch)return;data=r;aiInbox=ai;page=0;render()}catch(e){if(token===epoch){host().innerHTML=viewState({kind:'error',title:'运营待办加载失败',description:e.message,actionLabel:'重试',actionAttr:'data-work-refresh'});host().querySelector('[data-work-refresh]')?.addEventListener('click',draw)}}}
  return {draw,dispose(){epoch++;crm?.dispose()}}
 }
