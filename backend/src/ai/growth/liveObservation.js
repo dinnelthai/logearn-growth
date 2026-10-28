@@ -99,9 +99,15 @@ async function loadObservation({now=Date.now(),source='all',remote=require('../.
  if(!north||!Array.isArray(north.days))throw Error('业务观测结果不完整');
  const [old,latest]=counts(north,[day(start),currentPeriod.day]);
  const health=sourceHealth(snapshot,end);
- let channels={rows:[],quality:'unavailable'};
- try{channels=await getChannels({remote,snapshot,start,end,source})}
- catch(error){channels={rows:[],quality:'unavailable',reason:String(error.message).slice(0,150)}}
+ let channels={rows:[],quality:'not-needed'};
+ const significant=['active_users','new_users','returning_users'].some(metric=>{
+  const a=old.totals[metric],b=latest.totals[metric];
+  return a>=20&&Math.abs(b-a)>=5&&Math.abs(b-a)/a>=0.2;
+ });
+ if(significant){
+  try{channels=await getChannels({remote,snapshot,start,end,source})}
+  catch(error){channels={rows:[],quality:'unavailable',reason:String(error.message).slice(0,150)}}
+ }
  return {baseline:{start,end:currentPeriod.start,...old},current:{
   start:currentPeriod.start,end,...latest
  },health,channels};
@@ -113,9 +119,16 @@ async function scanFreeGrowth({ownerId,goal,source='all',store,proposalStore=nul
  let promise=cache?.get(key);
  if(!promise){promise=Promise.resolve().then(()=>load({now,source}));cache?.set(key,promise)}
  const o=await promise;
+ const changes=METRICS[goal].map(metric=>{
+  const a=o.baseline.totals[metric],b=o.current.totals[metric];
+  return {metric,baseline:a,current:b,delta:b-a,
+   relativeChange:a>0?(b-a)/a:null,
+   bySource:channelContributions(o.channels,o.baseline.date,o.current.date,metric)};
+ });
  const summary={currentDay:o.current.date,baselineDay:o.baseline.date,
   current:o.current.totals,baseline:o.baseline.totals,quality:o.health,
-  channelQuality:o.channels.quality};
+  channelQuality:o.channels.quality,changes,
+  interpretation:o.health.complete?'可用于自动告警':'仅供观察，数据覆盖未验证；不能据此判定真实增长下降'};
  if(!o.health.complete)return {...summary,status:'coverage-unverified',observed:0,
   newObservations:0,reason:o.health.warning,paidCalls:0};
  const alerts=[];let proposedInvestigations=0;
