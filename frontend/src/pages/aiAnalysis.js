@@ -165,7 +165,7 @@ export function createAIAnalysis(ctx){
         ${proposalData.error?'<p role="status">提案查询暂不可用：'+esc(proposalData.error)+'</p>':''}
         ${(proposalData.proposals||[]).slice(0,30).map(p=>`<article>
           <p>${esc(p.metric)} · ${esc(p.source)} · ${esc(p.status)} · ${esc(day(Number(p.period_end)))}</p>
-          <p>证据：${esc(p.diagnosis?.dataQuality?.status==='traceable-observation'?'原始日报与快照可追溯':'证据不完整，先核查')}。首次分析用户不等于新注册。</p>
+          <p>证据：${esc(p.diagnosis?.dataQuality?.status==='traceable-observation'?'证据期间与源端快照可追溯':'证据不完整，先核查')}。首次分析用户不等于新注册。</p>
            ${p.diagnosis?.observation?'<p>已观察：'+esc(p.diagnosis.observation.baseline)+' → '+esc(p.diagnosis.observation.current)+'；原因未知</p>':''}
            <p>调查需人工批准，可能产生模型费用；运营方案仍由负责人决定。</p>
           <button class="a-button" data-case-timeline="${esc(p.id)}">查看完整链路</button>
@@ -336,8 +336,14 @@ export function createAIAnalysis(ctx){
             来源 ${esc(timeline.alert.source)} · 优先级 ${esc(timeline.alert.priority)}</p>
             <p>原始观测（提案时冻结）：${esc(obs.baseline??'未知')} → ${esc(obs.observed??'未知')}
             · 变化 ${esc(obs.absolute??'未知')}；不构成因果证明。</p>
-            <p>证据分析 ID：${esc(obs.evidence?.baselineAnalysisId||'未知')} →
-            ${esc(obs.evidence?.currentAnalysisId||'未知')}</p>
+            ${diagnosis.dataQuality?.provenance?.type==='source-day-query'?
+              '<p>原始源端数据截止：'+esc(diagnosis.dataQuality.provenance.cutoff)+' · 无付费 AI 日报依赖</p>':
+              '<p>原始 AI 日报：'+esc(obs.evidence?.baselineAnalysisId||'未知')+' → '+
+              esc(obs.evidence?.currentAnalysisId||'未知')+'</p>'}
+            ${(diagnosis.channelObservation||[]).length?'<h4>来源变化（非因果归因）</h4>'+
+              '<ul>'+diagnosis.channelObservation.map(x=>'<li>'+esc(x.source)+': '+
+              esc(x.baseline)+' → '+esc(x.current)+' ('+
+              esc(x.delta>=0?'+':'')+esc(x.delta)+')</li>').join('')+'</ul>':''}
             <p>证据状态：${esc(diagnosis.dataQuality?.status==='traceable-observation'?'可溯源观测':'需核查')}；原因未确认。</p>
             <h4>建议核查的问题（非自动运营计划）</h4>
             ${(diagnosis.investigationQuestions||[]).length?
