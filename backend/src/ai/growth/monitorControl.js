@@ -27,7 +27,7 @@ function createMonitorControl(query=(sql,params)=>pool.query(sql,params)){
   if(typeof enabled!=='boolean'||!Number.isSafeInteger(expectedVersion)||expectedVersion<0)
    throw Object.assign(Error('监控开关参数无效'),{status:400});
   const result=await query(`INSERT INTO ai_growth_monitor_settings
-     (owner_id,enabled,version,updated_at) VALUES($1,$2,1,$3)
+     (owner_id,enabled,version,updated_at) SELECT $1,$2,1,$3 WHERE $4=0
      ON CONFLICT(owner_id) DO UPDATE SET
        enabled=EXCLUDED.enabled,version=ai_growth_monitor_settings.version+1,
        updated_at=EXCLUDED.updated_at
