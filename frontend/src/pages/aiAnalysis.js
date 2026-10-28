@@ -2,6 +2,7 @@ import './aiAnalysis.css';
 import {loadingState} from './loadingState.js';
 import {TASK_LABELS,displayTaskStatus,canOfferTaskResume,canOfferTaskRetry,shouldPollTask} from './aiTaskStatus.js';
 import {renderAISuggestion} from './aiSuggestionView.js';
+import {renderAIReviewQueue} from './aiReviewQueueView.js';
 import {viewState} from '../components/viewStates.js';
 import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,getGrowthMonitorControl,setGrowthMonitorControl,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead,getGrowthInvestigationTimeline,getSeoImports,importSeoSnapshot,previewSeoSnapshot,previewKolPerformance,getGscConnection,saveGscSite,syncGscPerformance,getGscPerformance,getGscSitemaps,inspectGscUrl,getAutonomyStatus,getAutonomyTargets,saveAutonomyTarget,getAutonomyBriefs,getAutonomyLearning,refreshAutonomyBrief} from '../api/aiAnalysis.js';
 const DAY=86400000,OFFSET=7*3600000;
@@ -9,7 +10,7 @@ const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
 export function createAIAnalysis(ctx){
   const {$,esc}=ctx;
-  let generation=0,detailRequest=0,displayedDetailId=null,timer=null,selected=null,busy=false,polling=false,historyFilter='all';
+  let generation=0,detailRequest=0,displayedDetailId=null,timer=null,reviewTimer=null,selected=null,busy=false,reviewPolling=false,historyFilter='all',notice='';
   const defaults={start:day(Date.now()-7*DAY),end:day(Date.now()-DAY)};
   const gscDates={start:new Date(Date.now()-30*DAY).toISOString().slice(0,10),
     end:new Date(Date.now()-3*DAY).toISOString().slice(0,10)};
@@ -18,8 +19,8 @@ export function createAIAnalysis(ctx){
   const formatPosition=v=>v==null?'—':Number(v).toFixed(1);
   const label=s=>TASK_LABELS[s]||s;
   const json=v=>esc(JSON.stringify(v,null,2));
-  function dispose(){generation++;detailRequest++;displayedDetailId=null;clearTimeout(timer);timer=null;polling=false;}
-  function message(text){const target=$('#as-output')?.querySelector('[data-ai-message]');if(target)target.textContent=text;}
+  function dispose(){generation++;detailRequest++;displayedDetailId=null;clearTimeout(timer);clearTimeout(reviewTimer);timer=null;reviewTimer=null;reviewPolling=false;}
+  function message(text){notice=String(text??'');const target=$('#as-output')?.querySelector('[data-ai-message]');if(target){target.textContent=notice;target.hidden=!notice;}}
   function applyHistoryFilter(){
     const host=$('#as-output');
     if(!host)return;
@@ -36,7 +37,7 @@ export function createAIAnalysis(ctx){
   }
   async function draw(){
     ctx.clear?.();
-    const token=++generation;detailRequest++;displayedDetailId=null;clearTimeout(timer);polling=false;
+    const token=++generation;detailRequest++;displayedDetailId=null;clearTimeout(timer);clearTimeout(reviewTimer);reviewTimer=null;reviewPolling=false;
     const host=$('#as-output');host.innerHTML=loadingState('正在加载主动业务分析…');
     try{
       const [list,reviews,costs,reviewQueue,inbox,alertData,monitorControl,proposalData,noticeData,budgetData,seoData,gscConnection,gscSnapshot,agentStatus,agentTargets,agentBriefs,agentLearning]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]})),getGrowthAlerts().catch(error=>({alerts:[],error:error.message})),getGrowthMonitorControl().catch(error=>({allowed:false,enabled:false,error:error.message})),getGrowthInvestigations().catch(error=>({proposals:[],error:error.message})),getGrowthNotifications().catch(error=>({notifications:[],error:error.message})),getGrowthBudget().catch(error=>({limit:0,reservedCalls:0,remainingCalls:0,error:error.message})),getSeoImports().catch(error=>({imports:[],error:error.message})),getGscConnection().catch(error=>({configured:false,sites:[],error:error.message})),getGscPerformance().catch(error=>({available:false,error:error.message})),getAutonomyStatus().catch(error=>({schedulerConfigured:false,error:error.message})),getAutonomyTargets().catch(error=>({targets:[],supportedMetrics:[],error:error.message})),getAutonomyBriefs().catch(error=>({briefs:[],error:error.message})),getAutonomyLearning().catch(error=>({assessment:null,strategies:{},error:error.message}))]);
@@ -44,6 +45,7 @@ export function createAIAnalysis(ctx){
       if(!list.records?.some(r=>r.id===selected))selected=list.records?.[0]?.id??null;
       host.innerHTML=`<div class="si-page ai-analysis-page">
         <section class="ai-decision-hero"><div><span class="ai-eyebrow">GROWTH INTELLIGENCE</span><h1>增长决策工作台</h1><p>发现问题 · 核查证据 · 制定行动 · 持续复盘</p></div><a class="a-button a-primary" href="#ai-new-analysis">新建分析</a></section>
+        <p class="ai-workspace-notice" data-ai-message role="status" aria-live="polite" ${notice?'':'hidden'}>${esc(notice)}</p>
         <div class="ai-status-grid" aria-label="经营与任务状态">
           <article><span>最新分析</span><strong>${list.records?.length?esc(label(list.records[0].status)):'暂无数据'}</strong><small>${list.records?.length?esc(list.records[0].title):'发起分析后显示结果'}</small></article>
           <article><span>Agent 调度</span><strong>${agentStatus.error?'状态未知':agentStatus.schedulerRunning?'运行中':agentStatus.schedulerConfigured?'未运行':'未启用'}</strong><small>模型调用需主动发起或明确配置</small></article>
@@ -63,7 +65,7 @@ export function createAIAnalysis(ctx){
         <label>业务背景与问题<textarea name="question" maxlength="5000" placeholder="当前目标、资源约束、近期活动、产品改动，以及你想解决的问题"></textarea></label>
         <button class="a-button" type="submit" ${busy?'disabled':''}>开始分析</button></form>
         <p>时间按 UTC+7，最多31天。当前支持来源范围；不会把活动或用户群当作已筛选。</p>
-        <button class="a-button" type="button" data-health>检查运行状态</button><pre data-health-result></pre><p data-ai-message role="status"></p></details>
+        <button class="a-button" type="button" data-health>检查运行状态</button><pre data-health-result></pre></details>
         <section class="a-card ai-history"><div class="ai-history-heading"><h2>历史分析</h2>
           <label>状态<select data-ai-history-filter aria-label="筛选历史分析">
           <option value="all" ${historyFilter==='all'?'selected':''}>全部</option>
@@ -74,10 +76,11 @@ export function createAIAnalysis(ctx){
           </select></label><button class="a-button" data-refresh>刷新</button></div>
         ${list.records.length?`<div class="ai-history-list" role="list">${list.records.map(r=>`<div class="ai-history-row" data-ai-history-row data-analysis-id="${esc(r.id)}" data-ai-history-status="${esc(displayTaskStatus(r).kind)}" role="listitem"><button type="button" class="ai-history-title" data-analysis="${esc(r.id)}" aria-pressed="${selected===r.id}">${esc(r.title)}</button><span data-ai-history-badge class="ai-state ai-state-${esc(displayTaskStatus(r).kind)}">${esc(displayTaskStatus(r).text)}</span><span class="ai-history-meta">建议 ${esc(r.suggestion_count??'未知')} 条</span></div>`).join('')}</div><p data-ai-history-empty hidden>当前筛选条件下没有历史分析。</p>`:'<p>尚无分析，点击开始后才会调用模型。</p>'}</section>
         <section class="a-card ai-result" data-detail><p>选择一条分析查看证据和建议。</p></section>
-        <section class="a-card ai-review"><h2>待复盘行动</h2>
-        <p>依据完整的曼谷业务日和已采集数据水位判定，只有你已执行的行动可复盘。查看无需模型费用。</p>
-        ${reviewQueue.error?'<p role="status">复盘排期暂不可用：'+esc(reviewQueue.error)+'</p>':''}
-        ${reviewQueue.entries?.length?reviewQueue.entries.map(item=>`<p>${esc(item.title)} · ${esc(item.status==='ready'?'达到复盘条件':'等待观察期')} · ${item.status==='ready'?'<button class="a-button" data-ready-review="'+esc(item.suggestionId)+'">人工发起复盘</button>':'最早 '+esc(day(item.earliestReviewAt||Date.now()))}</p>`).join(''):'<p>暂无待复盘行动。</p>'}</section>
+        <section class="a-card ai-review">
+          <div class="ai-review-heading"><h2>待复盘行动</h2><span>执行 → 观察 → 人工复盘</span></div>
+          <p>后端按三个完整业务日和数据水位确定复盘资格。查看状态不会产生模型费用；人工发起复盘可能产生费用。</p>
+          ${renderAIReviewQueue(reviewQueue,{esc})}
+        </section>
         <section class="a-card ai-review-history"><h2>复盘记录</h2>${reviews.retrospectives.map(r=>`<article><h3>${esc(r.analysis_title)}</h3><p>${esc(r.conclusion)}</p><p>置信度：${esc(r.confidence)} · ${r.has_causality?'有因果证据':'观测变化，未证明因果'}</p><p>经验：${esc(r.lessons_learned||'尚无结论')}</p></article>`).join('')||'<p>记录行动后，可主动发起复盘。</p>'}</section>
         <details class="a-card ai-advanced"><summary>高级设置与数据来源</summary>
         <p>自动日报评分目标与月度经营目标分别保存。月度目标、日报和研究治理在运行控制台管理。</p>
@@ -447,16 +450,8 @@ export function createAIAnalysis(ctx){
         }catch(error){if(token===generation)message(error.message);}
         finally{busy=false;if(button.isConnected)button.disabled=false;}
       });
-      host.querySelectorAll('[data-ready-review]').forEach(button=>button.onclick=async()=>{
-        if(busy)return;busy=true;button.disabled=true;
-        try{
-          const response=await createRetrospective(button.dataset.readyReview,crypto.randomUUID());
-          if(token===generation){message('复盘已入队：'+response.jobId);await draw();}
-        }catch(error){if(token===generation)message(error.message);}
-        finally{busy=false;if(button.isConnected)button.disabled=false;}
-      });
-
-      const gscSave=host.querySelector('[data-gsc-save]');
+      host.querySelectorAll('[data-ready-review]').forEach(button=>button.onclick=()=>startReview(button.dataset.readyReview,button,token));
+       const gscSave=host.querySelector('[data-gsc-save]');
       if(gscSave)gscSave.onclick=async()=>{
         const value=host.querySelector('[data-gsc-site]')?.value;
         if(busy||!value)return;busy=true;gscSave.disabled=true;
@@ -781,12 +776,8 @@ export function createAIAnalysis(ctx){
           buttons.forEach(button=>{if(button.isConnected)button.disabled=false});
         }
       });
-      panel.querySelectorAll('[data-review]').forEach(button=>button.onclick=async()=>{
-        if(busy)return;busy=true;button.disabled=true;
-        try{const result=await createRetrospective(button.dataset.review,crypto.randomUUID());if(token!==generation)return;message('复盘已启动，任务完成后刷新记录。');pollReview(result.jobId,token);}
-        catch(error){message(error.message);}finally{busy=false;if(button.isConnected)button.disabled=false;}
-      });
-      if(shouldPollTask(r)&&!polling)timer=setTimeout(()=>open(id),3000);
+      panel.querySelectorAll('[data-review]').forEach(button=>button.onclick=()=>startReview(button.dataset.review,button,token));
+       if(shouldPollTask(r))timer=setTimeout(()=>open(id),3000);
     }catch(error){
       if(token!==generation||request!==detailRequest||selected!==id)return;
       displayedDetailId=null;
@@ -799,13 +790,57 @@ export function createAIAnalysis(ctx){
       message(error.message);
     }
   }
-  async function pollReview(id,token){
-    polling=true;
-    try{const job=await getJobStatus(id);if(token!==generation)return;
-      if(job.state==='completed'){polling=false;await draw();return;}
-      if(job.state==='failed')throw Error(job.error||'复盘失败');
-      message(`复盘进度 ${job.progress||0}%`);timer=setTimeout(()=>pollReview(id,token),3000);
-    }catch(error){polling=false;if(token===generation)message(error.message);}
+  async function startReview(suggestionId,button,token){
+    if(busy||reviewPolling||!suggestionId)return;
+    const accepted=globalThis.confirm?.(
+      '复盘仅检查已经执行并满足观察条件的行动，可能产生新的模型费用。后端会再次校验业务数据水位和任务幂等性。确定发起吗？'
+    );
+    if(accepted!==true)return;
+    busy=true;
+    if(button)button.disabled=true;
+    try{
+      const response=await createRetrospective(suggestionId,crypto.randomUUID());
+      if(token!==generation)return;
+      if(response.status==='completed'){
+        message('该建议已有已保存的复盘结果，正在重新读取记录。');
+        await draw();
+        return;
+      }
+      if(!response.jobId){
+        message('服务端未返回可查询的复盘任务编号，请检查运行记录。');
+        return;
+      }
+      message('复盘请求已入队，正在检查执行进度。');
+      reviewPolling=true;
+      void pollReview(response.jobId,token);
+    }catch(error){
+      if(token===generation)message('复盘请求未完成：'+error.message);
+    }finally{
+      busy=false;
+      if(button?.isConnected)button.disabled=false;
+    }
   }
-  return {draw,dispose};
+  async function pollReview(id,token){
+    if(token!==generation)return;
+    try{
+      const job=await getJobStatus(id);
+      if(token!==generation)return;
+      if(job.state==='completed'){
+        reviewPolling=false;
+        reviewTimer=null;
+        message('复盘已完成，正在更新复盘记录。');
+        await draw();
+        return;
+      }
+      if(job.state==='failed')throw Error(job.error||'复盘失败');
+      const progress=Number(job.progress);
+      message('复盘状态：'+(Number.isFinite(progress)?'进度 '+Math.max(0,Math.min(100,progress))+'%':'等待执行结果')+'。可能产生模型费用。');
+      reviewTimer=setTimeout(()=>pollReview(id,token),3000);
+    }catch(error){
+      reviewPolling=false;
+      reviewTimer=null;
+      if(token===generation)message('复盘状态读取失败：'+error.message+'。不会自动重新发起复盘。');
+    }
+  }
+    return {draw,dispose};
 }
