@@ -10,9 +10,7 @@
 }
 #la-studio .app-sidebar { position:fixed; z-index:30; inset:0 auto 0 0; width:var(--ui-sidebar-width); box-sizing:border-box; display:flex; flex-direction:column; overflow-y:auto; background:var(--workspace-sidebar); border-right:1px solid var(--a-border); padding:24px 16px 16px; }
 #la-studio .sidebar-brand { padding:0 8px 26px; display:grid; gap:8px; }
-#la-studio .sidebar-brand img { width:145px; height:auto; }
 #la-studio .sidebar-brand span,#la-studio .sidebar-caption,#la-studio .sidebar-bottom { color:var(--a-muted); font-size:10px; letter-spacing:.1em; font-weight:650; }
-#la-studio .a-topnav { display:grid; gap:4px; }
 #la-studio .a-topnav .a-nav { width:100%; border:0; text-align:left; color:var(--a-muted); font-size:14px; padding:10px 12px; border-radius:8px; }
 #la-studio .a-topnav .a-nav[aria-pressed=true] { color:var(--a-text); background:var(--ui-surface-raised); box-shadow:inset 3px 0 var(--ui-accent-strong); }
 #la-studio .sidebar-caption { margin:24px 12px 8px; }
@@ -80,7 +78,7 @@
 #la-studio .a-scroll { max-width:100%; overflow:auto; }
 #la-studio .a-scroll table { min-width:max-content; }
 #la-studio :is(.a-card,.a-config) :is(p,td,th) { overflow-wrap:anywhere; }
-#la-studio :is(.a-button,button,select,input,textarea):focus-visible { outline:2px solid #91a6ff; outline-offset:2px; }
+#la-studio :is(.a-button,button,select,input,textarea):focus-visible { outline:2px solid var(--ui-border-focus); outline-offset:2px; }
 #la-studio [role="alert"] { color:#ffaaa9; }
 #la-studio .ai-history-list { display:grid; gap:8px; margin-top:16px; }
 #la-studio .ai-history-row {
@@ -213,7 +211,7 @@ html:has(#la-studio) > body { padding:0 !important; background:#0b0f17 !importan
   #la-studio .toolbar-title {
     font-size: 13px;
     font-weight: 600;
-    color: #b6c3d7;
+    color: var(--a-text);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -228,8 +226,8 @@ html:has(#la-studio) > body { padding:0 !important; background:#0b0f17 !importan
   }
   #la-studio .a-scroll {
     border: 1px solid var(--a-border);
-    border-radius: 8px;
-    background: #121a27;
+    border-radius: var(--ui-radius-sm);
+    background: var(--ui-input-bg);
   }
   #la-studio .a-scroll table {
     border-collapse: separate;
@@ -241,17 +239,17 @@ html:has(#la-studio) > body { padding:0 !important; background:#0b0f17 !importan
     position: sticky;
     top: 0;
     z-index: 2;
-    background: #202c3d;
-    color: #d4dfef;
+    background: var(--ui-surface-hover);
+    color: var(--a-text);
     font-weight: 650;
     white-space: nowrap;
-    box-shadow: inset 0 -1px #38465d;
+    box-shadow: inset 0 -1px var(--a-border);
   }
   #la-studio .a-scroll tbody tr:hover > td {
-    background: #1d2a3b;
+    background: var(--ui-surface-raised);
   }
   #la-studio .a-scroll tbody tr:focus-within > td {
-    background: #22334b;
+    background: var(--ui-surface-selected);
   }
   #la-studio .a-scroll :is(td,th) {
     font-variant-numeric: tabular-nums;
