@@ -218,3 +218,35 @@ test('server checkpoint changing before paid retry blocks it without dispatch',a
  expect(t.message.textContent).toContain('禁止直接重试')
  t.page.dispose()
 })
+
+test('a slow prior detail response cannot overwrite a more recent selection request',async()=>{
+  const t=setup()
+  await t.page.draw()
+  let resolveOlder
+  api.getAnalysisDetail.mockImplementationOnce(()=>new Promise(resolve=>{resolveOlder=resolve}))
+    .mockResolvedValueOnce({id:'a',title:'NEW RESULT',status:'completed',
+      result:{summary:'Newest metrics'},suggestions:[]})
+  const old=t.button.onclick()
+  await Promise.resolve()
+  const newer=t.button.onclick()
+  await newer
+  resolveOlder({id:'a',title:'STALE RESULT',status:'processing',suggestions:[]})
+  await old
+  expect(t.panel.innerHTML).toContain('NEW RESULT')
+  expect(t.panel.innerHTML).toContain('Newest metrics')
+  expect(t.panel.innerHTML).not.toContain('STALE RESULT')
+  t.page.dispose()
+})
+
+test('a missing detail shows an explicit read-only retry rather than the prior task actions',async()=>{
+  const t=setup()
+  await t.page.draw()
+  api.getAnalysisDetail.mockRejectedValueOnce(Error('detail temporarily unavailable'))
+  await t.button.onclick()
+  expect(t.panel.innerHTML).toContain('分析详情加载失败')
+  expect(t.panel.innerHTML).toContain('detail temporarily unavailable')
+  expect(t.panel.innerHTML).toContain('data-ai-detail-retry')
+  expect(t.panel.innerHTML).not.toContain('data-suggestion=')
+  expect(api.retryAnalysis).not.toHaveBeenCalled()
+  t.page.dispose()
+})
