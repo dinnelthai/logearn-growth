@@ -122,12 +122,29 @@ export function createAIAnalysis(ctx){
              ${monitorControl.enabled&&!monitorControl.workerOnline?'（已保存开启状态，但后端定时器未就绪）':''}</p>
           ${monitorControl.lastScanAt?'<p>最近扫描：'+esc(new Date(monitorControl.lastScanAt).toLocaleString('zh-CN'))+
             ' · '+esc(monitorControl.lastScanStatus||'未知')+'</p>':'<p>暂无定时扫描记录。</p>'}
+          ${(monitorControl.lastScanSummary?.goals||[]).map(g=>`
+            <article class="a-card">
+              <strong>${esc(g.goal==='activation'?'拉新 / 激活':g.goal==='retention'?'留存':'其他')} ·
+                ${esc(g.currentDay||'未取得数据')}</strong>
+              <p>观测状态：${esc(g.status==='scanned'?'通过数据完整性校验':
+                g.status==='coverage-unverified'?'数据覆盖尚未验证':
+                g.status==='error'?'查询错误':g.status||'未知')}
+                ${g.channelQuality==='truncated'?' · 渠道拆分超出限制':''}</p>
+              ${(g.changes||[]).map(c=>`
+                <p>${esc(c.metric)}：${esc(c.baseline)} → ${esc(c.current)}
+                   （${esc(c.delta>=0?'+':'')}${esc(c.delta)}；${c.relativeChange==null?'无可比基数':esc((c.relativeChange*100).toFixed(1))+'%'}）
+                   ${g.dataQuality?.complete?'':' · 仅供观察，不能确认真实下降'}</p>
+                ${(c.bySource||[]).slice(0,3).map(x=>`<small>${esc(x.source)}：
+                   ${esc(x.baseline)} → ${esc(x.current)}（${esc(x.delta>=0?'+':'')}${esc(x.delta)}）</small>`).join('')}
+              `).join('')}
+              ${g.reason?'<p>'+esc(g.reason)+'</p>':''}
+            </article>`).join('')}
           ${monitorControl.allowed===false&&!monitorControl.error?'<p>此账号尚未获得监控授权，请在服务器配置允许的账号。</p>':''}
           <button class="a-button" type="button" data-monitor-toggle
             ${!monitorControl.allowed||monitorControl.error?'disabled':''}>
             ${monitorControl.enabled?'关闭自动监控':'开启自动监控'}
           </button>
-          <p>开关保存在服务器。后台每天曼谷时间 10:30 扫描已有完整日报；不需要额外 Worker。关闭后不再开始新的扫描，正在执行的一次可能完成。</p>
+          <p>开关保存在服务器。后台每天曼谷时间 10:30 直接读取现有增长数据，无需预先生成付费 AI 日报，也不需要额外 Worker。关闭后不再开始新的扫描，正在执行的一次可能完成。</p>
         </section>
         <section class="a-card"><h2>跨日增长告警</h2>
         <p>基于相邻完整业务日、相同目标和采集范围的已保存结果；仅提示观测变化，不宣称因果。扫描不调用 AI。</p>
