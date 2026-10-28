@@ -3,11 +3,11 @@ vi.mock('../../api/aiAnalysis.js',()=>({createBusinessAnalysis:vi.fn(),getAnalys
 import * as api from '../../api/aiAnalysis.js'
 import {createAIAnalysis} from '../../pages/aiAnalysis.js'
 function setup({withTimeline=false,withGsc=false}={}){
- const button={dataset:{analysis:'a'}},cancel={isConnected:true,addEventListener(_event,fn){this.click=fn}},checkpoint={textContent:'',after(el){this.button=el}},message={textContent:''};
+ const button={dataset:{analysis:'a'}},cancel={isConnected:true,addEventListener(_event,fn){this.click=fn}},retry={disabled:false,textContent:''},checkpoint={textContent:'',after(el){this.button=el}},message={textContent:''};
  const heading={textContent:''}, summary={textContent:''};
  const timeline={innerHTML:'',textContent:'',querySelector(){return null}};
  const caseButton={dataset:{caseTimeline:'proposal-1'},disabled:false,isConnected:true};
- const panel={isConnected:true,innerHTML:'',querySelector(s){return ({'[data-checkpoint-result]':checkpoint,'[data-cancel-analysis]':cancel,'[data-resume-analysis]':checkpoint.button,'[data-detail-title]':heading,'[data-detail-summary]':summary})[s]||null},querySelectorAll(){return []}};
+ const panel={isConnected:true,innerHTML:'',querySelector(s){return ({'[data-checkpoint-result]':checkpoint,'[data-cancel-analysis]':cancel,'[data-resume-analysis]':checkpoint.button,'[data-detail-title]':heading,'[data-detail-summary]':summary,'[data-retry-analysis]':retry})[s]||null},querySelectorAll(){return []}};
  const nodes={'[data-detail]':panel,'[data-ai-message]':message,'[data-health]':{},'[data-refresh]':{},'[data-ai-form]':{}};
  const gscButton={disabled:false,isConnected:true};
  const monitorButton={disabled:false,isConnected:true};nodes['[data-monitor-toggle]']=monitorButton;
@@ -30,14 +30,14 @@ function setup({withTimeline=false,withGsc=false}={}){
 
  api.getAnalysisDetail.mockResolvedValue({id:'a',title:'task',status:'processing',suggestions:[]});
  api.getJobCheckpoint.mockResolvedValue({recordStatus:'processing',leaseExpired:true,completedRounds:1,completedTools:0,pendingTools:0});
- const page=createAIAnalysis({$:()=>host,esc:s=>String(s??'')});return {page,button,cancel,checkpoint,message,panel,caseButton,timeline,host,gscButton,monitorButton,heading,summary};
+ const page=createAIAnalysis({$:()=>host,esc:s=>String(s??'')});return {page,button,cancel,retry,checkpoint,message,panel,caseButton,timeline,host,gscButton,monitorButton,heading,summary};
 }
 afterEach(()=>{vi.restoreAllMocks();vi.unstubAllGlobals()})
 test('expired task can request recovery and displays the cost notice',async()=>{
  const t=setup();api.resumeAnalysis.mockResolvedValue({notice:'可能产生费用'});await t.page.draw();await t.button.onclick();await vi.waitFor(()=>expect(t.checkpoint.button).toBeTruthy());await t.checkpoint.button.onclick();expect(api.resumeAnalysis).toHaveBeenCalledWith('a');expect(t.message.textContent).toBe('可能产生费用');t.page.dispose();
 });
 test('cancel sends the selected task and refreshes its status',async()=>{
- const t=setup();api.cancelAnalysis.mockResolvedValue({});await t.page.draw();await t.button.onclick();await t.cancel.click({currentTarget:t.cancel});expect(api.cancelAnalysis).toHaveBeenCalledWith('a');expect(api.getAnalysisDetail).toHaveBeenCalledTimes(2);t.page.dispose();
+ const t=setup();api.cancelAnalysis.mockResolvedValue({});await t.page.draw();await t.button.onclick();await t.cancel.click({currentTarget:t.cancel});expect(api.cancelAnalysis).toHaveBeenCalledWith('a');expect(api.getAnalysisDetail).toHaveBeenCalledTimes(3);t.page.dispose();
 });
 test('active lease does not offer recovery',async()=>{
  const t=setup();api.getJobCheckpoint.mockResolvedValue({recordStatus:'processing',leaseExpired:false,completedRounds:0,completedTools:0,pendingTools:0});await t.page.draw();await t.button.onclick();await vi.waitFor(()=>expect(t.checkpoint.textContent).toContain('已保存模型轮次'));expect(t.checkpoint.button).toBeUndefined();t.page.dispose();
@@ -168,3 +168,26 @@ test('expired task with incomplete tools does not offer automatic recovery',asyn
  await t.page.draw();await t.button.onclick();await vi.waitFor(()=>expect(t.checkpoint.textContent).toContain('调查工具执行不完整'));
  expect(t.checkpoint.button).toBeUndefined();expect(api.resumeAnalysis).not.toHaveBeenCalled();t.page.dispose();
 });
+
+test('failed AI task keeps retry disabled until a safe checkpoint is verified',async()=>{
+ const t=setup()
+ api.getAnalysisList.mockResolvedValue({records:[{id:'a',title:'failed task',status:'failed'}]})
+ api.getAnalysisDetail.mockResolvedValue({id:'a',title:'failed task',status:'failed',suggestions:[]})
+ api.getJobCheckpoint.mockResolvedValue({recordStatus:'failed',state:'blocked',reason:'unresolved-paid-call',pendingTools:0,requiresHumanReview:true})
+ await t.page.draw()
+ await vi.waitFor(()=>expect(t.retry.textContent).toBe('暂不可安全重试'))
+ expect(t.retry.disabled).toBe(true)
+ expect(api.retryAnalysis).not.toHaveBeenCalled()
+ t.page.dispose()
+})
+test('verified failed task explicitly offers retry without starting it on read',async()=>{
+ const t=setup()
+ api.getAnalysisList.mockResolvedValue({records:[{id:'a',title:'failed task',status:'failed'}]})
+ api.getAnalysisDetail.mockResolvedValue({id:'a',title:'failed task',status:'failed',suggestions:[]})
+ api.getJobCheckpoint.mockResolvedValue({recordStatus:'failed',state:'ready',pendingTools:0,requiresHumanReview:false})
+ await t.page.draw()
+ await vi.waitFor(()=>expect(t.retry.textContent).toContain('可能付费'))
+ expect(t.retry.disabled).toBe(false)
+ expect(api.retryAnalysis).not.toHaveBeenCalled()
+ t.page.dispose()
+})
