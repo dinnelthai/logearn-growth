@@ -46,7 +46,7 @@ const notes=new Set(['definition','warnings','warning','reason','error','interpr
  'priorityExplanation','scoreExplanation','summary','note','description',
  'notAvailableReason','coverageNote','qualityNote']);
 const groups=new Set(['totals','days','growth','change','dimensions','channels','associations',
- 'groups','cohorts','families','quality','coverage','diagnostic_coverage',
+ 'groups','cohorts','families','versions','quality','coverage','diagnostic_coverage',
  'activation_interval','retention_interval','interval','stages','steps','drops',
  'product_chain','first_value','trade','d7','d30','registration','attribution',
  'funnels','paths','pages','summary','sample','byCurrency','trends','rates','counts',
@@ -82,7 +82,8 @@ function statView(value,{depth=0,maxRows=MAX_GROUPS}={}){
  for(const [key,v] of Object.entries(value)){
   if(key==='rows'||key==='lists'||key==='members'||key==='userIds'||
     key==='user_ids'||key==='events'||key==='raw'||key==='payload'||
-    key==='list_key'||key==='usersById'||key==='user_key'){
+    key==='list_key'||key==='usersById'||key==='user_key'||
+    (key==='events'&&v&&typeof v==='object')){
    hidden++;continue;
   }
   if(Array.isArray(v)){
@@ -92,6 +93,14 @@ function statView(value,{depth=0,maxRows=MAX_GROUPS}={}){
   if(v&&typeof v==='object'){
    if(!groups.has(key)){hidden++;continue}
    result[key]=statView(v,{depth:depth+1,maxRows});continue;
+  }
+  // A dimension bucket's textual category is meaningful business metadata,
+  // but it is never an arbitrary row identity or account string.
+  if(key==='value'&&typeof v==='string'&&
+   (typeof value.current==='number'||typeof value.previous==='number'||
+    typeof value.users==='number')){
+   result.value=safeText(v,80);
+   continue;
   }
   const safe=primitive(v,key);
   if(safe===undefined){hidden++;continue}
