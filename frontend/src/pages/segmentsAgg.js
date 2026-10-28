@@ -1,4 +1,5 @@
 import {createSegmentInsightsPage} from './segmentInsights.js'
+import {viewState} from '../components/viewStates.js'
 import { fetchSegmentsMetrics } from '../api/metrics.js'
 import { fetchDrillUsers, fetchUserTimeline } from '../api/drill.js'
 import { mountComparisonAgg } from '../comparison/panelAgg.js'
@@ -57,7 +58,8 @@ export function createSegmentsAggPage(ctx) {
         metrics=previousMetrics
         $('#as-data-status').textContent='数据更新失败 · 保留上次结果：'+(err.message||err)
       }else{
-      $('#as-output').innerHTML = `<div class="a-card"><h2>分群加载失败</h2><p>${esc(err.message || err)}</p></div>`
+      $('#as-output').innerHTML = viewState({kind:'error',title:'分群加载失败',description:err.message||String(err),actionLabel:'重新运行',actionAttr:'data-segments-retry'});
+      $('#as-output').querySelector('[data-segments-retry]')?.addEventListener('click',()=>draw(c))
       return
       }
     }
