@@ -44,6 +44,9 @@ async function runOnce({control=createMonitorControl(),
      console.error('[growth-monitor]',goal,error.message);
     }
    }
+   // If the operator disabled this account while we were processing the list,
+   // do not rewrite its last real scan record with a synthetic skipped run.
+   if(goalSummary.every(g=>g.status==='disabled'))continue;
    try{await control.recordScan(ownerId,{status:errors&&goalSummary.some(x=>x.status==='error')?'error':
     goalSummary.some(x=>x.status==='scanned')?'scanned':'skipped',
     summary:{goals:goalSummary}})}
