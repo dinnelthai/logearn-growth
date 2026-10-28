@@ -31,14 +31,18 @@ function setup({withTimeline=false,withGsc=false}={}){
  const page=createAIAnalysis({$:()=>host,esc:s=>String(s??'')});return {page,button,cancel,checkpoint,message,panel,caseButton,timeline,host,gscButton};
 }
 afterEach(()=>{vi.restoreAllMocks();vi.unstubAllGlobals()})
-test('expired task can request recovery and displays the cost notice',async()=>{
- const t=setup();api.resumeAnalysis.mockResolvedValue({notice:'可能产生费用'});await t.page.draw();await t.button.onclick();await vi.waitFor(()=>expect(t.checkpoint.button).toBeTruthy());await t.checkpoint.button.onclick();expect(api.resumeAnalysis).toHaveBeenCalledWith('a');expect(t.message.textContent).toBe('可能产生费用');t.page.dispose();
+test('expired or blocked task displays human-review state without offering unsafe resume',async()=>{
+ const t=setup();await t.page.draw();await t.button.onclick();
+ expect(t.panel.innerHTML).toContain('需要人工处理');
+ expect(t.panel.innerHTML).not.toContain('data-resume-analysis');
+ expect(api.resumeAnalysis).not.toHaveBeenCalled();
+ t.page.dispose();
 });
-test('cancel sends the selected task and refreshes its status',async()=>{
- const t=setup();api.cancelAnalysis.mockResolvedValue({});await t.page.draw();await t.button.onclick();await t.cancel.click({currentTarget:t.cancel});expect(api.cancelAnalysis).toHaveBeenCalledWith('a');expect(api.getAnalysisDetail).toHaveBeenCalledTimes(2);t.page.dispose();
+test('cancel sends an active task and refreshes its persisted status',async()=>{
+ const t=setup();api.getJobCheckpoint.mockResolvedValue({recordStatus:'processing',leaseExpired:false,completedRounds:0,completedTools:0,pendingTools:0});api.cancelAnalysis.mockResolvedValue({});await t.page.draw();await t.button.onclick();await t.cancel.click({currentTarget:t.cancel});expect(api.cancelAnalysis).toHaveBeenCalledWith('a');expect(api.getAnalysisDetail).toHaveBeenCalledTimes(2);t.page.dispose();
 });
 test('active lease does not offer recovery',async()=>{
- const t=setup();api.getJobCheckpoint.mockResolvedValue({recordStatus:'processing',leaseExpired:false,completedRounds:0,completedTools:0,pendingTools:0});await t.page.draw();await t.button.onclick();await vi.waitFor(()=>expect(t.checkpoint.textContent).toContain('已保存模型轮次'));expect(t.checkpoint.button).toBeUndefined();t.page.dispose();
+ const t=setup();api.getJobCheckpoint.mockResolvedValue({recordStatus:'processing',leaseExpired:false,completedRounds:0,completedTools:0,pendingTools:0});await t.page.draw();await t.button.onclick();await vi.waitFor(()=>expect(t.checkpoint.textContent).toContain('已记录轮次'));expect(t.checkpoint.button).toBeUndefined();t.page.dispose();
 });
 test('unauthorized checkpoint errors remain visible without a recovery button',async()=>{
  const t=setup();api.getJobCheckpoint.mockRejectedValue(Error('HTTP 403'));await t.page.draw();await t.button.onclick();await vi.waitFor(()=>expect(t.checkpoint.textContent).toContain('HTTP 403'));expect(t.checkpoint.button).toBeUndefined();t.page.dispose();
