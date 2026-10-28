@@ -122,7 +122,7 @@ jobs:
         env:
           NODE_ENV: test
         run: |
-          node --test test/agentFoundation.test.js test/agentFollowupRunner.test.js test/agentCapabilityContext.test.js test/agentContextBudget.test.js test/modelEvidenceCompact.test.js test/agentTokenFollowup.test.js test/batchAnomalies.test.js test/aiUsageBudget.test.js test/aiRelayProvider.test.js test/growthCostAudit.test.js test/growthSharedReport.test.js test/growthSharedDailyDispatch.test.js test/growthSharedSnapshotCache.test.js test/hologresExplain.test.js test/growthEfficiencyAudit.test.js test/growthDailySignalGate.test.js test/aiCostUnknownGuard.test.js test/growthWorkspaceHttp.test.js test/growthWorkspaceMetric.test.js
+          node --test test/agentFoundation.test.js test/agentFollowupRunner.test.js test/agentCapabilityContext.test.js test/agentContextBudget.test.js test/modelEvidenceCompact.test.js test/agentTokenFollowup.test.js test/batchAnomalies.test.js test/aiUsageBudget.test.js test/aiRelayProvider.test.js test/growthCostAudit.test.js test/growthCrossDay.test.js test/growthAlertMonitorScheduler.test.js test/growthDiagnosis.test.js test/growthInbox.test.js test/growthSharedReport.test.js test/growthSharedDailyDispatch.test.js test/growthSharedSnapshotCache.test.js test/hologresExplain.test.js test/growthEfficiencyAudit.test.js test/growthDailySignalGate.test.js test/aiCostUnknownGuard.test.js test/growthWorkspaceHttp.test.js test/growthWorkspaceMetric.test.js
 
   ai-integration:
     runs-on: ubuntu-latest
@@ -166,7 +166,7 @@ jobs:
           AI_P0_INTEGRATION: '1'
           AI_DATABASE_URL: postgres://ci:ci@localhost:5432/ai_test
           REDIS_URL: redis://localhost:6379
-        run: node --test --test-concurrency=1 test/hologresStatusParityIntegration.test.js test/growthSharedRedisIntegration.test.js test/autonomyBudgetIntegration.test.js test/growthAgentForecastIntegration.test.js test/growthAgentOutboxIntegration.test.js test/growthSchedulerHealthIntegration.test.js test/growthAutonomyIntegration.test.js test/aiMigrationIntegration.test.js test/gscIntegration.test.js test/growthSeoIntegration.test.js test/growthAlertIntegration.test.js test/growthProposalIntegration.test.js test/growthBudgetIntegration.test.js test/workerLeaseIntegration.test.js
+        run: node --test --test-concurrency=1 test/hologresStatusParityIntegration.test.js test/growthSharedRedisIntegration.test.js test/autonomyBudgetIntegration.test.js test/growthAgentForecastIntegration.test.js test/growthAgentOutboxIntegration.test.js test/growthSchedulerHealthIntegration.test.js test/growthAutonomyIntegration.test.js test/aiMigrationIntegration.test.js test/gscIntegration.test.js test/growthSeoIntegration.test.js test/growthAlertIntegration.test.js test/growthDiagnosticE2eIntegration.test.js test/growthProposalIntegration.test.js test/growthBudgetIntegration.test.js test/workerLeaseIntegration.test.js
 
   ai-frontend:
     runs-on: ubuntu-latest

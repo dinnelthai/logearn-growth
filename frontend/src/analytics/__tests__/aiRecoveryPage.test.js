@@ -117,3 +117,20 @@ test('autonomous Growth panel distinguishes an unscored daily report from invent
  expect(api.createBusinessAnalysis).not.toHaveBeenCalled();
  t.page.dispose();
 });
+
+test('proposal cards bind the real case ID and distinguish traceable evidence from missing coverage',async()=>{
+ const t=setup();
+ api.getGrowthInvestigations.mockResolvedValue({proposals:[{
+  id:'proposal-1',metric:'new_users',source:'seo',status:'proposed',version:1,
+  period_end:Date.parse('2026-10-27T17:00:00Z'),evidence:{baseline:100,observed:60},
+  diagnosis:{dataQuality:{status:'traceable-observation'},
+   observation:{baseline:100,current:60}}
+ }]});
+ await t.page.draw();
+ expect(t.host.innerHTML).toContain('data-case-timeline="proposal-1"');
+ expect(t.host.innerHTML).toContain('原始日报与快照可追溯');
+ expect(t.host.innerHTML).toContain('已观察：100 → 60');
+ expect(t.host.innerHTML).toContain('原因未知');
+ expect(api.createBusinessAnalysis).not.toHaveBeenCalled();
+ t.page.dispose();
+});
