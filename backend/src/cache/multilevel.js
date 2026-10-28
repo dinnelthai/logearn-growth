@@ -3,7 +3,7 @@
 const {immutable,getSharedStore}=require('./snapshotShared');
 const MAX_KEYS=256, MAX_BYTES=64*1024*1024,MAX_VALUE_BYTES=4*1024*1024;
 function createCache({shared=null,clock=Date.now}={}){
- const entries=new Map(),pending=new Map();
+ const entries=new Map(),pending=new Map(),keyVersions=new Map();
  let bytes=0,generation=0;
  const stats={hits:0,misses:0,sets:0,l2Hits:0,l2Misses:0,l2Errors:0};
  function remove(key){const v=entries.get(key);if(v){bytes-=v.size;entries.delete(key)}}
@@ -49,15 +49,16 @@ function createCache({shared=null,clock=Date.now}={}){
  }
  async function del(key){
   remove(key);pending.delete(key);
+  keyVersions.set(key,(keyVersions.get(key)||0)+1);
   if(shared&&immutable(key))try{await shared.del(key)}catch{stats.l2Errors++}
  }
  async function cached(key,fn,{ttl=30}={}){
   const found=await get(key);
   if(found)return found.value;
   if(pending.has(key))return pending.get(key);
-  const epoch=generation;
+  const epoch=generation,version=keyVersions.get(key)||0;
   const promise=Promise.resolve().then(fn).then(async value=>{
-   if(epoch===generation&&pending.get(key)===promise)await set(key,value,ttl);
+   if(epoch===generation&&(keyVersions.get(key)||0)===version&&pending.get(key)===promise)await set(key,value,ttl);
    return value;
   }).finally(()=>{if(pending.get(key)===promise)pending.delete(key)});
   pending.set(key,promise);
@@ -71,7 +72,7 @@ function createCache({shared=null,clock=Date.now}={}){
    total:{sets:stats.sets,pendingRequests:pending.size}};
  }
  function resetStats(){for(const k of Object.keys(stats))stats[k]=0}
- function flush(){generation++;entries.clear();pending.clear();bytes=0}
+ function flush(){generation++;entries.clear();pending.clear();keyVersions.clear();bytes=0}
  return {get,set,del,cached,getStats,resetStats,flush,l1:{get:read}};
 }
 const current=createCache({shared:getSharedStore()});
