@@ -156,7 +156,7 @@ jobs:
           AI_P0_INTEGRATION: '1'
           AI_DATABASE_URL: postgres://ci:ci@localhost:5432/ai_test
           REDIS_URL: redis://localhost:6379
-        run: node --test --test-concurrency=1 test/autonomyBudgetIntegration.test.js test/growthAgentForecastIntegration.test.js test/growthAgentOutboxIntegration.test.js test/growthSchedulerHealthIntegration.test.js test/growthAutonomyIntegration.test.js test/aiMigrationIntegration.test.js test/gscIntegration.test.js test/growthSeoIntegration.test.js test/growthAlertIntegration.test.js test/growthProposalIntegration.test.js test/growthBudgetIntegration.test.js test/workerLeaseIntegration.test.js
+        run: node --test --test-concurrency=1 test/hologresStatusParityIntegration.test.js test/autonomyBudgetIntegration.test.js test/growthAgentForecastIntegration.test.js test/growthAgentOutboxIntegration.test.js test/growthSchedulerHealthIntegration.test.js test/growthAutonomyIntegration.test.js test/aiMigrationIntegration.test.js test/gscIntegration.test.js test/growthSeoIntegration.test.js test/growthAlertIntegration.test.js test/growthProposalIntegration.test.js test/growthBudgetIntegration.test.js test/workerLeaseIntegration.test.js
 
   ai-frontend:
     runs-on: ubuntu-latest
