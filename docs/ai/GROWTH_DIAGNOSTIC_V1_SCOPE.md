@@ -35,3 +35,26 @@
 - 业务日志可追溯至 owner、原始快照和异常期间。
 - 没有真实标注异常样本时，不能宣称诊断准确率或业务提升，只能确认测试契约。
 - 达到范围内验收即冻结 V1；另起 issue 才能新增需求。
+
+## 启用方式和回滚（保持默认 OFF）
+
+现有进程：`cd backend && npm run worker:growth-monitor`。
+只有设置 `AI_GROWTH_ALERT_MONITOR_ENABLED=1` 才真正调度；`--dry-run` 只校验目标/用户配置，绝不查询或写入业务数据。
+`AI_DAILY_OWNER_IDS` 是经过授权的账户列表；`AI_GROWTH_ALERT_GOALS=activation,retention` 可同时扫描核心目标。
+不配置此新环境变量时沿用旧 `AI_DAILY_GOAL`；也未配置则默认检查 activation 与 retention。
+`AI_GROWTH_ALERT_SOURCE` 可单独指定监控来源，未设置则使用 `AI_DAILY_SOURCE` 或 `all`。
+继续用原有 Postgres 告警表和告警审批接口；不引入新数据库或模型供应商。
+
+- 拉新：`new_users` 是首次观测到筹码分析，**不是新注册**；激活一侧同时监测 `active_users`。
+- 留存：当前无人值守告警只对 `returning_users` 人数变化进行保守检测。D7 成熟留存率和 24h 激活率可在现有业务报告 / 人工批准的深度调查中查看，但尚未加入无人值守跨日比例异常判定，以避免不同 Cohort 的分母错比。
+- 发现异常后写入原有 `ai_growth_alerts`、`ai_growth_investigation_proposals`；相同告警按稳定 fingerprint 更新，提案只能人工批准付费分析。
+- 新增 `diagnosis` 仅提出应该核查的事实与问题，没有自动制定运营方案。
+- 如监控造成错误：删除/关闭 `AI_GROWTH_ALERT_MONITOR_ENABLED` 即停止新扫描；已有告警不自动删除，需人工审阅。
+
+## 测试证据与尚缺真实验收
+
+GitHub PR #11 的 ai-contract、ai-integration（PostgreSQL + Redis）和 ai-frontend 应全部成功。
+其中新集成用例 `growthDiagnosticE2eIntegration.test.js` 验证：完整日报、跨日下降、持久告警、提案去重、Inbox 单条审批、人为批准后的“等待派发”、跨用户隔离和零自动付费调用。
+现有行动状态机、待复盘队列与调查时间线测试仍然是人工执行/复盘的权威实现，**不重复新建行动系统**。
+
+生产环境数据质量、误报率、成熟 Cohort 比例、真实 AI 调查质量、部署进程是否运行，均需要独立观察，CI 测试不能代替。
