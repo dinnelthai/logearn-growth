@@ -1,0 +1,59 @@
+/* Shared workspace shell and design tokens. Page-specific data styles remain scoped. */
+#la-studio {
+ --a-bg:#0b0f17; --a-panel:#151d29; --a-text:#f1f5f9; --a-muted:#94a3b8;
+ --a-border:#263244; --a-accent:#91a6ff; --a-tint:#263555; --a-shadow:transparent;
+ --workspace-sidebar:#0f1520; color-scheme:dark; background:var(--a-bg); color:var(--a-text);
+ min-height:100vh; padding:0 0 0 248px; border:0; border-radius:0;
+ font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+}
+#la-studio .app-sidebar { position:fixed; z-index:30; inset:0 auto 0 0; width:248px; box-sizing:border-box; display:flex; flex-direction:column; overflow-y:auto; background:var(--workspace-sidebar); border-right:1px solid var(--a-border); padding:24px 16px 16px; }
+#la-studio .sidebar-brand { padding:0 8px 26px; display:grid; gap:8px; }
+#la-studio .sidebar-brand img { width:145px; height:auto; }
+#la-studio .sidebar-brand span,#la-studio .sidebar-caption,#la-studio .sidebar-bottom { color:var(--a-muted); font-size:10px; letter-spacing:.1em; font-weight:650; }
+#la-studio .a-topnav { display:grid; gap:4px; }
+#la-studio .a-topnav .a-nav { width:100%; border:0; text-align:left; color:var(--a-muted); font-size:14px; padding:10px 12px; border-radius:8px; }
+#la-studio .a-topnav .a-nav[aria-pressed=true] { color:var(--a-text); background:#1c2635; box-shadow:inset 3px 0 #6d8cff; }
+#la-studio .sidebar-caption { margin:24px 12px 8px; }
+#la-studio .a-subnav { padding:0; border:0; background:transparent; min-height:0; }
+#la-studio .a-subnav > div:not([hidden]) { display:grid; gap:3px; }
+#la-studio .a-subnav .a-nav-sub { width:100%; text-align:left; color:var(--a-muted); padding:8px 12px; font-size:13px; }
+#la-studio .a-subnav .a-nav-sub[aria-pressed=true] { color:#d9e2ff; background:#263555; }
+#la-studio .sidebar-bottom { margin-top:auto; padding:32px 12px 0; }
+#la-studio .a-top { min-height:64px; box-sizing:border-box; padding:12px 32px; display:flex; gap:16px; border-bottom:1px solid var(--a-border); background:var(--a-bg); }
+#la-studio .toolbar-title { color:var(--a-muted); font-size:13px; flex:1; }
+#la-studio .sidebar-toggle { flex:none; min-width:36px; padding:6px; line-height:1; }
+#la-studio .a-head { padding:32px 32px 20px; }
+#la-studio .a-layout { padding:0 32px 32px; gap:24px; }
+#la-studio .a-layout > *,#la-studio .a-result,#la-studio #as-output { min-width:0; }
+#la-studio :is(.a-card,.a-config,.si-panel,.si-kpi,.home-kpi) { box-shadow:none; border-color:var(--a-border); border-radius:10px; }
+#la-studio :is(.a-card,.a-config,.si-panel) { background:var(--a-panel); }
+#la-studio :is(input,select,textarea):not([type=checkbox]):not([type=radio]) { color:var(--a-text); background:#101824; border:1px solid #344257; border-radius:7px; }
+#la-studio .a-button { box-shadow:none; border-radius:7px; border-color:#344257; }
+#la-studio .a-primary { background:#6d8cff; color:#0b0f17; border-color:#6d8cff; }
+#la-studio :is(button,input,select,textarea,summary,a):focus-visible { outline:2px solid #91a6ff; outline-offset:3px; }
+#la-studio button:disabled { opacity:.48; cursor:not-allowed; }
+#la-studio :is(th,td) { border-color:var(--a-border); }
+#la-studio .a-footer { margin:0 32px; color:var(--a-muted); }
+#la-studio.sidebar-collapsed { padding-left:0; }
+#la-studio.sidebar-collapsed .app-sidebar { display:none; }
+@media(max-width:900px){#la-studio{padding-left:0}#la-studio .app-sidebar{width:min(280px,85vw);box-shadow:0 8px 24px #0008}#la-studio.sidebar-collapsed .app-sidebar{display:none}#la-studio .a-top{padding:12px 16px}#la-studio .a-head{padding:24px 16px 16px}#la-studio .a-layout{padding:0 16px 24px}#la-studio .a-footer{margin:0 16px}}
+@media(max-width:600px){#la-studio .toolbar-title{display:none}#la-studio .a-top{gap:8px}#la-studio .a-badge{font-size:11px}#la-studio .a-layout{display:block}#la-studio .a-config{margin-bottom:16px}#la-studio .a-scroll{max-width:100%;overflow-x:auto}}
+#la-studio .sidebar-brand img { background:#fff; border-radius:5px; padding:5px; box-sizing:content-box; }
+#la-studio .ai-analysis-page { max-width:1500px; display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,340px); gap:16px; }
+#la-studio .ai-decision-hero,#la-studio .ai-status-grid,#la-studio .ai-new-analysis,#la-studio .ai-advanced { grid-column:1/-1; }
+#la-studio .ai-decision-hero { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:8px 0 12px; }
+#la-studio .ai-decision-hero h1 { margin:6px 0; }
+#la-studio .ai-decision-hero p { color:var(--a-muted); margin:0; }
+#la-studio .ai-eyebrow { color:#91a6ff; letter-spacing:.14em; font-size:11px; font-weight:700; }
+#la-studio .ai-status-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+#la-studio .ai-status-grid article { background:var(--a-panel); border:1px solid var(--a-border); border-radius:10px; padding:16px; display:grid; gap:8px; min-width:0; }
+#la-studio .ai-status-grid span,#la-studio .ai-status-grid small { color:var(--a-muted); font-size:12px; }
+#la-studio .ai-status-grid strong { font-size:18px; overflow-wrap:anywhere; }
+#la-studio .ai-result { grid-column:1; grid-row:4 / span 3; }
+#la-studio :is(.ai-history,.ai-review,.ai-review-history) { grid-column:2; }
+#la-studio .ai-analysis-page summary { cursor:pointer; font-weight:650; padding:4px 0; }
+#la-studio .ai-analysis-page form[data-ai-form] { grid-template-columns:repeat(2,minmax(0,1fr)); }
+#la-studio .ai-analysis-page form[data-ai-form] :is(p,textarea,button) { max-width:100%; }
+#la-studio .ai-analysis-page form[data-ai-form] label:has(textarea),#la-studio .ai-analysis-page form[data-ai-form] > p,#la-studio .ai-analysis-page form[data-ai-form] > button { grid-column:1/-1; }
+@media(max-width:1000px){#la-studio .ai-analysis-page{grid-template-columns:1fr}#la-studio .ai-result,#la-studio :is(.ai-history,.ai-review,.ai-review-history){grid-column:auto;grid-row:auto}#la-studio .ai-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){#la-studio .ai-status-grid{grid-template-columns:1fr 1fr}#la-studio .ai-analysis-page form[data-ai-form]{grid-template-columns:1fr}#la-studio .ai-decision-hero{align-items:flex-start;flex-direction:column}}

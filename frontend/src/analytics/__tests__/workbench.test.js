@@ -1,10 +1,12 @@
+vi.mock('../../api/aiAnalysis.js',()=>({getGrowthInbox:vi.fn().mockResolvedValue({tasks:[]})}))
 import {test,expect,vi,beforeEach} from 'vitest'
 vi.mock('../../api/userOperations.js',()=>({fetchWorkbench:vi.fn(),setFollowupStatus:vi.fn()}))
 import {fetchWorkbench,setFollowupStatus} from '../../api/userOperations.js'
+import {getGrowthInbox} from '../../api/aiAnalysis.js'
 import {createWorkbench} from '../../pages/workbench.js'
 const data={as_of:100,summary:{due:1,kol_due:0,activity_pending:0,activities_active:0,user_due:1,completed:0},tasks:[{id:'u1',type:'user',target:'user:1',title:'到期用户',description:'回看',status:'open',due_at:50},{id:'u2',type:'user',target:'user:2',title:'未来用户',description:'继续',status:'open',due_at:200}]}
 function setup(){const nodes={'[data-work-refresh]':{},'[data-work-prev]':{},'[data-work-next]':{},'[data-work-error]':{}},open={dataset:{workOpen:'u1'}},status={dataset:{workStatus:'u1'},isConnected:true};const host={innerHTML:'',querySelector:s=>nodes[s],querySelectorAll:s=>s==='[data-work-open]'?[open]:s==='[data-work-status]'?[status]:[]};const ctx={$:()=>host,esc:String,fmt:String,table:(_heads,rows)=>JSON.stringify(rows),clear:vi.fn(),openUserProfile:vi.fn()};return {page:createWorkbench(ctx),host,ctx,open,status}}
-beforeEach(()=>{vi.resetAllMocks();fetchWorkbench.mockResolvedValue(data)})
+beforeEach(()=>{vi.resetAllMocks();fetchWorkbench.mockResolvedValue(data);getGrowthInbox.mockResolvedValue({tasks:[]})})
 test('due view excludes future work and user action opens the unified profile',async()=>{const t=setup();await t.page.draw();expect(t.host.innerHTML).toContain('到期用户');expect(t.host.innerHTML).not.toContain('未来用户');t.open.onclick();expect(t.ctx.openUserProfile).toHaveBeenCalledWith('user:1')})
 test('a completed status refreshes workbench only while the page remains active',async()=>{let finish;setFollowupStatus.mockImplementation(()=>new Promise(r=>finish=r));const t=setup();await t.page.draw();const pending=t.status.onclick();t.page.dispose();t.host.innerHTML='different page';finish({});await pending;expect(fetchWorkbench).toHaveBeenCalledTimes(1);expect(t.host.innerHTML).toBe('different page')})
 test('late workbench responses cannot overwrite another page',async()=>{let finish;fetchWorkbench.mockImplementation(()=>new Promise(r=>finish=r));const t=setup(),pending=t.page.draw();t.page.dispose();t.host.innerHTML='new page';finish(data);await pending;expect(t.host.innerHTML).toBe('new page')})

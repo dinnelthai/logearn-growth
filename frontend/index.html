@@ -23,43 +23,22 @@
     <div id="app">
 <div id="la-studio">
 
-<div class="a-top"><div class="a-brand" aria-label="LogEarn"><img class="a-brandmark" src="/brand/logearn-official.svg" alt="LogEarn" width="171" height="36"></div><nav class="a-topnav" aria-label="主导航">
-<button class="a-nav cursor-interaction" data-section="overview" aria-pressed="true">总览</button>
+<aside class="app-sidebar" id="app-sidebar" aria-label="工作区导航"><div class="sidebar-brand"><img class="a-brandmark" src="/brand/logearn-official.svg" alt="LogEarn" width="171" height="36"><span>GROWTH WORKSPACE</span></div><nav class="a-topnav" aria-label="主导航"><button class="a-nav cursor-interaction" data-section="overview" aria-pressed="true">总览</button>
+<button class="a-nav cursor-interaction" data-section="analysis" aria-pressed="false">增长分析</button>
+<button class="a-nav cursor-interaction" data-section="agent" aria-pressed="false">AI Growth Agent</button>
 <button class="a-nav cursor-interaction" data-section="operations" aria-pressed="false">运营工作台</button>
-<button class="a-nav cursor-interaction" data-section="users" aria-pressed="false">用户</button>
-<button class="a-nav cursor-interaction" data-section="analysis" aria-pressed="false">数据分析</button>
-</nav><span id="as-data-badge" class="a-badge">数据加载中</span><button id="as-refresh-data" class="a-button cursor-interaction" hidden>刷新数据</button></div>
-<nav class="a-subnav" aria-label="总览页面" id="as-section-nav">
-<div data-navigation-section="overview">
-<button class="a-nav-sub cursor-interaction" data-mode="home" aria-pressed="true">平台概况</button>
-<button class="a-nav-sub cursor-interaction" data-mode="growth-insights" aria-pressed="false">增长诊断</button>
-<button class="a-nav-sub cursor-interaction" data-mode="north" aria-pressed="false">北极星指标</button>
-</div>
-<div data-navigation-section="operations" hidden>
-<button class="a-nav-sub cursor-interaction" data-mode="workbench" aria-pressed="false">待办</button>
-<button class="a-nav-sub cursor-interaction" data-mode="crm" aria-pressed="false">KOL CRM</button>
-<button class="a-nav-sub cursor-interaction" data-mode="content-growth" aria-pressed="false">内容渠道增长</button>
-<button class="a-nav-sub cursor-interaction" data-mode="follower-audit" aria-pressed="false">官方账号关注者</button>
-<button class="a-nav-sub cursor-interaction" data-mode="x-acquisition" aria-pressed="false">中文 KOL 画像</button>
-<button class="a-nav-sub cursor-interaction" data-mode="activities" aria-pressed="false">活动监控</button>
-<button class="a-nav-sub cursor-interaction" data-mode="ops" aria-pressed="false">OPS 工具</button>
-<button class="a-nav-sub cursor-interaction" data-mode="operations-compare" aria-pressed="false">效果对比</button>
-</div>
-<div data-navigation-section="users" hidden>
-<button class="a-nav-sub cursor-interaction" data-mode="segments" aria-pressed="false">用户与群组</button>
-</div>
-<div data-navigation-section="analysis" hidden>
-<button class="a-nav-sub cursor-interaction" data-mode="business-analysis" aria-pressed="false">业务优先级</button>
-<button class="a-nav-sub cursor-interaction" data-mode="growth-agent-control" aria-pressed="false">AI Growth Agent 控制台</button>
-<button class="a-nav-sub cursor-interaction" data-mode="ai-analysis" aria-pressed="false">AI 建议（可选）</button>
-<button class="a-nav-sub cursor-interaction" data-mode="channels" aria-pressed="false">获客</button>
-<button class="a-nav-sub cursor-interaction" data-mode="funnel" aria-pressed="false">转化</button>
-<button class="a-nav-sub cursor-interaction" data-mode="paths" aria-pressed="false">行为</button>
-<button class="a-nav-sub cursor-interaction" data-mode="retention" aria-pressed="false">留存</button>
-<button class="a-nav-sub cursor-interaction" data-mode="trade-monitor" aria-pressed="false">交易</button>
-<button class="a-nav-sub cursor-interaction" data-mode="value" aria-pressed="false" hidden>价值闭环</button>
-</div>
-</nav>
+<button class="a-nav cursor-interaction" data-section="users" aria-pressed="false">用户与分群</button>
+<button class="a-nav cursor-interaction" data-section="channels" aria-pressed="false">渠道与 SEO</button>
+<button class="a-nav cursor-interaction" data-section="settings" aria-pressed="false">系统设置</button>
+</nav><div class="sidebar-caption">当前模块</div><nav class="a-subnav" aria-label="总览页面" id="as-section-nav"><div data-navigation-section="overview"><button class="a-nav-sub cursor-interaction" data-mode="home" aria-pressed="true">平台概况</button><button class="a-nav-sub cursor-interaction" data-mode="growth-insights" aria-pressed="false">增长诊断</button><button class="a-nav-sub cursor-interaction" data-mode="north" aria-pressed="false">北极星指标</button></div>
+<div data-navigation-section="analysis" hidden><button class="a-nav-sub cursor-interaction" data-mode="business-analysis" aria-pressed="false">业务优先级</button><button class="a-nav-sub cursor-interaction" data-mode="funnel" aria-pressed="false">转化漏斗</button><button class="a-nav-sub cursor-interaction" data-mode="paths" aria-pressed="false">行为路径</button><button class="a-nav-sub cursor-interaction" data-mode="retention" aria-pressed="false">留存</button><button class="a-nav-sub cursor-interaction" data-mode="trade-monitor" aria-pressed="false">交易</button><button class="a-nav-sub cursor-interaction" data-mode="value" aria-pressed="false" hidden>价值闭环</button></div>
+<div data-navigation-section="agent" hidden><button class="a-nav-sub cursor-interaction" data-mode="ai-analysis" aria-pressed="false">AI 增长分析</button></div>
+<div data-navigation-section="operations" hidden><button class="a-nav-sub cursor-interaction" data-mode="workbench" aria-pressed="false">待办</button><button class="a-nav-sub cursor-interaction" data-mode="activities" aria-pressed="false">活动监控</button><button class="a-nav-sub cursor-interaction" data-mode="operations-compare" aria-pressed="false">效果对比</button><button class="a-nav-sub cursor-interaction" data-mode="ops" aria-pressed="false">OPS 工具</button></div>
+<div data-navigation-section="users" hidden><button class="a-nav-sub cursor-interaction" data-mode="segments" aria-pressed="false">用户与群组</button></div>
+<div data-navigation-section="channels" hidden><button class="a-nav-sub cursor-interaction" data-mode="channels" aria-pressed="false">来源质量</button><button class="a-nav-sub cursor-interaction" data-mode="crm" aria-pressed="false">KOL CRM</button><button class="a-nav-sub cursor-interaction" data-mode="content-growth" aria-pressed="false">内容渠道增长</button><button class="a-nav-sub cursor-interaction" data-mode="follower-audit" aria-pressed="false">官方账号关注者</button><button class="a-nav-sub cursor-interaction" data-mode="x-acquisition" aria-pressed="false">中文 KOL 画像</button></div>
+<div data-navigation-section="settings" hidden><button class="a-nav-sub cursor-interaction" data-mode="growth-agent-control" aria-pressed="false">AI 运行与治理</button></div>
+</nav><div class="sidebar-bottom">LOGEARN · GROWTH</div></aside>
+<header class="a-top"><button class="sidebar-toggle a-button" type="button" data-sidebar-toggle aria-controls="app-sidebar" aria-expanded="true" aria-label="收起导航">☰</button><span class="toolbar-title">增长运营工作区</span><span id="as-data-badge" class="a-badge">数据加载中</span><button id="as-refresh-data" class="a-button cursor-interaction" hidden>刷新数据</button></header>
 <nav id="as-acquisition-nav" class="a-acquisition-nav" aria-label="获客分析视图" hidden><button class="a-button" data-acquisition-view="channels">来源质量</button><button class="a-button" data-acquisition-view="referral">推荐贡献</button></nav>
 <nav id="as-conversion-nav" class="a-acquisition-nav" aria-label="转化分析视图" hidden><button class="a-button" data-conversion-view="funnel">通用漏斗</button><button class="a-button" data-conversion-view="login-conversion">登录转化</button><button class="a-button" data-conversion-view="invite-conversion">邀请转化</button></nav>
 <div class="a-head"><div><h1 id="as-title">北极星指标 · 有效分析用户</h1><p class="a-muted" id="as-sub">有多少用户真正获得了筹码分析的价值</p></div><div class="a-actions"><span id="as-saved" class="a-toast" aria-live="polite"></span><button id="as-restore" class="a-button cursor-interaction" hidden>载入保存</button><button id="as-save" class="a-button cursor-interaction">保存配置</button></div></div>

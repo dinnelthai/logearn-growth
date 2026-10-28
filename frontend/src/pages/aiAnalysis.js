@@ -25,7 +25,40 @@ export function createAIAnalysis(ctx){
     try{
       const [list,reviews,costs,reviewQueue,inbox,alertData,monitorControl,proposalData,noticeData,budgetData,seoData,gscConnection,gscSnapshot,agentStatus,agentTargets,agentBriefs,agentLearning]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]})),getGrowthAlerts().catch(error=>({alerts:[],error:error.message})),getGrowthMonitorControl().catch(error=>({allowed:false,enabled:false,error:error.message})),getGrowthInvestigations().catch(error=>({proposals:[],error:error.message})),getGrowthNotifications().catch(error=>({notifications:[],error:error.message})),getGrowthBudget().catch(error=>({limit:0,reservedCalls:0,remainingCalls:0,error:error.message})),getSeoImports().catch(error=>({imports:[],error:error.message})),getGscConnection().catch(error=>({configured:false,sites:[],error:error.message})),getGscPerformance().catch(error=>({available:false,error:error.message})),getAutonomyStatus().catch(error=>({schedulerConfigured:false,error:error.message})),getAutonomyTargets().catch(error=>({targets:[],supportedMetrics:[],error:error.message})),getAutonomyBriefs().catch(error=>({briefs:[],error:error.message})),getAutonomyLearning().catch(error=>({assessment:null,strategies:{},error:error.message}))]);
       if(token!==generation)return;
+      if(!selected&&list.records?.[0]&&['completed','failed'].includes(list.records[0].status))selected=list.records[0].id;
       host.innerHTML=`<div class="si-page ai-analysis-page">
+        <section class="ai-decision-hero"><div><span class="ai-eyebrow">GROWTH INTELLIGENCE</span><h1>增长决策工作台</h1><p>发现问题 · 核查证据 · 制定行动 · 持续复盘</p></div><a class="a-button a-primary" href="#ai-new-analysis">新建分析</a></section>
+        <div class="ai-status-grid" aria-label="经营与任务状态">
+          <article><span>最新分析</span><strong>${list.records?.length?esc(label(list.records[0].status)):'暂无数据'}</strong><small>${list.records?.length?esc(list.records[0].title):'发起分析后显示结果'}</small></article>
+          <article><span>Agent 调度</span><strong>${agentStatus.error?'状态未知':agentStatus.schedulerRunning?'运行中':agentStatus.schedulerConfigured?'未运行':'未启用'}</strong><small>模型调用需主动发起或明确配置</small></article>
+          <article><span>最新日报</span><strong>${agentBriefs.error?'状态未知':agentBriefs.briefs?.length?esc(agentBriefs.briefs[0].day):'暂无数据'}</strong><small>${agentBriefs.briefs?.length?esc(agentBriefs.briefs[0].status):'尚无已保存日报'}</small></article>
+          <article><span>待处理事项</span><strong>${inbox.warnings?.length?'状态待核查':esc(inbox.counts?.total??'暂无数据')}</strong><small>审批、执行、复盘与失败调查</small></article>
+        </div>
+        <details class="a-card ai-new-analysis" id="ai-new-analysis"><summary>新建分析</summary><h1>AI 业务增长助手</h1><p>主动发起分析，按业务证据排优先级；记录行动后主动复盘。所有分析与复盘均使用同一 DeRouter 模型。</p>
+        <p>累计调用 ${esc(costs.total_calls)} 次 · Token ${esc(costs.total_tokens??0)} · 估算费用 $${esc(costs.total_cost??0)}（${esc(costs.unknown_cost_calls??0)} 次调用费率未配置，金额不代表免费）</p>
+        <form data-ai-form><label>分析标题<input name="title" required maxlength="200" value="业务增长分析"></label>
+        <label>开始日期<input name="start" type="date" required value="${defaults.start}"></label>
+        <label>结束日期（含当日）<input name="end" type="date" required value="${defaults.end}"></label>
+        <label>来源<input name="source" value="all" maxlength="200" placeholder="all 或业务来源值"></label>
+        <label>业务目标<select name="goal"><option value="activation">提升激活</option><option value="retention">提升留存</option><option value="conversion">提升转化</option><option value="revenue">收入策略</option></select></label>
+        <label>专项增长技能<select name="skillId"><option value="">通用增长分析</option><option value="seo-organic">SEO · Search Console（激活/转化）</option><option value="kol-impact">KOL · 合作归组（转化/收入）</option></select></label>
+        <p>专项技能只允许全来源分析；SEO 不会把搜索点击假设成交易转化，KOL 不会把 CRM 归组等同于合作增量。</p>
+        <label>分析方式<select name="modelMode"><option value="auto">自动调查（单模型）</option><option value="complex">深度调查（同一模型）</option></select></label>
+        <label>业务背景与问题<textarea name="question" maxlength="5000" placeholder="当前目标、资源约束、近期活动、产品改动，以及你想解决的问题"></textarea></label>
+        <button class="a-button" type="submit" ${busy?'disabled':''}>开始分析</button></form>
+        <p>时间按 UTC+7，最多31天。当前支持来源范围；不会把活动或用户群当作已筛选。</p>
+        <button class="a-button" type="button" data-health>检查运行状态</button><pre data-health-result></pre><p data-ai-message role="status"></p></details>
+        <section class="a-card ai-history"><h2>历史分析</h2><button class="a-button" data-refresh>刷新</button>
+        ${list.records.length?list.records.map(r=>`<p><button class="a-button" data-analysis="${esc(r.id)}">${esc(r.title)}</button> · ${esc(label(r.status))} · 建议 ${esc(r.suggestion_count)} 条</p>`).join(''):'<p>尚无分析，点击开始后才会调用模型。</p>'}</section>
+        <section class="a-card ai-result" data-detail><p>选择一条分析查看证据和建议。</p></section>
+        <section class="a-card ai-review"><h2>待复盘行动</h2>
+        <p>依据完整的曼谷业务日和已采集数据水位判定，只有你已执行的行动可复盘。查看无需模型费用。</p>
+        ${reviewQueue.error?'<p role="status">复盘排期暂不可用：'+esc(reviewQueue.error)+'</p>':''}
+        ${reviewQueue.entries?.length?reviewQueue.entries.map(item=>`<p>${esc(item.title)} · ${esc(item.status==='ready'?'达到复盘条件':'等待观察期')} · ${item.status==='ready'?'<button class="a-button" data-ready-review="'+esc(item.suggestionId)+'">人工发起复盘</button>':'最早 '+esc(day(item.earliestReviewAt||Date.now()))}</p>`).join(''):'<p>暂无待复盘行动。</p>'}</section>
+        <section class="a-card ai-review-history"><h2>复盘记录</h2>${reviews.retrospectives.map(r=>`<article><h3>${esc(r.analysis_title)}</h3><p>${esc(r.conclusion)}</p><p>置信度：${esc(r.confidence)} · ${r.has_causality?'有因果证据':'观测变化，未证明因果'}</p><p>经验：${esc(r.lessons_learned||'尚无结论')}</p></article>`).join('')||'<p>记录行动后，可主动发起复盘。</p>'}</section>
+        <details class="a-card ai-advanced"><summary>高级设置与数据来源</summary>
+        <p>自动日报评分目标与月度经营目标分别保存。月度目标、日报和研究治理在运行控制台管理。</p>
+        <button class="a-button" type="button" data-agent-control>打开运行与目标控制台</button>
         <section class="a-card ai-agent-autonomy">
           <h2>AI Growth Agent · 自主运营驾驶舱</h2>
           <p>每日指标评价 → AI 经营分析 → 行动建议 → 成熟复盘 → 下一轮调查策略。实际运营操作需人工批准。</p>
@@ -43,8 +76,8 @@ export function createAIAnalysis(ctx){
           ${agentStatus.schedulerHealth?.lastError?'<p role="alert">调度异常：'+esc(agentStatus.schedulerHealth.lastError)+'</p>':''}
           ${agentStatus.error?'<p role="alert">Agent 状态不可用：'+esc(agentStatus.error)+'</p>':''}
           <button class="a-button" data-autonomy-refresh type="button">刷新既有日报与历史学习（零付费调用）</button>
-          <h3>运营目标设置</h3>
-          <p>目标必须由运营人员明确配置。分析人数不是注册人数；任何目标数据不成熟时不计算综合评分。</p>
+          <h3>自动日报评分目标</h3>
+          <p>此目标仅用于自动日报评分，与月度经营目标分别保存。目标必须由运营人员明确配置。分析人数不是注册人数；任何目标数据不成熟时不计算综合评分。</p>
           <form data-autonomy-target>
             <label>业务目标<select name="goal">
               <option value="activation">激活</option><option value="retention">留存</option>
@@ -94,20 +127,6 @@ export function createAIAnalysis(ctx){
             `<p>${esc(goal)} 策略 v${esc(value.version)} ·
               重点核查：${esc((value.policy?.focusMetrics||[]).join('、')||'保持原规则')}</p>`).join('')}
         </section>
-        <section class="a-card"><h1>AI 业务增长助手</h1><p>主动发起分析，按业务证据排优先级；记录行动后主动复盘。所有分析与复盘均使用同一 DeRouter 模型。</p>
-        <p>累计调用 ${esc(costs.total_calls)} 次 · Token ${esc(costs.total_tokens??0)} · 估算费用 $${esc(costs.total_cost??0)}（${esc(costs.unknown_cost_calls??0)} 次调用费率未配置，金额不代表免费）</p>
-        <form data-ai-form><label>分析标题<input name="title" required maxlength="200" value="业务增长分析"></label>
-        <label>开始日期<input name="start" type="date" required value="${defaults.start}"></label>
-        <label>结束日期（含当日）<input name="end" type="date" required value="${defaults.end}"></label>
-        <label>来源<input name="source" value="all" maxlength="200" placeholder="all 或业务来源值"></label>
-        <label>业务目标<select name="goal"><option value="activation">提升激活</option><option value="retention">提升留存</option><option value="conversion">提升转化</option><option value="revenue">收入策略</option></select></label>
-        <label>专项增长技能<select name="skillId"><option value="">通用增长分析</option><option value="seo-organic">SEO · Search Console（激活/转化）</option><option value="kol-impact">KOL · 合作归组（转化/收入）</option></select></label>
-        <p>专项技能只允许全来源分析；SEO 不会把搜索点击假设成交易转化，KOL 不会把 CRM 归组等同于合作增量。</p>
-        <label>分析方式<select name="modelMode"><option value="auto">自动调查（单模型）</option><option value="complex">深度调查（同一模型）</option></select></label>
-        <label>业务背景与问题<textarea name="question" maxlength="5000" placeholder="当前目标、资源约束、近期活动、产品改动，以及你想解决的问题"></textarea></label>
-        <button class="a-button" type="submit" ${busy?'disabled':''}>开始分析</button></form>
-        <p>时间按 UTC+7，最多31天。当前支持来源范围；不会把活动或用户群当作已筛选。</p>
-        <button class="a-button" type="button" data-health>检查运行状态</button><pre data-health-result></pre><p data-ai-message role="status"></p></section>
         <section class="a-card"><h2>Growth 运营待办</h2>
         <p>只读工作台：待审批、待执行、待复盘与失败调查。不会自动执行外部运营动作。</p>
         <p>当前待办 ${esc(inbox.counts?.total??0)} 条 · 等待审批 ${esc(inbox.counts?.approval??0)} · 待复盘 ${esc(inbox.counts?.review??0)}</p>
@@ -272,14 +291,9 @@ export function createAIAnalysis(ctx){
           <button class="a-button" data-kol-preview type="button">读取当前统计期 KOL 观察结果（不调用 AI）</button>
         </section>
         <section class="a-card" data-specialist-preview><p>选择一个 SEO 快照或读取 KOL 观察结果查看证据。</p></section>
-        <section class="a-card"><h2>历史分析</h2><button class="a-button" data-refresh>刷新</button>
-        ${list.records.length?list.records.map(r=>`<p><button class="a-button" data-analysis="${esc(r.id)}">${esc(r.title)}</button> · ${esc(label(r.status))} · 建议 ${esc(r.suggestion_count)} 条</p>`).join(''):'<p>尚无分析，点击开始后才会调用模型。</p>'}</section>
-        <section class="a-card" data-detail><p>选择一条分析查看证据和建议。</p></section>
-        <section class="a-card"><h2>待复盘行动</h2>
-        <p>依据完整的曼谷业务日和已采集数据水位判定，只有你已执行的行动可复盘。查看无需模型费用。</p>
-        ${reviewQueue.error?'<p role="status">复盘排期暂不可用：'+esc(reviewQueue.error)+'</p>':''}
-        ${reviewQueue.entries?.length?reviewQueue.entries.map(item=>`<p>${esc(item.title)} · ${esc(item.status==='ready'?'达到复盘条件':'等待观察期')} · ${item.status==='ready'?'<button class="a-button" data-ready-review="'+esc(item.suggestionId)+'">人工发起复盘</button>':'最早 '+esc(day(item.earliestReviewAt||Date.now()))}</p>`).join(''):'<p>暂无待复盘行动。</p>'}</section>
-        <section class="a-card"><h2>复盘记录</h2>${reviews.retrospectives.map(r=>`<article><h3>${esc(r.analysis_title)}</h3><p>${esc(r.conclusion)}</p><p>置信度：${esc(r.confidence)} · ${r.has_causality?'有因果证据':'观测变化，未证明因果'}</p><p>经验：${esc(r.lessons_learned||'尚无结论')}</p></article>`).join('')||'<p>记录行动后，可主动发起复盘。</p>'}</section></div>`;
+        </details></div>`;
+      host.querySelector('a[href="#ai-new-analysis"]')?.addEventListener('click',event=>{event.preventDefault();const panel=host.querySelector('#ai-new-analysis');if(panel){panel.open=true;panel.scrollIntoView({behavior:'smooth',block:'start'})}});
+      host.querySelector('[data-agent-control]')?.addEventListener('click',()=>ctx.navigate?.('growth-agent-control'));
       host.querySelector('[data-health]').onclick=async()=>{try{const state=await getAgentHealth();if(token===generation)host.querySelector('[data-health-result]').textContent=JSON.stringify(state,null,2);}catch(error){if(token===generation)message(error.message);}};
       host.querySelector('[data-refresh]').onclick=()=>draw();
       const monitorToggle=host.querySelector('[data-monitor-toggle]');
@@ -568,7 +582,7 @@ export function createAIAnalysis(ctx){
       ${r.status==='failed'&&!r.cancel_requested?'<button class="a-button" data-retry-analysis>重试分析</button>':''}
       ${['pending','processing'].includes(r.status)&&!r.cancel_requested?'<button class="a-button" type="button" data-cancel-analysis>取消任务</button>':''}
       ${r.cancel_requested?'<p role="status">任务已取消，不会继续新的模型调用；先前发出的请求仍可能计费。</p>':''}
-      <p>${esc(r.result?.summary||'任务已排队；请确认 AI Worker 正在运行。')}</p>
+      <p>${esc(r.result?.summary||(r.status==='failed'?'分析未完成；请查看失败原因和检查点后再决定下一步。':r.status==='processing'?'分析正在进行。':r.status==='completed'?'已完成；暂无摘要。':'任务已排队；请确认 AI Worker 正在运行。'))}</p>
       ${(r.result?.keyFindings||[]).map(f=>`<p>${esc(f)}</p>`).join('')}
       ${r.result?.routing?`<p>调查方式：${esc(r.result.routing.reason)}</p>`:''}
       ${(r.result?.evidenceIds||[]).map(eid=>`<button class="a-button" data-evidence="${esc(eid)}">查看证据 ${esc(eid.slice(0,8))}</button>`).join('')}<pre data-evidence-result></pre>

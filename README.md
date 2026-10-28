@@ -137,22 +137,11 @@ const { overview, growthInsights, channels } =
 ### 本地开发
 
 ```bash
-# 1. 安装依赖
-cd frontend && npm install
-cd ../backend && npm install
-
-# 2. 配置环境变量
-cp backend/.env.example backend/.env
-# 编辑 .env 填写 Hologres 连接信息
-
-# 3. 启动后端
-cd backend
-npm run dev  # 开发模式 (nodemon)
-
-# 4. 启动前端
-cd frontend
-npm run dev  # http://localhost:5173
+# 在项目根目录执行
+npm run dev
 ```
+
+同时运行后端 API、AI Worker 和前端；按 Ctrl+C 停止由该命令启动的进程。需先安装 backend 和 frontend 的依赖，并准备好现有的数据库、Redis 和 `backend/.env` 配置。默认前端地址为 http://localhost:5173。若后端端口由本项目旧后端占用，启动器会将其停止；其他程序占用时需手动处理。已有本项目 Worker 会继续运行，不由该命令停止。后端启动时仍会执行项目原有的本地数据库初始化；此命令不会执行 AI 数据库迁移。
 
 ### 构建部署
 

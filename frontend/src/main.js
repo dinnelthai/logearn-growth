@@ -176,3 +176,5 @@ start().catch((err)=>{
   document.getElementById('as-data-status').textContent='页面初始化失败：' + (err?.message ?? err) + ' — 请刷新重试。'
 })
 
+
+import "./workspace.css";
