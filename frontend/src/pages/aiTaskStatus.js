@@ -24,7 +24,7 @@ export function canOfferTaskResume(record,checkpoint){
     checkpoint?.requiresHumanReview!==true &&
     checkpoint?.pendingTools===0 &&
     !['blocked','partial-tools'].includes(checkpoint?.state) &&
-    !['unresolved-paid-call','tool-execution-incomplete','noncontiguous-rounds'].includes(checkpoint?.reason);
+    !['unresolved-paid-call','tool-execution-incomplete','noncontiguous-rounds','requires-validation-before-resume'].includes(checkpoint?.reason);
 }
 
 export function canOfferTaskRetry(record,checkpoint){
@@ -32,7 +32,7 @@ export function canOfferTaskRetry(record,checkpoint){
   return checkpoint?.requiresHumanReview!==true &&
     checkpoint?.pendingTools===0 &&
     !['blocked','partial-tools'].includes(checkpoint?.state) &&
-    !['unresolved-paid-call','tool-execution-incomplete','noncontiguous-rounds'].includes(checkpoint?.reason);
+    !['unresolved-paid-call','tool-execution-incomplete','noncontiguous-rounds','requires-validation-before-resume'].includes(checkpoint?.reason);
 }
 
 export function shouldPollTask(record,checkpoint){
