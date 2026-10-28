@@ -3,11 +3,11 @@
  * verified evidence, impact scores or execution status.
  */
 export function renderAISuggestion(s,{esc,json,label,offset=7*3600000}){
-  const status=s.user_status||'pending';
-  const editable=['pending','adopted','executing'].includes(status);
+  const status=s.user_status||'unknown';
+  const editable=Boolean(s.id)&&['pending','adopted','executing'].includes(status);
   const statuses={pending:'待审批',adopted:'已采纳',executing:'执行中',executed:'已记录执行',rejected:'已拒绝'};
   const rawAt=Number(s.executed_at);
-  const executedAt=s.executed_at!=null&&Number.isFinite(rawAt)&&rawAt>0
+  const executedAt=s.executed_at!=null&&Number.isFinite(rawAt)&&rawAt>0&&rawAt<8.64e15
     ?new Date(rawAt+offset).toISOString().slice(0,16):'';
   const evidence={evidence:s.data_evidence,scope:s.applicable_scope,
     validation:s.validation_metrics,review:s.review_conditions,
