@@ -18,6 +18,18 @@ async function migrateAITables() {
   console.log('Starting AI tables migration...');
 
   try {
+    // Migrations are never an implicit recovery step for a missing AI table.
+    // Requiring an explicit target name protects against mistaken write targets.
+    const expected = process.env.AI_DATABASE_EXPECTED_NAME;
+    if (process.env.AI_MIGRATION_APPROVED !== '1' || !process.env.AI_DATABASE_URL ||
+        !expected || !/^[a-zA-Z0-9_][a-zA-Z0-9_-]{0,62}$/.test(expected)) {
+      throw new Error('AI 迁移未授权：需独立 AI_DATABASE_URL、AI_DATABASE_EXPECTED_NAME 及 AI_MIGRATION_APPROVED=1');
+    }
+    const identity = await pool.query('SELECT current_database() AS database_name');
+    if (identity.rows?.[0]?.database_name !== expected) {
+      throw new Error('AI 迁移目标数据库身份不匹配，拒绝执行');
+    }
+
     // 读取迁移 SQL
     const migrationPath = path.join(__dirname, 'migrations', '001_ai_tables.sql');
     const sql = fs.readFileSync(migrationPath, 'utf8');
