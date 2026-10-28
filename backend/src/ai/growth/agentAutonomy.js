@@ -14,7 +14,7 @@ function allowedGoals(goals){
 async function tickAutonomousOwner({
  ownerId,now=Date.now(),source='all',goals=DEFAULT_GOALS,allowPaidDispatch=false,
  store=createAgentStore(),records=require('../../db/aiRecords'),
- enqueue=require('../../queues/queues').addAIAnalysisJob,
+ enqueue=null,
  notify=null,proposeCandidate=null
 }={}){
  if(typeof ownerId!=='string'||!ownerId||!Number.isSafeInteger(now))
@@ -26,6 +26,7 @@ async function tickAutonomousOwner({
  let analyses=await store.dailyAnalyses(ownerId,period.day,source);
  const enqueued=[];
  if(allowPaidDispatch){
+  enqueue ||= require('../../queues/queues').addAIAnalysisJob;
   for(const goal of required){
    // Completed and active runs are owned by the existing analysis worker.
    // Pending records may have been persisted before Bull accepted the job.

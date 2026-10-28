@@ -30,7 +30,8 @@ export function mountGrowthDecisionWorkspace(root){
    </div>
    <h3>本月目标</h3>
    ${goals.map(({goal:g,progress:p})=>`<article class="a-card a-details"><strong>${safe(g.metric_id)} · v${g.version} ${g.kind==='north'?'（北极星）':''}</strong>
-    <p>目标 ${fmt(g.target_value)} ${safe(g.unit)} · ${safe(g.aggregation)} · 当前观测 ${p.observed===null?'未知':fmt(p.observed)} · 差距 ${p.delta==null?'未知':fmt(p.delta)}</p><small>生效 ${safe(new Date(g.effective_at).toISOString())} · 数据状态 ${safe(p.status)}</small>
+    <p>目标 ${fmt(g.target_value)} ${safe(g.unit)} · ${safe(g.aggregation)} · 当前观测 ${p.observed==null?'未知':fmt(p.observed)} · 差距 ${p.delta==null?'未知':fmt(p.delta)}</p><small>生效 ${safe(new Date(g.effective_at).toISOString())} · 数据状态 ${safe(p.status)}${p.status==='partial'?'：覆盖未确认，不能判断目标是否达成':''}</small>
+    ${p.evidenceId?`<button class="a-button" data-evidence="${safe(p.evidenceId)}">查看指标证据</button>`:''}
    </article>`).join('')||'<p>尚无月度目标。创建后需由后端已批准数据适配器提供指标证据。</p>'}
    <form data-add-goal><strong>新增月目标</strong><div style="display:flex;gap:8px;flex-wrap:wrap">
     <label>指标 ID <input name="metric" required placeholder="正式指标 ID"></label>
@@ -72,6 +73,7 @@ export function mountGrowthDecisionWorkspace(root){
   root.querySelectorAll('[data-period]').forEach(btn=>btn.addEventListener('click',async()=>{btn.disabled=true;try{await api('/reports/'+btn.dataset.period,'POST',{publish:false});await draw()}catch(error){btn.disabled=false;say(error.message)}}))
   root.querySelectorAll('[data-investigate]').forEach(btn=>btn.addEventListener('click',async()=>{btn.disabled=true;try{const v=await api('/problems/'+encodeURIComponent(btn.dataset.investigate)+'/investigations','POST',{});say('已创建待执行调查 '+v.id+'。未启动付费模型。')}catch(error){say(error.message)}finally{btn.disabled=false}}))
   root.querySelectorAll('[data-history]').forEach(btn=>btn.addEventListener('click',async()=>{try{const d=await api('/problems/'+encodeURIComponent(btn.dataset.history));say('已有证据/状态历史 '+d.history.length+' 条，问题编号 '+d.problem.id)}catch(error){say(error.message)}}))
+  root.querySelectorAll('[data-evidence]').forEach(btn=>btn.addEventListener('click',async()=>{try{const e=await api('/evidence/'+encodeURIComponent(btn.dataset.evidence));say(`证据 ${e.id} · ${e.state} · ${new Date(e.period.start).toISOString()} 至 ${new Date(e.period.end).toISOString()} · 来源 ${e.source} · ${e.warnings.join('；')}`)}catch(error){say(error.message)}}))
  }
  draw()
  return ()=>{disposed=true;seq++}

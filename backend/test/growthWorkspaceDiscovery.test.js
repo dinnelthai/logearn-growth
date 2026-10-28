@@ -35,3 +35,11 @@ test('agent asks only if stored facts and authorized tools cannot resolve missin
  assert.equal(questionDecision({missingBusinessAnswer:true,previousAnswer:'yes'}).reuseAnswer,true);
  assert.equal(questionDecision({missingBusinessAnswer:true,canLookup:false,blocking:false}).blocking,false);
 });
+test('daily new-problem budget does not suppress updates to an existing gap',()=>{
+ const {db,s}=fixture();try{
+  const existing=discover('alice',s,{sources:[{id:'existing',state:'partial'}]}).created[0];
+  const result=discover('alice',s,{maxNew:1,sources:[{id:'new',state:'partial'},{id:'existing',state:'partial'}]});
+  assert.equal(result.created.length,1);
+  assert.deepEqual(result.updated.map(p=>p.id),[existing.id]);
+ }finally{db.close()}
+});

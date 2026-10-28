@@ -112,3 +112,8 @@ test('failed daily runs are retried only after an explicit zero-paid-call claim'
  assert.equal(value.enqueued[0].status,'queued');
  assert.equal(f.state.queued,1);
 });
+test('read-only brief does not load or require a queue',async()=>{
+ const prev=process.env.REDIS_URL;process.env.REDIS_URL='https://example.invalid';const f=fake();
+ try{const result=await tickAutonomousOwner({ownerId:'alice',now,goals:['activation'],allowPaidDispatch:false,store:f.store,records:f.records});assert.equal(result.status,'blocked')}
+ finally{if(prev===undefined)delete process.env.REDIS_URL;else process.env.REDIS_URL=prev}
+});

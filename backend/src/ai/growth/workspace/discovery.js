@@ -47,8 +47,9 @@ function discover(owner,store,{sources=[],signals=[],at=Date.now(),maxNew=8}={})
    nextStep:'先核对口径、分母、渠道与路径，再确定是否需要运营动作'});
  }
  const created=[],updated=[],skipped=[];
- for(const item of results){if(created.length>=maxNew&&results.length>maxNew){skipped.push(item.subject);continue}
-  const p=store.observeProblem(owner,item);(p.created?created:updated).push({id:p.id,subject:p.subject})}
+ for(const item of results){
+  const p=store.observeProblem(owner,item,{allowCreate:created.length<maxNew});
+  if(p.skipped)skipped.push(item.subject);else (p.created?created:updated).push({id:p.id,subject:p.subject})}
  return {created,updated,skipped,sourceCount:sources.length,signalsInspected:signals.length,
   paidCalls:0,externalWrites:0,visibility:results.length?'signals-or-gaps-found':'no-verified-new-signal',
   caveat:'无新信号不代表全部渠道健康；没有配置的源须单独报告'};

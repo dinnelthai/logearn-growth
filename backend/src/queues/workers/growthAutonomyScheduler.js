@@ -58,7 +58,7 @@ async function tick({now=Date.now(),dryRun=false,runOwner=tickAutonomousOwner,
    }
    if(process.env.GROWTH_WORKSPACE_DISCOVERY_ENABLED==='1'&&!leaseLost){
     try{
-     const evidence=require('../../ai/growth/workspace/dailyTick').dailyWorkspaceTick({
+     const evidence=await require('../../ai/growth/workspace/dailyTick').dailyWorkspaceTickWithMetrics({
       db:require('../../db/connection'),ownerId,now
      });
      results.push({ownerId,status:'workspace',newProblems:evidence.newProblems,reportId:evidence.reportId,paidCalls:0});

@@ -48,7 +48,7 @@ test('business analysis persists snapshot, history, priorities and structured su
   const handler=load('queues/jobs/businessAnalysis.js',{
     '../../ai/business/runner':{validateAnalysis:x=>x,runTask:async opts=>{assert.equal(opts.context.memory[0].rejection_reason,'成本高');assert.equal(opts.context.weekly.users,5);assert.equal(opts.context.candidates.length,0);return {analysis:good,cost:0.01,model:'routine',provider:'domestic',calls:[],evidence:[],routing:{tier:'routine'}}}},
     '../../ai/business/foundation':{defaultFoundation:()=>({prepare:report=>({context:{...report,evidence:[]},validate:()=>{},traceStore:undefined})})},
-    '../../ai/business/trace':{createTraceStore:()=>({})}, '../../db/connection':{}, '../../ai/business/workerStart':{claimSafeAnalysis:async()=> records.getAnalysisRecord().then(r=>r.status==='completed'?{action:'completed',result:r.result}:{action:'claimed',token:'token'})}, '../../db/aiRecords':records,'../../data/hologres':{status:async()=>({snapshot_id:'s',as_of:'2026-10-20T00:00:00Z'})},
+    '../../ai/business/trace':{createTraceStore:()=>({})}, '../../ai/optimization/promptRegistry':{createPromptRegistry:()=>({resolve:(_owner,_role,prompt)=>prompt})}, '../../db/connection':{}, '../../ai/business/workerStart':{claimSafeAnalysis:async()=> records.getAnalysisRecord().then(r=>r.status==='completed'?{action:'completed',result:r.result}:{action:'claimed',record:r,token:'token'})}, '../../db/aiRecords':records,'../../data/hologres':{status:async()=>({snapshot_id:'s',as_of:'2026-10-20T00:00:00Z'})},
     './dataFetcher':{fetchNorthStar:async()=>base,fetchGrowthInsights:async()=>({change:{},channels:[],quality:{history_complete:false}}),fetchWeeklyCore:async()=>({available:true,users:5})}});
   const job={data:{analysisId:'a',ownerId:'alice',dateRangeStart:Date.parse('2026-10-01'),dateRangeEnd:Date.parse('2026-10-08'),businessScope:{source:'twitter'}},progress:async()=>{}};
   await handler.businessAnalysis(job);assert.ok(events.some(e=>e[0]==='snapshot'));assert.equal(events.find(e=>e[0]==='suggestions')[1][0].applicableScope.source,'twitter');assert.equal(events.at(-1)[2],'completed');
@@ -115,3 +115,7 @@ test('prompt version hashes the actual system message and usage above budget can
  process.env.AI_TASK_MAX_TOKENS='10000';
  await assert.rejects(()=>runTask({context:{},prompt:'x',clientFactory:()=>({chat:async()=>({content:JSON.stringify(good),usage:{totalTokens:10001}})})}),/预算/);
 }));
+test('reading AI routes does not initialize the paid job queue',()=>{
+ const mocks={};Object.defineProperty(mocks,'../queues/queues',{enumerable:true,get(){throw Error('queue must stay lazy')}});
+ assert.doesNotThrow(()=>load('routes/aiAnalysis.js',mocks));
+});

@@ -60,7 +60,7 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
  function getEvidence(owner,id){ownerId(owner);let r=fetch('SELECT payload FROM gw_evidence WHERE owner_id=? AND id=?',owner,requiredString(id,'证据标识'));return r?safeJSON(r.payload):null}
  function progress(owner,goalId,{at=getNow(),evidenceId=null}={}){ownerId(owner);const goals=listGoals(owner,{asOf:at}),goal=goals.find(g=>g.id===goalId);if(!goal)return {status:'no-goal',observed:null,delta:null};
   const evidence=evidenceId?getEvidence(owner,evidenceId):null;
-  return {goal,progress:goalProgress(goal,evidence)}
+  return {goal,progress:goalProgress(goal,evidence,at)}
  }
  function problemRow(r){return r?{...r,scope:safeJSON(r.scope_json,{}),impact:safeJSON(r.impact_json,{status:'unknown'})}:null}
  function problem(owner,id){ownerId(owner);return problemRow(fetch('SELECT * FROM gw_problems WHERE owner_id=? AND id=?',owner,id))}
@@ -68,7 +68,7 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
   return all('SELECT * FROM gw_problems WHERE owner_id=? '+(status?'AND status=? ':'')+'ORDER BY CASE status WHEN \'open\' THEN 0 WHEN \'monitoring\' THEN 1 ELSE 2 END,priority DESC,last_seen DESC LIMIT ?',...(status?[owner,status,limit]:[owner,limit])).map(problemRow)
  }
  function logProblem(owner,id,kind,evidenceIds,details,at){db.prepare('INSERT INTO gw_problem_events VALUES(?,?,?,?,?,?,?)').run(owner,randomUUID(),id,kind,JSON.stringify(evidenceIds||[]),JSON.stringify(details||{}),at)}
- function observeProblem(owner,input){ownerId(owner);const now=getNow(),type=requiredString(input.type,'问题类型');if(!TYPES.has(type))throw Error('未知问题类型');
+ function observeProblem(owner,input,{allowCreate=true}={}){ownerId(owner);const now=getNow(),type=requiredString(input.type,'问题类型');if(!TYPES.has(type))throw Error('未知问题类型');
   const subject=requiredString(input.subject,'问题对象'),scope=scopeKey(input.scope),scopeObj=JSON.parse(scope);
   const idKey=fingerprint({type,subject,scope:scopeObj,metricId:input.metricId||null,goalId:input.goalId||null});
   const ids=Array.isArray(input.evidenceIds)?[...new Set(input.evidenceIds)].slice(0,30):[];
@@ -83,6 +83,7 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
    if(existing){db.prepare('UPDATE gw_problems SET last_seen=?,priority=?,last_evidence_hash=? WHERE owner_id=? AND id=?').run(now,priority,evidenceDigest,owner,existing.id);
     if(existing.last_evidence_hash!==evidenceDigest)logProblem(owner,existing.id,'evidence-updated',ids,{description,nextStep},now);
     return {...problem(owner,existing.id),created:false,changed:existing.last_evidence_hash!==evidenceDigest};}
+   if(!allowCreate)return {skipped:true,subject};
    const id=randomUUID();const episode=(fetch('SELECT MAX(episode) n FROM gw_problems WHERE owner_id=? AND fingerprint=?',owner,idKey)?.n||0)+1;
    db.prepare('INSERT INTO gw_problems VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(owner,id,idKey,type,subject,scope,input.goalId||null,goalVersion,priority,'open',description,JSON.stringify(input.impact||{status:'unknown'}),nextStep,input.assignee||null,now,now,evidenceDigest,episode);
    logProblem(owner,id,'created',ids,{description,nextStep},now);return {...problem(owner,id),created:true,changed:true}

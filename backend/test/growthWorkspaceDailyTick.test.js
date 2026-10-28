@@ -24,3 +24,14 @@ test('only proven local partial sources produce tracking issues; absent tables d
  assert.equal(a.newProblems,1);assert.equal(b.newProblems,0);
  }finally{db.close()}
 });
+test('daily scan brings an observed incomplete weekly source into one owner-scoped gap across days',async()=>{
+ const db=new DatabaseSync(':memory:');const now=Date.parse('2026-10-28T02:00:00Z');const store=workspaceStore(db,{clock:()=>now,initialize:true});try{
+ const {currentMonth,dayStart}=require('../src/ai/growth/workspace/period');const month=currentMonth(now),end=dayStart(now);
+ store.saveGoal('alice',{metricId:'weekly_core',definitionVersion:'1',target:200,unit:'users',aggregation:'rolling-distinct',periodStart:month.start,periodEnd:month.end,scope:{source:'all'}});
+ const providers={status:async()=>({snapshot_id:'s',as_of:new Date(now).toISOString(),history_complete:false,events_complete_through:null}),weekly:async()=>({payload:{available:true,start:end-7*86400000,end,timezone:'Asia/Bangkok',source:'all',users:27}})};
+ const {dailyWorkspaceTickWithMetrics}=require('../src/ai/growth/workspace/dailyTick');
+ const a=await dailyWorkspaceTickWithMetrics({db,ownerId:'alice',now,metricProviders:providers});const b=await dailyWorkspaceTickWithMetrics({db,ownerId:'alice',now:now+86400000,metricProviders:providers});
+ assert.equal(a.newProblems,1);assert.equal(b.newProblems,0);assert.equal(store.problems('alice').length,1);assert.equal(store.problems('bob').length,0);
+ assert.equal(store.problemEvents('alice',store.problems('alice')[0].id)[0].evidenceIds.length,1);
+ }finally{db.close()}
+});

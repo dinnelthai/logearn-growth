@@ -7,7 +7,7 @@ let now=Date.parse('2026-10-20T05:00:00Z');
 const monthStart=atBangkok(2026,9,1),monthEnd=atBangkok(2026,10,1);
 function setup(){const db=new DatabaseSync(':memory:');const s=workspaceStore(db,{clock:()=>now,initialize:true});return {db,s,close:()=>db.close()}}
 function target(){return {metricId:'four_day_core',definitionVersion:'2026-10',target:200,unit:'users',direction:'increase',aggregation:'rolling-distinct',kind:'north',periodStart:monthStart,periodEnd:monthEnd,scope:{source:'all'}}}
-function evidence(id,state='verified',value=34,at=now){return {id,source:'approved-read-only-metrics',definitionVersion:'2026-10',state,value,period:{start:atBangkok(2026,9,13),end:atBangkok(2026,9,20),timezone:'Asia/Bangkok'},observedAt:at,coverage:{status:'verified'},watermarks:{events:at},originalLocator:{report:'core-users'}}}
+function evidence(id,state='verified',value=34,at=now){return {id,source:'approved-read-only-metrics',metricId:'four_day_core',unit:'users',scope:{source:'all'},definitionVersion:'2026-10',state,value,period:{start:atBangkok(2026,9,13),end:atBangkok(2026,9,20),timezone:'Asia/Bangkok'},observedAt:at,coverage:{status:'verified'},watermarks:{events:at},originalLocator:{report:'core-users'}}}
 test('month goal versions remain historically stable and rolling-distinct is never daily summed',()=>{
  const {s,close}=setup();try{
  const old=s.saveGoal('alice',{...target(),effectiveAt:Date.parse('2026-10-10T00:00:00Z')});
@@ -92,5 +92,22 @@ test('repeated start for same unresolved investigation is idempotent',()=>{
   const p=s.observeProblem('alice',{type:'user',subject:'同一个转化问题',description:'重复点击不新建调查',scope:{source:'all'}});
   const a=s.startRun('alice',p.id),b=s.startRun('alice',p.id);
   assert.equal(a.id,b.id);assert.equal(b.reused,true);
+ }finally{close()}
+});
+test('goal progress rejects evidence from another metric, scope or future period',()=>{
+ const {s,close}=setup();try{
+  const goal=s.saveGoal('alice',target());
+  const scoped={...evidence('wrong-metric'),metricId:'different',unit:'users',scope:{source:'all'}};
+  s.saveEvidence('alice',scoped);
+  assert.equal(s.progress('alice',goal.id,{evidenceId:scoped.id}).progress.observed,null);
+  const wrongVersion={...scoped,id:'wrong-version',metricId:'four_day_core',definitionVersion:'other',state:'partial'};
+  s.saveEvidence('alice',wrongVersion);
+  assert.equal(s.progress('alice',goal.id,{evidenceId:wrongVersion.id}).progress.observed,null);
+  const wrongScope={...scoped,id:'wrong-scope',metricId:'four_day_core',scope:{source:'x'}};
+  s.saveEvidence('alice',wrongScope);
+  assert.equal(s.progress('alice',goal.id,{evidenceId:wrongScope.id}).progress.observed,null);
+  const future={...scoped,id:'future',metricId:'four_day_core',period:{start:now,end:now+86400000,timezone:'Asia/Bangkok'}};
+  s.saveEvidence('alice',future);
+  assert.equal(s.progress('alice',goal.id,{at:now,evidenceId:future.id}).progress.observed,null);
  }finally{close()}
 });

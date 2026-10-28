@@ -1,6 +1,7 @@
 const express=require('express'),{randomUUID}=require('node:crypto');
 const router=express.Router();
-const {addAIAnalysisJob,getJobStatus}=require('../queues/queues');
+const addAIAnalysisJob=(...args)=>require('../queues/queues').addAIAnalysisJob(...args);
+const getJobStatus=(...args)=>require('../queues/queues').getJobStatus(...args);
 const records=require('../db/aiRecords');
 const {validateRange,validateScope,reviewPeriods}=require('../ai/business/policy');
 const handle=fn=>async(req,res)=>{try{await fn(req,res)}catch(e){console.error('[AI API]',e.message);res.status(e.status||503).json({error:e.message})}};

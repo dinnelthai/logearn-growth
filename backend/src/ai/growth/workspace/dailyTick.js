@@ -1,6 +1,8 @@
 'use strict';
 const {workspaceStore}=require('./store');
 const {discover}=require('./discovery');
+const {refreshWeeklyCore}=require('./weeklyCoreProgress');
+const {currentMonth}=require('./period');
 function localSourceHealth(db,ownerId){
  const names=new Set(db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r=>r.name));
  const sources=[];
@@ -27,4 +29,14 @@ function dailyWorkspaceTick({db,ownerId,now=Date.now(),sources=null,signals=[]}=
   evidenceCoverage:brief.snapshot.quality.sourceCompleteness,paidCalls:0,externalActions:0,
   warning:'Only explicitly supplied authorized source health and vetted signals were inspected; unconfigured sources may remain unknown'};
 }
-module.exports={dailyWorkspaceTick,localSourceHealth};
+async function dailyWorkspaceTickWithMetrics({db,ownerId,now=Date.now(),metricProviders=null}={}){
+ const store=workspaceStore(db,{clock:()=>now}),month=currentMonth(now),sources=localSourceHealth(db,ownerId);
+ const providers=metricProviders||{status:()=>require('../../../data/hologres').status(),weekly:(...args)=>require('../../../data/weeklyCore').weeklyCoreFacts(...args)};
+ const goals=store.listGoals(ownerId,{asOf:now,start:month.start,end:month.end}).filter(g=>g.metric_id==='weekly_core');
+ for(const goal of goals){
+  const progress=await refreshWeeklyCore({store,owner:ownerId,goal,now,...providers});
+  if(progress.status==='partial'&&progress.evidenceId){sources.push({id:'weekly-core-events',state:'partial',coverage:'history-and-watermark-unverified',evidenceId:progress.evidenceId});break}
+ }
+ return dailyWorkspaceTick({db,ownerId,now,sources});
+}
+module.exports={dailyWorkspaceTick,dailyWorkspaceTickWithMetrics,localSourceHealth};

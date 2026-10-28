@@ -17,8 +17,9 @@ test('resolved source gap requires concrete verified recovery rather than a mere
  const db=new DatabaseSync(':memory:');try{
   const s=workspaceStore(db,{clock:()=>Date.parse('2026-10-28T00:00:00Z'),initialize:true});
   const p=s.observeProblem('alice',{type:'data-quality',subject:'source:gsc',scope:{source:'gsc'},description:'GSC data unavailable'});
-  assert.equal(s.reconcileSource('alice','gsc',{state:'connected',coverage:'unknown',asOf:Date.now()}).resolved,false);
-  assert.equal(s.reconcileSource('alice','gsc',{state:'connected',coverage:'verified',asOf:Date.now()}).resolved,true);
+  const asOf=Date.parse('2026-10-28T00:00:00Z');
+  assert.equal(s.reconcileSource('alice','gsc',{state:'connected',coverage:'unknown',asOf}).resolved,false);
+  assert.equal(s.reconcileSource('alice','gsc',{state:'connected',coverage:'verified',asOf}).resolved,true);
   assert.equal(s.problem('alice',p.id).status,'resolved');
  }finally{db.close()}
 });

@@ -17,17 +17,21 @@ function normalizeEvidence(input){if(!input||typeof input!=='object'||Array.isAr
  if(value!==null&&(!Number.isFinite(value)||typeof value!=='number'))throw Error('证据值必须是数字或 null');
  const warnings=Array.isArray(input.warnings)?input.warnings.filter(x=>typeof x==='string').slice(0,10).map(x=>x.slice(0,200)):[];
  return Object.freeze({id:requiredString(input.id,'证据 ID'),source,definitionVersion,
+  metricId:input.metricId||null,unit:input.unit||null,scope:input.scope?JSON.parse(scopeKey(input.scope)):null,
   state,value,period:{start,end,timezone:input.period.timezone||'Asia/Bangkok'},
   watermarks:input.watermarks&&typeof input.watermarks==='object'?input.watermarks:{},
   coverage:input.coverage&&typeof input.coverage==='object'?input.coverage:{status:'unknown'},
   warnings,observedAt:Number.isSafeInteger(input.observedAt)?input.observedAt:Date.now(),
   originalLocator:input.originalLocator||null});
 }
-function goalProgress(goal,evidence){if(!goal)return {status:'no-goal',observed:null,delta:null};
+function goalProgress(goal,evidence,at=Date.now()){if(!goal)return {status:'no-goal',observed:null,delta:null};
  if(!evidence)return {status:'unknown',reason:'no-evidence',observed:null,delta:null};
  const e=normalizeEvidence(evidence);
- if(e.state!=='verified'||e.value===null)return {status:e.state,reason:'insufficient-or-immature',observed:null,delta:null,evidenceId:e.id};
+ if(e.metricId!==goal.metric_id||e.unit!==goal.unit||!e.scope||scopeKey(e.scope)!==scopeKey(goal.scope)||e.period.timezone!=='Asia/Bangkok'||e.period.end>at||e.period.end-1<goal.period_start||e.period.end>goal.period_end)
+  return {status:'unknown',reason:'evidence-context-mismatch',observed:null,delta:null};
  if(e.definitionVersion!==goal.definition_version)return {status:'unknown',reason:'definition-version-mismatch',observed:null,delta:null};
+ if(e.state==='partial'&&e.value!==null)return {status:'partial',reason:'coverage-unverified',observed:e.value,delta:null,met:null,evidenceId:e.id};
+ if(e.state!=='verified'||e.value===null)return {status:e.state,reason:'insufficient-or-immature',observed:null,delta:null,evidenceId:e.id};
  // Rolling distinct users is a single interval observation, NEVER summed from daily rows.
  const delta=goal.direction==='decrease'?goal.target_value-e.value:e.value-goal.target_value;
  return {status:'verified',observed:e.value,target:goal.target_value,delta,met:delta>=0,
