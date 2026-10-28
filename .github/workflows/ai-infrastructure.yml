@@ -5,6 +5,11 @@ on:
     paths:
       - 'backend/src/ai/**'
       - 'backend/src/db/**'
+      - 'backend/src/cache/**'
+      - 'backend/src/data/**'
+      - 'backend/src/services/businessReport.js'
+      - 'backend/scripts/explainHologres.js'
+      - 'backend/scripts/compareAgentEfficiency.js'
       - 'backend/src/queues/**'
       - 'backend/src/routes/aiAnalysis.js'
       - 'backend/test/**'
@@ -20,6 +25,11 @@ on:
     paths:
       - 'backend/src/ai/**'
       - 'backend/src/db/**'
+      - 'backend/src/cache/**'
+      - 'backend/src/data/**'
+      - 'backend/src/services/businessReport.js'
+      - 'backend/scripts/explainHologres.js'
+      - 'backend/scripts/compareAgentEfficiency.js'
       - 'backend/src/queues/**'
       - 'backend/src/routes/aiAnalysis.js'
       - 'backend/test/**'

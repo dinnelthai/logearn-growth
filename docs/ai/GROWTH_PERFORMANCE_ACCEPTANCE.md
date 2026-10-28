@@ -58,3 +58,27 @@ to claim a full saving if any case is incomplete. The tool NEVER calls a model.
 
 The current branch does not claim live Hologres benchmarking, production
 deployment, or measured Token savings.
+
+## 5. Shared daily report execution contract
+With `AI_AUTONOMY_SIGNAL_GATE_ENABLED=1` and explicit paid dispatch
+authorization, the scheduler builds four goal-specific reports from one
+source snapshot, vets evidence completeness, and persists **eligible** reports
+inside owner-scoped `ai_analysis_records.data_snapshot`. The AI worker only
+reuses an exact `daily-preflight-v1` report whose date, source, goal,
+snapshot ID and bounded payload match the claimed job. An old conflicting
+pending record or mismatched seed is not silently replaced/recomputed.
+When the gate is disabled, the original per-goal report path remains intact.
+
+Test both scheduler and worker claims with actual development AI PostgreSQL;
+unit and temporary CI database tests do not prove that production workers
+have the same environment. Normal owner/paid-call fencing is unchanged.
+
+## 6. Deployment switches: default OFF
+- `GROWTH_SHARED_CACHE_URL` + unique `GROWTH_SHARED_CACHE_NAMESPACE`
+- `HOLOGRES_STATUS_COMPACT_ENABLED=1` after real Hologres plan + parity review
+- `AI_AUTONOMY_SIGNAL_GATE_ENABLED=1` after evidence quality acceptance
+
+Do not enable these switches from this PR alone. Operators must review the
+real Hologres plan, confirm source-watermark coverage, then canary with
+recorded rollback conditions. No production migration or paid inference
+is performed by the verification scripts.
