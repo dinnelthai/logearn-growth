@@ -1,6 +1,6 @@
 import './aiAnalysis.css';
 import {loadingState} from './loadingState.js';
-import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead,getGrowthInvestigationTimeline,getSeoImports,importSeoSnapshot,previewSeoSnapshot,previewKolPerformance,getGscConnection,saveGscSite,syncGscPerformance,getGscPerformance,getGscSitemaps,inspectGscUrl,getAutonomyStatus,getAutonomyTargets,saveAutonomyTarget,getAutonomyBriefs,getAutonomyLearning,refreshAutonomyBrief} from '../api/aiAnalysis.js';
+import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,getGrowthMonitorControl,setGrowthMonitorControl,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead,getGrowthInvestigationTimeline,getSeoImports,importSeoSnapshot,previewSeoSnapshot,previewKolPerformance,getGscConnection,saveGscSite,syncGscPerformance,getGscPerformance,getGscSitemaps,inspectGscUrl,getAutonomyStatus,getAutonomyTargets,saveAutonomyTarget,getAutonomyBriefs,getAutonomyLearning,refreshAutonomyBrief} from '../api/aiAnalysis.js';
 const DAY=86400000,OFFSET=7*3600000;
 const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
@@ -23,7 +23,7 @@ export function createAIAnalysis(ctx){
     const token=++generation;clearTimeout(timer);polling=false;
     const host=$('#as-output');host.innerHTML=loadingState('正在加载主动业务分析…');
     try{
-      const [list,reviews,costs,reviewQueue,inbox,alertData,proposalData,noticeData,budgetData,seoData,gscConnection,gscSnapshot,agentStatus,agentTargets,agentBriefs,agentLearning]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]})),getGrowthAlerts().catch(error=>({alerts:[],error:error.message})),getGrowthInvestigations().catch(error=>({proposals:[],error:error.message})),getGrowthNotifications().catch(error=>({notifications:[],error:error.message})),getGrowthBudget().catch(error=>({limit:0,reservedCalls:0,remainingCalls:0,error:error.message})),getSeoImports().catch(error=>({imports:[],error:error.message})),getGscConnection().catch(error=>({configured:false,sites:[],error:error.message})),getGscPerformance().catch(error=>({available:false,error:error.message})),getAutonomyStatus().catch(error=>({schedulerConfigured:false,error:error.message})),getAutonomyTargets().catch(error=>({targets:[],supportedMetrics:[],error:error.message})),getAutonomyBriefs().catch(error=>({briefs:[],error:error.message})),getAutonomyLearning().catch(error=>({assessment:null,strategies:{},error:error.message}))]);
+      const [list,reviews,costs,reviewQueue,inbox,alertData,monitorControl,proposalData,noticeData,budgetData,seoData,gscConnection,gscSnapshot,agentStatus,agentTargets,agentBriefs,agentLearning]=await Promise.all([getAnalysisList(),getRetrospectives(),getCostStats(),getGrowthReviewQueue().catch(error=>({entries:[],readyCount:null,error:error.message})),getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]})),getGrowthAlerts().catch(error=>({alerts:[],error:error.message})),getGrowthMonitorControl().catch(error=>({allowed:false,enabled:false,error:error.message})),getGrowthInvestigations().catch(error=>({proposals:[],error:error.message})),getGrowthNotifications().catch(error=>({notifications:[],error:error.message})),getGrowthBudget().catch(error=>({limit:0,reservedCalls:0,remainingCalls:0,error:error.message})),getSeoImports().catch(error=>({imports:[],error:error.message})),getGscConnection().catch(error=>({configured:false,sites:[],error:error.message})),getGscPerformance().catch(error=>({available:false,error:error.message})),getAutonomyStatus().catch(error=>({schedulerConfigured:false,error:error.message})),getAutonomyTargets().catch(error=>({targets:[],supportedMetrics:[],error:error.message})),getAutonomyBriefs().catch(error=>({briefs:[],error:error.message})),getAutonomyLearning().catch(error=>({assessment:null,strategies:{},error:error.message}))]);
       if(token!==generation)return;
       host.innerHTML=`<div class="si-page ai-analysis-page">
         <section class="a-card ai-agent-autonomy">
@@ -113,6 +113,21 @@ export function createAIAnalysis(ctx){
         <p>当前待办 ${esc(inbox.counts?.total??0)} 条 · 等待审批 ${esc(inbox.counts?.approval??0)} · 待复盘 ${esc(inbox.counts?.review??0)}</p>
         ${(inbox.warnings||[]).map(w=>'<p>'+esc(w)+'</p>').join('')}
         ${(inbox.tasks||[]).slice(0,20).map(t=>`<p>${esc(t.priority)} · ${esc(t.title)} · ${esc(t.status)}${t.source?' · 来源 '+esc(t.source):''}${t.evidenceStatus?' · '+esc(t.evidenceStatus==='traceable-observation'?'证据可追溯':'证据待核查'):''} ${t.analysisId?'<button class="a-button" data-analysis="'+esc(t.analysisId)+'">查看分析</button>':''}${t.proposalId?'<button class="a-button" data-case-timeline="'+esc(t.proposalId)+'">查看链路</button>':''}</p>`).join('')||'<p>目前没有需要处理的运营待办。</p>'}
+        </section>
+        <section class="a-card"><h2>增长异常自动监控</h2>
+          <p>自动检查拉新/激活与回访分析人数变化，不调用付费 AI，不自动执行运营动作。</p>
+          ${monitorControl.error?'<p role="alert">监控开关不可用：'+esc(monitorControl.error)+'。请检查 AI 数据库迁移。</p>':''}
+          <p role="status">当前设置：${monitorControl.enabled?'已启用':'关闭'} · 后台监控：
+             ${monitorControl.workerOnline?'在线':'未检测到在线进程'}
+             ${monitorControl.enabled&&!monitorControl.workerOnline?'（已保存开启意愿，但扫描尚未实际运行）':''}</p>
+          ${monitorControl.lastScanAt?'<p>最近扫描：'+esc(new Date(monitorControl.lastScanAt).toLocaleString('zh-CN'))+
+            ' · '+esc(monitorControl.lastScanStatus||'未知')+'</p>':'<p>暂无成功确认的扫描记录。</p>'}
+          ${monitorControl.allowed===false&&!monitorControl.error?'<p>此账号尚未获得监控授权，请在服务器配置允许的账号。</p>':''}
+          <button class="a-button" type="button" data-monitor-toggle
+            ${!monitorControl.allowed||monitorControl.error?'disabled':''}>
+            ${monitorControl.enabled?'关闭自动监控':'开启自动监控'}
+          </button>
+          <p>开关保存在服务器。关闭后不再开始新的自动扫描；正在执行的当前扫描可能完成。开启前仍需一次性部署并启动监控进程。</p>
         </section>
         <section class="a-card"><h2>跨日增长告警</h2>
         <p>基于相邻完整业务日、相同目标和采集范围的已保存结果；仅提示观测变化，不宣称因果。扫描不调用 AI。</p>
@@ -247,6 +262,18 @@ export function createAIAnalysis(ctx){
         <section class="a-card"><h2>复盘记录</h2>${reviews.retrospectives.map(r=>`<article><h3>${esc(r.analysis_title)}</h3><p>${esc(r.conclusion)}</p><p>置信度：${esc(r.confidence)} · ${r.has_causality?'有因果证据':'观测变化，未证明因果'}</p><p>经验：${esc(r.lessons_learned||'尚无结论')}</p></article>`).join('')||'<p>记录行动后，可主动发起复盘。</p>'}</section></div>`;
       host.querySelector('[data-health]').onclick=async()=>{try{const state=await getAgentHealth();if(token===generation)host.querySelector('[data-health-result]').textContent=JSON.stringify(state,null,2);}catch(error){if(token===generation)message(error.message);}};
       host.querySelector('[data-refresh]').onclick=()=>draw();
+      const monitorToggle=host.querySelector('[data-monitor-toggle]');
+      if(monitorToggle)monitorToggle.onclick=async()=>{
+        if(busy)return;busy=true;monitorToggle.disabled=true;
+        try{
+          const result=await setGrowthMonitorControl(!monitorControl.enabled,monitorControl.version);
+          if(token===generation){
+            await draw();
+            message(result.enabled?(result.workerOnline?'自动监控已开启':'开关已开启，等待后台监控进程'):'自动监控已关闭');
+          }
+        }catch(error){if(token===generation)message('切换监控失败：'+error.message)}
+        finally{busy=false;if(monitorToggle.isConnected)monitorToggle.disabled=false}
+      };
       const scanGrowthButton=host.querySelector('[data-scan-growth-alerts]');
       if(scanGrowthButton)scanGrowthButton.onclick=async e=>{
         if(busy)return;busy=true;const button=e.currentTarget;button.disabled=true;
