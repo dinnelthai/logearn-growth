@@ -141,18 +141,16 @@ test('operator switch calls server with version and never pretends worker is onl
  api.setGrowthMonitorControl.mockResolvedValue({allowed:true,enabled:true,version:1,workerOnline:false});
  await t.page.draw();
  expect(t.host.innerHTML).toContain('开启自动监控');
- expect(t.host.innerHTML).toContain('未检测到在线进程');
+ expect(t.host.innerHTML).toContain('未就绪');
  await t.monitorButton.onclick();
  expect(api.setGrowthMonitorControl).toHaveBeenCalledWith(true,0);
  expect(api.createBusinessAnalysis).not.toHaveBeenCalled();
  t.page.dispose();
 });
-test('unauthorized monitor has disabled control and descriptive status',async()=>{
- const t=setup();api.getGrowthMonitorControl.mockResolvedValue({
-  allowed:false,enabled:false,status:'not-authorized',workerOnline:false
- });
+test('monitor request failure disables the control with a message',async()=>{
+ const t=setup();api.getGrowthMonitorControl.mockRejectedValue(Error('AI database unavailable'));
  await t.page.draw();
- expect(t.host.innerHTML).toContain('尚未获得监控授权');
+ expect(t.host.innerHTML).toContain('监控开关不可用');
  expect(t.host.innerHTML).toContain('data-monitor-toggle');
  expect(t.host.innerHTML).toContain('disabled');
  t.page.dispose();
