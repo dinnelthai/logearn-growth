@@ -7,16 +7,20 @@ const {autonomyConfig,tickAutonomousOwner}=require('../../ai/growth/agentAutonom
 const {closeQueues}=require('../queues');
 let running=false;
 function config(){return autonomyConfig(process.env)}
-async function tick({now=Date.now(),dryRun=false,runOwner=tickAutonomousOwner,
+async function tick({now=Date.now(),dryRun=false,runOwner=tickAutonomousOwner,clock=()=>Date.now(),
  health=require('../../ai/growth/agentSchedulerHealth').createSchedulerHealth()}={}){
  const settings=config();
  if(dryRun)return {dryRun:true,owners:settings.owners.length,
   goals:settings.goals,paidDispatchEnabled:false,
   note:'dry run does not query the database or call model providers'};
+ const maxRunMs=Number(process.env.AI_AUTONOMY_TICK_MAX_MS||240000);
+ if(!Number.isSafeInteger(maxRunMs)||maxRunMs<1000||maxRunMs>600000)
+  throw Error('AI_AUTONOMY_TICK_MAX_MS 必须在1000到600000毫秒之间');
  if(running)return {status:'already-running-local'};
  const lease=await health.begin({now:Date.now()});
  if(!lease)return {status:'already-running-other-worker'};
  running=true;
+ const startedAt=clock();let exceededBudget=false;
  let failure=null,leaseLost=false,renewing=false;
  const pulse=setInterval(async()=>{
   if(renewing)return;
@@ -34,10 +38,17 @@ async function tick({now=Date.now(),dryRun=false,runOwner=tickAutonomousOwner,
  const outbox=enabledOwners.length?
   require('../../ai/growth/agentOutbox').createAgentOutbox():null;
  try{
-  for(const ownerId of settings.owners){
+  ownerLoop: for(const ownerId of settings.owners){
    // Catch the most recent day, plus two past completed days in case the
    // model or upstream watermark was temporarily unavailable.
    for(let lag=2;lag>=0;lag--){
+    // Stop launching new work once this tick's capacity deadline is reached.
+    // The next scheduled tick safely retries previously deferred business days.
+    if(clock()-startedAt>=maxRunMs){
+     exceededBudget=true;
+     results.push({ownerId,backfillDaysAgo:lag,status:'deferred-budget',reason:'scheduler-time-budget'});
+     break ownerLoop;
+    }
     try{
      if(leaseLost)throw Error('Agent 调度租约已失效，停止进一步处理');
      const item=await runOwner({
@@ -77,7 +88,7 @@ async function tick({now=Date.now(),dryRun=false,runOwner=tickAutonomousOwner,
   }
   if(outbox){
    const {sendAgentWebhook}=require('../../ai/growth/agentWebhook');
-   const due=leaseLost?[]:await outbox.claim(enabledOwners,{limit:10});
+   const due=leaseLost||exceededBudget?[]:await outbox.claim(enabledOwners,{limit:10});
    for(const item of due){
     try{
      const httpStatus=await sendAgentWebhook(item,{config:webhookConfig});
@@ -104,8 +115,9 @@ async function tick({now=Date.now(),dryRun=false,runOwner=tickAutonomousOwner,
    partial:results.filter(x=>x.status==='partial').length,
    blocked:results.filter(x=>x.status==='blocked').length,
    queued:results.reduce((n,x)=>n+(x.enqueued?.length||0),0),
-   deliveries:results.filter(x=>x.delivery==='delivered').length};
-  const outcome=failure||leaseLost?'failed':errors?'partial':'succeeded';
+   deliveries:results.filter(x=>x.delivery==='delivered').length,
+   deferred:exceededBudget?1:0};
+  const outcome=failure||leaseLost?'failed':errors||exceededBudget?'partial':'succeeded';
   try{
    await health.finish(lease,{outcome,summary,
     error:failure?.message|| (leaseLost?'lease-lost':null)});

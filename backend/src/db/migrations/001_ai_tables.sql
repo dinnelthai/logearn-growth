@@ -152,6 +152,12 @@ CREATE TABLE IF NOT EXISTS ai_usage_logs (
 CREATE INDEX IF NOT EXISTS idx_usage_logs_owner ON ai_usage_logs(owner_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_operation ON ai_usage_logs(operation_type, operation_id);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_created ON ai_usage_logs(created_at DESC);
+-- Per-model-request accounting is optional for legacy rows, but new Agent
+-- rounds record an owner-scoped trace and can never double-count that trace.
+ALTER TABLE ai_usage_logs ADD COLUMN IF NOT EXISTS trace_id TEXT;
+ALTER TABLE ai_usage_logs ADD COLUMN IF NOT EXISTS round INTEGER;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_usage_owner_trace
+ ON ai_usage_logs(owner_id,trace_id) WHERE trace_id IS NOT NULL;
 
 -- AI 历史经验索引 (用于下次分析时检索相关历史)
 CREATE TABLE IF NOT EXISTS ai_experience_index (

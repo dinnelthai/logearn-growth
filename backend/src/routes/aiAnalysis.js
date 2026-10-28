@@ -43,6 +43,12 @@ router.get('/growth-agent/status',handle(async(req,res)=>{
     latestBrief:briefs[0]||null,targetCount:targets.filter(t=>t.active).length,
     modelCallsOnThisRequest:0});
 }));
+router.get('/growth-agent/cost-audit',handle(async(req,res)=>{
+ const days=Number(req.query.days||7);
+ res.json(await require('../ai/growth/costAudit').getCostBreakdown({
+  ownerId:req.user.user_id,days
+ }));
+}));
 router.get('/growth-agent/targets',handle(async(req,res)=>{
   const items=await require('../ai/growth/agentStore').createAgentStore()
     .targets(req.user.user_id,{source:req.query.source||'all'});

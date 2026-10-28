@@ -20,8 +20,9 @@ class CostTracker {
           owner_id, operation_type, operation_id,
           model_provider, model_name,
           input_tokens, output_tokens, total_tokens, cost_usd,
-          duration_ms, from_cache, created_at, cost_known
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+          duration_ms, from_cache, created_at, cost_known, trace_id, round
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+          ON CONFLICT (owner_id, trace_id) WHERE trace_id IS NOT NULL DO NOTHING`,
         [
           usage.ownerId || 'system',
           usage.operationType || 'analysis',
@@ -35,7 +36,9 @@ class CostTracker {
           usage.duration,
           false,
           Date.now(),
-          usage.costKnown !== false
+          usage.costKnown !== false,
+          usage.traceId || null,
+          Number.isSafeInteger(usage.round) && usage.round >= 0 ? usage.round : null
         ]
       );
     } catch (error) {
@@ -54,6 +57,7 @@ class CostTracker {
     const result = await pool.query(
       `SELECT
         COUNT(*) as total_calls,
+        COUNT(*) FILTER (WHERE cost_known = false) as unknown_cost_calls,
         SUM(input_tokens) as total_input_tokens,
         SUM(output_tokens) as total_output_tokens,
         SUM(total_tokens) as total_tokens,
@@ -97,16 +101,26 @@ class CostTracker {
   /**
    * 检查今日成本是否超限
    */
-  async checkDailyLimit(maxDailyCost, ownerId = null) {
+  async checkDailyLimit(maxDailyCost, ownerId = null, maxDailyTokens = 100000) {
     const stats = await this.getTodayStats(ownerId);
     const totalCost = stats.reduce((sum, stat) => sum + parseFloat(stat.total_cost || 0), 0);
-
+    // A zero-dollar estimate is not proof of free usage. Once an unknown-priced
+    // call has been recorded, dollar-based limits cannot certify remaining funds.
+    const unknown = stats.reduce((sum, stat) => sum + Number(stat.unknown_cost_calls || 0), 0);
+    if (unknown > 0) {
+      throw new Error('模型实际价格未知，美元预算无法核实；请配置中转站输入及输出单价后再付费调用');
+    }
     if (totalCost >= maxDailyCost) {
       throw new Error(
         `Daily cost limit exceeded: $${totalCost.toFixed(4)} / $${maxDailyCost}`
       );
     }
 
+    if(!Number.isSafeInteger(maxDailyTokens)||maxDailyTokens<1)
+      throw Error('每日 Token 配额必须为正整数');
+    const usedTokens=stats.reduce((sum,stat)=>sum+Number(stat.total_tokens||0),0);
+    if(usedTokens>=maxDailyTokens)
+      throw Error('每日 Token 配额已耗尽：'+usedTokens+' / '+maxDailyTokens);
     return totalCost;
   }
 

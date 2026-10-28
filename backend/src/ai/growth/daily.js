@@ -20,17 +20,27 @@ function dailyRequest({ownerId,now=Date.now(),goal='activation',source='all'}){
   businessScope:{source},userQuestion:'依据业务快照和已注册 Growth Skills 核对变化、采集覆盖与增长机会；不得捏造数值或自动执行运营动作。',
   focusGoal:goal,modelMode:'auto',period};
 }
-async function dispatchDaily({ownerId,now=Date.now(),goal='activation',source='all',records,enqueue}){
+async function dispatchDaily({ownerId,now=Date.now(),goal='activation',source='all',records,enqueue,sharedReport=null}){
  if(!records?.createAnalysisRecord||typeof enqueue!=='function')throw Error('缺少调度存储或队列');
  const request=dailyRequest({ownerId,now,goal,source});
+ if(sharedReport)require('./sharedDailyReport').validateDailyReport(sharedReport,{
+  start:request.dateRangeStart,end:request.dateRangeEnd,source,goal});
  const record=await records.createAnalysisRecord({
    ownerId,requestKey:request.requestKey,title:request.title,analysisType:'optimization',
    dateRangeStart:request.dateRangeStart,dateRangeEnd:request.dateRangeEnd,
    businessScope:request.businessScope,userQuestion:request.userQuestion,
-   dataSnapshot:{},filterConditions:{businessScope:request.businessScope,focusGoal:goal,
-     modelMode:'auto',dailySchedule:'v1',date:request.period.day}
+   dataSnapshot:sharedReport||{},filterConditions:{businessScope:request.businessScope,focusGoal:goal,
+     modelMode:'auto',dailySchedule:'v1',date:request.period.day,
+     ...(sharedReport?{sharedFactsVersion:'daily-preflight-v1',
+       sharedFactsSnapshotId:sharedReport.snapshot.id}:{})}
  });
  if(record.status!=='pending')return {status:'already-'+record.status,analysisId:record.id,period:request.period};
+ if(sharedReport){
+  const persisted=require('./sharedDailyReport').fromClaimedRecord(record,{
+   start:request.dateRangeStart,end:request.dateRangeEnd,source,goal});
+  if(persisted?.snapshot.id!==sharedReport.snapshot.id)
+   throw Error('固定的日报快照版本不同，禁止重新派发付费任务');
+ }
  // The existing DB (owner_id, request_key) unique constraint is the durable
  // schedule dedupe; deterministic Bull job IDs cover concurrent schedulers.
  const job=await enqueue('business-analysis',{

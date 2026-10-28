@@ -10,6 +10,7 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
  CREATE TABLE IF NOT EXISTS gw_goals(owner_id TEXT NOT NULL,id TEXT NOT NULL,version INTEGER NOT NULL,metric_id TEXT NOT NULL,definition_version TEXT NOT NULL,target_value REAL NOT NULL,unit TEXT NOT NULL,direction TEXT NOT NULL,aggregation TEXT NOT NULL,period_start INTEGER NOT NULL,period_end INTEGER NOT NULL,effective_at INTEGER NOT NULL,scope_json TEXT NOT NULL,constraints_json TEXT NOT NULL,kind TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(owner_id,id,version));
  CREATE INDEX IF NOT EXISTS gw_goal_active_idx ON gw_goals(owner_id,effective_at,period_start,period_end);
  CREATE TABLE IF NOT EXISTS gw_evidence(owner_id TEXT NOT NULL,id TEXT NOT NULL,payload TEXT NOT NULL,observed_at INTEGER NOT NULL,PRIMARY KEY(owner_id,id));
+ CREATE INDEX IF NOT EXISTS gw_evidence_recent ON gw_evidence(owner_id,observed_at DESC);
  CREATE TABLE IF NOT EXISTS gw_problems(owner_id TEXT NOT NULL,id TEXT NOT NULL,fingerprint TEXT NOT NULL,type TEXT NOT NULL,subject TEXT NOT NULL,scope_json TEXT NOT NULL,goal_id TEXT,goal_version INTEGER,priority INTEGER NOT NULL,status TEXT NOT NULL,description TEXT NOT NULL,impact_json TEXT NOT NULL,next_step TEXT,assignee TEXT,first_seen INTEGER NOT NULL,last_seen INTEGER NOT NULL,last_evidence_hash TEXT,episode INTEGER NOT NULL DEFAULT 1,PRIMARY KEY(owner_id,id));
  CREATE INDEX IF NOT EXISTS gw_problems_dedupe ON gw_problems(owner_id,fingerprint,status,last_seen);
  CREATE TABLE IF NOT EXISTS gw_problem_events(owner_id TEXT NOT NULL,id TEXT NOT NULL,problem_id TEXT NOT NULL,kind TEXT NOT NULL,evidence_json TEXT NOT NULL,details_json TEXT NOT NULL,at INTEGER NOT NULL,PRIMARY KEY(owner_id,id));
@@ -59,7 +60,18 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
  }
  function getEvidence(owner,id){ownerId(owner);let r=fetch('SELECT payload FROM gw_evidence WHERE owner_id=? AND id=?',owner,requiredString(id,'证据标识'));return r?safeJSON(r.payload):null}
  function progress(owner,goalId,{at=getNow(),evidenceId=null}={}){ownerId(owner);const goals=listGoals(owner,{asOf:at}),goal=goals.find(g=>g.id===goalId);if(!goal)return {status:'no-goal',observed:null,delta:null};
-  const evidence=evidenceId?getEvidence(owner,evidenceId):null;
+  let evidence=evidenceId?getEvidence(owner,evidenceId):null;
+  // Page reads never refresh metrics or write evidence. Find a compatible
+  // persisted observation scoped to this owner and this goal version.
+  if(!evidence&&!evidenceId){
+   const rows=all("SELECT payload FROM gw_evidence WHERE owner_id=? AND observed_at<=? ORDER BY observed_at DESC LIMIT 200",owner,at);
+   for(const row of rows){
+    const candidate=safeJSON(row.payload);
+    if(candidate?.metricId!==goal.metric_id)continue;
+    const result=goalProgress(goal,candidate,at);
+    if(result.status==='verified'||result.status==='partial'){evidence=candidate;break}
+   }
+  }
   return {goal,progress:goalProgress(goal,evidence,at)}
  }
  function problemRow(r){return r?{...r,scope:safeJSON(r.scope_json,{}),impact:safeJSON(r.impact_json,{status:'unknown'})}:null}
@@ -122,7 +134,7 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
  function createAction(owner,problemId,input){const p=problem(owner,problemId);if(!p)throw Error('问题不存在');const desc=requiredString(input.description,'行动建议',1500),assignee=requiredString(input.assignee,'负责人',120),id=randomUUID(),now=getNow();
   db.prepare('INSERT INTO gw_actions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(owner,id,problemId,input.runId||null,desc,assignee,'proposed',input.metricId||null,input.definitionVersion||null,input.direction||null,null,null,null,null,now,now);return action(owner,id)}
  function action(owner,id){ownerId(owner);const a=fetch('SELECT * FROM gw_actions WHERE owner_id=? AND id=?',owner,id);return a?{...a,baseline:safeJSON(a.baseline_json),review:safeJSON(a.review_json)}:null}
- function actions(owner,{limit=50}={}){ownerId(owner);return all('SELECT * FROM gw_actions WHERE owner_id=? ORDER BY created_at DESC LIMIT ?',owner,Math.max(1,Math.min(200,limit))).map(r=>action(owner,r.id))}
+ function actions(owner,{limit=50}={}){ownerId(owner);return all('SELECT * FROM gw_actions WHERE owner_id=? ORDER BY created_at DESC LIMIT ?',owner,Math.max(1,Math.min(200,limit))) .map(r=>({...r,baseline:safeJSON(r.baseline_json),review:safeJSON(r.review_json)}))}
  function updateAction(owner,id,next,{actualAction=null,baselineEvidenceId=null,observeUntil=null}={}){const a=action(owner,id),transitions={proposed:['accepted','rejected'],accepted:['executing','rejected'],executing:['executed','rejected'],executed:[]};
   if(!a)throw Error('行动不存在');if(!transitions[a.status]?.includes(next))throw Object.assign(Error('行动状态不允许直接跳转'),{status:409});
   if(next==='executed'&&(!actualAction||!baselineEvidenceId||!Number.isSafeInteger(observeUntil)||observeUntil<=getNow()))throw Error('执行完成需行动事实、基线和未来观察期限');

@@ -5,8 +5,7 @@ const express=require('express');
 const {workspaceStore}=require('../ai/growth/workspace/store');
 const {currentMonth}=require('../ai/growth/workspace/period');
 const {requiredString}=require('../ai/growth/workspace/contracts');
-const {refreshWeeklyCore}=require('../ai/growth/workspace/weeklyCoreProgress');
-function createRouter({db=require('../db/connection'),metricProviders=null}={}){
+function createRouter({db=require('../db/connection')}={}){
  const router=express.Router();const store=workspaceStore(db);
  const h=fn=>async(req,res)=>{try{
   if(!req.user?.user_id)return res.status(401).json({error:'未登录'});
@@ -15,15 +14,10 @@ function createRouter({db=require('../db/connection'),metricProviders=null}={}){
  const num=(v,defaultValue)=>v===undefined?defaultValue:Number(v);
  router.get('/dashboard',h(async(req,res,owner)=>{
   const month=currentMonth();
-  const goals=[];
-  for(const goal of store.listGoals(owner,{start:month.start,end:month.end})){
-   let progress=store.progress(owner,goal.id).progress;
-   if(goal.metric_id==='weekly_core'){
-    const providers=metricProviders||{status:()=>require('../data/hologres').status(),weekly:(...args)=>require('../data/weeklyCore').weeklyCoreFacts(...args)};
-    progress=await refreshWeeklyCore({store,owner,goal,...providers});
-   }
-   goals.push({goal,progress});
-  }
+  // API reads use previously persisted owner-scoped evidence only.
+  // Refreshes run in the leased daily scheduler, never on a page GET.
+  const goals=store.listGoals(owner,{start:month.start,end:month.end})
+   .map(goal=>({goal,progress:store.progress(owner,goal.id).progress}));
   res.json({version:'growth-workspace-v1',month,goals,problems:store.problems(owner),actions:store.actions(owner),reports:store.reportList(owner),quality:store.qualitySummary(owner),externalActions:0,modelCalls:0});
  }));
  router.post('/goals',h(async(req,res,owner)=>res.status(201).json(store.saveGoal(owner,req.body||{}))));

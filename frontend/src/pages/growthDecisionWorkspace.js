@@ -1,8 +1,8 @@
 import {getToken} from '../auth/authClient.js'
 const BASE=import.meta.env.VITE_BACKEND_BASE_URL??'http://localhost:3001'
 const safe=v=>String(v??'未知').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]))
-async function api(path,method='GET',body){
- const response=await fetch(BASE+'/api/growth-workspace'+path,{method,
+async function api(path,method='GET',body,signal){
+ const response=await fetch(BASE+'/api/growth-workspace'+path,{method,signal,
   headers:{'Content-Type':'application/json',Authorization:'Bearer '+getToken()},
   ...(body?{body:JSON.stringify(body)}:{})})
  const data=await response.json().catch(()=>({}))
@@ -11,12 +11,13 @@ async function api(path,method='GET',body){
 }
 const fmt=v=>v==null?'未知':new Intl.NumberFormat('zh-CN',{maximumFractionDigits:2}).format(v)
 export function mountGrowthDecisionWorkspace(root){
- let disposed=false,seq=0
+ let disposed=false,seq=0,controller=null
  async function draw(){
-  const version=++seq
+  controller?.abort();controller=new AbortController()
+   const version=++seq
   root.innerHTML='<p class="a-muted">正在读取目标、问题与周期报告…</p>'
   try{
-   const d=await api('/dashboard')
+   const d=await api('/dashboard','GET',undefined,controller.signal)
    if(disposed||version!==seq)return
    const goals=d.goals||[],issues=d.problems||[],actions=d.actions||[],reports=d.reports||[]
    const business=issues.filter(x=>x.type==='business'),data=issues.filter(x=>x.type==='data-quality'),other=issues.filter(x=>!['business','data-quality'].includes(x.type))
@@ -76,5 +77,5 @@ export function mountGrowthDecisionWorkspace(root){
   root.querySelectorAll('[data-evidence]').forEach(btn=>btn.addEventListener('click',async()=>{try{const e=await api('/evidence/'+encodeURIComponent(btn.dataset.evidence));say(`证据 ${e.id} · ${e.state} · ${new Date(e.period.start).toISOString()} 至 ${new Date(e.period.end).toISOString()} · 来源 ${e.source} · ${e.warnings.join('；')}`)}catch(error){say(error.message)}}))
  }
  draw()
- return ()=>{disposed=true;seq++}
+ return ()=>{disposed=true;seq++;controller?.abort()}
 }

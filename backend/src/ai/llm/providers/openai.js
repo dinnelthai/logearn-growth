@@ -4,6 +4,7 @@
 
 const OpenAI = require('openai');
 const logger = require('../../../utils/logger');
+const {normalizeUsage}=require('../usage');
 
 class OpenAIProvider {
   constructor(config) {
@@ -27,6 +28,7 @@ class OpenAIProvider {
       stream: options.stream
     };
 
+    if(options.stream) params.stream_options={include_usage:true};
     if (options.maxTokens) {
       params.max_tokens = options.maxTokens;
     }
@@ -47,7 +49,8 @@ class OpenAIProvider {
     try {
       const response = await this.client.chat.completions.create(params);
 
-      return this.normalizeResponse(response);
+      // Streaming responses are async iterables, not ChatCompletion objects.
+      return options.stream ? response : this.normalizeResponse(response);
     } catch (error) {
       logger.error('OpenAI API error:', error);
       throw new Error(`OpenAI error: ${error.message}`);
@@ -65,11 +68,7 @@ class OpenAIProvider {
       role: choice.message.role,
       toolCalls: choice.message.tool_calls,
       finishReason: choice.finish_reason,
-      usage: {
-        inputTokens: response.usage.prompt_tokens,
-        outputTokens: response.usage.completion_tokens,
-        totalTokens: response.usage.total_tokens
-      },
+      usage: normalizeUsage(response.usage),
       raw: response
     };
   }

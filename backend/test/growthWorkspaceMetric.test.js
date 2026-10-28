@@ -17,3 +17,17 @@ test('only complete, matching rolling observations can establish goal completion
  const mismatch=await refreshWeeklyCore({store,owner:'alice',goal:{...g,definition_version:'other'},now,...deps(true)});assert.equal(mismatch.status,'unknown');
  }finally{db.close()}
 });
+
+
+test('repeated source snapshot reuses immutable evidence and dashboard progress reads it',async()=>{
+ const db=new DatabaseSync(':memory:');try{
+  const store=workspaceStore(db,{clock:()=>now,initialize:true}),g=store.saveGoal('alice',goal);
+  const first=await refreshWeeklyCore({store,owner:'alice',goal:g,now,...deps()});
+  const later=await refreshWeeklyCore({store,owner:'alice',goal:g,now:now+60000,...deps()});
+  assert.equal(first.evidenceId,later.evidenceId);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM gw_evidence WHERE owner_id=?').get('alice').n,1);
+  const saved=store.progress('alice',g.id,{at:now+60000}).progress;
+  assert.equal(saved.status,'partial');assert.equal(saved.observed,27);
+  assert.equal(store.progress('bob',g.id).status,'no-goal');
+ }finally{db.close()}
+});

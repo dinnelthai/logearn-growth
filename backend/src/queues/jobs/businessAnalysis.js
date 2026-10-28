@@ -68,7 +68,10 @@ async function businessAnalysis(job) {
       if(report.period.start!==start||report.period.end!==end||report.business.scope.source!==source||report.focusGoal!==focusGoal)throw Error('AI分析范围与业务报告不一致');
       compact={...report,manualActions:store.actions(report.id,ownerId).map(({review,...action})=>({...action,review:review?{periods:review.periods,metricChanges:review.metricChanges,conclusion:review.conclusion,warnings:review.warnings}:null})),manualHistory:store.history(ownerId,source)};
     }else{
-      compact=await reportsService.build({start,end,businessScope:scope,focusGoal,question:userQuestion});
+      const seeded=require('../../ai/growth/sharedDailyReport').fromClaimedRecord(
+       executionClaim.record,{start,end,source,goal:focusGoal});
+      compact=seeded||await reportsService.build({start,end,businessScope:scope,
+       focusGoal,question:userQuestion});
     }
     // Ranked business candidates stay untouched; plan adds explainable
     // anomaly triage and permitted investigations for the existing runner.
@@ -90,8 +93,9 @@ async function businessAnalysis(job) {
       maxSkills:Math.min(6,3+availableSpecialties.length),availableSpecialties,
       strategy:learnedStrategy
     });
+    const memoryView=require('../../ai/business/contextBudget').compactMemory(memory);
     compact={...compact,business:{...compact.business,question:userQuestion||compact.business.question},
-      memory,growthPlan};
+      memory:memoryView.items,memoryMeta:memoryView.meta,growthPlan};
     const session=require('../../ai/business/foundation').defaultFoundation().prepare(compact,{ownerId,runId:analysisId,goalRef:job.data.goalRef});
     compact=session.context;
     // Existing read-only tool registry creates archived, owner-scoped evidence.
