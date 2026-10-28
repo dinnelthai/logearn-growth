@@ -10,8 +10,9 @@ test('tools discover schema, reuse existing analysis, keep empty audience and re
  assert.ok(t.registry.listCapabilities(t.context).find(t=>t.id==='get_funnel').inputSchema);
  const result=await t.registry.executeTool('get_funnel',{scope:{cohortId:'c'},steps:['token','chip'],limit:2},t.context);
  assert.equal(result.status,'ok');assert.deepEqual(t.seen[0].audience,[]);assert.equal(t.seen[0].kind,'funnel');assert.equal(result.evidence[0].value.users,12);
- assert.equal(result.evidence[0].value.rows.length,2);assert.ok(result.cursor);
- const next=await t.registry.executeTool('get_funnel',{cursor:result.cursor,limit:2},t.context);assert.equal(next.evidence[0].value.rows[0].id,'c');
+ assert.equal(result.evidence[0].value.rows,undefined);
+ assert.equal(result.cursor,undefined,'row-level pagination is not exposed to the Agent');
+ assert.equal(result.evidence[0].value.omittedNonStatisticalFields>0,true);
  await assert.rejects(()=>t.registry.executeTool('get_funnel',{cursor:result.cursor},{...t.context,ownerId:'bob'}),/权限/);
  await assert.rejects(()=>t.registry.executeTool('get_funnel',{scope:{source:'all'}},t.context),/范围/);
  await assert.rejects(()=>t.registry.executeTool('get_funnel',{filters:{sql:'1=1; DROP TABLE users'}},t.context),/字段|过滤/);
