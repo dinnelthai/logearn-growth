@@ -4,7 +4,7 @@ vi.mock('../../api/crm.js',()=>({listKols:vi.fn(),getKol:vi.fn(),saveKol:vi.fn()
 import {fetchKolRanking,fetchKolMetrics} from '../../api/crm.js'
 import {createKolCrm} from '../../pages/kolCrm.js'
 function data(offset=0){return {kols:[{id:'k'+offset,name:'KOL '+offset,platform:'X',stage:'待联系',metric:{total:{users:2,analysis_users:1,analysis_rate:.5,analysis_events:10,analysis_days:1,transactions:0,volume_usd:null}}}],total:70,summary:{total:70,due:0},assignees:[],snapshot_id:'fixed',list_version:'v1',start:100,end:200,as_of:'2026-10-15T00:00:00Z'}}
-function setup(){const nodes=new Map(),tableNode={innerHTML:'',querySelectorAll:()=>[],querySelector:()=>null},host={innerHTML:'',querySelector:s=>s==='[data-crm-table]'?tableNode:nodes.get(s)||(nodes.set(s,{}),nodes.get(s)),querySelectorAll:()=>[]},ctx={$:()=>host,clear:vi.fn(),esc:String,fmt:String,table:(_h,rows)=>JSON.stringify(rows)};return {page:createKolCrm(ctx),host,nodes,tableNode}}
+function setup(){const nodes=new Map(),tableNode={innerHTML:'',querySelectorAll:()=>[],querySelector:()=>null},host={innerHTML:'',querySelector:s=>s==='[data-crm-table]'?tableNode:nodes.get(s)||(nodes.set(s,{}),nodes.get(s)),querySelectorAll:()=>[]},ctx={$:()=>host,clear:vi.fn(),navigate:vi.fn(),esc:String,fmt:String,table:(_h,rows)=>JSON.stringify(rows)};return {page:createKolCrm(ctx),host,ctx,nodes,tableNode}}
 beforeEach(()=>{vi.resetAllMocks();fetchKolRanking.mockImplementation(body=>Promise.resolve(data(body.offset)))})
 test('the list delegates ranking before pagination and retains its snapshot and period for page two',async()=>{
  const t=setup();await t.page.draw();expect(fetchKolMetrics).not.toHaveBeenCalled();t.nodes.get('[data-crm-sort]').onchange({target:{value:'analysis_events'}});await vi.waitFor(()=>expect(fetchKolRanking).toHaveBeenCalledTimes(2));await Promise.resolve()
@@ -34,5 +34,18 @@ test('KOL ranking restores the last available page after records shrink',async()
  })
  expect(t.host.innerHTML).toContain('第 1/1 页')
  expect(t.tableNode.innerHTML).toContain('KOL 0')
+ t.page.dispose()
+})
+
+test('a KOL workspace opened from operations offers a direct return without losing list routing',async()=>{
+ const t=setup()
+ // The list toolbar and detail toolbar share the same context-sensitive action.
+ t.page.openKol(null,{returnToWorkbench:true})
+ await t.page.draw()
+ expect(t.host.innerHTML).toContain('返回运营待办')
+ const back=t.nodes.get('[data-crm-return-workbench]')
+ expect(back.onclick).toBeTypeOf('function')
+ back.onclick()
+ expect(t.ctx.navigate).toHaveBeenCalledWith('workbench')
  t.page.dispose()
 })
