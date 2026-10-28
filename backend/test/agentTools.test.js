@@ -47,3 +47,9 @@ test('advertised tool input fields match execution validation',()=>{
 test('tool schemas advertise the authorized historical time window',()=>{
  const t=setup();try{const p=t.registry.listCapabilities(t.context)[0].inputSchema.properties;assert.equal(p.start.minimum,period.start-(period.end-period.start));assert.equal(p.start.maximum,period.end);assert.equal(p.end.maximum,period.end)}finally{t.db.close()}
 });
+test('product chain returns bounded aggregate metrics without individual details',async()=>{
+ const t=setup({maxResultBytes:5000,runAnalysis:async()=>({payload:{product_chain:{visits:100,users:90,pending:4,stages:[{label:'详情',users:90}],drops:[{users:10}],quality:{detail_events:100},dimensions:{source:Array.from({length:1000},(_,i)=>({value:'source'+i,users:1}))}},first_value:{eligible:80,converted:40,rate:0.5},entrance:{rows:[{user_id:'private'}]},events:[{user_id:'private'}]}})});try{
+ const r=await t.registry.executeTool('get_product_chain',{},t.context);const v=r.evidence[0].value;
+ assert.equal(v.product_chain.users,90);assert.equal(v.first_value.rate,0.5);assert.equal(v.product_chain.dimensions,undefined);assert.equal(v.events,undefined);assert.doesNotMatch(JSON.stringify(v),/private/);
+ }finally{t.db.close()}
+});

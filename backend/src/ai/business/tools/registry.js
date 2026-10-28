@@ -21,6 +21,16 @@ const definitions={
 };
 const fields=['scope','start','end','metrics','dimensions','filters','steps','hours','initial','returning','limit','cursor','siteUrl'];
 const inputSchema={type:'object',additionalProperties:false,properties:Object.fromEntries(fields.map(k=>[k,{type:['start','end','hours','limit'].includes(k)?'integer':['metrics','dimensions','steps'].includes(k)?'array':['scope','filters'].includes(k)?'object':'string'}]))};
+function productChainSummary(payload){
+ const pick=(obj,keys)=>Object.fromEntries(keys.filter(k=>obj?.[k]!==undefined).map(k=>[k,obj[k]]));
+ const chain=payload.product_chain||{};
+ return {product_chain:{...pick(chain,['visits','users','pending','quality','window_ms','coverage','definition']),
+  stages:(chain.stages||[]).slice(0,10).map(row=>pick(row,['label','visits','users'])),
+  drops:(chain.drops||[]).slice(0,10).map(row=>pick(row,['from','to','unknown','unknown_users','eligible','visits','users','rate']))},
+  first_value:pick(payload.first_value,['available','entered','eligible','converted','pending','unobserved','rate','median_ms','p90_ms','window_ms']),
+  coverage:payload.coverage,definition:payload.definition,
+  warnings:['产品链路仅提供总体统计；维度和用户级明细未发送给模型']};
+}
 const allowedFields=id=>['scope','start','end','filters','limit','cursor',...(id==='get_funnel'?['steps','hours']:id==='get_retention'?['initial','returning']:id==='query_metrics'?['metrics','dimensions']:id==='get_seo_performance'?['siteUrl']:[])];
 function createToolRegistry(deps){
  const budgets=new Map(),maxQueries=deps.maxQueries??20,maxConcurrent=deps.maxConcurrent??2,maxResultBytes=deps.maxResultBytes??200000,timeoutMs=deps.timeoutMs??35000;
@@ -78,7 +88,8 @@ function createToolRegistry(deps){
    operationStarted=true;
    const running=operation().finally(()=>{budget.active--;});
    const result=await Promise.race([running,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(Error('工具执行超时'),{status:503})),timeoutMs);})]);
-   const payload=result.payload??result;
+   const rawPayload=result.payload??result;
+   const payload=id==='get_product_chain'?productChainSummary(rawPayload):rawPayload;
    const safe=JSON.parse(JSON.stringify(payload,(key,value)=>['members','lists','list_key','user_ids','planned_user_ids'].includes(key)?undefined:value));
    if(Buffer.byteLength(JSON.stringify(safe))>maxResultBytes)fail('工具结果超出大小预算，请缩小查询范围',422);
    if(id==='query_metrics'){
