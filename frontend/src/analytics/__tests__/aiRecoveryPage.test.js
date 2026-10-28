@@ -29,12 +29,12 @@ function setup({withTimeline=false,withGsc=false}={}){
 
 
  api.getAnalysisDetail.mockResolvedValue({id:'a',title:'task',status:'processing',suggestions:[]});
- api.getJobCheckpoint.mockResolvedValue({recordStatus:'processing',leaseExpired:true,completedRounds:1,completedTools:0,pendingTools:0});
+ api.getJobCheckpoint.mockResolvedValue({recordStatus:'processing',leaseExpired:true,requiresHumanReview:true,state:'recorded',reason:'requires-validation-before-resume',modelCalls:1,completedRounds:1,completedTools:0,pendingTools:0});
  const page=createAIAnalysis({$:()=>host,esc:s=>String(s??'')});return {page,button,cancel,retry,checkpoint,message,panel,caseButton,timeline,host,gscButton,monitorButton,heading,summary};
 }
 afterEach(()=>{vi.restoreAllMocks();vi.unstubAllGlobals()})
 test('expired task can request recovery and displays the cost notice',async()=>{
- const t=setup();api.resumeAnalysis.mockResolvedValue({notice:'可能产生费用'});await t.page.draw();await t.button.onclick();await vi.waitFor(()=>expect(t.checkpoint.button).toBeTruthy());await t.checkpoint.button.onclick();expect(api.resumeAnalysis).toHaveBeenCalledWith('a');expect(t.message.textContent).toBe('可能产生费用');t.page.dispose();
+ const t=setup();vi.stubGlobal('confirm',vi.fn(()=>true));api.resumeAnalysis.mockResolvedValue({notice:'可能产生费用'});await t.page.draw();await t.button.onclick();await vi.waitFor(()=>expect(t.checkpoint.button).toBeTruthy());await t.checkpoint.button.onclick();expect(api.resumeAnalysis).toHaveBeenCalledWith('a');expect(t.message.textContent).toBe('可能产生费用');t.page.dispose();
 });
 test('cancel sends the selected task and refreshes its status',async()=>{
  const t=setup();api.cancelAnalysis.mockResolvedValue({});await t.page.draw();await t.button.onclick();await t.cancel.click({currentTarget:t.cancel});expect(api.cancelAnalysis).toHaveBeenCalledWith('a');expect(api.getAnalysisDetail).toHaveBeenCalledTimes(3);t.page.dispose();
@@ -184,10 +184,37 @@ test('verified failed task explicitly offers retry without starting it on read',
  const t=setup()
  api.getAnalysisList.mockResolvedValue({records:[{id:'a',title:'failed task',status:'failed'}]})
  api.getAnalysisDetail.mockResolvedValue({id:'a',title:'failed task',status:'failed',suggestions:[]})
- api.getJobCheckpoint.mockResolvedValue({recordStatus:'failed',state:'ready',pendingTools:0,requiresHumanReview:false})
+ api.getJobCheckpoint.mockResolvedValue({recordStatus:'failed',state:'not-started',reason:null,modelCalls:0,completedRounds:0,pendingTools:0,requiresHumanReview:false})
  await t.page.draw()
- await vi.waitFor(()=>expect(t.retry.textContent).toContain('可能付费'))
+ await vi.waitFor(()=>expect(t.retry.textContent).toContain('可能产生费用'))
  expect(t.retry.disabled).toBe(false)
  expect(api.retryAnalysis).not.toHaveBeenCalled()
+ t.page.dispose()
+})
+
+test('declining manual resume confirmation never sends a paid job request',async()=>{
+ const t=setup()
+ vi.stubGlobal('confirm',vi.fn(()=>false))
+ await t.page.draw()
+ await vi.waitFor(()=>expect(t.checkpoint.button).toBeTruthy())
+ await t.checkpoint.button.onclick()
+ expect(api.getJobCheckpoint).toHaveBeenCalled()
+ expect(api.resumeAnalysis).not.toHaveBeenCalled()
+ t.page.dispose()
+})
+
+test('server checkpoint changing before paid retry blocks it without dispatch',async()=>{
+ const t=setup()
+ vi.stubGlobal('confirm',vi.fn(()=>true))
+ api.getAnalysisList.mockResolvedValue({records:[{id:'a',title:'failed task',status:'failed'}]})
+ api.getAnalysisDetail.mockResolvedValue({id:'a',title:'failed task',status:'failed',suggestions:[]})
+ const empty={recordStatus:'failed',state:'not-started',reason:null,modelCalls:0,completedRounds:0,pendingTools:0,requiresHumanReview:false}
+ api.getJobCheckpoint.mockResolvedValueOnce(empty)
+   .mockResolvedValueOnce({...empty,state:'recorded',reason:'requires-validation-before-resume',modelCalls:1,completedRounds:1})
+ await t.page.draw()
+ await vi.waitFor(()=>expect(t.retry.disabled).toBe(false))
+ await t.retry.click()
+ expect(api.retryAnalysis).not.toHaveBeenCalled()
+ expect(t.message.textContent).toContain('禁止直接重试')
  t.page.dispose()
 })
