@@ -9,11 +9,12 @@ afterEach(()=>{
 function fixture(){
   const selectors=[
     '[data-desc]','[data-list]','[data-count]','[data-prev]',
-    '[data-next]','[data-remote-actions]','#as-timeline',
+    '[data-next]','[data-remote-actions]','[data-remote-retry]','#as-timeline',
     '[data-close]','input'
   ]
   const nodes=Object.fromEntries(selectors.map(x=>[x,{innerHTML:'',textContent:'',disabled:false}]))
   nodes['input'].focus=()=>{}
+  nodes['[data-remote-retry]'].addEventListener=(_event,handler)=>{nodes['[data-remote-retry]'].click=handler}
   nodes['[data-remote-actions]'].querySelectorAll=()=>[]
   const dialog={
     open:false,innerHTML:'',
@@ -72,5 +73,19 @@ test('remote drill refetches the last real page after a list shrinks',async()=>{
   await vi.waitFor(()=>expect(t.nodes['[data-count]'].textContent).toContain('第 1 / 1 页'))
   expect(fetchPage.mock.calls.map(([c])=>c.offset)).toEqual([0,12,24,0])
   expect(t.nodes['[data-list]'].innerHTML).toContain('user:1')
+  t.drawer.close()
+})
+
+test('server failure retains an explicit retry without silently reloading',async()=>{
+  const t=fixture(),fetchPage=vi.fn()
+    .mockRejectedValueOnce(Error('temporary network error'))
+    .mockResolvedValueOnce({total:1,rows:[{id:'user:1',source:'SEO'}]})
+  t.drawer.openRemote({title:'用户列表',description:'真实用户',fetchPage})
+  await vi.waitFor(()=>expect(t.nodes['[data-list]'].innerHTML).toContain('temporary network error'))
+  expect(t.nodes['[data-list]'].innerHTML).toContain('data-remote-retry')
+  expect(fetchPage).toHaveBeenCalledTimes(1)
+  t.nodes['[data-remote-retry]'].click()
+  await vi.waitFor(()=>expect(t.nodes['[data-list]'].innerHTML).toContain('user:1'))
+  expect(fetchPage).toHaveBeenCalledTimes(2)
   t.drawer.close()
 })
