@@ -28,10 +28,13 @@ export function createAIAnalysis(ctx){
       if(token!==generation)return;
       // Read a single latest task and its checkpoint; don't infer task state from a list label.
       const latestId=list.records?.[0]?.id;
-      const [latestDetail,latestCheckpoint]=latestId?await Promise.all([
-        getAnalysisDetail(latestId).catch(()=>null),
-        getJobCheckpoint(latestId).catch(()=>null)
-      ]):[null,null];
+      const latestReads=latestId?await Promise.allSettled([
+        getAnalysisDetail(latestId),getJobCheckpoint(latestId)
+      ]):[];
+      const accessError=latestReads.find(x=>x.status==='rejected'&&[401,403].includes(x.reason?.status));
+      if(accessError)throw accessError.reason;
+      const latestDetail=latestReads[0]?.status==='fulfilled'?latestReads[0].value:null;
+      const latestCheckpoint=latestReads[1]?.status==='fulfilled'?latestReads[1].value:null;
       if(token!==generation)return;
       const latestState=latestId?deriveAnalysisState(latestDetail,latestCheckpoint):null;
       host.innerHTML=`<div class="si-page ai-analysis-page">
@@ -543,6 +546,7 @@ export function createAIAnalysis(ctx){
         getJobCheckpoint(id).then(value=>({value}),error=>({error}))
       ]);
       if(token!==generation||selected!==id)return;
+      if([401,403].includes(checkpointRead.error?.status))throw checkpointRead.error;
       const checkpoint=checkpointRead.value||null;
       const view=deriveAnalysisState(r,checkpoint);
       const panel=$('#as-output').querySelector('[data-detail]');if(!panel)return;
