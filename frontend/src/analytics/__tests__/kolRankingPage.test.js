@@ -15,3 +15,24 @@ test('a late ranking response cannot replace the next page and failed ranking ne
  let finish;fetchKolRanking.mockImplementation(()=>new Promise(r=>finish=r));const t=setup(),pending=t.page.draw();t.page.dispose();t.host.innerHTML='other page';finish(data());await pending;expect(t.host.innerHTML).toBe('other page')
  fetchKolRanking.mockRejectedValue(Error('ranking budget exceeded'));await t.page.draw();expect(t.host.innerHTML).toContain('ranking budget exceeded');expect(fetchKolMetrics).not.toHaveBeenCalled()
 })
+
+test('KOL ranking restores the last available page after records shrink',async()=>{
+ let calls=0
+ fetchKolRanking.mockImplementation(body=>{
+  calls++
+  if(calls===1)return Promise.resolve(data(0))
+  if(calls===2)return Promise.resolve({...data(50),kols:[],total:10})
+  return Promise.resolve({...data(0),total:10})
+ })
+ const t=setup()
+ await t.page.draw()
+ t.nodes.get('[data-crm-next]').onclick()
+ await vi.waitFor(()=>expect(fetchKolRanking).toHaveBeenCalledTimes(3))
+ expect(fetchKolRanking.mock.calls.map(([arg])=>arg.offset)).toEqual([0,50,0])
+ expect(fetchKolRanking.mock.calls[2][0]).toMatchObject({
+  snapshot_id:'fixed',list_version:'v1',offset:0
+ })
+ expect(t.host.innerHTML).toContain('第 1/1 页')
+ expect(t.tableNode.innerHTML).toContain('KOL 0')
+ t.page.dispose()
+})
