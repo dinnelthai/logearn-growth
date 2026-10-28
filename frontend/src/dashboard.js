@@ -1,17 +1,17 @@
 import {createLazyPage} from './pages/lazyPage.js';
 import {reportPeriod,localReportTime,inheritedReportPeriod,rememberReportPeriod} from './analytics/reportPeriod.js';
 import {createOperationTaskDetail} from './pages/operationTaskDetail.js';
-import {createOperationsComparison} from './pages/operationsComparison.js';
-import {createWorkbench} from './pages/workbench.js';
+
+
 import {createUserProfile} from './pages/userProfile.js';
 import {renewedAudience,selectedTagAudience} from './analytics/audienceSelection.js';
 import {tagAudience} from './api/userTags.js';
 import {mountTagAudience} from './pages/tagAudience.js';
 import {createKolCrm} from './pages/kolCrm.js';
 import {mountSectionNavigation} from './navigation.js';
-import {createMyMonitor} from './pages/myMonitor.js';
+
 import {createActivityMonitor} from './pages/activityMonitor.js'
-import {createHomeMonitor} from './pages/homeMonitor.js';
+
 import {TASKS,createTask,taskConfig,savedTaskRecord} from './analytics/analysisTasks.js';
 import {drawAnalysisTasks} from './pages/analysisTasks.js';
 import {materializeAudience} from './api/drill.js';
@@ -217,12 +217,12 @@ const pages={
   ops:createLazyPage(pageContext,()=>import('./pages/opsTools.js').then(m=>m.createOpsTools)),
   'login-conversion':createLazyPage(pageContext,()=>import('./pages/conversionScenes.js').then(m=>ctx=>m.createConversionPage(ctx,'login'))),
   'invite-conversion':createLazyPage(pageContext,()=>import('./pages/conversionScenes.js').then(m=>ctx=>m.createConversionPage(ctx,'invite'))),
-  'operations-compare':createOperationsComparison(pageContext),
-  workbench:createWorkbench({...pageContext,openKol:id=>{pages.crm.openKol(id);navigate('crm')},openActivity:id=>{pages.activities.openActivity(id);navigate('activities')},openUserProfile:(id,c)=>userProfile.open(id,c)}),
-  'my-monitor':createMyMonitor({...pageContext,navigate}),
+  'operations-compare':createLazyPage(pageContext,()=>import('./pages/operationsComparison.js').then(m=>m.createOperationsComparison)),
+  workbench:createLazyPage({...pageContext,openKol:id=>{pages.crm.openKol(id);navigate('crm')},openActivity:id=>{pages.activities.openActivity(id);navigate('activities')},openUserProfile:(id,c)=>userProfile.open(id,c)},()=>import('./pages/workbench.js').then(m=>m.createWorkbench)),
+  'my-monitor':createLazyPage({...pageContext,navigate},()=>import('./pages/myMonitor.js').then(m=>m.createMyMonitor)),
   activities:createActivityMonitor({...pageContext,analyzeTag,analyzeAudience:applyAudience,openKol:id=>{pages.crm.openKol(id);navigate('crm')}}),
   crm:createKolCrm({...pageContext,analyzeAudience:applyAudience,openActivity:id=>{pages.activities.openActivity(id);navigate('activities')},createActivityForKol:kol=>{pages.activities.startForKol(kol);navigate('activities')}}),
-  home:createHomeMonitor({...pageContext,navigate,onMetadata:meta=>{asof=Date.parse(meta.as_of);dataStore.meta.asOf=asof;$('#as-data-time').textContent='观测截至 '+clock(asof)+' · UTC+7'},navigatePlatform:(m,o)=>navigate(m,{...o,platform:true})}),
+  home:createLazyPage({...pageContext,navigate,onMetadata:meta=>{asof=Date.parse(meta.as_of);dataStore.meta.asOf=asof;$('#as-data-time').textContent='观测截至 '+clock(asof)+' · UTC+7'},navigatePlatform:(m,o)=>navigate(m,{...o,platform:true})},()=>import('./pages/homeMonitor.js').then(m=>m.createHomeMonitor)),
   north:createLazyPage(pageContext,()=>isAgg?import('./pages/northStarAgg.js').then(m=>m.createNorthStarAggPage):import('./pages/northStar.js').then(m=>m.createNorthStarPage)),
   channelsAgg:createChannelsAggPage(pageContext),
   funnel:createLazyPage(pageContext,()=>isAgg?import('./pages/funnelAgg.js').then(m=>m.createFunnelAggPage):import('./pages/funnel.js').then(m=>m.createFunnelPage)),
