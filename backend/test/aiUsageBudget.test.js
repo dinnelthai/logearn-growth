@@ -33,7 +33,18 @@ test('unknown and placeholder zero prices fail closed unless free service is ver
  }
 });
 test('daily token guard rejects a consumed budget independently of dollar cost',async()=>{
- const c=new CostTracker();c.getTodayStats=async()=>[{total_cost:'0.1',total_tokens:'120',unknown_cost_calls:'0'}];
+ const c=new CostTracker({schemaReady:async()=>true});c.getTodayStats=async()=>[{total_cost:'0.1',total_tokens:'120',unknown_cost_calls:'0'}];
  await assert.rejects(c.checkDailyLimit(5,'alice',100),/Token 配额/);
  assert.equal(await c.checkDailyLimit(5,'alice',121),0.1);
+});
+
+test('daily budget refuses paid inference if usage ledger schema is stale',async()=>{
+ const c=new CostTracker({schemaReady:async()=>false});
+ c.getTodayStats=async()=>{throw Error('should never query usage after failed schema preflight')};
+ await assert.rejects(c.checkDailyLimit(5,'alice',100),/计费表版本过旧/);
+});
+test('schema preflight fails closed on unavailable AI PostgreSQL',async()=>{
+ const c=new CostTracker({schemaReady:async()=>{throw Error('database offline')}});
+ c.getTodayStats=async()=>{throw Error('should not run')};
+ await assert.rejects(c.checkDailyLimit(5,'alice',100),/database offline/);
 });
