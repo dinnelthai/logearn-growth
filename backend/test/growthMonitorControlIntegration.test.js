@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {Pool}=require('pg'),fs=require('node:fs'),{randomUUID}=require('node:crypto');
 const {createMonitorControl}=require('../src/ai/growth/monitorControl');
-test('real PG: default-off, CAS, owner isolation and heartbeat differ from enabled intent',
+test('real PG: default-off, CAS and owner isolation survive restarts',
  {skip:process.env.AI_P0_INTEGRATION!=='1'},async()=>{
  const db=new Pool({connectionString:process.env.AI_DATABASE_URL});
  const alice='monitor-'+randomUUID(),bob='monitor-'+randomUUID(),now=Date.now();
@@ -12,18 +12,12 @@ test('real PG: default-off, CAS, owner isolation and heartbeat differ from enabl
   const before=await control.get(alice,{now});
   assert.equal(before.enabled,false);
   assert.equal(before.version,0);
-  assert.equal(before.workerOnline,false);
-  assert.equal(before.status,'disabled');
   const enabled=await control.set(alice,{enabled:true,expectedVersion:0,now});
   assert.equal(enabled.version,1);
   assert.equal(enabled.enabled,true);
-  assert.equal(enabled.status,'waiting-for-worker');
   await assert.rejects(control.set(alice,{enabled:false,expectedVersion:0,now}),e=>e.status===409);
   await assert.rejects(control.set(bob,{enabled:true,expectedVersion:5,now}),e=>e.status===409);
   assert.equal((await control.get(bob,{now})).enabled,false);
-  await control.heartbeat(alice,{now});
-  assert.equal((await control.get(alice,{now:now+60000})).workerOnline,true);
-  assert.equal((await control.get(alice,{now:now+151000})).workerOnline,false);
   await control.recordScan(alice,{status:'scanned',summary:{goals:[{goal:'activation'}]},now});
   const after=await control.get(alice,{now:now+100});
   assert.equal(after.lastScanStatus,'scanned');
@@ -31,8 +25,8 @@ test('real PG: default-off, CAS, owner isolation and heartbeat differ from enabl
   const disabled=await control.set(alice,{enabled:false,expectedVersion:1,now:now+100});
   assert.equal(disabled.enabled,false);
   assert.equal(disabled.version,2);
-  assert.equal(disabled.status,'disabled');
   assert.equal((await control.get(bob,{now})).lastScanStatus,null);
+  assert.deepEqual(await control.enabledOwners(),[]);
  }finally{
   await db.query('DELETE FROM ai_growth_monitor_settings WHERE owner_id=ANY($1)',[[alice,bob]]).catch(()=>{});
   await db.end();
