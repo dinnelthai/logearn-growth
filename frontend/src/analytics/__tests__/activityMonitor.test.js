@@ -6,7 +6,7 @@ import {mountScheduledActivity} from '../../pages/scheduledActivity.js'
 import {listActivities,activityMetrics} from '../../api/activities.js'
 import {createActivityMonitor} from '../../pages/activityMonitor.js'
 const a={id:'a',name:'activity',start_at:Date.now()-1000,cutoff_at:Date.now()+3600000},m={activity:a,summary:{total:3,eligible:2,completed:1,conversion_rate:.5,prior:1,active:1,inactive:0,review:0},as_of:new Date().toISOString(),daily:[],rows:[],total:0}
-function setup(){const nodes=new Map(),host={innerHTML:'',setAttribute:vi.fn(),removeAttribute:vi.fn(),querySelector:s=>s==='[data-activity-settle]'?null:(nodes.has(s)?nodes.get(s):(nodes.set(s,{}),nodes.get(s))),querySelectorAll:()=>[]};return {host,page:createActivityMonitor({$:()=>host,clear:vi.fn(),esc:String,fmt:String,table:()=>''})}}
+function setup(){const nodes=new Map(),host={innerHTML:'',setAttribute:vi.fn(),removeAttribute:vi.fn(),querySelector:s=>s==='[data-activity-settle]'?null:(nodes.has(s)?nodes.get(s):(nodes.set(s,{}),nodes.get(s))),querySelectorAll:()=>[]};const ctx={$:()=>host,clear:vi.fn(),esc:String,fmt:String,table:()=>'',navigate:vi.fn()};return {host,ctx,page:createActivityMonitor(ctx)}}
 beforeEach(()=>{vi.resetAllMocks();listActivities.mockResolvedValue({activities:[a]})})
 test('defaults to the full fixed roster with server pagination',async()=>{activityMetrics.mockResolvedValue(m);const t=setup();await t.page.draw();expect(activityMetrics).toHaveBeenCalledWith('a',{status:'all',q:'',offset:0,limit:20});expect(t.host.innerHTML).toContain('50.0%');expect(t.host.innerHTML).toContain('开始前已分析')})
 test('disposed activity metrics cannot replace another page',async()=>{let resolve;activityMetrics.mockImplementation(()=>new Promise(r=>resolve=r));const t=setup(),pending=t.page.draw();await Promise.resolve();t.page.dispose();t.host.innerHTML='other page';resolve(m);await pending;expect(t.host.innerHTML).toBe('other page')})
@@ -22,4 +22,30 @@ test('scheduled activity exposes editing and restore is explicit for archived ac
  activityMetrics.mockResolvedValue({pending:true,activity:{...a,schedule_state:'scheduled',start_at:Date.now()+3600000,goal:'activation'}})
  const t=setup();await t.page.draw();expect(t.host.innerHTML).toContain('修改活动与预约')
  activityMetrics.mockResolvedValue({...m,activity:{...a,archived_at:Date.now()}});await t.page.draw();expect(t.host.innerHTML).toContain('恢复活动')
+})
+
+test('an activity opened from workbench includes a return link to the original task list',async()=>{
+ activityMetrics.mockResolvedValue(m)
+ const t=setup()
+ t.page.openActivity('a',{returnToWorkbench:true})
+ await t.page.draw()
+ expect(t.host.innerHTML).toContain('返回运营待办')
+ expect(t.host.innerHTML).toContain('data-activity-return-workbench')
+ t.host.querySelector('[data-activity-return-workbench]').onclick()
+ expect(t.ctx.navigate).toHaveBeenCalledWith('workbench')
+ t.page.dispose()
+})
+
+test('a missing activity never opens another activity without the operator choosing it',async()=>{
+ const t=setup()
+ t.page.openActivity('missing',{returnToWorkbench:true})
+ await t.page.draw()
+ expect(t.host.innerHTML).toContain('所选活动不存在或当前不可访问')
+ expect(t.host.innerHTML).toContain('data-activity-missing-retry')
+ expect(t.host.innerHTML).toContain('查看全部活动')
+ expect(t.host.innerHTML).toContain('返回运营待办')
+ expect(activityMetrics).not.toHaveBeenCalled()
+ t.host.querySelector('[data-activity-return-workbench]').onclick()
+ expect(t.ctx.navigate).toHaveBeenCalledWith('workbench')
+ t.page.dispose()
 })
