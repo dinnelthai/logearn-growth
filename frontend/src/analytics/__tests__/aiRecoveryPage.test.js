@@ -1,5 +1,5 @@
 import {test,expect,vi,afterEach} from 'vitest'
-vi.mock('../../api/aiAnalysis.js',()=>({createBusinessAnalysis:vi.fn(),getAnalysisList:vi.fn(),getAnalysisDetail:vi.fn(),getJobStatus:vi.fn(),updateSuggestionStatus:vi.fn(),createRetrospective:vi.fn(),getRetrospectives:vi.fn(),getCostStats:vi.fn(),retryAnalysis:vi.fn(),getAgentHealth:vi.fn(),getEvidence:vi.fn(),getJobCheckpoint:vi.fn(),cancelAnalysis:vi.fn(),resumeAnalysis:vi.fn(),getGrowthReviewQueue:vi.fn(),getGrowthInbox:vi.fn(),getGrowthAlerts:vi.fn(),scanGrowthAlerts:vi.fn(),changeGrowthAlert:vi.fn(),getGrowthBudget:vi.fn(),getGrowthInvestigations:vi.fn(),decideGrowthInvestigation:vi.fn(),getGrowthNotifications:vi.fn(),markGrowthNotificationRead:vi.fn(),getGrowthInvestigationTimeline:vi.fn(),getSeoImports:vi.fn(),importSeoSnapshot:vi.fn(),previewSeoSnapshot:vi.fn(),previewKolPerformance:vi.fn(),getGscConnection:vi.fn(),saveGscSite:vi.fn(),syncGscPerformance:vi.fn(),getGscPerformance:vi.fn(),getGscSitemaps:vi.fn(),inspectGscUrl:vi.fn(),getAutonomyStatus:vi.fn(),getAutonomyTargets:vi.fn(),saveAutonomyTarget:vi.fn(),getAutonomyBriefs:vi.fn(),getAutonomyLearning:vi.fn(),refreshAutonomyBrief:vi.fn()}))
+vi.mock('../../api/aiAnalysis.js',()=>({createBusinessAnalysis:vi.fn(),getAnalysisList:vi.fn(),getAnalysisDetail:vi.fn(),getJobStatus:vi.fn(),updateSuggestionStatus:vi.fn(),createRetrospective:vi.fn(),getRetrospectives:vi.fn(),getCostStats:vi.fn(),retryAnalysis:vi.fn(),getAgentHealth:vi.fn(),getEvidence:vi.fn(),getJobCheckpoint:vi.fn(),cancelAnalysis:vi.fn(),resumeAnalysis:vi.fn(),getGrowthReviewQueue:vi.fn(),getGrowthInbox:vi.fn(),getGrowthAlerts:vi.fn(),getGrowthMonitorControl:vi.fn(),setGrowthMonitorControl:vi.fn(),scanGrowthAlerts:vi.fn(),changeGrowthAlert:vi.fn(),getGrowthBudget:vi.fn(),getGrowthInvestigations:vi.fn(),decideGrowthInvestigation:vi.fn(),getGrowthNotifications:vi.fn(),markGrowthNotificationRead:vi.fn(),getGrowthInvestigationTimeline:vi.fn(),getSeoImports:vi.fn(),importSeoSnapshot:vi.fn(),previewSeoSnapshot:vi.fn(),previewKolPerformance:vi.fn(),getGscConnection:vi.fn(),saveGscSite:vi.fn(),syncGscPerformance:vi.fn(),getGscPerformance:vi.fn(),getGscSitemaps:vi.fn(),inspectGscUrl:vi.fn(),getAutonomyStatus:vi.fn(),getAutonomyTargets:vi.fn(),saveAutonomyTarget:vi.fn(),getAutonomyBriefs:vi.fn(),getAutonomyLearning:vi.fn(),refreshAutonomyBrief:vi.fn()}))
 import * as api from '../../api/aiAnalysis.js'
 import {createAIAnalysis} from '../../pages/aiAnalysis.js'
 function setup({withTimeline=false,withGsc=false}={}){
@@ -9,6 +9,7 @@ function setup({withTimeline=false,withGsc=false}={}){
  const panel={isConnected:true,innerHTML:'',querySelector(s){return ({'[data-checkpoint-result]':checkpoint,'[data-cancel-analysis]':cancel,'[data-resume-analysis]':checkpoint.button})[s]||null},querySelectorAll(){return []}};
  const nodes={'[data-detail]':panel,'[data-ai-message]':message,'[data-health]':{},'[data-refresh]':{},'[data-ai-form]':{}};
  const gscButton={disabled:false,isConnected:true};
+ const monitorButton={disabled:false,isConnected:true};nodes['[data-monitor-toggle]']=monitorButton;
  if(withGsc){nodes['[data-gsc-save]']=gscButton;
    nodes['[data-gsc-site]']={value:'sc-domain:logearn.com'};}
 
@@ -17,7 +18,7 @@ function setup({withTimeline=false,withGsc=false}={}){
   querySelectorAll:s=>s==='[data-analysis]'?[button]:
    s==='[data-case-timeline]'&&withTimeline?[caseButton]:[]};
  vi.stubGlobal('document',{createElement:()=>({dataset:{},isConnected:true})});
- api.getAnalysisList.mockResolvedValue({records:[{id:'a',title:'task',status:'processing'}]});api.getRetrospectives.mockResolvedValue({retrospectives:[]});api.getCostStats.mockResolvedValue({total_calls:0});api.getGrowthReviewQueue.mockResolvedValue({entries:[]});api.getGrowthInbox.mockResolvedValue({tasks:[],counts:{total:0},warnings:[]});api.getGrowthAlerts.mockResolvedValue({alerts:[]});api.getGrowthBudget.mockResolvedValue({limit:0,reservedCalls:0,remainingCalls:0});api.getGrowthInvestigations.mockResolvedValue({proposals:[]});api.getGrowthNotifications.mockResolvedValue({notifications:[]});api.getSeoImports.mockResolvedValue({imports:[]});
+ api.getAnalysisList.mockResolvedValue({records:[{id:'a',title:'task',status:'processing'}]});api.getRetrospectives.mockResolvedValue({retrospectives:[]});api.getCostStats.mockResolvedValue({total_calls:0});api.getGrowthReviewQueue.mockResolvedValue({entries:[]});api.getGrowthInbox.mockResolvedValue({tasks:[],counts:{total:0},warnings:[]});api.getGrowthAlerts.mockResolvedValue({alerts:[]});api.getGrowthMonitorControl.mockResolvedValue({allowed:true,enabled:false,version:0,workerOnline:false});api.getGrowthBudget.mockResolvedValue({limit:0,reservedCalls:0,remainingCalls:0});api.getGrowthInvestigations.mockResolvedValue({proposals:[]});api.getGrowthNotifications.mockResolvedValue({notifications:[]});api.getSeoImports.mockResolvedValue({imports:[]});
  api.getGscConnection.mockResolvedValue({configured:false,sites:[],reason:'No API credential'});
  api.getGscPerformance.mockResolvedValue({available:false}); 
  api.getAutonomyStatus.mockResolvedValue({schedulerConfigured:false,paidDailyDispatchConfigured:false});
@@ -28,7 +29,7 @@ function setup({withTimeline=false,withGsc=false}={}){
 
  api.getAnalysisDetail.mockResolvedValue({id:'a',title:'task',status:'processing',suggestions:[]});
  api.getJobCheckpoint.mockResolvedValue({recordStatus:'processing',leaseExpired:true,completedRounds:1,completedTools:0,pendingTools:0});
- const page=createAIAnalysis({$:()=>host,esc:s=>String(s??'')});return {page,button,cancel,checkpoint,message,panel,caseButton,timeline,host,gscButton};
+ const page=createAIAnalysis({$:()=>host,esc:s=>String(s??'')});return {page,button,cancel,checkpoint,message,panel,caseButton,timeline,host,gscButton,monitorButton};
 }
 afterEach(()=>{vi.restoreAllMocks();vi.unstubAllGlobals()})
 test('expired task can request recovery and displays the cost notice',async()=>{
@@ -132,5 +133,27 @@ test('proposal cards bind the real case ID and distinguish traceable evidence fr
  expect(t.host.innerHTML).toContain('已观察：100 → 60');
  expect(t.host.innerHTML).toContain('原因未知');
  expect(api.createBusinessAnalysis).not.toHaveBeenCalled();
+ t.page.dispose();
+});
+
+test('operator switch calls server with version and never pretends worker is online',async()=>{
+ const t=setup();
+ api.setGrowthMonitorControl.mockResolvedValue({allowed:true,enabled:true,version:1,workerOnline:false});
+ await t.page.draw();
+ expect(t.host.innerHTML).toContain('开启自动监控');
+ expect(t.host.innerHTML).toContain('未检测到在线进程');
+ await t.monitorButton.onclick();
+ expect(api.setGrowthMonitorControl).toHaveBeenCalledWith(true,0);
+ expect(api.createBusinessAnalysis).not.toHaveBeenCalled();
+ t.page.dispose();
+});
+test('unauthorized monitor has disabled control and descriptive status',async()=>{
+ const t=setup();api.getGrowthMonitorControl.mockResolvedValue({
+  allowed:false,enabled:false,status:'not-authorized',workerOnline:false
+ });
+ await t.page.draw();
+ expect(t.host.innerHTML).toContain('尚未获得监控授权');
+ expect(t.host.innerHTML).toContain('data-monitor-toggle');
+ expect(t.host.innerHTML).toContain('disabled');
  t.page.dispose();
 });
