@@ -5,6 +5,7 @@ const {refreshLearning}=require('./agentLearning');
 const {createDailyBrief}=require('./agentBrief');
 const {createHash}=require('node:crypto');
 const DEFAULT_GOALS=['activation','retention','conversion','revenue'];
+const {planDailyPaidAnalysis}=require('./dailySignalGate');
 function allowedGoals(goals){
  if(!Array.isArray(goals)||!goals.length||goals.length>4||
   goals.some(x=>!DEFAULT_GOALS.includes(x))||new Set(goals).size!==goals.length)
@@ -15,7 +16,8 @@ async function tickAutonomousOwner({
  ownerId,now=Date.now(),source='all',goals=DEFAULT_GOALS,allowPaidDispatch=false,
  store=createAgentStore(),records=require('../../db/aiRecords'),
  enqueue=null,
- notify=null,proposeCandidate=null
+ notify=null,proposeCandidate=null,
+ preflight=null,signalGateEnabled=process.env.AI_AUTONOMY_SIGNAL_GATE_ENABLED==='1'
 }={}){
  if(typeof ownerId!=='string'||!ownerId||!Number.isSafeInteger(now))
   throw Error('自动运营任务身份和日期无效');
@@ -24,9 +26,22 @@ async function tickAutonomousOwner({
  // Refresh strategy ONLY from completed retrospectives; it never calls an LLM.
  const learning=await refreshLearning({ownerId,source,goals:required,store,now});
  let analyses=await store.dailyAnalyses(ownerId,period.day,source);
- const enqueued=[];
+ const enqueued=[],signalDecisions=[];
  if(allowPaidDispatch){
   enqueue ||= require('../../queues/queues').addAIAnalysisJob;
+  let paidGate=null;
+  if(signalGateEnabled){
+   try{
+    const load=preflight||((args)=>require('../../services/businessReport').createService().buildMany(args));
+    const reports=await load({start:period.start,end:period.end,businessScope:{source},
+     goals:required,ownerId});
+    paidGate=planDailyPaidAnalysis({reports,goals:required,period,source});
+   }catch(error){
+    // Opt-in paid gate fails CLOSED on missing or corrupt preflight metrics.
+    paidGate={decisions:Object.fromEntries(required.map(goal=>[goal,
+     {status:'deferred',reason:'preflight-unavailable'}]))};
+   }
+  }
   for(const goal of required){
    // Completed and active runs are owned by the existing analysis worker.
    // Pending records may have been persisted before Bull accepted the job.
@@ -41,6 +56,17 @@ async function tickAutonomousOwner({
       continue;
      }
     }else continue;
+   }
+   const decision=paidGate?.decisions?.[goal];
+   if(decision){
+    const state=decision.status==='skip'?'skipped-no-verified-signal':
+     decision.status==='deferred'?'deferred-evidence-quality':'dispatch';
+    signalDecisions.push({goal,status:state,reason:decision.reason,
+     sourceSnapshotId:decision.snapshotId||null});
+    if(decision.status!=='dispatch'){
+     enqueued.push({goal,status:state,reason:decision.reason,paidCalls:0});
+     continue;
+    }
    }
    const item=await dispatchDaily({ownerId,now,goal,source,records,enqueue});
    enqueued.push({goal,status:item.status,analysisId:item.analysisId});
@@ -70,6 +96,11 @@ async function tickAutonomousOwner({
  const channelObservations=source==='all'?require('./channelObservations').collectChannelObservations(ownerId,period.day):null;
  const brief=createDailyBrief({ownerId,day:period.day,source,channelObservations,
   goals:required,analyses,targets,learning,strategies});
+ if(signalGateEnabled&&allowPaidDispatch){
+  brief.report.signalGate={version:'daily-signal-gate-v1',
+   decisions:signalDecisions,modelCalls:0,
+   note:'控制付费调查派发；无信号不等于经营目标达成'};
+ }
  const saved=await store.upsertBrief(ownerId,brief,{now});
  // Only a ready/partial, persisted brief is eligible for optional proactive
  // external delivery. Blocked or unknown business context never leaves DB.
@@ -83,7 +114,7 @@ async function tickAutonomousOwner({
   score:saved.score?.value??null,goals:required,
   completed:saved.quality?.completedGoals??0,
   expected:saved.quality?.requiredGoals??required.length,
-  enqueued,learning:learning.judgements,
+  enqueued,signalDecisions,learning:learning.judgements,
   strategyVersions:Object.fromEntries(Object.entries(strategies).map(([k,v])=>[k,v?.version||null])),
   notification,promptCandidate:promptCandidate?{id:promptCandidate.id,
    status:promptCandidate.status,requiresIndependentEvaluation:true}:null,
