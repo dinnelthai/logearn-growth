@@ -10,7 +10,7 @@ import {mountTagAudience} from './pages/tagAudience.js';
 import {createKolCrm} from './pages/kolCrm.js';
 import {mountSectionNavigation} from './navigation.js';
 import {createViewHistory,INTERNAL_VIEWS} from './navigationHistory.js';
-import {mountWorkspaceQuickJump} from './workspaceQuickJump.js';
+import {mountWorkspaceQuickJump,collectWorkspaceViews} from './workspaceQuickJump.js';
 import {renderDataTable} from './components/dataTable.js';
 
 import {createActivityMonitor} from './pages/activityMonitor.js'
@@ -215,7 +215,7 @@ function run(){if(mode==='growth-agent-control'){current=null;closeDrill();if($(
 // Route only known page IDs; never store user IDs, analysis filters or tokens in URLs.
 const viewHistory=createViewHistory({
   location:globalThis.location,history:globalThis.history,eventTarget:globalThis,
-  validModes:[...new Set($('[data-mode]').filter(el=>!el.hidden&&!el.disabled).map(el=>el.dataset.mode).concat(INTERNAL_VIEWS))],
+  validModes:[...new Set(collectWorkspaceViews(root).map(view=>view.mode).concat(INTERNAL_VIEWS))],
   onNavigate:view=>navigate(view,{history:false})
 });
 mountWorkspaceQuickJump(root,navigate);
