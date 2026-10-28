@@ -371,24 +371,22 @@ router.post('/growth-notifications/:id/read',handle(async(req,res)=>{
   if(!notice)return res.status(404).json({error:'通知不存在或无权限'});
   res.json({notification:notice});
 }));
-// Monitor is opt-in per authorized owner; the worker runs as a separate process.
-// The status is based on a recent worker heartbeat, not just an env variable.
-const monitorAllowed=ownerId=>(process.env.AI_DAILY_OWNER_IDS||'')
- .split(',').map(x=>x.trim()).filter(Boolean).includes(String(ownerId));
+// The existing backend schedules scans; every authenticated account controls
+// only its own opt-in. No separate worker, account allowlist or model calls.
+function monitorResponse(state){
+ const online=require('../ai/growth/monitorScheduler').isStarted();
+ return {...state,allowed:true,workerOnline:online,
+  status:!state.enabled?'disabled':online?'scheduled':'waiting-for-backend',
+  note:'只扫描已保存的完整业务日报；不会自动付费分析或执行运营动作'};
+}
 router.get('/growth-alerts/monitor-control',handle(async(req,res)=>{
- const ownerId=String(req.user.user_id);
- if(!monitorAllowed(ownerId))return res.json({allowed:false,enabled:false,
-  workerOnline:false,status:'not-authorized',reason:'服务端未授权此账号使用自动增长监控'});
  const control=require('../ai/growth/monitorControl').createMonitorControl();
- res.json({...await control.get(ownerId),allowed:true,
-  note:'开关控制自动异常扫描，不开启付费 AI 调查或外部运营操作'});
+ res.json(monitorResponse(await control.get(String(req.user.user_id))));
 }));
 router.put('/growth-alerts/monitor-control',handle(async(req,res)=>{
- const ownerId=String(req.user.user_id);
- if(!monitorAllowed(ownerId))return res.status(403).json({error:'当前账号未获自动增长监控授权'});
- const {enabled,expectedVersion}=req.body||{};
  const control=require('../ai/growth/monitorControl').createMonitorControl();
- res.json({...await control.set(ownerId,{enabled,expectedVersion}),allowed:true});
+ const {enabled,expectedVersion}=req.body||{};
+ res.json(monitorResponse(await control.set(String(req.user.user_id),{enabled,expectedVersion})));
 }));
 router.get('/growth-alerts',handle(async(req,res)=>{
   const store=require('../ai/growth/alertStore').createAlertStore();
