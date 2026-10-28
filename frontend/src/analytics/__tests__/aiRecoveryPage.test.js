@@ -250,3 +250,38 @@ test('a missing detail shows an explicit read-only retry rather than the prior t
   expect(api.retryAnalysis).not.toHaveBeenCalled()
   t.page.dispose()
 })
+
+test('AI action cannot be marked complete without recording the actual work',async()=>{
+  const t=setup()
+  const noteField={focus:vi.fn()}
+  const form={dataset:{suggestion:'suggestion-1'},isConnected:true,
+    elements:{namedItem:()=>noteField},querySelectorAll:()=>[]}
+  t.panel.querySelectorAll=selector=>selector==='[data-suggestion]'?[form]:[]
+  api.getAnalysisDetail.mockResolvedValue({id:'a',title:'task',status:'completed',
+    suggestions:[{id:'suggestion-1',user_status:'executing',business_problem:'Drop in analysis'}]})
+  vi.stubGlobal('FormData',class{
+    get(name){return name==='note'?'   ':null}
+  })
+  await t.page.draw()
+  await form.onsubmit({preventDefault:()=>{},submitter:{value:'executed'}})
+  expect(api.updateSuggestionStatus).not.toHaveBeenCalled()
+  expect(t.message.textContent).toContain('实际执行')
+  expect(noteField.focus).toHaveBeenCalledOnce()
+  t.page.dispose()
+})
+
+test('rejecting an AI action requires a recorded reason instead of a silent state change',async()=>{
+  const t=setup(),noteField={focus:vi.fn()}
+  const form={dataset:{suggestion:'suggestion-2'},isConnected:true,
+    elements:{namedItem:()=>noteField},querySelectorAll:()=>[]}
+  t.panel.querySelectorAll=selector=>selector==='[data-suggestion]'?[form]:[]
+  api.getAnalysisDetail.mockResolvedValue({id:'a',title:'task',status:'completed',
+    suggestions:[{id:'suggestion-2',user_status:'pending',business_problem:'Retention gap'}]})
+  vi.stubGlobal('FormData',class{get(){return ''}})
+  await t.page.draw()
+  await form.onsubmit({preventDefault:()=>{},submitter:{value:'rejected'}})
+  expect(api.updateSuggestionStatus).not.toHaveBeenCalled()
+  expect(t.message.textContent).toContain('拒绝原因')
+  expect(noteField.focus).toHaveBeenCalledOnce()
+  t.page.dispose()
+})
