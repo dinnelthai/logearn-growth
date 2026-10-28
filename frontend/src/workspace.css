@@ -1,36 +1,38 @@
-/* Shared workspace shell and design tokens. Page-specific data styles remain scoped. */
+/* Shared desktop workspace shell. Semantic palette and sizes live in ui-tokens.css. */
 #la-studio {
- --a-bg:#0b0f17; --a-panel:#151d29; --a-text:#f1f5f9; --a-muted:#94a3b8;
- --a-border:#263244; --a-accent:#91a6ff; --a-tint:#263555; --a-shadow:transparent;
- --sidebar-compact-width:64px; --workspace-sidebar:#0f1520; color-scheme:dark; background:var(--a-bg); color:var(--a-text);
- min-height:100vh; padding:0 0 0 248px; border:0; border-radius:0;
- font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background: var(--a-bg);
+  color: var(--a-text);
+  min-height: 100vh;
+  padding: 0 0 0 var(--ui-sidebar-width);
+  border: 0;
+  border-radius: 0;
+  font-family: Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
 }
-#la-studio .app-sidebar { position:fixed; z-index:30; inset:0 auto 0 0; width:248px; box-sizing:border-box; display:flex; flex-direction:column; overflow-y:auto; background:var(--workspace-sidebar); border-right:1px solid var(--a-border); padding:24px 16px 16px; }
+#la-studio .app-sidebar { position:fixed; z-index:30; inset:0 auto 0 0; width:var(--ui-sidebar-width); box-sizing:border-box; display:flex; flex-direction:column; overflow-y:auto; background:var(--workspace-sidebar); border-right:1px solid var(--a-border); padding:24px 16px 16px; }
 #la-studio .sidebar-brand { padding:0 8px 26px; display:grid; gap:8px; }
 #la-studio .sidebar-brand img { width:145px; height:auto; }
 #la-studio .sidebar-brand span,#la-studio .sidebar-caption,#la-studio .sidebar-bottom { color:var(--a-muted); font-size:10px; letter-spacing:.1em; font-weight:650; }
 #la-studio .a-topnav { display:grid; gap:4px; }
 #la-studio .a-topnav .a-nav { width:100%; border:0; text-align:left; color:var(--a-muted); font-size:14px; padding:10px 12px; border-radius:8px; }
-#la-studio .a-topnav .a-nav[aria-pressed=true] { color:var(--a-text); background:#1c2635; box-shadow:inset 3px 0 #6d8cff; }
+#la-studio .a-topnav .a-nav[aria-pressed=true] { color:var(--a-text); background:var(--ui-surface-raised); box-shadow:inset 3px 0 var(--ui-accent-strong); }
 #la-studio .sidebar-caption { margin:24px 12px 8px; }
 #la-studio .a-subnav { padding:0; border:0; background:transparent; min-height:0; }
 #la-studio .a-subnav > div:not([hidden]) { display:grid; gap:3px; }
 #la-studio .a-subnav .a-nav-sub { width:100%; text-align:left; color:var(--a-muted); padding:8px 12px; font-size:13px; }
-#la-studio .a-subnav .a-nav-sub[aria-pressed=true] { color:#d9e2ff; background:#263555; }
+#la-studio .a-subnav .a-nav-sub[aria-pressed=true] { color:#d9e2ff; background:var(--ui-surface-selected); }
 #la-studio .sidebar-bottom { margin-top:auto; padding:32px 12px 0; }
-#la-studio .a-top { min-height:64px; box-sizing:border-box; padding:12px 32px; display:flex; gap:16px; border-bottom:1px solid var(--a-border); background:var(--a-bg); }
+#la-studio .a-top { min-height:var(--ui-toolbar-height); box-sizing:border-box; padding:12px 32px; display:flex; gap:16px; border-bottom:1px solid var(--a-border); background:var(--a-bg); }
 #la-studio .toolbar-title { color:var(--a-muted); font-size:13px; flex:1; }
 #la-studio .sidebar-toggle { flex:none; min-width:36px; padding:6px; line-height:1; }
 #la-studio .a-head { padding:32px 32px 20px; }
 #la-studio .a-layout { padding:0 32px 32px; gap:24px; }
 #la-studio .a-layout > *,#la-studio .a-result,#la-studio #as-output { min-width:0; }
-#la-studio :is(.a-card,.a-config,.si-panel,.si-kpi,.home-kpi) { box-shadow:none; border-color:var(--a-border); border-radius:10px; }
+#la-studio :is(.a-card,.a-config,.si-panel,.si-kpi,.home-kpi) { box-shadow:none; border-color:var(--a-border); border-radius:var(--ui-radius-md); }
 #la-studio :is(.a-card,.a-config,.si-panel) { background:var(--a-panel); }
-#la-studio :is(input,select,textarea):not([type=checkbox]):not([type=radio]) { color:var(--a-text); background:#101824; border:1px solid #344257; border-radius:7px; }
-#la-studio .a-button { box-shadow:none; border-radius:7px; border-color:#344257; }
-#la-studio .a-primary { background:#6d8cff; color:#0b0f17; border-color:#6d8cff; }
-#la-studio :is(button,input,select,textarea,summary,a):focus-visible { outline:2px solid #91a6ff; outline-offset:3px; }
+#la-studio :is(input,select,textarea):not([type=checkbox]):not([type=radio]) { color:var(--a-text); background:var(--ui-input-bg); border:1px solid var(--ui-border-interactive); border-radius:var(--ui-radius-sm); }
+#la-studio .a-button { box-shadow:none; border-radius:var(--ui-radius-sm); border-color:var(--ui-border-interactive); }
+#la-studio .a-primary { background:var(--ui-accent-strong); color:var(--ui-on-accent); border-color:var(--ui-accent-strong); }
+#la-studio :is(button,input,select,textarea,summary,a):focus-visible { outline:2px solid var(--ui-border-focus); outline-offset:3px; }
 #la-studio button:disabled { opacity:.48; cursor:not-allowed; }
 #la-studio :is(th,td) { border-color:var(--a-border); }
 #la-studio .a-footer { margin:0 32px; color:var(--a-muted); }
