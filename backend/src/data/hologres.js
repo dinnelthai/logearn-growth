@@ -133,6 +133,36 @@ function eventsCte(cutoffIndex = 1) {
     FROM e GROUP BY user_key
   )`
 }
+// Compare legacy separate CTE scans against a single statement that permits
+// the planner to reuse the ranked event CTE. Experimental, OFF by default.
+function statusQueries(){
+ const prefix=eventsCte();
+ return {
+  count:`${prefix} SELECT COUNT(*) AS n, MIN(client_ts) AS start, MAX(client_ts) AS latest,
+   MAX(server_ts) AS source_seen FROM e`,
+  sources:`${prefix} SELECT DISTINCT first_entry_source AS value FROM e
+   WHERE first_entry_source IS NOT NULL ORDER BY 1 LIMIT 100`,
+  strategies:`${prefix} SELECT DISTINCT properties->>'strategy_type' AS value FROM e
+   WHERE event_name='strategy_started' AND properties->>'strategy_type' IS NOT NULL ORDER BY 1 LIMIT 100`,
+  eventTypes:`${prefix} SELECT DISTINCT event_name,properties->>'module' AS module FROM e`,
+  combined:`${prefix} SELECT COUNT(*) AS n, MIN(client_ts) AS start,
+   MAX(client_ts) AS latest, MAX(server_ts) AS source_seen,
+   (SELECT COALESCE(JSON_AGG(s.value ORDER BY s.value),'[]'::json)
+    FROM (SELECT DISTINCT first_entry_source AS value FROM e
+     WHERE first_entry_source IS NOT NULL ORDER BY 1 LIMIT 100) s) AS source_values,
+   (SELECT COALESCE(JSON_AGG(s.value ORDER BY s.value),'[]'::json)
+    FROM (SELECT DISTINCT properties->>'strategy_type' AS value FROM e
+     WHERE event_name='strategy_started' AND properties->>'strategy_type' IS NOT NULL ORDER BY 1 LIMIT 100) s) AS strategy_values,
+   (SELECT COALESCE(JSON_AGG(JSON_BUILD_OBJECT('event_name',t.event_name,'module',t.module)),'[]'::json)
+    FROM (SELECT DISTINCT event_name,properties->>'module' AS module FROM e) t) AS event_type_values
+   FROM e`
+ };
+}
+function decodeFacet(value){
+ if(Array.isArray(value))return value;
+ if(typeof value==='string'){const parsed=JSON.parse(value);if(Array.isArray(parsed))return parsed}
+ throw Error('Hologres status JSON facet does not contain an array');
+}
 async function status(force = false, {raw = false} = {}) {
   if (!force && !raw && process.env.ENABLE_PATH_INDEX === 'true') {
     const indexed = require('../pathIndex/reader').latest()
@@ -144,14 +174,23 @@ async function status(force = false, {raw = false} = {}) {
   if (force) multilevelCache.del('status')
   return cached('status', async () => {
     const cutoff = new Date().toISOString()
-    const [row] = await query(`${eventsCte()} SELECT COUNT(*) AS n, MIN(client_ts) AS start, MAX(client_ts) AS latest,
-      MAX(server_ts) AS source_seen FROM e`, [cutoff])
-    if (Number(row.n) === 0 || row.start == null || row.latest == null) throw new Error('远程事件为空或缺少有效时间')
-    const [sources, strategies, eventTypes] = await Promise.all([
-      query(`${eventsCte()} SELECT DISTINCT first_entry_source AS value FROM e WHERE first_entry_source IS NOT NULL ORDER BY 1 LIMIT 100`, [cutoff]),
-      query(`${eventsCte()} SELECT DISTINCT properties->>'strategy_type' AS value FROM e WHERE event_name='strategy_started' AND properties->>'strategy_type' IS NOT NULL ORDER BY 1 LIMIT 100`, [cutoff]),
-      query(`${eventsCte()} SELECT DISTINCT event_name,properties->>'module' AS module FROM e`, [cutoff])
-    ])
+    const queries=statusQueries(),combined=process.env.HOLOGRES_STATUS_COMPACT_ENABLED==='1';
+    let row,sources,strategies,eventTypes;
+    if(combined){
+      [row]=await query(queries.combined,[cutoff]);
+      // Don't silently interpret an unsupported JSON aggregate as zero events.
+      sources=decodeFacet(row.source_values).map(value=>({value}));
+      strategies=decodeFacet(row.strategy_values).map(value=>({value}));
+      eventTypes=decodeFacet(row.event_type_values);
+    }else{
+      [row]=await query(queries.count,[cutoff]);
+      [sources,strategies,eventTypes]=await Promise.all([
+       query(queries.sources,[cutoff]),query(queries.strategies,[cutoff]),
+       query(queries.eventTypes,[cutoff])
+      ]);
+    }
+    if(!row||Number(row.n)===0||row.start==null||row.latest==null)
+      throw new Error('远程事件为空或缺少有效时间')
     const { internalType, TYPE_TO_RAWS } = require('../analytics/eventMap')
     const funnelSteps = ['daily_visit', 'logged_in_visit', 'login_verified', ...new Set(eventTypes.map(r => internalType(r.event_name, { module: r.module })).filter(t => t && TYPE_TO_RAWS[t]))]
     const snapshot = createHash('sha1').update(cutoff).digest('hex').slice(0, 16)
@@ -200,4 +239,5 @@ module.exports = {
   close,
   sourceEventsTable: () => table,
   cacheStats: () => multilevelCache.getStats(), // 新增: 导出缓存统计
+  statusQueries,decodeFacet,
 }
