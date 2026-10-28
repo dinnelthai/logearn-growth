@@ -4,17 +4,43 @@ const logger = console;
 let client = null;
 let isConnected = false;
 
+// No credentials are logged. URL credentials and TLS are supported while
+// preserving legacy REDIS_HOST / REDIS_PORT only when no URL was supplied.
+function cacheConnectionConfig(env=process.env){
+ const raw=env.REDIS_URL||env.BULL_REDIS_URL||null;
+ if(raw){
+  const url=new URL(raw);
+  if(!['redis:','rediss:'].includes(url.protocol))
+   throw Error('缓存和 LLM 限流需要 redis:// 或 rediss:// 地址');
+  const port=Number(url.port||6379),db=Number(env.REDIS_DB||0);
+  if(!Number.isInteger(port)||port<1||port>65535||
+    !Number.isInteger(db)||db<0)throw Error('Redis 端口或数据库编号无效');
+  return {
+   host:url.hostname,port,db,
+   ...(url.protocol==='rediss:'?{tls:{}}:{}),
+   ...(url.username?{username:decodeURIComponent(url.username)}:{}),
+   password:url.password?decodeURIComponent(url.password):env.REDIS_PASSWORD||undefined
+  };
+ }
+ const port=Number(env.REDIS_PORT||6379),db=Number(env.REDIS_DB||0);
+ if(!Number.isInteger(port)||port<1||port>65535||
+   !Number.isInteger(db)||db<0)throw Error('Redis 端口或数据库编号无效');
+ return {host:env.REDIS_HOST||'localhost',port,db,
+  password:env.REDIS_PASSWORD||undefined};
+}
+
+
 /**
  * 初始化 Redis 客户端
  */
 function createClient() {
   if (client) return client;
 
-  const config = {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379', 10),
-    password: process.env.REDIS_PASSWORD,
-    db: parseInt(process.env.REDIS_DB || '0', 10),
+  // Use the same REDIS_URL contract as Bull's ai-analysis queue. The old
+  // cache/LLM limiter silently ignored REDIS_URL and dialed localhost:6379,
+  // even when Bull (correctly) used the configured SSH tunnel at :16379.
+  const config = cacheConnectionConfig(process.env);
+  Object.assign(config, {
     retryStrategy: (times) => {
       const delay = Math.min(times * 50, 2000);
       return delay;
@@ -22,7 +48,7 @@ function createClient() {
     maxRetriesPerRequest: 3,
     // 失败时不阻塞应用启动
     lazyConnect: true
-  };
+  });
 
   // Sentinel 配置（生产环境高可用）
   if (process.env.REDIS_SENTINELS) {
@@ -142,5 +168,6 @@ module.exports = {
   getClient,
   checkHealth,
   disconnect,
-  isConnected: () => isConnected
+  isConnected: () => isConnected,
+  cacheConnectionConfig
 };
