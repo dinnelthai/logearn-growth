@@ -1,4 +1,5 @@
-import {getAnalysisDetail,getEvidence} from '../api/aiAnalysis.js';
+import {getAnalysisDetail,getEvidence,getJobCheckpoint,retryAnalysis} from '../api/aiAnalysis.js';
+import {canOfferTaskRetry} from './aiTaskStatus.js';
 import {queueAnalysisLaunch} from '../analysisLaunchContext.js';
 
 const DAY=86400000;
@@ -41,9 +42,45 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
  async function showReport(row,token){
   const target=root.querySelector('[data-weekly-body]');if(!target)return;
   if(row.status!=='completed'){
-   target.innerHTML='<p class="a-muted">'+(row.status==='failed'?
-    '本次生成失败：'+safe(row.error_message||'原因待核查')+'。为避免重复计费，不会自动重试。':
-    row.status==='cancelled'?'周报已取消。':'分析任务已保存，等待 Worker 完成。期间可能产生模型费用。')+'</p>';
+   target.innerHTML='<p '+(row.status==='failed'?'role="alert"':'class="a-muted"')+'>'+
+    (row.status==='failed'?'本次生成失败：'+safe(row.error_message||'原因待核查')+'。':
+     row.status==='cancelled'?'周报已取消。':'分析任务已保存，等待 Worker 完成。期间可能产生模型费用。')+'</p>'+
+    (row.status==='failed'?'<div data-weekly-retry-state role="status">正在检查已发起的模型调用，确认能否安全重试…</div>':'');
+   if(row.status==='failed'){
+    const status=target.querySelector('[data-weekly-retry-state]');
+    if(!status)return;
+    try{
+     const checkpoint=await getJobCheckpoint(row.id);
+     if(disposed||token!==seq||!status.isConnected)return;
+     if(canOfferTaskRetry({status:row.status,cancel_requested:false},checkpoint)){
+      status.innerHTML='<p>检查点没有模型调用记录。可以手动重试；后端还会核查共享付费账本，确认安全才会入队。</p>'+
+       '<button type="button" class="a-button" data-weekly-retry>重新生成本周报</button>';
+      status.querySelector('[data-weekly-retry]')?.addEventListener('click',async event=>{
+       if(busy)return;
+       busy=true;
+       const button=event.currentTarget;
+       button.disabled=true;button.textContent='正在重新核对…';
+       try{
+        const fresh=await getJobCheckpoint(row.id);
+        if(!canOfferTaskRetry({status:row.status,cancel_requested:false},fresh))
+         throw Error('任务检查点已变化，无法安全重试');
+        await retryAnalysis(row.id);
+        if(!disposed){selected=row.id;await load()}
+       }catch(error){
+        if(!disposed&&button.isConnected){
+         button.disabled=false;button.textContent='重新生成本周报';
+         status.querySelector('p').textContent='重试被拒绝：'+error.message+'。不会绕过付费账本检查。';
+        }
+       }finally{busy=false}
+      });
+     }else{
+      status.textContent='本次任务有模型调用记录或检查点未确认，禁止直接重试，以免重复计费。请查看原始 AI 调查记录。';
+     }
+    }catch(error){
+     if(!disposed&&token===seq&&status.isConnected)
+      status.textContent='无法核对付费记录，暂不允许重试：'+error.message;
+    }
+   }
    return;
   }
   try{
