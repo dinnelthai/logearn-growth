@@ -24,8 +24,12 @@ function planInvestigationResume({rows,guards,context,systemPrompt}) {
       continue;
     }
     const requested=parsed.investigations||[];
-    if(!Array.isArray(requested)||requested.length>6||savedTools.length>requested.length)
+    // The runner records over-budget requests as non-observations. A saved
+    // provider response can contain >6 queries without authorizing >6 tools.
+    if(!Array.isArray(requested)||requested.length>64||savedTools.length>requested.length)
       return block('invalid-investigation-plan');
+    if(savedTools.some((item,j)=>j>=6&&item.result?.status!=='not-executed'))
+      return block('over-budget-tool-was-executed');
     for(let j=0;j<savedTools.length;j++){
       if(JSON.stringify(savedTools[j]?.query)!==JSON.stringify(requested[j])||!Object.hasOwn(savedTools[j]||{},'result'))
         return block('tool-checkpoint-mismatch');
