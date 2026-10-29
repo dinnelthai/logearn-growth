@@ -46,6 +46,10 @@ export function createGrowthAgentControl(ctx){
   const err=x=>x?.error?'<p role="alert">'+safe(x.error)+'</p>':''
   const latest=status.latestBrief
   const score=latest?.score?.value??null
+  const contentSource=latest?.report?.channelObservations?.x_content_30d||null
+  const contentAI=latest?.report?.sections?.find(section=>
+   section.goal==='conversion'&&section.status==='completed'&&
+   section.skills?.some(skill=>skill.id==='content-growth'))||null
   const rows=briefs.briefs||[],questions=research.questions||[],candidates=prompts.candidates||[]
   const policies=learning.strategies||{}
   host().innerHTML=`
@@ -61,6 +65,15 @@ export function createGrowthAgentControl(ctx){
    <p class="a-muted">调度健康：${safe(status.schedulerHealth?.status)} · 自动付费：${status.paidDailyDispatchConfigured?'已配置（须核验预算）':'未启用'} · 实际模型表现不能用 KPI 完成度代表。</p>
    <button class="a-button" data-refresh>重新读取（不付费）</button>
   </section>
+  ${contentSource||contentAI?`<section class="a-card a-details"><h2>X 官方内容 · Agent 证据</h2>
+   <p class="a-muted">从现有内容渠道只读采集写入日报；近30天指标是有界累计样本，不自动调用模型。</p>
+   ${contentSource?.accounts?.length?`<div style="display:flex;gap:20px;flex-wrap:wrap">${contentSource.accounts.map(a=>
+     `<div><strong>@${safe(a.account)}</strong><p>样本 ${safe(a.sampledPosts)} 篇 · 已知浏览 ${safe(a.measuredImpressions)} · 样本互动率 ${a.measuredEngagementRate==null?'未知':safe(a.measuredEngagementRate)+'%'}</p><small>观测截至：${a.observedAt==null?'未记录':safe(new Date(a.observedAt).toLocaleString('zh-CN',{timeZone:'Asia/Bangkok'}))}</small></div>`).join('')}</div>`:'<p>最近日报尚未记录可用的 X 样本。</p>'}
+   ${contentAI?`<p><strong>已完成的 AI 内容分析：</strong>${safe(contentAI.summary)}</p>
+     ${(contentAI.actions||[]).slice(0,3).map(action=>`<p>建议：${safe(action.text)}</p>`).join('')}
+     <p><a href="?view=ai-analysis">查看完整证据与审核建议</a></p>`:
+     '<p class="a-muted">尚无已完成的内容专项 AI 评价；证据已记录不代表模型已运行。可在 AI 增长分析中发起内容专项。</p>'}
+  </section>`:''}
   <section class="a-card a-details"><h2>最近7份日报</h2>${err(briefs)}
    <div class="a-scroll"><table><thead><tr><th>日期</th><th>状态</th><th>评分</th><th>原始分析</th></tr></thead><tbody>
     ${rows.map(b=>`<tr><td>${safe(b.day)}</td><td>${safe(b.status)}</td><td>${b.score?.value==null?'证据不足':safe(b.score.value)}</td><td>${Array.isArray(b.analysis_ids)?b.analysis_ids.length:'未知'}</td></tr>`).join('')||'<tr><td colspan="4">暂无已记录日报</td></tr>'}
