@@ -182,6 +182,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
    const current=rows.find(x=>Number(x.date_range_start)===Number(d.period.start)&&Number(x.date_range_end)===Number(d.period.end));
    const row=rows.find(x=>x.id===selected);
    const regenerateArchived=!current&&d.canRegenerateArchivedFailed===true;
+   const canRegenerateCurrent=!!current&&['completed','failed','cancelled'].includes(current.status);
    const nextSnapshot=JSON.stringify({
     period:d.period,archivedCurrentWeek:d.archivedCurrentWeek,
     canRegenerateArchivedFailed:d.canRegenerateArchivedFailed,selected,
@@ -199,10 +200,22 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
    if(row&&row.error_message&&row.error_message!=='补充查询过多，请缩小问题范围或提高调查能力')recoveryQueued=false;
    root.innerHTML='<div class="ai-weekly-heading"><div><h3>AI 运营周报</h3><p class="a-muted">最近完整周：'+
     safe(date(d.period.start))+' — '+safe(date(d.period.end-DAY))+' · UTC+7</p></div>'+
-    (current?'<span class="ai-weekly-status">'+safe(row?'正在查看 · '+(statuses[row.status]||row.status):'本期 · '+(statuses[current.status]||current.status))+'</span>':
+    (current?'<div class="ai-weekly-toolbar">'+
+      '<span class="ai-weekly-status">'+safe(row?'正在查看 · '+(statuses[row.status]||row.status):
+       '本期 · '+(statuses[current.status]||current.status))+'</span>'+
+      '<button type="button" class="a-button ai-weekly-regenerate-trigger" data-weekly-regenerate '+
+       (canRegenerateCurrent?'':'disabled title="本期周报正在生成中"')+'>'+
+       '重新生成 AI 运营周报</button></div>':
      regenerateArchived?'<button type="button" class="a-button a-primary" data-weekly-confirm>重新生成 AI 周报</button>':
      d.archivedCurrentWeek?'<span class="ai-weekly-status">本周记录已移除</span>':
      '<button type="button" class="a-button a-primary" data-weekly-confirm>生成 AI 周报</button>')+'</div>'+
+    (canRegenerateCurrent?
+     '<div class="ai-weekly-regenerate-confirm" data-weekly-regenerate-confirm hidden>'+
+     '<p><strong>重新生成最近完整周的 AI 运营周报？</strong>将重新读取业务数据，并创建一份独立的新周报。旧报告、证据与历史费用全部保留；本次可能再次产生模型费用，不会自动重试失败调用。</p>'+
+     '<div class="ai-weekly-regenerate-buttons">'+
+     '<button type="button" class="a-button" data-weekly-regenerate-cancel>取消</button>'+
+     '<button type="button" class="a-button a-primary" data-weekly-regenerate-submit>确认重新生成（可能收费）</button>'+
+     '</div></div>':'')+
     (regenerateArchived?
      '<p>上一份失败周报已移出列表。点击重新生成会创建独立的付费模型任务，之前的调用和费用仍保留，可能产生重复费用；重复点击不会创建多份新任务。</p>':
      '<p>分析上个完整自然周的真实业务数据，形成问题、证据与下周行动。单击生成将调用可能收费的模型；同一周不会重复创建任务。</p>')+
@@ -224,6 +237,36 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
     if(!row||typeof navigate!=='function')return;
     queueAnalysisLaunch({kind:'analysis',analysisId:row.id});
     navigate('ai-analysis');
+   });
+   const regeneration=root.querySelector('[data-weekly-regenerate-confirm]');
+   root.querySelector('[data-weekly-regenerate]')?.addEventListener('click',()=>{
+    if(busy||!canRegenerateCurrent||!regeneration)return;
+    regeneration.hidden=false;
+    regeneration.querySelector('[data-weekly-regenerate-cancel]')?.focus();
+   });
+   root.querySelector('[data-weekly-regenerate-cancel]')?.addEventListener('click',()=>{
+    regeneration.hidden=true;
+    root.querySelector('[data-weekly-regenerate]')?.focus();
+   });
+   root.querySelector('[data-weekly-regenerate-submit]')?.addEventListener('click',async event=>{
+    if(busy||!current||!canRegenerateCurrent)return;
+    busy=true;
+    const button=event.currentTarget;
+    button.disabled=true;button.textContent='正在创建新周报…';
+    try{
+     const result=await api('/ai-weekly-reports/'+encodeURIComponent(current.id)+'/regenerate',
+      'POST',{acceptPotentialDuplicateCharge:true});
+     if(disposed)return;
+     selected=result.analysisId;
+     notice=result.notice||'已提交独立的周报任务，旧记录和费用保留。';
+     await load();
+    }catch(error){
+     if(!disposed&&button.isConnected){
+      button.disabled=false;button.textContent='确认重新生成（可能收费）';
+      const status=root.querySelector('[data-weekly-note]');
+      if(status)status.textContent='重新生成未开始：'+error.message;
+     }
+    }finally{busy=false}
    });
    const deletion=root.querySelector('[data-weekly-delete-confirmation]');
    root.querySelector('[data-weekly-delete]')?.addEventListener('click',()=>{
