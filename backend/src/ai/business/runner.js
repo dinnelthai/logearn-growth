@@ -128,8 +128,11 @@ function validateReview(a) {
     || typeof a.conclusion!=='string' || !Array.isArray(a.confoundingFactors)) throw Error('复盘结果结构不完整');
   return a;
 }
-async function runTask({context,prompt,ownerId,operationId,operationType,mode='auto',investigate,validate=validateAnalysis,clientFactory=createClient,traceStore,beforeStep=async()=>{},paidCalls=null,resumeRows=[],systemPromptOverride=null,modelTimeoutMs=null,contextVersion='v1'}) {
+async function runTask({context,prompt,ownerId,operationId,operationType,mode='auto',investigate,validate=validateAnalysis,clientFactory=createClient,traceStore,beforeStep=async()=>{},paidCalls=null,resumeRows=[],systemPromptOverride=null,modelTimeoutMs=null,contextVersion='v1',relaxV2BudgetOnManualResume=false}) {
   let routing=routeTask(context,mode);
+  if(relaxV2BudgetOnManualResume&&
+    (!systemPromptOverride||!Array.isArray(resumeRows)||!resumeRows.length))
+    throw Error('只有已确认的原始付费断点允许放宽旧版预算');
   if(systemPromptOverride!=null&&(!Array.isArray(resumeRows)||!resumeRows.length||
     typeof systemPromptOverride!=='string'||systemPromptOverride.length>60000))
     throw Error('只允许为已有模型断点恢复使用原始提示词');
@@ -183,8 +186,9 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
       if(protocol!=='v1'&&calls.some(c=>!c.fromCache&&
          (!Number.isSafeInteger(c.tokens)||c.tokens<=0)))
         throw Error('模型Token账本不完整，禁止再次付费调用；请人工核对');
-      if(protocol==='v2'){
-        // Historical v2 checkpoint semantics are intentionally unchanged.
+      if(protocol==='v2'&&!relaxV2BudgetOnManualResume){
+        // Historical v2 checkpoint semantics remain unchanged except for
+        // an explicitly authorized, verified manual budget-exhaustion continuation.
         const capacity=remainingTokens-estimatedInputTokens;
         if(capacity<512)throw Error('AI Token硬预算不足，未发起下一轮模型请求；已付费证据保留在断点');
         outputBudget=Math.min(outputBudget,capacity);
@@ -223,7 +227,7 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
       await paidCalls?.finish?.(round,'received');
     }
     if(Date.now()>deadline)throw Error('分析时间预算已达上限，未保存为成功结果');
-    if(calls.reduce((n,c)=>n+c.tokens,0)>maxTokens)console.warn(`累计实际 Token 已超过参考预算 ${maxTokens}；${protocol==='v2'?'v2 下轮硬拦截':'v3 仅记录告警，继续完成分析'}，不自动重发任何模型请求。`);
+    if(calls.reduce((n,c)=>n+c.tokens,0)>maxTokens)console.warn(`累计实际 Token 已超过参考预算 ${maxTokens}；${protocol==='v2'&&!relaxV2BudgetOnManualResume?'v2 下轮硬拦截':'此任务仅记录告警，继续完成分析'}，不自动重发任何模型请求。`);
     let value;
     try { value=parseJSON(response.content); }
     catch(error) { lastError=error; routing={tier:'complex',reason:'模型输出无法解析，由当前模型重试'}; const correction='输出无法解析，请完成原任务并返回完整合法 JSON。'; if(saved){if(saved.result?.followup?.kind!=='parse-error'||saved.result.followup.content!==correction)throw Error('解析纠正消息断点不一致');}
