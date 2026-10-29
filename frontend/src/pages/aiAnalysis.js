@@ -103,15 +103,26 @@ export function createAIAnalysis(ctx){
           <button type="button" class="a-button ai-history-delete" data-delete-analysis="${esc(r.id)}" aria-label="删除 ${esc(r.title)}">删除</button>
         </div>`).join('')}</div><p data-ai-history-empty hidden>当前筛选条件下没有历史分析。</p>`:'<p>尚无分析，点击开始后才会调用模型。</p>'}
           ${list.records.length?'<nav class="ai-history-pagination" data-ai-history-pagination aria-label="历史分析分页"><span data-ai-history-page-info aria-live="polite"></span><button class="a-button" type="button" data-ai-history-prev>上一页</button><button class="a-button" type="button" data-ai-history-next>下一页</button></nav>':''}</section>
-        <section class="a-card ai-result" data-detail><p>选择一条分析查看证据和建议。</p></section>
-        <div class="ai-review-layout">
-        <section class="a-card ai-review">
-          <div class="ai-review-heading"><h2>待复盘行动</h2><span>执行 → 观察 → 人工复盘</span></div>
-          <p>后端按三个完整业务日和数据水位确定复盘资格。查看状态不会产生模型费用；人工发起复盘可能产生费用。</p>
-          ${renderAIReviewQueue(reviewQueue,{esc})}
+        <section class="a-card ai-result" id="ai-report" data-detail><p>选择一条分析查看证据和建议。</p></section>
+        <section class="a-card ai-review-workspace" id="ai-review" aria-labelledby="ai-review-title">
+          <header class="ai-review-heading">
+            <div><span class="ai-review-eyebrow">ACTION REVIEW</span><h2 id="ai-review-title">行动复盘</h2></div>
+            <span>记录执行 → 观察效果 → 人工复盘</span>
+          </header>
+          <div class="ai-review-panel">
+            <div class="ai-review-subheading"><h3>待复盘行动</h3><span>按完整观察期与数据水位判断资格；人工启动可能产生费用</span></div>
+            ${renderAIReviewQueue(reviewQueue,{esc})}
+          </div>
+          <div class="ai-review-history">
+            <div class="ai-review-subheading"><h3>复盘记录</h3><span>${reviews.retrospectives.length} 条</span></div>
+            ${reviews.retrospectives.map(r=>`<article class="ai-review-history-item">
+              <div class="ai-review-history-primary"><strong>${esc(r.analysis_title||'未命名分析')}</strong>${r.created_at?`<time>${esc(day(Number(r.created_at)))} · UTC+7</time>`:''}</div>
+              <p class="ai-review-history-conclusion">${esc(r.conclusion||'暂无结论')}</p>
+              <p class="ai-review-history-meta">置信度：${esc(r.confidence||'未提供')} · ${r.has_causality?'有因果证据':'观测变化，未证明因果'}</p>
+              ${r.lessons_learned?`<p class="ai-review-history-lessons">经验：${esc(r.lessons_learned)}</p>`:''}
+            </article>`).join('')||'<p class="ai-review-history-empty">暂无复盘记录。首次完成复盘后，这里将显示结果与经验。</p>'}
+          </div>
         </section>
-        <section class="a-card ai-review-history"><h2>复盘记录</h2>${reviews.retrospectives.map(r=>`<article><h3>${esc(r.analysis_title)}</h3><p>${esc(r.conclusion)}</p><p>置信度：${esc(r.confidence)} · ${r.has_causality?'有因果证据':'观测变化，未证明因果'}</p><p>经验：${esc(r.lessons_learned||'尚无结论')}</p></article>`).join('')||'<p>记录行动后，可主动发起复盘。</p>'}</section>
-        </div>
         </div>`;
       const analysisDialog=host.querySelector('#ai-new-analysis');
       host.querySelector('[data-open-analysis]')?.addEventListener('click',()=>analysisDialog.showModal());
