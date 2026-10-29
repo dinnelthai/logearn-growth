@@ -577,6 +577,14 @@ export function createAIAnalysis(ctx){
         }catch(error){if(token===generation)message('保存目标失败：'+error.message)}
         finally{busy=false;if(button.isConnected)button.disabled=false}
       };
+      host.querySelector('[href="#ai-new-analysis"]')?.addEventListener?.('click',e=>{
+        e.preventDefault();
+        const details=host.querySelector('#ai-new-analysis');
+        if(!details)return;
+        details.open=true;
+        details.scrollIntoView?.({behavior:'smooth',block:'start'});
+        details.querySelector?.('input[name="title"]')?.focus?.({preventScroll:true});
+      });
       host.querySelectorAll('[data-analysis]').forEach(b=>b.onclick=()=>open(b.dataset.analysis));
       const historySelect=host.querySelector('[data-ai-history-filter]');
       if(historySelect){
