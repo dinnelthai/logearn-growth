@@ -28,7 +28,7 @@ describe('AI weekly 12-module coverage',()=>{
   const html=renderWeeklyCoverage({result:{weeklyCoverage:manifest}},options);
   expect(html).toContain('data-module="seo-organic" data-status="analyzed"');
   expect(html).toContain('data-weekly-evidence="ev-1"');
-  expect(html).toContain('关键判断：');
+  expect(html).toContain('证据结论：');
   expect(html).toContain('GSC 可验证搜索点击上升');
   expect(html).toContain('复查重点着陆页');
   expect(html).toContain('metrics.clicks');
