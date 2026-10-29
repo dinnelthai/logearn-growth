@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const {createToolRegistry,listToolIds}=require('../src/ai/business/tools/registry');
 const {createCapabilityCatalog}=require('../src/ai/business/tools/capabilityCatalog');
 const start=Date.parse('2026-10-18T00:00:00Z'),end=Date.parse('2026-10-20T00:00:00Z');
-const context={ownerId:'alice',runId:'run-a',scope:{source:'all'},period:{start,end}};
+const context={ownerId:'alice',runId:'run-a',scope:{source:'all'},period:{start,end},taskAllowedTools:['test.snapshot']};
 const schema=properties=>({type:'object',additionalProperties:false,properties});
 const extension=(overrides={})=>({
  id:'test.snapshot',version:'1.0.0',description:'Approved local test-only snapshot',
@@ -11,6 +11,7 @@ const extension=(overrides={})=>({
  inputSchema:schema({keyword:{type:'string',maxLength:80}}),
  outputSchema:schema({status:{type:'string',maxLength:20},count:{type:'integer',minimum:0}}),
  enabled:()=>true,authorize:ctx=>ctx.ownerId==='alice',
+ connection:ctx=>({id:'conn-a',ownerId:ctx.ownerId,projectId:'project-a',enabled:true}),
  execute:async input=>({status:'ok',count:input.keyword.length,secret:'must-not-leak'}),
  project:raw=>({status:raw.status,count:raw.count}),
  ...overrides
@@ -52,7 +53,7 @@ test('invalid ids, versions, schemas, declarations and duplicate ids fail closed
   extension({version:'latest'}),extension({cost:'free'}),extension({permission:'read-only'}),
   extension({supportedScopes:['arbitrary']}),extension({inputSchema:{type:'object',properties:{}}}),
   extension({outputSchema:schema({rows:{type:'array',items:{type:'string'}}})}),
-  extension({execute:null}),extension({authorize:null})
+  extension({execute:null}),extension({authorize:null}),extension({connection:null})
  ])assert.throws(()=>createCapabilityCatalog({...opts,extensions:[item]}),/声明无效/);
  assert.throws(()=>createCapabilityCatalog({...opts,extensions:[extension(),extension()]}),/重复/);
 });

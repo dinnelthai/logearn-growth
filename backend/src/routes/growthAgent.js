@@ -10,7 +10,14 @@ function createRouter({db,registry}){
  router.get('/changes',handle(async(req,res)=>res.json({changes:store.listChanges(req.user.user_id)})));
  router.get('/metrics',handle(async(req,res)=>res.json({metrics:require('../ai/business/metricRegistry').listMetrics()})));
  router.get('/capabilities',handle(async(req,res)=>res.json({tools:registry.listCapabilities(context(req))})));
- router.post('/tools/:id',handle(async(req,res)=>res.json(await registry.executeTool(req.params.id,req.body.input||{},context(req)))));
+ router.post('/tools/:id',handle(async(req,res)=>{
+  const base=context(req);
+  // Direct user requests obtain a fresh server-side catalog, never a request
+  // body supplied task allowlist. Worker plans apply their narrower allowlist.
+  const allowed=registry.listCapabilities(base).map(item=>item.id);
+  res.json(await registry.executeTool(req.params.id,req.body.input||{},
+   {...base,taskAllowedTools:allowed}));
+ }));
  router.get('/evidence/:id',handle(async(req,res)=>res.json(evidence.get(req.params.id,context(req)))));
  router.get('/research/questions',handle(async(req,res)=>{
   const items=require('../ai/growth/researchQuestions').createResearchQuestions(db)
