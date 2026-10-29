@@ -253,9 +253,9 @@ test('v4 retains SEO metrics across a third model round, without replaying old t
   operationType:'analysis',...env,validate:()=>{}});
  assert.equal(env.observed.length,3);
  assert.equal(env.tools.length,6);
- const finalPrompt=JSON.stringify(env.observed[2].messages);
- assert.match(finalPrompt,/priorToolEvidence/);
- assert.match(finalPrompt,/"clicks":/);
+ const finalMessages=env.observed[2].messages;
+ assert.ok(finalMessages.some(x=>x.content.includes('priorToolEvidence')));
+ assert.ok(finalMessages.some(x=>x.content.includes('"clicks":')));
  assert.equal(env.archive.get(0).results.length,6);
  assert.equal(env.archive.get(1).results.length,6);
  assert.ok(env.archive.get(1).results.every(x=>
