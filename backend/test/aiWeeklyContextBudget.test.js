@@ -121,7 +121,11 @@ test('unknown KPI and missing SEO stay unknown rather than changing to zeros',()
 test('ordinary transport v3 without a weekly coverage manifest retains existing protocol',()=>{
  const raw=fixture();delete raw.weeklyCoverage;
  raw.capabilities=raw.capabilities.slice(0,6);
- raw.evidence=raw.evidence.slice(0,6);
+ raw.evidence=[sample('active_users','normal-metric',71)];
+ raw.definitions={active_users:'独立分析活跃用户定义'};
+ raw.candidates=[];
+ raw.growth={channels:[]};
+ raw.warnings=[];
  const view=modelContext(raw,{transportVersion:'v3'});
  assert.equal(view.omissions.weeklyModelInput,undefined);
  assert.equal(view.weeklyCoverage,null);
