@@ -19,7 +19,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
   if(!w)return '<p role="alert">任务已结束，但没有形成通过验证的周报正文。请到 AI 增长分析查看检查点，不应视作成功。</p>';
   const calls=Array.isArray(data?.result?.calls)?data.result.calls:[];
   const costAudit=calls.length?
-   '<div class="ai-weekly-table"><table><thead><tr><th>模型轮次</th><th>总Token</th><th>输入估算</th><th>上下文版本</th><th>输入构成（字节）</th></tr></thead><tbody>'+
+   '<div class="ai-weekly-table"><table><thead><tr><th>模型轮次</th><th>总Token</th><th>输入：实际/预估</th><th>上下文版本</th><th>输入构成（字节）</th></tr></thead><tbody>'+
    calls.map((call,i)=>{
     const segments=call.inputAttribution?.segmentsBytes;
     const pieces=segments?[
@@ -28,7 +28,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
      ['纠错消息',segments.corrections]
     ].map(([label,value])=>label+' '+fmt(value)).join(' · '):'旧记录未采集';
     return '<tr><td>第'+(i+1)+'轮</td><td>'+fmt(call.tokens)+'</td>'+
-      '<td>'+fmt(call.estimatedInputTokens)+'</td><td>'+
+      '<td>'+fmt(call.reportedInputTokens)+' / '+fmt(call.estimatedInputTokens)+'</td><td>'+
       safe(call.modelTransportVersion||'历史协议')+'</td><td>'+safe(pieces)+'</td></tr>';
    }).join('')+'</tbody></table></div>':
    '<p>暂无逐轮模型用量记录。</p>';
