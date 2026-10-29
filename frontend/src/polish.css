@@ -244,3 +244,15 @@
 #la-studio [data-weekly-evidence-detail] { font-size:12px; line-height:1.5; white-space:pre-wrap; overflow-wrap:anywhere; max-height:340px; overflow:auto; }
 
 #la-studio .ai-weekly-partial { font-size:13px; line-height:1.65; padding:12px 16px; border:1px dashed var(--a-border); border-radius:10px; }
+
+#la-studio .ai-weekly-unknown-charge {
+  display:grid;justify-items:start;gap:10px;margin:14px 0 4px;
+  border-top:1px solid var(--a-border);padding-top:14px;max-width:760px;
+}
+#la-studio .ai-weekly-unknown-charge p,
+#la-studio .ai-weekly-unknown-charge label {
+  margin:0;font-size:13px;line-height:1.65;
+}
+#la-studio .ai-weekly-unknown-charge label {display:flex;align-items:flex-start;gap:9px;}
+#la-studio .ai-weekly-unknown-charge input {margin-top:4px;}
+#la-studio .ai-weekly-unknown-charge button:disabled {cursor:not-allowed;opacity:.5;}
