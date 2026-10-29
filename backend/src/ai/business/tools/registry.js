@@ -3,6 +3,7 @@ const {resolveScope,owner}=require('../scope'),{describeMetric,listMetrics}=requ
 const {makeEvidence,fingerprint}=require('../evidence');
 const {validateRange}=require('../../../analytics/businessPriorities');
 const {statView}=require('../modelTransport');
+const {createCapabilityCatalog}=require('./capabilityCatalog');
 const fail=(message,status=400)=>{throw Object.assign(Error(message),{status})};
 const definitions={
  query_metrics:{metric:'active_users',adapter:'metrics',scopes:['source'],description:'现有北极星、增长、周核心指标'},
@@ -47,8 +48,8 @@ function productChainSummary(payload){
 const allowedFields=id=>['scope','start','end','filters','limit','cursor',...(id==='get_funnel'?['steps','hours']:id==='get_retention'?['initial','returning']:id==='query_metrics'?['metrics','dimensions']:id==='get_seo_performance'?['siteUrl']:[])];
 function createToolRegistry(deps){
  const budgets=new Map(),maxQueries=deps.maxQueries??20,maxConcurrent=deps.maxConcurrent??2,maxResultBytes=deps.maxResultBytes??200000,timeoutMs=deps.timeoutMs??35000;
- function listCapabilities(context){owner(context);const period=context.period,hasPeriod=Number.isSafeInteger(period?.start)&&Number.isSafeInteger(period?.end);return Object.entries(definitions).map(([id,t])=>({id,version:'1',description:t.description,supportedScopes:t.scopes||['source','activityId','cohortId'],inputSchema:{...inputSchema,properties:Object.fromEntries(allowedFields(id).map(k=>[k,hasPeriod&&['start','end'].includes(k)?{...inputSchema.properties[k],minimum:period.start-(period.end-period.start),maximum:period.end}:inputSchema.properties[k]]))},example:{start:period?.start,end:period?.end},permission:'authenticated owner and scope',limits:{maxDays:31,maxQueries,maxConcurrent,maxResultBytes,timeoutMs,maxCandidates:80000,physicalScanBytes:'not measured'}}));}
- async function executeTool(id,input={},context){
+ function listLegacyCapabilities(context){owner(context);const period=context.period,hasPeriod=Number.isSafeInteger(period?.start)&&Number.isSafeInteger(period?.end);return Object.entries(definitions).map(([id,t])=>({id,version:'1',description:t.description,supportedScopes:t.scopes||['source','activityId','cohortId'],inputSchema:{...inputSchema,properties:Object.fromEntries(allowedFields(id).map(k=>[k,hasPeriod&&['start','end'].includes(k)?{...inputSchema.properties[k],minimum:period.start-(period.end-period.start),maximum:period.end}:inputSchema.properties[k]]))},example:{start:period?.start,end:period?.end},permission:'authenticated owner and scope',limits:{maxDays:31,maxQueries,maxConcurrent,maxResultBytes,timeoutMs,maxCandidates:80000,physicalScanBytes:'not measured'}}));}
+ async function executeLegacyTool(id,input={},context){
   owner(context);if(!Object.hasOwn(definitions,id))fail('未知调查工具');
   if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(k=>!fields.includes(k)))fail('工具输入字段无效');
   const tool=definitions[id];
@@ -125,7 +126,9 @@ function createToolRegistry(deps){
   const view=rows?{...e,value:{...e.value,rows:rows.slice(offset,offset+limit)},page:{offset,limit,total:rows.length}}:e;
   return {status:'ok',evidence:[view],cursor:next,warnings:e.warnings};
  }
- return {listCapabilities,describeMetric,executeTool};
+ const catalog=createCapabilityCatalog({legacyIds:Object.keys(definitions),extensions:deps.extensions||[],assertOwner:owner});
+ return {listCapabilities:context=>catalog.list(context,listLegacyCapabilities),
+  executeTool:(id,input,context)=>catalog.execute(id,input,context,executeLegacyTool),describeMetric};
 }
 function defaultRegistry(){
  const db=require('../../../db/connection'),remote=require('../../../data/hologres');
