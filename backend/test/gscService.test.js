@@ -45,7 +45,25 @@ test('date range, corrupt GSC metrics and oversized remote responses fail closed
  assert.throws(()=>dateWindow('2026-09-01','2026-10-19',time),/31天/);
  assert.throws(()=>dateWindow('2026-02-30','2026-02-30',time),/日期/);
  const wrong=fixture();wrong.queries.rows[0].ctr=3;
- assert.throws(()=>buildGoogleSnapshot('sc-domain:logearn.com',{startDate,endDate},wrong),/无效/);
+ assert.throws(()=>buildGoogleSnapshot('sc-domain:logearn.com',{startDate,endDate},wrong),
+  /query 第 1 行 ctr 无效/);
  const huge=fixture();huge.queries.rows=Array(501).fill(row('same',1,2,5));
  assert.throws(()=>buildGoogleSnapshot('sc-domain:logearn.com',{startDate,endDate},huge),/预算/);
+});
+
+test('valid high Google ranking and long page URLs are not rejected by arbitrary local limits',()=>{
+ const source=fixture();
+ source.queries.rows[0].position=1201.75;
+ source.pages.rows[0].keys[0]='https://logearn.com/'+('a'.repeat(1800));
+ const normalized=buildGoogleSnapshot('sc-domain:logearn.com',{startDate,endDate},source);
+ assert.equal(normalized.queries[0].position,1201.75);
+ assert.equal(normalized.pages[0].page,'https://logearn.com/'+('a'.repeat(1800)));
+});
+
+test('invalid metrics name the Google dimension and row without leaking query text',()=>{
+ const source=fixture();
+ source.queries.rows[1].position=0;
+ const error=assert.throws(()=>buildGoogleSnapshot('sc-domain:logearn.com',
+  {startDate,endDate},source),/query 第 2 行 position 无效/);
+ assert.equal(error,undefined);
 });
