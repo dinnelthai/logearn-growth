@@ -229,6 +229,146 @@ function shareEvidenceProvenance(context){
  }
  if(Object.keys(shared).length)context.sharedEvidence=shared;
 }
+// Weekly growth v3 can expose 12 skills and more than 16 read-only tools.
+// Prefer compressing duplicated schemas and narrative over deleting observations.
+// All fields in this projection have already passed the modelEvidence allowlist.
+// Full source values and authorized schemas stay in the immutable backend journal.
+function compactWeeklyValue(value){
+ if(value===null||typeof value==='number')return value;
+ if(!value||typeof value!=='object')return null;
+ const result={};
+ const allowed=['metrics','totals','summary','counts','global','conversion',
+  'retention','trade','product_chain'];
+ const extract=(object,limit)=>{
+  if(!object||typeof object!=='object'||Array.isArray(object))return null;
+  const entries=Object.entries(object).filter(([_,v])=>
+   typeof v==='number'&&Number.isFinite(v)).slice(0,limit);
+  return entries.length?Object.fromEntries(entries):null;
+ };
+ for(const name of allowed){
+  const numbers=extract(value[name],name==='metrics'?10:6);
+  if(numbers)result[name]=numbers;
+ }
+ const own=extract(value,8);
+ if(own)Object.assign(result,own);
+ if(typeof value.available==='boolean')result.available=value.available;
+ if(typeof value.status==='string')result.status=safeText(value.status,30);
+ if(!Object.keys(result).length)return {detailOmitted:true};
+ return result;
+}
+function compactWeeklyEvidence(e,{briefValue=false}={}){
+ const out={id:e.id,metricId:e.metricId,unit:e.unit,value:briefValue?
+  compactWeeklyValue(e.value):e.value,
+  numerator:e.numerator,denominator:e.denominator,sampleSize:e.sampleSize,
+  period:e.period,coverage:e.coverage,
+  ...(e.sourceVersions?{sourceVersions:e.sourceVersions}:{}),
+  ...(e.watermarks?{watermarks:e.watermarks}:{})};
+ if(e.warnings?.length)out.warnings=e.warnings.slice(0,1);
+ // Keep explicit unknown measurement values; prune only missing metadata.
+ return Object.fromEntries(Object.entries(out).filter(([k,v])=>
+  k==='value'||v!==null&&v!==undefined&&
+  !(typeof v==='object'&&!Array.isArray(v)&&!Object.keys(v).length)));
+}
+function fitWeeklyModelContext(context,raw){
+ const size=()=>Buffer.byteLength(JSON.stringify(context),'utf8');
+ const limit=22000;
+ if(size()<=limit)return;
+ const originalBytes=size();
+ // Non-executing skills are already covered by weeklyCoverage. Their reasons
+ // and repeated tool descriptions are redundant to the model.
+ context.growthPlan=context.growthPlan?{steps:context.growthPlan.steps.map(s=>({
+  id:s.id,tools:s.tools.slice(0,3)
+ }))}:null;
+ context.capabilities=context.capabilities.map(x=>({
+  id:x.id,description:safeText(x.description||'',55),
+  required:x.required,input:x.input,
+  ...(x.supportedScopes?.length?{supportedScopes:x.supportedScopes}: {})
+ }));
+ if(context.weeklyCoverage)context.weeklyCoverage=context.weeklyCoverage.map(x=>({
+  id:x.id,status:x.status,evidenceIds:x.evidenceIds,
+  ...(x.reason?{reason:safeText(x.reason,60)}:{})
+ }));
+ context.definitions=Object.fromEntries(Object.entries(context.definitions||{})
+  .sort(([a],[b])=>
+   ['active_users','new_users','returning_users'].indexOf(a)-
+   ['active_users','new_users','returning_users'].indexOf(b))
+  .slice(0,8).map(([k,v])=>[k,safeText(v,110)]));
+ context.candidates=[];context.candidatesMeta.shown=0;
+ context.growth={change:context.growth.change||{},
+  channels:Array.isArray(context.growth.channels)?
+   context.growth.channels.slice(0,4):[],
+  coverage:context.growth.coverage||{status:'unknown'}};
+ context.warnings=context.warnings.slice(0,3);
+ context.omissions.weeklyCompression='旧报告的原始统计、工具模式和证据仍保留在只读归档；未传入模型的内容未知，不是0';
+ // Select first owner-scoped evidence by reference and KPI importance, not
+ // ingestion order, which otherwise pushes earlier-week and SEO facts out.
+ const original=Array.isArray(raw.evidence)?raw.evidence:[];
+ const wanted=new Set((raw.weeklyCoverage?.modules||[]).flatMap(x=>
+  (x.evidenceIds||[]).slice(0,2)));
+ const kpi=['active_users','new_users','returning_users'];
+ const order=[
+  ...original.filter(x=>kpi.includes(x.metricId)),
+  ...original.filter(x=>wanted.has(x.id)),
+  ...original
+ ];
+ const seen=new Set();
+ const priority=[];
+ for(const row of order){
+  if(typeof row?.id!=='string'||seen.has(row.id))continue;
+  seen.add(row.id);priority.push(row);
+  if(priority.length>=24)break;
+ }
+ const project=(max,brief)=>{
+  context.evidence=priority.slice(0,max).map(row=>
+   compactWeeklyEvidence(modelEvidence(row),{briefValue:brief}));
+  delete context.sharedEvidence;
+  shareEvidenceProvenance(context);
+  context.evidenceMeta.shown=context.evidence.length;
+ };
+ project(18,false);
+ if(size()>limit)project(18,true);
+ if(size()>limit){
+  context.current={totals:context.current.totals||{},
+   coverage:context.current.coverage||{status:'unknown'}};
+  context.previous={totals:context.previous.totals||{},
+   coverage:context.previous.coverage||{status:'unknown'}};
+  context.weekly={};
+  context.growth={coverage:context.growth.coverage||{status:'unknown'}};
+  project(14,true);
+ }
+ // Evidence size is variable: remove from the tail while keeping the weekly
+ // module directory, source labels, tool inputs and core KPI aggregates.
+ while(size()>limit&&context.evidence.length>0){
+  context.evidence.pop();
+  context.evidenceMeta.shown=context.evidence.length;
+ }
+ if(size()>limit){
+  context.capabilities=context.capabilities.map(x=>({
+   id:x.id,required:x.required,
+   input:Object.fromEntries(Object.entries(x.input||{})
+    .filter(([key])=>['start','end','scope','limit','metrics','steps','hours'].includes(key))
+    .map(([key,v])=>[key,{type:v.type}]))
+  }));
+  context.weeklyCoverage=context.weeklyCoverage?.map(x=>({
+   id:x.id,status:x.status,evidenceIds:x.evidenceIds?.slice(0,1)
+  }));
+ }
+ if(size()>limit){
+  context.definitions={};
+  context.warnings=[];
+  context.growthPlan={steps:context.growthPlan?.steps.map(x=>({id:x.id}))||[]};
+ }
+ context.omissions.weeklyModelInput={
+  originalBytes,shownEvidence:context.evidence.length,
+  availableEvidence:original.length,
+  note:'为满足22KB传输上限压缩了重复工具说明和部分统计维度；未展示的来源不代表值为零'
+ };
+ // The metadata itself consumes bytes; trim further safely if necessary.
+ while(size()>limit&&context.evidence.length>0){
+  context.evidence.pop();context.evidenceMeta.shown=context.evidence.length;
+  context.omissions.weeklyModelInput.shownEvidence=context.evidence.length;
+ }
+}
 function modelContext(raw,{transportVersion='v1'}={}){
  if(!['v1','v2','v3'].includes(transportVersion))throw Error('不支持的模型上下文版本');
  const scope=raw.business?.scope||{};
@@ -327,6 +467,8 @@ function modelContext(raw,{transportVersion='v1'}={}){
    context.omissions.emptyEvidenceMetadata='省略空元数据不表示观察为零；未提供的值一律未知';
   }
  }
+ if(transportVersion==='v3'&&raw.weeklyCoverage?.version==='weekly-coverage-v1')
+  fitWeeklyModelContext(context,raw);
  // Strict transport byte cap for the first model message, independent of
  // the multilingual token preflight. Do not hide unknown data as zeros.
  const fits=()=>Buffer.byteLength(JSON.stringify(context),'utf8')<=22000;
