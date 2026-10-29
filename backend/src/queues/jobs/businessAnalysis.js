@@ -44,6 +44,9 @@ async function businessAnalysis(job) {
   if(executionClaim.action==='completed')return executionClaim.result;
   const token=executionClaim.token;
   const isWeeklyReport=executionClaim.record.filter_conditions?.weeklyReport==='v1';
+  // Only NEW business analyses opt into v2. Archived checkpoints select their
+  // version from the saved system prompt, so deployment cannot rewrite replay.
+  const useContextV2=process.env.AI_MODEL_CONTEXT_V2_ENABLED!=='0';
   let leaseError=null,renewing=false;
   const heartbeat=setInterval(async()=>{
     if(renewing)return;
@@ -150,8 +153,9 @@ async function businessAnalysis(job) {
     const currentPrompt=require('../../ai/optimization/promptRegistry')
       .createPromptRegistry(require('../../db/connection'))
       .resolve(ownerId,'analysis',prompt,{runId:analysisId});
-    const result=await runTask({context:compact,prompt:isWeeklyReport?currentPrompt+'\n'+weeklyReport.weeklyPromptV2:currentPrompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
-      ...(isWeeklyReport?{modelTimeoutMs:weeklyReport.weeklyModelTimeoutMs(),contextVersion:'v2'}:{}),
+    const result=await runTask({context:compact,prompt:isWeeklyReport?currentPrompt+'\n'+(useContextV2?weeklyReport.weeklyPromptV2:weeklyReport.weeklyPrompt):currentPrompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
+      contextVersion:useContextV2?'v2':'v1',
+      ...(isWeeklyReport?{modelTimeoutMs:weeklyReport.weeklyModelTimeoutMs()}:{}),
       paidCalls:{
         begin:round=>executionClaim.record.filter_conditions?.proposalId
           ?require('../../ai/growth/budget').beginBudgetedPaidCall({
