@@ -46,6 +46,27 @@ describe('AI weekly report delete availability',()=>{
   expect(html).toContain('可能产生重复费用');
   expect(html).not.toContain('data-weekly-delete');
  });
+ it('makes paid weekly regeneration available on a completed report',async()=>{
+  const {html}=await render([completed]);
+  expect(html).toContain('data-weekly-regenerate');
+  expect(html).toContain('重新生成 AI 运营周报');
+  expect(html).toContain('data-weekly-regenerate-confirm hidden');
+  expect(html).toContain('确认重新生成（可能收费）');
+  expect(html).toContain('旧报告、证据与历史费用全部保留');
+ });
+ it('offers a guarded new report on failed history without resetting it',async()=>{
+  const {html}=await render([failed]);
+  expect(html).toContain('data-weekly-regenerate-confirm hidden');
+  expect(html).toContain('重新生成 AI 运营周报');
+  expect(html).toContain('删除失败周报');
+ });
+ it('disables regeneration while a report is pending or processing',async()=>{
+  for(const status of ['pending','processing']){
+   const {html}=await render([{...failed,status}]);
+   expect(html).toContain('data-weekly-regenerate disabled');
+   expect(html).not.toContain('data-weekly-regenerate-confirm hidden');
+  }
+ });
  it('does not offer deletion while a report is still processing',async()=>{
   const {html}=await render([{...failed,status:'processing'}]);
   expect(html).not.toContain('data-weekly-delete>');
