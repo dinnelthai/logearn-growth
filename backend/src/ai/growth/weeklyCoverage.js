@@ -174,15 +174,19 @@ function finalizeWeeklyCoverage(raw,analysis,{additionalEvidence=[]}={}){
    status:chosen.status,reason:chosen.reason,source:chosen.source,
    evidenceIds:[...(chosen.evidenceIds||[])].slice(0,4),
    facts:(chosen.facts||[]).filter(x=>typeof x.metric==='string'&&validNumber(x.value)).slice(0,4)};
-  const matchedClaim=(analysis?.claims||[]).find(claim=>
+  const rankedClaims=(analysis?.claims||[]).filter(claim=>
    Array.isArray(claim?.evidenceIds)&&
    claim.evidenceIds.some(id=>row.evidenceIds.includes(id))&&
    typeof claim.text==='string'&&claim.text.trim());
+  const matchedClaim=rankedClaims.find(x=>x.kind==='fact')||
+   rankedClaims.find(x=>x.kind==='hypothesis')||rankedClaims[0];
   if(row.status==='collected'&&matchedClaim&&
      matchedClaim.evidenceIds.some(id=>claimed.has(id))){
    row.status='analyzed';
    row.reason='AI 结论已引用该模块的可验证证据';
    row.insight=cleanText(matchedClaim.text,200);
+   row.insightType=matchedClaim.kind==='hypothesis'?'hypothesis':
+    matchedClaim.kind==='fact'?'fact':'recommendation';
    const action=(analysis?.suggestions||[]).find(s=>
     Array.isArray(s?.evidence?.evidenceIds)&&
     s.evidence.evidenceIds.some(id=>row.evidenceIds.includes(id))&&
