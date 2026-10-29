@@ -152,4 +152,22 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,links}){
    callsTable+'</div></details>'+
   '<div data-weekly-evidence-detail class="gws-detail" hidden role="status"></div></article>';
 }
+export function readOnlyGscMarkup(data,{safe,fmt,startDate,endDate}){
+ const r=data?.available===true?data.report:null;
+ if(!r||r.startDate!==startDate||r.endDate!==endDate)
+  return '<p>此业务周没有已同步的同日期标签 GSC 快照。请先到 SEO 分析同步；未观测不能解释为零点击。</p>';
+ const m=r.metrics||{},numbers=[
+  ['搜索点击',m.clicks],['搜索曝光',m.impressions],
+  ['CTR',numeric(m.ctr)?(m.ctr*100).toFixed(2)+'%':null],
+  ['平均排名',m.position]
+ ].filter(([,value])=>numeric(value)||typeof value==='string');
+ return '<div class="ai-weekly-gsc-supplement">'+
+  '<p>补充只读 GSC 快照 · '+safe(startDate)+' — '+safe(endDate)+
+  '。这是另行读取的已保存 Search Console 数据，未参与这份历史 AI 周报的分析或归因。</p>'+
+  (numbers.length?'<div class="ai-weekly-source-kpis">'+numbers.map(([label,value])=>
+   '<div><span>'+safe(label)+'</span><strong>'+
+   safe(typeof value==='number'?fmt(value):value)+'</strong></div>').join('')+'</div>':
+   '<p>该快照没有可展示的指标；不能理解为零。</p>')+
+  '<small>GSC 按 PT 日期标签汇总，业务按曼谷周统计，不能直接推导站内激活或交易。</small></div>';
+}
 export {trustedMetrics};
