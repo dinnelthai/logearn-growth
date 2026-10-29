@@ -1,4 +1,5 @@
 const {runTask,validateAnalysis} = require('../../ai/business/runner');
+const weeklyReport=require('../../ai/growth/weeklyReport');
 const {definitions,rankEvidence,validateRange,validateScope} = require('../../ai/business/policy');
 const {fetchNorthStar,fetchGrowthInsights,fetchWeeklyCore} = require('./dataFetcher');
 const records = require('../../db/aiRecords');
@@ -23,7 +24,9 @@ async function persistValidatedResult({job,analysisId,ownerId,token,compact,resu
       claims:analysis.claims,
       growthSignals:compact.growthPlan?.triage?.signals||[],
       growthSkills:compact.growthPlan?.steps?.map(step=>({id:step.skillId,version:step.skillVersion}))||[],
-      evidenceIds:compact.evidence.map(e=>e.id),goalVersion:compact.goal?.version||null,candidates:compact.candidates,routing:result.routing,calls:result.calls,additionalEvidence:result.evidence,cost:result.cost,analysisId};
+      evidenceIds:compact.evidence.map(e=>e.id),goalVersion:compact.goal?.version||null,candidates:compact.candidates,routing:result.routing,calls:result.calls,additionalEvidence:result.evidence,cost:result.cost,analysisId,
+      ...(analysis.weeklyReport?{weeklyReport:analysis.weeklyReport,weeklyOperations:compact.weeklyOperations||null}:{}),
+      reportPeriod:analysis.weeklyReport?compact.period:null};
     await records.assertAnalysisLease(analysisId,ownerId,token);
     await records.completeAnalysis(analysisId,ownerId,suggestions,saved,result,token);await job.progress(100);
     return saved;
@@ -41,6 +44,7 @@ async function businessAnalysis(job) {
   });
   if(executionClaim.action==='completed')return executionClaim.result;
   const token=executionClaim.token;
+  const isWeeklyReport=executionClaim.record.filter_conditions?.weeklyReport==='v1';
   let leaseError=null,renewing=false;
   const heartbeat=setInterval(async()=>{
     if(renewing)return;
@@ -86,7 +90,7 @@ async function businessAnalysis(job) {
     const isDailyConversion=executionClaim.record.filter_conditions?.dailySchedule==='v1'&&
       focusGoal==='conversion'&&source==='all';
     const focusSkillId=executionClaim.record.filter_conditions?.skillId||null;
-    const discovered=isDailyConversion
+    const discovered=(isDailyConversion||isWeeklyReport)
       ?require('../../ai/growth/dailySpecialties').availableDailySpecialties(require('../../db/connection'),ownerId):[];
     // Explicit content investigations also preload the same owner-scoped tool.
     // No API fetch or paid call is triggered by this data read.
@@ -108,7 +112,9 @@ async function businessAnalysis(job) {
     });
     const memoryView=require('../../ai/business/contextBudget').compactMemory(memory);
     compact={...compact,business:{...compact.business,question:userQuestion||compact.business.question},
-      memory:memoryView.items,memoryMeta:memoryView.meta,growthPlan};
+      memory:memoryView.items,memoryMeta:memoryView.meta,growthPlan,
+      ...(isWeeklyReport?{weeklyOperations:executionClaim.record.filter_conditions.weeklyOperations}:{}),
+      };
     const session=require('../../ai/business/foundation').defaultFoundation().prepare(compact,{ownerId,runId:analysisId,goalRef:job.data.goalRef});
     compact=session.context;
     // Existing read-only tool registry creates archived, owner-scoped evidence.
@@ -136,7 +142,7 @@ async function businessAnalysis(job) {
     const currentPrompt=require('../../ai/optimization/promptRegistry')
       .createPromptRegistry(require('../../db/connection'))
       .resolve(ownerId,'analysis',prompt,{runId:analysisId});
-    const result=await runTask({context:compact,prompt:currentPrompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
+    const result=await runTask({context:compact,prompt:isWeeklyReport?currentPrompt+'\n'+weeklyReport.weeklyPrompt:currentPrompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
       paidCalls:{
         begin:round=>executionClaim.record.filter_conditions?.proposalId
           ?require('../../ai/growth/budget').beginBudgetedPaidCall({
@@ -147,7 +153,7 @@ async function businessAnalysis(job) {
             :records.beginAnalysisPaidCall(analysisId,ownerId,token,round),
         finish:(round,status)=>records.finishAnalysisPaidCall(analysisId,ownerId,token,round,status)
       },
-      validate:value=>{validateAnalysis(value);session.validate(value);}});
+      validate:value=>{validateAnalysis(value);session.validate(value);if(isWeeklyReport)weeklyReport.validateWeeklyReport(value);}});
     await beforeStep();
     return await persistValidatedResult({job,analysisId,ownerId,token,compact,result});
   }catch(error){await records.failClaimedAnalysis(analysisId,ownerId,token,error.message);throw error;}
