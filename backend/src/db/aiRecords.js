@@ -141,6 +141,22 @@ async function hideAnalysisRecord(id, ownerId) {
   return result.rows[0] || null;
 }
 
+// Insert-only idempotency, so concurrent HTTP requests cannot both enqueue paid jobs.
+// We never reset, retry, or replace a task with a known request key.
+async function createWeeklyReportRecord({ownerId,requestKey,title,start,end,question,conditions}){
+ const now=Date.now(),id=uuidv4();
+ const inserted=await write(`INSERT INTO ai_analysis_records
+  (id,owner_id,title,analysis_type,date_range_start,date_range_end,business_scope,
+   user_question,data_snapshot,filter_conditions,status,created_at,request_key)
+  VALUES ($1,$2,$3,'optimization',$4,$5,$6,$7,'{}'::jsonb,$8,'pending',$9,$10)
+  ON CONFLICT (owner_id,request_key) DO NOTHING RETURNING *`,
+  [id,ownerId,title,start,end,JSON.stringify({source:'all'}),question,JSON.stringify(conditions),now,requestKey]);
+ if(inserted.rows.length)return {record:inserted.rows[0],created:true};
+ const existing=await read(`SELECT * FROM ai_analysis_records
+  WHERE owner_id=$1 AND request_key=$2`,[ownerId,requestKey]);
+ if(!existing.rows.length)throw Error('并发周报请求仍在提交，请刷新任务状态');
+ return {record:existing.rows[0],created:false};
+}
 // Owner-scoped completed-week reports live in the existing AI analysis records.
 // Read the same shared PostgreSQL store as the Worker; no parallel report database.
 async function listWeeklyReportRecords(ownerId,{limit=20}={}){
@@ -757,6 +773,7 @@ module.exports = {
   updateAnalysisModel,
   listAnalysisRecords,
   listWeeklyReportRecords,
+  createWeeklyReportRecord,
   hideAnalysisRecord,
   getAnalysisRecord,
 
