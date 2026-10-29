@@ -59,8 +59,33 @@ const weeklyPromptV2=`
 "metrics":[{"label":"业务指标","current":null,"previous":null,"changePct":null,"evidenceIds":["证据ID"]}],
 "channelFindings":[{"text":"来自已观测渠道证据的差异，未覆盖的明确说明","evidenceIds":["证据ID"]}],
 "dataGaps":["数据覆盖、归因、口径与有效期的明确限制"]}
+优先找出本周最大的增长异常和用户流失信号（如首次分析人数、活跃分析人数的下降），为每个核心问题交代影响规模、已知证据、未证实假设和下周核查动作。增长周报需要覆盖 SEO（GSC）、渠道获客、激活、留存、产品到交易；对不可用来源明确列出缺口，不能因为主要目标是 activation 就忽略 SEO。GSC 可能使用 PT 日期，不得对不匹配的快照计算本业务周环比，更不能把搜索点击当作注册或交易。
 本周亮点将从事实型 claims 自动生成；风险从假设型 claims 自动生成；下周行动从 suggestions 自动生成，不要重复输出 highlights、issues、nextWeek。必须保留每项真实数值对应证据 ID；无验证数据用 null，不编造周环比；changePct 为相对百分数（10→12 为20，前周0或未知时为null）。运营执行统计只表示已保存记录，不等于全部工作量。
 `;
+// Server-derived KPIs come from the exact owner-scoped immutable evidence
+// already saved for this run. They never depend on the model inventing JSON.
+function trustedWeeklyMetrics(context){
+ const period=context?.period,items=Array.isArray(context?.evidence)?context.evidence:[];
+ if(!period)return [];
+ const definitions=[
+  ['new_users','首次分析用户'],
+  ['active_users','分析活跃用户'],
+  ['returning_users','回访分析用户']
+ ];
+ return definitions.map(([metricId,label])=>{
+  const find=(start,end)=>items.find(e=>e.metricId===metricId&&
+   e.period?.start===start&&e.period?.end===end&&
+   typeof e.value==='number'&&Number.isFinite(e.value));
+  const now=find(period.start,period.end);
+  const before=find(period.previousStart,period.previousEnd);
+  if(!now&&!before)return null;
+  const current=now?.value??null,previous=before?.value??null;
+  return {metricId,label,current,previous,
+   changePct:current!=null&&previous!=null&&previous!==0?
+    Math.round((current-previous)/previous*10000)/100:null,
+   evidenceIds:[now?.id,before?.id].filter(Boolean)};
+ }).filter(Boolean);
+}
 function hydrateWeeklyReport(analysis){
  const w=analysis?.weeklyReport;
  if(!w||typeof w!=='object'||Array.isArray(w))return;
@@ -119,9 +144,25 @@ function validateWeeklyReport(analysis){
 // If a provider returns a valid base analysis but omits the additional report
 // schema, preserve the paid, evidence-validated result as a clearly partial report.
 // Never retry automatically or reuse unverifiable numbers and citations.
-function ensureWeeklyReport(analysis){
+function ensureWeeklyReport(analysis,{context=null}={}){
  hydrateWeeklyReport(analysis);
- try{validateWeeklyReport(analysis);return analysis.weeklyReport}
+ const derived=trustedWeeklyMetrics(context);
+ const complete=()=>{
+  // The report contract was separately validated against model-cited claims.
+  // Replace only server-owned KPI labels with independently derived values.
+  const w=analysis.weeklyReport;
+  w.metrics=[...derived,...w.metrics.filter(x=>
+   !derived.some(d=>d.label===x.label||d.metricId===x.metricId))].slice(0,25);
+  const seo=context?.weeklySources?.seo;
+  if(seo&&seo.status!=='period-matched'){
+   const reason=seo.status==='reference-only'?
+    'SEO：仅有日期不完全匹配的 GSC 参考快照，不能形成业务周环比或注册归因。':
+    'SEO：本业务周没有可验证的 GSC 数据，不能推定搜索流量为零。';
+   if(!w.dataGaps.includes(reason))w.dataGaps.push(reason);
+  }
+  return w;
+ };
+ try{validateWeeklyReport(analysis);return complete()}
  catch(error){
   const cited=new Set((analysis.claims||[]).flatMap(c=>c.evidenceIds||[]));
   const references=row=>(Array.isArray(row.evidenceIds)?row.evidenceIds:[]).filter(id=>cited.has(id));
@@ -142,7 +183,7 @@ function ensureWeeklyReport(analysis){
    partial:true
   };
   validateWeeklyReport(analysis);
-  return analysis.weeklyReport;
+  return complete();
  }
 }
-module.exports={weeklyPeriod,weeklyKey,weeklyOperations,weeklyPrompt,weeklyPromptV2,validateWeeklyReport,ensureWeeklyReport,weeklyModelTimeoutMs};
+module.exports={weeklyPeriod,weeklyKey,weeklyOperations,weeklyPrompt,weeklyPromptV2,validateWeeklyReport,ensureWeeklyReport,trustedWeeklyMetrics,weeklyModelTimeoutMs};
