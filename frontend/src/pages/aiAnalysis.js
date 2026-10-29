@@ -350,7 +350,7 @@ export function createAIAnalysis(ctx){
             rejectionReason:state==='rejected'?note:undefined,
             executedAt
           });
-          if(token===generation&&request===detailRequest)await open(id);
+          if(token===generation&&request===detailRequest)await draw();
         }catch(error){message(error.message)}
         finally{
           busy=false;
