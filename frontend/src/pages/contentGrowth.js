@@ -3,7 +3,7 @@ import {viewState} from '../components/viewStates.js'
 const base=(import.meta.env.VITE_BACKEND_BASE_URL??'http://localhost:3001')+'/api/content-growth'
 const labels={x:'X 官方账号',blog:'博客',youtube:'YouTube'}
 async function request(path='',method='GET',body){const r=await fetch(base+path,{method,headers:{'Content-Type':'application/json',Authorization:'Bearer '+getToken()},...(body?{body:JSON.stringify(body)}:{})});const d=await r.json().catch(()=>({}));if(!r.ok){notifyExpiredSession(r);throw Error(d.error||'内容渠道请求失败')};return d}
-function renderXPanel(x,esc,selected,sort){
+export function renderXPanel(x,esc,selected,sort){
  if(!x?.accounts)return '<section class="a-card a-details"><h2>X 内容表现</h2><p role="status">X 监测数据暂不可用，请更新并重启后端。下方历史手工记录仍可使用。</p></section>';
  const account=x.accounts.find(a=>a.id===selected)||x.accounts[0];
  if(!account)return '<section class="a-card a-details"><h2>X 内容表现</h2><p>暂无官方账号。</p></section>';
