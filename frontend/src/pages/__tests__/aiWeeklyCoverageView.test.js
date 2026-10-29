@@ -19,7 +19,7 @@ describe('AI weekly 12-module coverage',()=>{
   const manifest={version:'weekly-coverage-v1',modules:[{
    id:'seo-organic',label:'SEO',status:'analyzed',
    reason:'GSC matched PT dates',evidenceIds:['ev-1'],
-   insight:'GSC 可验证搜索点击上升',nextAction:'复查重点着陆页',
+   insight:'GSC 搜索点击14次，已核对',nextAction:'复查重点着陆页',
    facts:[{metric:'metrics.clicks',value:14},{metric:'metrics.impressions',value:180}]
   },{
    id:'revenue',status:'not-connected',reason:'账本尚未连接'
@@ -31,7 +31,7 @@ describe('AI weekly 12-module coverage',()=>{
   expect(html).toContain('data-module="seo-organic" data-status="analyzed"');
   expect(html).toContain('data-weekly-evidence="ev-1"');
   expect(html).toContain('证据结论：');
-  expect(html).toContain('GSC 可验证搜索点击上升');
+  expect(html).toContain('GSC 搜索点击14次，已核对');
   expect(html).toContain('复查重点着陆页');
   expect(html).toContain('metrics.clicks');
   expect(html).toContain('180');
@@ -42,6 +42,31 @@ describe('AI weekly 12-module coverage',()=>{
   expect(html).toContain('数据不足、未连接及未调查模块 · 10 项');
   expect(html).toContain('有数值结论 1');
   expect(html).toContain('已取数待分析 1');
+ });
+ it('read-only downgrades old covered modules that only claimed data was missing',()=>{
+  const manifest={version:'weekly-coverage-v1',modules:[{
+   id:'growth-overview',status:'analyzed',
+   reason:'AI 引用了证据',evidenceIds:['users-18'],
+   insight:'本周首次分析用户18人',facts:[]
+  },{
+   id:'channel-growth',status:'analyzed',reason:'AI 引用了证据',
+   insight:'渠道模块已采集，但没有提供可核对的分渠道指标',
+   evidenceIds:['channel-1'],facts:[]
+  },{
+   id:'activation-funnel',status:'analyzed',reason:'AI 引用了证据',
+   insight:'激活漏斗已经采集，但是缺少步骤级统计',
+   evidenceIds:['funnel-1'],facts:[{metric:'users',value:12}]
+  }]};
+  const data={context_payload:{evidence:[{
+   id:'users-18',metricId:'new_users',value:18
+  }]},result:{weeklyCoverage:manifest}};
+  const html=renderWeeklyCoverage(data,options);
+  expect(html).toContain('有数值结论 1 · 已取数待分析 1 · 数据缺口 10');
+  expect(html).toContain('data-module="growth-overview" data-status="analyzed"');
+  expect(html).toContain('data-module="channel-growth" data-status="insufficient"');
+  expect(html).toContain('data-module="activation-funnel" data-status="collected"');
+  expect(html).not.toContain('证据结论：</strong>渠道模块已采集');
+  expect(html).toContain('<details class="ai-weekly-coverage-gaps">');
  });
  it('escapes source text and never sends original data to model',()=>{
   const html=renderWeeklyCoverage({result:{weeklyCoverage:{
