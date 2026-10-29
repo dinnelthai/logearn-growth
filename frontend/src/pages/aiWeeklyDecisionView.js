@@ -117,7 +117,9 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,links}){
   (seoMeta?.evidenceIds?.length?evidence(seoMeta.evidenceIds):'')+
   '<small>'+(matched?'GSC 与请求日期标签匹配；仍不能直接归因至注册、交易。':
    'GSC 使用 PT 日期，业务周使用曼谷日期；缺少完全匹配快照时不得计算该周 SEO 增长。')+
-  '</small></div>'+
+  '</small>'+
+  (!seoMeta?'<div data-weekly-gsc-live class="ai-weekly-gsc-live" role="status">正在查看是否有已同步的 GSC 数据（只读，不调用模型）…</div>':'')+
+  '</div>'+
   '<div class="ai-weekly-source-card"><div class="ai-weekly-source-label"><strong>渠道与获客</strong></div>'+
   list(observations.slice(0,4),x=>'<div class="ai-weekly-observation"><p>'+safe(x.text)+'</p>'+evidence(x.evidenceIds)+'</div>')+
   '</div></div></section>'+
