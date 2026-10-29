@@ -1,22 +1,19 @@
-# X 官方内容监测（只读）
+# 内容渠道增长：复用 X 官方账号（只读）
 
-入口：渠道与 SEO → 内容渠道增长 → X 官方账号监测。
+「官方账号关注者」已有的账号即为唯一账号清单：
 
-## 功能
+- `@logearn_cn`（中文账号）
+- `@logearn_global`（国际账号）
 
-- 填写公开账号 `@username`，无需用户 OAuth、Client ID、Client Secret 或发帖权限。
-- 点击「立即同步」后调用官方 X API v2：`GET /2/users/by/username/:username` 和 `GET /2/users/:id/tweets`。最多读取最近 10 条原创帖（不包括转发和回复）。
-- 保存每条已返回的累计公开曝光、点赞、回复、转发、引用和当前粉丝数；缺失数值记为未知。
-- 显示样本互动率、粉丝快照和最近帖子。支持自愿开启「每日自动采集一次」。未开启则不自动调用付费 API。
-- Growth Agent `get_content_growth` 工具收到带来源、时间与样本范围的结构化只读证据；不把曝光视为站内转化。
+内容渠道增长的账号下拉选项和关注者数据源共用 `backend/src/analytics/officialXAccounts.js`；无需额外创建账号、不需要 X OAuth、X Developer Console 或 `TWITTER_BEARER_TOKEN`。
 
-## 配置和费用
+## 同步与口径
 
-后端仍使用已有的 `TWITTER_BEARER_TOKEN`。需要从 X 开发者平台取得可用的 App Bearer Token；无需 LogEarn 官方 X 账号授权。**没有 Bearer Token 的情况下，只能保存账号，不能自动抓取数据。**
+- 共用现有 `TWITTERAPI_IO_API_KEY`（twitterapi.io 第三方 API）和 X Acquisition 采集预算控制。
+- 手动同步指定账号，至少间隔 1 小时。也可为每个账号分别选择每日同步（默认关闭）。
+- 每次使用账号资料与最近最多 20 条推文接口；同步结果保留账号、来源、采集时间和独立的粉丝快照。
+- 记录可用的浏览（viewCount）、赞、回复和转发。该第三方接口没有可靠提供的引用数、内部曝光或实际站内归因，缺失值保持 `null`，不补零。
+- 关注者采集/分类页面与增长监测页面彼此独立存储进度，不会重新爬取或覆盖已审核的粉丝记录。
+- Growth Agent 获得分账号的有界内容样本与累计公开数据，不应宣称点击、注册、交易增长由 X 导致。
 
-API 当前按返回资源计费：账号读取约 $0.01/次、每条帖子读取约 $0.005/条；读取 1 账号 + 10 帖的上限示例约 $0.06/次（实际以开发者控制台为准）。
-后端限制至少 1 小时调用间隔，自动模式最多每天每账号调用一次；同步失败不伪造为成功。不要在没有配置费用上限的 X Developer Console 上盲目启用高频调用。
-
-重启后端后 SQLite 自动建表，无需部署额外 Worker。首次抓取之前没有历史粉丝增长数据；公众曝光数据不等于站内注册或交易归因。
-
-资料：https://docs.x.com/x-api/fundamentals/metrics 和 https://docs.x.com/x-api/getting-started/pricing
+后端启动时 `schema.sql` 自动创建新监测表。旧实验性 `x_content_*` 表不再作为账号来源，已存在的历史表不会被删除。重启后端后生效。

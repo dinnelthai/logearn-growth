@@ -11,32 +11,30 @@ function contentGrowth(body,ctx){
    new Date(body.start+7*3600000).toISOString().slice(0,10),
    new Date(body.end-1+7*3600000).toISOString().slice(0,10));
  const truncated=rows.length>500,items=rows.slice(0,500);
- let xOfficial={available:false,source:'x-api-v2-public-metrics',conversionAttribution:false};
+ let xOfficial={available:false,source:'twitterapi.io',accounts:[],conversionAttribution:false};
  const tables=new Set(db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r=>r.name));
- if(tables.has('x_content_accounts')&&tables.has('x_content_posts')){
-  const account=db.prepare('SELECT username,followers,last_synced FROM x_content_accounts WHERE owner_id=?').get(owner);
-  if(account){
-   const posts=db.prepare('SELECT post_id,published_at,body,impressions,likes,replies,reposts,quotes FROM x_content_posts WHERE owner_id=? AND published_at>=? AND published_at<=? ORDER BY published_at DESC LIMIT 20').all(owner,
+ if(tables.has('x_official_account_sync')&&tables.has('x_official_posts')){
+  const {ACCOUNTS}=require('../../../analytics/officialXAccounts');
+  xOfficial.accounts=ACCOUNTS.map(a=>{
+   const info=db.prepare('SELECT followers,last_synced FROM x_official_account_sync WHERE owner_id=? AND account=?').get(owner,a.id);
+   const posts=db.prepare('SELECT post_id,published_at,body,impressions,likes,replies,reposts,quotes FROM x_official_posts WHERE owner_id=? AND account=? AND published_at>=? AND published_at<=? ORDER BY published_at DESC LIMIT 20').all(owner,a.id,
     new Date(body.start).toISOString(),new Date(body.end-1).toISOString());
-   const measured=posts.filter(p=>p.impressions>0&&[p.likes,p.replies,p.reposts,p.quotes].every(v=>v!=null));
-   const exposures=measured.reduce((n,p)=>n+p.impressions,0);
-   const engagement=measured.reduce((n,p)=>n+p.likes+p.replies+p.reposts+p.quotes,0);
-   xOfficial={available:posts.length>0,source:'x-api-v2-public-metrics',username:account.username,
-    lastSynced:account.last_synced,followers:account.followers,
-    sampledPosts:posts.length,measuredPosts:measured.length,
-    measuredImpressions:exposures||null,
-    measuredEngagementRate:exposures?Math.round(engagement/exposures*10000)/100:null,
-    followerHistory:tables.has('x_content_follower_daily')?
-     db.prepare('SELECT day,followers FROM x_content_follower_daily WHERE owner_id=? AND day>=? AND day<=? ORDER BY day DESC LIMIT 30').all(owner,
-      new Date(body.start+7*3600000).toISOString().slice(0,10),
-      new Date(body.end-1+7*3600000).toISOString().slice(0,10)).reverse():[],
-    posts:posts.slice(0,10).map(p=>({id:p.post_id,publishedAt:p.published_at,
-     text:p.body.slice(0,320),impressions:p.impressions,likes:p.likes,
-     replies:p.replies,reposts:p.reposts,quotes:p.quotes})),
-    coverage:'bounded-sample-cumulative-public-metrics',conversionAttribution:false};
-   xOfficial.followerChange=xOfficial.followerHistory.length>=2?
-    xOfficial.followerHistory.at(-1).followers-xOfficial.followerHistory[0].followers:null;
-  }
+   const measurable=posts.filter(p=>p.impressions>0&&[p.likes,p.replies,p.reposts].every(v=>v!=null));
+   const impressions=measurable.reduce((n,p)=>n+p.impressions,0);
+   const engagements=measurable.reduce((n,p)=>n+p.likes+p.replies+p.reposts+(p.quotes||0),0);
+   const history=tables.has('x_official_follower_daily')?
+    db.prepare('SELECT day,followers FROM x_official_follower_daily WHERE owner_id=? AND account=? AND day>=? AND day<=? ORDER BY day DESC LIMIT 30').all(owner,a.id,
+     new Date(body.start+7*3600000).toISOString().slice(0,10),
+     new Date(body.end-1+7*3600000).toISOString().slice(0,10)).reverse():[];
+   return {account:a.id,lastSynced:info?.last_synced??null,followers:info?.followers??null,
+    sampledPosts:posts.length,measuredPosts:measurable.length,
+    measuredImpressions:impressions||null,measuredEngagementRate:impressions?Math.round(engagements/impressions*10000)/100:null,
+    followerHistory:history,followerChange:history.length>=2?history.at(-1).followers-history[0].followers:null,
+    posts:posts.slice(0,10).map(p=>({id:p.post_id,publishedAt:p.published_at,text:p.body.slice(0,320),
+     impressions:p.impressions,likes:p.likes,replies:p.replies,reposts:p.reposts,quotes:p.quotes})),
+    coverage:'third-party-bounded-cumulative-public-metrics'};
+  });
+  xOfficial.available=xOfficial.accounts.some(a=>a.sampledPosts>0||a.followerHistory.length>0);
  }
  return {available:items.length>0||xOfficial.available,summary:summarize(items),xOfficial,
    trends:performanceTrend(items),sampleSize:items.length,
@@ -45,7 +43,7 @@ function contentGrowth(body,ctx){
    warnings:['内容指标为人工登记的累计值，不代表统计窗口内的曝光',
     '缺失指标不是零；各渠道曝光口径不可合并',
     '没有带来源的用户注册或交易证据，不能计算内容带来的转化',
-    'X 官方数据是至多20条已采集推文的累计公开指标，不是整个平台的日曝光或因果效果',
+    'X 第三方数据源对每个官方账号最多取20条已采集推文；浏览量可能缺失，累计互动不等于日曝光或因果获客',
     ...(truncated?['超过500条记录，结果不完整']:[])]};
 }
 function followerQuality(body,ctx){
