@@ -211,7 +211,12 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
       traceStore?.begin(traceContext,round);
       const client=clientFactory({model});
       try{
-        response=await client.chat(messages,{userId:ownerId,operationId,operationType,runId,traceId,round,promptVersions,temperature:0.3,maxTokens:outputBudget,...(modelTimeoutMs==null?{}:{timeoutMs:modelTimeoutMs})});
+        response=await client.chat(messages,{userId:ownerId,operationId,operationType,runId,traceId,round,promptVersions,temperature:0.3,maxTokens:outputBudget,
+          // Only newly authored weekly v4 runs may use SSE collection. This
+          // never replays a failed request or bypasses the paid-call fence.
+          collectStream:protocol==='v4'&&context?.weeklyCoverage?.version==='weekly-coverage-v1'&&
+            process.env.AI_WEEKLY_STREAM_RESPONSE_ENABLED!=='0',
+          ...(modelTimeoutMs==null?{}:{timeoutMs:modelTimeoutMs})});
       }catch(error){
         traceStore?.unknown(traceContext,round);
         await paidCalls?.finish?.(round,'unknown');
