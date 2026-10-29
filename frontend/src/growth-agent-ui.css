@@ -1,14 +1,14 @@
 /* Growth Decision Workspace · V1 visual layer
    Scoped to the Agent page. No changes to metrics, API calls or workflows. */
 #la-studio #as-output.ga-control-surface {
-  --ga-border: light-dark(#e5eaf3, #324052);
-  --ga-panel: light-dark(#ffffff, #192434);
-  --ga-soft: light-dark(#f7f9fc, #202e42);
-  --ga-muted: light-dark(#66748a, #a4b1c4);
-  --ga-ink: light-dark(#17243a, #eef3fb);
-  --ga-blue: light-dark(#415ec9, #a3b6ff);
-  --ga-ring: light-dark(#e9eeff, #344469);
-  --ga-shadow: 0 8px 28px light-dark(#14203c08, #00000025);
+  --ga-border: var(--a-border);
+  --ga-panel: var(--a-panel);
+  --ga-soft: var(--ui-surface-raised);
+  --ga-muted: var(--a-muted);
+  --ga-ink: var(--a-text);
+  --ga-blue: var(--a-accent);
+  --ga-ring: var(--ui-surface-selected);
+  --ga-shadow: none;
   display: grid;
   gap: 20px;
   width: 100%;

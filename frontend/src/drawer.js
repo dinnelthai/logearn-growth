@@ -1,8 +1,10 @@
+import {remotePageCorrection,normalizeRemoteTotal,lastRemotePage} from './components/remotePaging.js'
+
 const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
 /** One accessible modal drawer for all user drill-downs. */
 export function createDrawer(dialog, {onAnalyze,onAnalyzeRemote,getContext,onUserProfile,titleId='as-drawer-title'} = {}) {
-  let origin=null,epoch=0
-  const close=()=>{epoch++;if(dialog.open)dialog.close();if(origin?.isConnected)origin.focus({preventScroll:true})}
+  let origin=null,epoch=0,cancelPendingSearch=()=>{}
+  const close=()=>{cancelPendingSearch();epoch++;if(dialog.open)dialog.close();if(origin?.isConnected)origin.focus({preventScroll:true})}
   dialog.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();close()}},true)
   dialog.addEventListener('cancel',event=>{event.preventDefault();close()})
   dialog.addEventListener('click',event=>{if(event.target===dialog){const b=dialog.getBoundingClientRect();if(event.clientX<b.left||event.clientX>b.right||event.clientY<b.top||event.clientY>b.bottom)close()}})
@@ -30,7 +32,7 @@ export function createDrawer(dialog, {onAnalyze,onAnalyzeRemote,getContext,onUse
         actions.querySelectorAll('[data-analyze]').forEach(button=>button.onclick=()=>{close();onAnalyze({title,description,rows:filtered,context:analysisContext,query,mode:button.dataset.analyze})})
         const pages=Math.max(1,Math.ceil(filtered.length/pageSize));page=Math.min(page,pages-1)
         const shown=filtered.slice(page*pageSize,(page+1)*pageSize)
-        select('[data-list]').innerHTML=shown.length?`<div class="a-scroll"><table><thead><tr>${columns.map(c=>`<th>${escapeHtml(c)}</th>`).join('')}</tr></thead><tbody>${shown.map(row=>`<tr>${renderRow(row).map(cell=>`<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`:'<p class="a-empty">没有匹配的用户。</p>'
+        select('[data-list]').innerHTML=shown.length?`<div class="a-scroll" role="region" aria-label="下钻明细表格" tabindex="0"><table><thead><tr>${columns.map(c=>`<th scope="col">${escapeHtml(c)}</th>`).join('')}</tr></thead><tbody>${shown.map(row=>`<tr>${renderRow(row).map(cell=>`<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`:'<p class="a-empty">没有匹配的用户。</p>'
         select('[data-count]').textContent=`共 ${filtered.length} 人 · 第 ${page+1} / ${pages} 页`
         select('[data-prev]').disabled=page===0;select('[data-next]').disabled=page>=pages-1
         select('#as-timeline').innerHTML=''
@@ -48,14 +50,15 @@ export function createDrawer(dialog, {onAnalyze,onAnalyzeRemote,getContext,onUse
      * fetchTimeline(userId, hostEl) optional.
      */
     openRemote({title,description,note='',columns=['用户','来源','首次事件'],fetchPage,fetchTimeline,renderRow,onRowAction,pageSize=12,entity='用户',selection,profileContext}) {
+      cancelPendingSearch();
       const session=++epoch;origin=document.activeElement
       let page=0,query='',total=0,rows=[],loading=false,error=null,request=0
       dialog.innerHTML=`<div class="a-drawerhead"><div><h2 id="${titleId}">${escapeHtml(title)}</h2><p class="a-muted" data-desc>${escapeHtml(description)}</p></div><button class="a-button" data-close>关闭</button></div><label class="a-drawer-search">${entity==='用户'?'搜索用户或来源':entity==='关系'?'搜索关系ID或原因':'搜索用户、尝试ID或订单ID'}<input type="search" placeholder="${entity==='用户'?'输入用户ID或来源':entity==='关系'?'输入关系ID或原因':'输入用户ID、尝试ID或订单ID'}" aria-label="搜索下钻用户"></label><div data-remote-actions></div><div data-list></div><div class="a-drawer-pagination"><span data-count role="status"></span><div><button class="a-button" data-prev>上一页</button><button class="a-button" data-next>下一页</button></div></div><p class="a-muted">${escapeHtml(note||'名单由服务端分页返回，与汇总指标同口径。')}</p><div id="as-timeline" aria-live="polite"></div>`
       const select=s=>dialog.querySelector(s)
       const renderRows=()=>{
-        const pages=Math.max(1,Math.ceil(total/pageSize))
+        const pages=lastRemotePage(total,pageSize)+1
         select('[data-desc]').textContent=loading?`${description} · 加载中…`:`${description} · ${total} ${entity==='用户'?'位用户':'条'+entity}`
-        select('[data-list]').innerHTML=loading?'<p class="a-muted si-loading" role="status">加载中…</p>':error?`<p class="a-empty">加载失败：${escapeHtml(error)}</p>`:rows.length?`<div class="a-scroll"><table><thead><tr>${columns.map(c=>`<th>${escapeHtml(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>{
+        select('[data-list]').innerHTML=loading?'<p class="a-muted si-loading" role="status">加载中…</p>':error?`<div class="a-empty" role="alert"><p>名单加载失败：${escapeHtml(error)}</p><button class="a-button" type="button" data-remote-retry>重新加载当前页</button></div>`:rows.length?`<div class="a-scroll" role="region" aria-label="下钻明细表格" tabindex="0"><table><thead><tr>${columns.map(c=>`<th scope="col">${escapeHtml(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>{
           const id=r.id||r.user_id
           const src=r.source||'未知'
           const first=r.first_event_at?new Date(r.first_event_at+7*3600000).toISOString().slice(5,16).replace('T',' '):'—'
@@ -63,8 +66,9 @@ export function createDrawer(dialog, {onAnalyze,onAnalyzeRemote,getContext,onUse
           return `<tr><td><button class="a-tablelink cursor-interaction" data-user="${escapeHtml(id)}">${escapeHtml(id)}</button></td><td>${escapeHtml(src)}</td><td>${escapeHtml(first)}</td></tr>`
         }).join('')}</tbody></table></div>`:`<p class="a-empty">没有匹配的${escapeHtml(entity)}。</p>`
         select('[data-count]').textContent=loading?`加载中…`:`共 ${total} ${entity==='用户'?'人':'条'+entity} · 第 ${page+1} / ${pages} 页`
-        select('[data-prev]').disabled=loading||page===0
-        select('[data-next]').disabled=loading||page>=pages-1
+        select('[data-prev]').disabled=loading||!!error||page===0
+        select('[data-next]').disabled=loading||!!error||page>=pages-1
+        select('[data-remote-retry]')?.addEventListener?.('click',()=>load())
         const actions=select('[data-remote-actions]')
         actions.innerHTML=selection&&entity==='用户'&&onAnalyzeRemote?`<p class="a-muted">使用当前搜索匹配的全部 ${total} 位用户，包含所有分页</p><div class="a-audience-actions">${[['segments','用户分群'],['paths','行为路径'],['funnel','漏斗'],['trade-monitor','交易问题'],['retention','留存'],['referral','推荐贡献']].map(([m,l])=>`<button class="a-button" data-remote-go="${m}" ${loading||error||!total?'disabled':''}>${l}</button>`).join('')}<button class="a-button" data-remote-go="save" ${loading||error||!total?'disabled':''}>保存为用户群组</button></div><p data-remote-status role="status"></p>`:''
         actions.querySelectorAll('[data-remote-go]').forEach(b=>b.onclick=async()=>{const status=actions.querySelector('[data-remote-status]');actions.querySelectorAll('button').forEach(x=>x.disabled=true);try{await onAnalyzeRemote({selection,title,description,query,mode:b.dataset.remoteGo});if(b.dataset.remoteGo==='save'){status.textContent='已保存用户群组，可在用户分群侧栏使用';actions.querySelectorAll('button').forEach(x=>x.disabled=false)}else close()}catch(e){status.textContent=e.message;actions.querySelectorAll('button').forEach(x=>x.disabled=false)}})
@@ -76,12 +80,22 @@ export function createDrawer(dialog, {onAnalyze,onAnalyzeRemote,getContext,onUse
         })
       }
       const load=async()=>{
+        // Debounced searches must not fetch after the dialog closes or is replaced.
+        if(session!==epoch)return
         const currentRequest=++request;loading=true;error=null;renderRows()
         try{
           const result=await fetchPage({offset:page*pageSize,limit:pageSize,q:query})
           if(currentRequest!==request||session!==epoch)return
-          total=result.total??0
-          rows=result.rows??[]
+          total=normalizeRemoteTotal(result.total)
+          const correction=remotePageCorrection({page,total,pageSize})
+          if(correction.refetch){
+            // The current page disappeared (e.g. after a record was removed).
+            // Request the final real page instead of displaying a false empty list.
+            page=correction.page
+            return await load()
+          }
+          page=correction.page
+          rows=Array.isArray(result.rows)?result.rows:[]
         }catch(err){
           if(currentRequest!==request||session!==epoch)return
           total=0;rows=[];error=err.message||String(err)
@@ -91,10 +105,15 @@ export function createDrawer(dialog, {onAnalyze,onAnalyzeRemote,getContext,onUse
       }
       select('[data-close]').onclick=close
       let searchTimer=null
+      cancelPendingSearch=()=>{clearTimeout(searchTimer);searchTimer=null}
       select('input').oninput=event=>{
+        if(session!==epoch)return
         query=event.target.value;page=0
-        clearTimeout(searchTimer)
-        searchTimer=setTimeout(load,200)
+        // Invalidate the old result immediately, before the debounce runs:
+        // stale rows must not be actionable under a newly typed query.
+        ++request;loading=true;error=null;rows=[];renderRows()
+        cancelPendingSearch()
+        searchTimer=setTimeout(()=>{searchTimer=null;load()},200)
       }
       select('[data-prev]').onclick=()=>{if(page>0){page--;load()}}
       select('[data-next]').onclick=()=>{page++;load()}

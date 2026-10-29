@@ -1,6 +1,7 @@
 import {weeklyCoreMarkup,bindWeeklyCore} from './weeklyCore.js'
 import {mountPlatformAssets} from './platformAssets.js'
 import {loadingState} from './loadingState.js'
+import {viewState} from '../components/viewStates.js'
 import {inheritedReportPeriod,rememberReportPeriod,reportPeriod,periodFields,bindPeriod} from '../analytics/reportPeriod.js'
 import {growthPanel,mountGrowthChart} from './homeGrowth.js'
 import {fetchDrillUsers} from '../api/drill.js'
@@ -15,7 +16,7 @@ export function createHomeMonitor(ctx){
  const rate=n=>n==null?'—':(n*100).toFixed(1)+'%'
  const card=(label,value,note)=>`<div class="home-kpi"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`
  async function draw(){reportState=inheritedReportPeriod(reportState);days=reportState.days;ctx.clear();const id=++request,host=$('#as-output');host.innerHTML=loadingState('正在加载整体监控…')
- if(!ctx.isAgg){host.innerHTML='<p class="a-empty">首页整体监控需要服务端聚合数据。</p>';return}
+ if(!ctx.isAgg){host.innerHTML=viewState({kind:'unavailable',title:'平台概况暂不可用',description:'当前模式没有服务端聚合数据，不能用空值代替业务指标。'});return}
  try{
  const meta=await fetchBackendMeta();if(id!==request)return
  const {start,end}=reportPeriod({...reportState,asOf:Date.parse(meta.as_of)})
@@ -46,7 +47,7 @@ export function createHomeMonitor(ctx){
  const growthDetails=host.querySelector('[data-home-growth-details]');let growthMounted=false;if(growthDetails)growthDetails.ontoggle=()=>{if(growthDetails.open&&!growthMounted){growthMounted=true;const owner=mountGrowthChart(ctx,growth);if(owner)charts.push(owner)}}
  const valueLink=host.querySelector('[data-home-value]');if(valueLink)valueLink.onclick=()=>ctx.drawer.openRemote({selection:{cache_id:segments.drill.cache_id,list_key:'value'},title:'价值线索用户',description:'与用户分群同口径：截至快照有交易记录、NFT持有记录、近期正余额或可用Credits；不等于付费用户。标签重叠按账号去重。',columns:['用户','业务信号','交易记录数','NFT记录','可用Credits'],renderRow:r=>[esc(r.id),esc(r.signal_tier||'未知'),r.trade_count==null?'未知':fmt(r.trade_count),r.nft_count==null?'未知':fmt(r.nft_count),r.credits_available==null?'未知':fmt(r.credits_available)],fetchPage:({offset,limit,q})=>fetchDrillUsers({kind:'cached_list',params:{cache_id:segments.drill.cache_id,list_key:'value'},offset,limit,q})})
  bindPeriod({querySelector:s=>host.querySelector(s.replace('data-home-days','data-home-period'))},reportState,()=>draw(),'home');host.querySelectorAll('[data-home-go]').forEach(b=>b.onclick=()=>ctx.navigatePlatform?ctx.navigatePlatform(b.dataset.homeGo,{days,asOf:Date.parse(meta.as_of)}):ctx.navigate(b.dataset.homeGo))
- }catch(e){if(id===request)host.innerHTML=`<p class="a-empty">首页加载失败：${esc(e.message)}</p>`}
+ }catch(e){if(id===request){host.innerHTML=viewState({kind:'error',title:'首页加载失败',description:e.message,actionLabel:'重新加载',actionAttr:'data-home-retry'});host.querySelector('[data-home-retry]')?.addEventListener('click',draw)}}
  }
  return {draw,dispose(){request++;charts.forEach(c=>c.dispose());charts=[]}}
 }

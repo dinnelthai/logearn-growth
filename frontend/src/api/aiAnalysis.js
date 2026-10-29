@@ -1,10 +1,11 @@
-import {getToken} from '../auth/authClient.js';
+import {getToken,notifyExpiredSession} from '../auth/authClient.js';
 const BASE=import.meta.env.VITE_BACKEND_BASE_URL??'http://localhost:3001';
 async function aiFetch(path,options={}){
   const token=getToken();
   const response=await fetch(BASE+path,{...options,headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})}});
   const body=await response.json().catch(()=>({}));
-  if(!response.ok)throw new Error(body.error||`HTTP ${response.status}`);
+  notifyExpiredSession(response);
+  if(!response.ok)throw Object.assign(new Error(body.error||`HTTP ${response.status}`),{status:response.status});
   return body;
 }
 export const createBusinessAnalysis=params=>aiFetch('/api/ai-analysis/analyze',{method:'POST',body:JSON.stringify(params)});

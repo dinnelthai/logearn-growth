@@ -2,6 +2,7 @@ import { fetchFunnelMetrics } from '../api/metrics.js'
 import { fetchDrillUsers, fetchUserTimeline } from '../api/drill.js'
 import { ASSOCIATIONS } from '../analytics/funnel.js'
 import { createChartLifecycle } from './chartLifecycle.js'
+import {viewState} from '../components/viewStates.js'
 
 export function createFunnelAggPage(ctx) {
   const { root, $, $$, names, day, date, esc, fmt, pct, table, stat, themeMedia, drawer } = ctx
@@ -64,7 +65,8 @@ export function createFunnelAggPage(ctx) {
         metrics=previousMetrics
         $('#as-data-status').textContent='数据更新失败 · 保留上次结果：'+(err.message||err)
       }else{
-      $('#as-output').innerHTML = `<div class="a-card"><h2>漏斗加载失败</h2><p>${esc(err.message || err)}</p></div>`
+      $('#as-output').innerHTML = viewState({kind:'error',title:'漏斗加载失败',description:err.message||String(err),actionLabel:'重新运行',actionAttr:'data-funnel-retry'});
+       $('#as-output').querySelector('[data-funnel-retry]')?.addEventListener('click',()=>draw(c))
       return
       }
     }

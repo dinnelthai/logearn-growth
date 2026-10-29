@@ -19,7 +19,7 @@ test('filter toggle, main content and mobile overlay exist without changing deep
 })
 
 test('nested navigation groups appear immediately after the matching primary entry',()=>{
- const nav=html.match(/<nav class="a-topnav"[^>]*>[\\s\\S]*?<\\/nav>/)?.[0]||'';
+ const nav=html.match(/<nav class="a-topnav"[^>]*>[\s\S]*?<\/nav>/)?.[0]||'';
  expect(nav).toContain('id="as-section-nav"');
  expect(html).not.toContain('sidebar-caption">当前模块');
  for(const key of ['overview','analysis','agent','operations','users','channels','settings']){

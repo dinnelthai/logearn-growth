@@ -15,3 +15,70 @@ test('an in-progress group task stays due and opens its persistent detail, while
  const t=setup();t.ctx.openOperationTask=vi.fn();t.open.dataset.workOpen='group';await t.page.draw();expect(t.host.innerHTML).toContain('固定人群任务');expect(t.host.innerHTML).not.toContain('未排期任务');expect(t.host.innerHTML).toContain('处理中');t.open.onclick();expect(t.ctx.openOperationTask).toHaveBeenCalledWith('group')
 })
 test('a due scheduled start opens the activity instead of treating it as a settlement',async()=>{fetchWorkbench.mockResolvedValue({...data,summary:{...data.summary,activities_scheduled:1},tasks:[{id:'start',type:'activity_start',target:'a',title:'预约待启动',description:'等待基线',status:'open',due_at:50}]});const t=setup();t.ctx.openActivity=vi.fn();t.open.dataset.workOpen='start';await t.page.draw();expect(t.host.innerHTML).toContain('查看预约');expect(t.host.innerHTML).toContain('预约活动');t.open.onclick();expect(t.ctx.openActivity).toHaveBeenCalledWith('a')})
+
+test('manual refresh keeps the current page instead of returning to page one',async()=>{
+ const many=Array.from({length:25},(_,i)=>({...data.tasks[0],id:'t'+i,title:'任务'+i}))
+ fetchWorkbench.mockResolvedValue({...data,tasks:many})
+ const t=setup()
+ await t.page.draw()
+ t.host.querySelector('[data-work-next]').onclick()
+ expect(t.host.innerHTML).toContain('第 2/2 页')
+ expect(t.host.innerHTML).toContain('任务24')
+ await t.host.querySelector('[data-work-refresh]').onclick()
+ expect(t.host.innerHTML).toContain('第 2/2 页')
+ expect(t.host.innerHTML).toContain('任务24')
+ expect(fetchWorkbench).toHaveBeenCalledTimes(2)
+ t.page.dispose()
+})
+
+test('manual refresh clamps pagination when the available tasks shrink',async()=>{
+ const many=Array.from({length:25},(_,i)=>({...data.tasks[0],id:'t'+i,title:'任务'+i}))
+ fetchWorkbench.mockResolvedValueOnce({...data,tasks:many})
+   .mockResolvedValueOnce({...data,tasks:[many[0]]})
+ const t=setup()
+ await t.page.draw()
+ t.host.querySelector('[data-work-next]').onclick()
+ expect(t.host.innerHTML).toContain('第 2/2 页')
+ await t.host.querySelector('[data-work-refresh]').onclick()
+ expect(t.host.innerHTML).toContain('第 1/1 页')
+ expect(t.host.innerHTML).toContain('任务0')
+ t.page.dispose()
+})
+
+test('returning from a KOL or activity detail restores the previously selected workbench page',async()=>{
+ const many=Array.from({length:45},(_,i)=>({...data.tasks[0],id:'t'+i,title:'任务'+i,due_at:50}))
+ fetchWorkbench.mockResolvedValue({...data,tasks:many})
+ const t=setup()
+ await t.page.draw()
+ t.host.querySelector('[data-work-next]').onclick()
+ t.host.querySelector('[data-work-next]').onclick()
+ expect(t.host.innerHTML).toContain('第 3/3 页')
+ expect(t.host.innerHTML).toContain('任务44')
+ t.page.dispose()
+ // Simulate the workspace router re-entering workbench after visiting CRM.
+ await t.page.draw()
+ expect(t.host.innerHTML).toContain('第 3/3 页')
+ expect(t.host.innerHTML).toContain('任务44')
+ t.page.dispose()
+})
+
+test('an outdated workbench target is not opened after the task has disappeared',async()=>{
+ const t=setup()
+ await t.page.draw()
+ t.open.dataset.workOpen='unknown-task'
+ expect(()=>t.open.onclick()).not.toThrow()
+ expect(t.ctx.openUserProfile).not.toHaveBeenCalled()
+ expect(t.host.querySelector('[data-work-error]').textContent).toContain('目标不存在')
+ t.page.dispose()
+})
+
+test('workbench handles unsupported targets without silently opening an unrelated profile',async()=>{
+ const t=setup()
+ fetchWorkbench.mockResolvedValue({...data,tasks:[{...data.tasks[0],type:'unsupported',id:'other-task'}]})
+ t.open.dataset.workOpen='other-task'
+ await t.page.draw()
+ t.open.onclick()
+ expect(t.ctx.openUserProfile).not.toHaveBeenCalled()
+ expect(t.host.querySelector('[data-work-error]').textContent).toContain('暂不能打开')
+ t.page.dispose()
+})

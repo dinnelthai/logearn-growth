@@ -1,4 +1,5 @@
 import {createOnlineTradeMonitorPage} from './onlineTradeMonitor.js'
+import {viewState} from '../components/viewStates.js'
 import { fetchTradeMetrics } from '../api/metrics.js'
 import { createChartLifecycle } from './chartLifecycle.js'
 
@@ -11,6 +12,8 @@ export function createTradeMonitorAggPage(ctx) {
   let inflight = 0
 
   async function draw(c) {
+    chartLifecycle.dispose()
+    nativeChart = null
     clearNative()
     const reqId = ++inflight
     $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted si-loading" role="status">正在从 /api/metrics/trades 加载…</p></div>'
@@ -19,7 +22,8 @@ export function createTradeMonitorAggPage(ctx) {
       metrics = await fetchTradeMetrics({ start: c.start, end: c.end, source: c.source || 'all' })
     } catch (err) {
       if (reqId !== inflight) return
-      $('#as-output').innerHTML = `<div class="a-card"><h2>交易监控加载失败</h2><p>${esc(err.message || err)}</p></div>`
+      $('#as-output').innerHTML = viewState({kind:'error',title:'交易监控加载失败',description:err.message||String(err),actionLabel:'重新运行',actionAttr:'data-trade-retry'});
+      $('#as-output').querySelector('[data-trade-retry]')?.addEventListener('click',()=>draw(c))
       return
     }
     if (reqId !== inflight) return

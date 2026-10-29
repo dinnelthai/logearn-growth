@@ -2,7 +2,7 @@
  * backendAnalytics.js — fetch analytics facts from the local Express/SQLite backend.
  * Auth uses the same Bearer token as authClient.
  */
-import { getToken } from '../auth/authClient.js'
+import { getToken, notifyExpiredSession } from '../auth/authClient.js'
 
 const BACKEND_BASE = import.meta.env.VITE_BACKEND_BASE_URL ?? 'http://localhost:3001'
 
@@ -16,6 +16,7 @@ async function backendFetch(path,options={}) {
   })
   const body = await res.json().catch(() => ({}))
   if (!res.ok) {
+    notifyExpiredSession(res)
     throw Object.assign(new Error(body.error ?? `HTTP ${res.status}`), { status: res.status })
   }
   return body

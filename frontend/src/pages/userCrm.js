@@ -46,5 +46,5 @@ export function mountUserCrm(host,ctx,{userKey=null,nftCount=null,onSaved=null}=
  await crmWrite(path,body,method);if(active&&f.isConnected){edit=null;formDrafts.delete(draftKey);if(type==='batch')selectedRights.clear();await load();message('已保存',false);onSaved?.()}}catch(e){if(active&&f.isConnected)message(e.message)}finally{if(b.isConnected)b.disabled=false}}})
  }
  host.innerHTML='<p class="a-muted" role="status">正在读取地址备注、权益与转化任务…</p>';load()
- return {dispose(){active=false;epoch++}}
+ return {hasPendingChanges:()=>active&&formDrafts.size>0,dispose(){active=false;epoch++}}
 }
