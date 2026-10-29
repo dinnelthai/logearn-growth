@@ -2,7 +2,80 @@
 const {modelEvidence,safeText}=require('./modelTransport');
 // Every output follows a positive aggregate-only schema, including small
 // results. Old size-only trimming leaked entire user-level "rows" when short.
-function forModel(result,{maxBytes=12000}={}){
+// V4 projects each aggregate evidence item independently. Previously, two
+// large items could cause ALL values to become {omitted:true}, leaving the AI
+// without a single observed statistic. Full values remain in the tool journal.
+function forModelV4(result,{maxBytes=3500}={}){
+ if(!Number.isSafeInteger(maxBytes)||maxBytes<1024||maxBytes>64000)
+  throw Error('模型证据字节预算无效');
+ const rows=Array.isArray(result?.evidence)?result.evidence:[];
+ const status=['ok','unavailable','error'].includes(result?.status)?
+  result.status:'unavailable';
+ const number=v=>typeof v==='number'&&Number.isFinite(v);
+ const extract=value=>{
+  if(value==null||number(value))return value;
+  if(typeof value!=='object')return null;
+  const out={};
+  const fields=['metrics','totals','summary','counts','global','conversion',
+   'retention','trade','contentSignals','xOfficial','product_chain'];
+  const nums=o=>o&&typeof o==='object'&&!Array.isArray(o)?
+   Object.fromEntries(Object.entries(o).filter(([key,v])=>
+    number(v)&&!/^(?:id|timestamp|postId|tweetId)$/.test(key)).slice(0,8)):{};
+  Object.assign(out,nums(value));
+  for(const field of fields){
+   const nested=nums(value[field]);
+   if(Object.keys(nested).length)out[field]=nested;
+  }
+  if(typeof value.available==='boolean')out.available=value.available;
+  if(!Object.keys(out).length)out.detailOmitted=true;
+  return out;
+ };
+ const projected=rows.slice(0,24).map(row=>{
+  const e=modelEvidence(row);
+  return {id:e.id,metricId:e.metricId,value:extract(e.value),
+   ...(e.unit?{unit:e.unit}:{}),
+   ...(e.numerator!=null?{numerator:e.numerator}:{}),
+   ...(e.denominator!=null?{denominator:e.denominator}:{}),
+   ...(e.sampleSize!=null?{sampleSize:e.sampleSize}:{}),
+   ...(e.period?{period:{start:e.period.start,end:e.period.end}}:{}),
+   ...(e.coverage?{coverage:{status:e.coverage.status,
+    periodMatched:e.coverage.periodMatched}}:{})};
+ });
+ const base={status,evidence:[],omittedEvidence:rows.length,
+  transport:'aggregated-business-v4',
+  warnings:['保留逐条聚合数值与证据ID；未传输的维度未知而非0，完整证据保留在只读档案']};
+ const fits=()=>Buffer.byteLength(JSON.stringify(base),'utf8')<=maxBytes;
+ // Always prioritize several distinct metrics over many similarly shaped
+ // values. Each item is individually compacted before budget decisions.
+ const seenMetrics=new Set(),ordered=[];
+ for(const item of projected)if(!seenMetrics.has(item.metricId)){
+  ordered.push(item);seenMetrics.add(item.metricId);
+ }
+ for(const item of projected)if(!ordered.includes(item))ordered.push(item);
+ for(const row of ordered){
+  base.evidence.push(row);
+  base.omittedEvidence=rows.length-base.evidence.length;
+  if(!fits()){
+   base.evidence.pop();
+   base.omittedEvidence=rows.length-base.evidence.length;
+   break;
+  }
+ }
+ // An oversized single item may still carry large provenance: keep its
+ // identity and numeric scalar, not a guessed zero or unverified placeholder.
+ if(!base.evidence.length&&projected.length){
+  const first=projected[0];
+  base.evidence=[{id:first.id,metricId:first.metricId,
+   value:typeof first.value==='number'||first.value===null?first.value:
+    Object.fromEntries(Object.entries(first.value||{}).filter(([k,v])=>number(v)).slice(0,3)),
+   period:first.period}];
+  base.omittedEvidence=rows.length-1;
+  if(!fits()){base.evidence=[];base.omittedEvidence=rows.length;}
+ }
+ return base;
+}
+function forModel(result,{maxBytes=12000,projectionVersion='v1'}={}){
+ if(projectionVersion==='v4')return forModelV4(result,{maxBytes});
  if(!Number.isSafeInteger(maxBytes)||maxBytes<1024||maxBytes>64000)
   throw Error('模型证据字节预算无效');
  const rows=Array.isArray(result?.evidence)?result.evidence:[];
@@ -38,4 +111,4 @@ function forModel(result,{maxBytes=12000}={}){
   '统计结果超出模型传输预算；原始证据留在内部档案，请缩小查询范围'],
   transport:'aggregated-business-v1',omittedEvidence:rows.length};
 }
-module.exports={forModel};
+module.exports={forModel,forModelV4};
