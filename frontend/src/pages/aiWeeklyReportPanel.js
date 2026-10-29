@@ -185,14 +185,18 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
    if(!rows.some(x=>x.id===selected))selected=rows[0]?.id||null;
    const current=rows.find(x=>Number(x.date_range_start)===Number(d.period.start)&&Number(x.date_range_end)===Number(d.period.end));
    const row=rows.find(x=>x.id===selected);
+   const regenerateArchived=!current&&d.canRegenerateArchivedFailed===true;
    if(row&&row.status!=='failed')recoveryQueued=false;
    if(row&&row.error_message&&row.error_message!=='补充查询过多，请缩小问题范围或提高调查能力')recoveryQueued=false;
    root.innerHTML='<div class="ai-weekly-heading"><div><h3>AI 运营周报</h3><p class="a-muted">最近完整周：'+
     safe(date(d.period.start))+' — '+safe(date(d.period.end-DAY))+' · UTC+7</p></div>'+
     (current?'<span class="ai-weekly-status">'+safe(row?'正在查看 · '+(statuses[row.status]||row.status):'本期 · '+(statuses[current.status]||current.status))+'</span>':
+     regenerateArchived?'<button type="button" class="a-button a-primary" data-weekly-confirm>重新生成 AI 周报</button>':
      d.archivedCurrentWeek?'<span class="ai-weekly-status">本周记录已移除</span>':
      '<button type="button" class="a-button a-primary" data-weekly-confirm>生成 AI 周报</button>')+'</div>'+
-    '<p>分析上个完整自然周的真实业务数据，形成问题、证据与下周行动。单击生成将调用可能收费的模型；同一周不会重复创建任务。</p>'+
+    (regenerateArchived?
+     '<p>上一份失败周报已移出列表。点击重新生成会创建独立的付费模型任务，之前的调用和费用仍保留，可能产生重复费用；重复点击不会创建多份新任务。</p>':
+     '<p>分析上个完整自然周的真实业务数据，形成问题、证据与下周行动。单击生成将调用可能收费的模型；同一周不会重复创建任务。</p>')+
     (rows.length?'<label class="ai-weekly-picker">查看历史周报 <select data-weekly-select>'+
      rows.map(x=>'<option value="'+safe(x.id)+'" '+(x.id===selected?'selected':'')+'>'+
       safe(date(x.date_range_start))+' — '+safe(date(Number(x.date_range_end)-DAY))+' · '+
@@ -249,12 +253,13 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
     const note=root.querySelector('[data-weekly-note]');
     if(note)note.textContent='正在创建本周 AI 分析任务…';
     try{
-     const result=await api('/ai-weekly-reports','POST',{});
+     const result=await api('/ai-weekly-reports','POST',
+      regenerateArchived?{regenerateArchivedFailed:true}:{});
      selected=result.analysisId;
      if(!disposed)await load();
     }catch(error){
      if(!disposed&&button.isConnected){
-      button.disabled=false;button.textContent='生成 AI 周报';
+      button.disabled=false;button.textContent=regenerateArchived?'重新生成 AI 周报':'生成 AI 周报';
       if(note)note.textContent='提交失败：'+error.message;
      }
     }finally{busy=false}
