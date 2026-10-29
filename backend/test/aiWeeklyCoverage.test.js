@@ -124,6 +124,25 @@ test('hypotheses, irrelevant numbers and citations without source match are not 
   {additionalEvidence:later});
  assert.equal(verified.modules.find(x=>x.id==='channel-growth').status,'analyzed');
 });
+test('model follow-up statistics supplement an already-collected module instead of being ignored',()=>{
+ const initial=initialCoverage(context(),{allowedTools:toolIds});
+ const row=initial.modules.find(x=>x.id==='channel-growth');
+ row.status='collected';row.evidenceIds=['channels-summary'];
+ row.facts=[{metric:'summary.users',value:100,evidenceId:'channels-summary'}];
+ const followup=[{query:{tool:'get_channels'},result:{status:'ok',evidence:[
+  {id:'channels-drill',metricId:'channels',
+   value:{metrics:{clicks:33,impressions:400}}}
+ ]}}];
+ const data=finalizeWeeklyCoverage(initial,{claims:[{
+  kind:'fact',text:'可核对渠道点击33次',
+  evidenceIds:['channels-drill']
+ }]},{additionalEvidence:followup});
+ const channel=data.modules.find(x=>x.id==='channel-growth');
+ assert.equal(channel.status,'analyzed');
+ assert.ok(channel.evidenceIds.includes('channels-summary'));
+ assert.ok(channel.evidenceIds.includes('channels-drill'));
+ assert.equal(channel.insight,'可核对渠道点击33次');
+});
 test('query quota exhaustion does not create zero observations or a model retry',async()=>{
  const ctx=context();let calls=0;
  const result=await collectWeeklyCoverage({context:ctx,allowedTools:toolIds,
