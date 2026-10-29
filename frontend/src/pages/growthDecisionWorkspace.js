@@ -54,7 +54,7 @@ export function mountGrowthDecisionWorkspace(root,{navigate=null}={}){
    <div class="ga-ws-stats">
     <div><strong>当前月</strong><p>${safe(new Date(d.month.start+25200000).toISOString().slice(0,7))}</p></div>
     <div><strong>未解决问题</strong><p>${issues.filter(x=>['open','monitoring'].includes(x.status)).length}</p></div>
-    <div><strong>数据质量问题</strong><p>${data.filter(x=>['open','monitoring'].includes(x.status)).length}</p></div>
+    <div><strong>数据质量问题</strong><p>${issues.filter(x=>x.type==='data-quality'&&['open','monitoring'].includes(x.status)).length}</p></div>
     <div><strong>待跟进行动</strong><p>${actions.filter(a=>!['executed','rejected'].includes(a.status)).length}</p></div>
    </div></section>
    <section class="a-card a-details ga-ws-goals"><div class="ga-ws-section-title"><h2>月度目标</h2><span>${goals.length} 项</span></div>
