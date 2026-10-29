@@ -1,5 +1,6 @@
 import './aiAnalysis.css';
 import './seoReport.css';
+import {queueAnalysisLaunch} from '../analysisLaunchContext.js';
 import {renderSeoReport,applySeoQueryFilter,safeSeoUrl} from './seoReportView.js';
 import {loadingState} from './loadingState.js';
 import {getSeoImports,importSeoSnapshot,previewSeoSnapshot,getGscConnection,saveGscSite,syncGscPerformance,getGscPerformance,getGscSitemaps,inspectGscUrl,beginGscOAuth,disconnectGscOAuth} from '../api/aiAnalysis.js';
@@ -35,7 +36,7 @@ export function createSeoPage(ctx){
    ]);
    if(token!==generation)return;
    host.innerHTML=`<div class="si-page ai-analysis-page seo-workspace">
-    <header class="ai-decision-hero"><div><span class="ai-eyebrow">CHANNEL INTELLIGENCE</span><h1>SEO 分析</h1><p>搜索曝光、关键词、页面与收录状态；同步本身不调用 AI。</p></div><button class="a-button" data-seo-refresh type="button">刷新</button></header>
+    <header class="ai-decision-hero"><div><span class="ai-eyebrow">CHANNEL INTELLIGENCE</span><h1>SEO 分析</h1><p>搜索曝光、关键词、页面与收录状态；同步本身不调用 AI。</p></div><div class="seo-page-actions"><button class="a-button" data-seo-refresh type="button">刷新</button><button class="a-button a-primary" data-seo-agent type="button" ${!gscSnapshot.available||!gscSnapshot.report?'disabled':''}>交给 AI 分析</button></div></header>
     <p data-seo-message role="status" aria-live="polite">${esc(notice)}</p>
         <details class="a-card ai-gsc-settings seo-settings" ${(!gscConnection.selectedSite||!gscSnapshot.available)?'open':''}>
           <summary>数据源设置 <span>${gscConnection.selectedSite?'已连接 · '+esc(gscConnection.selectedSite):'需要配置'}</span></summary>
@@ -108,6 +109,13 @@ export function createSeoPage(ctx){
         </details>
     </div>`;
    host.querySelector('[data-seo-refresh]').onclick=draw;
+   host.querySelector('[data-seo-agent]')?.addEventListener('click',()=>{
+     if(!gscSnapshot.available||!gscSnapshot.report)return;
+     const report=gscSnapshot.report;
+     queueAnalysisLaunch({kind:'seo',site:String(report.siteUrl||gscConnection.selectedSite||'').slice(0,500),
+       start:String(report.startDate||'').slice(0,12),end:String(report.endDate||'').slice(0,12)});
+     ctx.navigate('ai-analysis');
+   });
    applySeoQueryFilter(host);
        const oauthConnect=host.querySelector('[data-gsc-oauth-connect]');
        if(oauthConnect)oauthConnect.onclick=async()=>{
