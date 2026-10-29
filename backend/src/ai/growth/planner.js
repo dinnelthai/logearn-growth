@@ -4,7 +4,7 @@ const {listToolIds}=require('../business/tools/registry');
 const {summarizeExperience}=require('./experienceFeedback');
 // Tool availability is computed per trusted task; no module-load snapshot.
 const goalMap={activation:['growth-overview','activation-funnel'],retention:['growth-overview','retention'],conversion:['growth-overview','channel-growth','trade-conversion','referral-and-invite','login-conversion'],revenue:['growth-overview','revenue']};
-function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[],focusSkillId=null,strategy=null,availableSpecialties=[],availableCapabilityIds=null}={}){
+function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[],focusSkillId=null,strategy=null,availableSpecialties=[],availableCapabilityIds=null,includeWeeklySpecialties=false}={}){
  if(!Object.hasOwn(goalMap,goal))throw Object.assign(Error('未知增长目标'),{status:400});
  if(!Number.isInteger(maxSkills)||maxSkills<1||maxSkills>6)throw Error('技能数量限制无效');
  if(!report||typeof report!=='object'||!report.business?.scope||!report.period)
@@ -36,7 +36,12 @@ function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[
  const priority=(report.candidates||[]).filter(c=>c&&typeof c.metric==='string').slice(0,20);
  const ranked=[...priority].sort((a,b)=>Number(alertIds.has(b.id))-Number(alertIds.has(a.id)));
  if(!Array.isArray(availableSpecialties)||availableSpecialties.some(id=>!['content-growth','follower-quality'].includes(id)))throw Error('每日专项证据输入无效');
- const additional=goal==='conversion'&&report.business.scope.source==='all'?availableSpecialties:[];
+ // A weekly operating report spans acquisition, activation and conversion.
+ // Only the trusted Worker may opt in, after finding owner-owned specialty data.
+ // This does not enable the tools for ordinary activation analyses.
+ if(typeof includeWeeklySpecialties!=='boolean')throw Error('周报专项授权标识无效');
+ const additional=(goal==='conversion'||includeWeeklySpecialties)&&
+   report.business.scope.source==='all'?availableSpecialties:[];
  const defaultIds=[...new Set([...additional,...goalMap[goal]])];
  const available=[...(focusSkillId?[getSkill(focusSkillId)]:[]),...defaultIds.filter(id=>id!==focusSkillId).map(getSkill)];
  const ordered=available.map((skill,i)=>({
