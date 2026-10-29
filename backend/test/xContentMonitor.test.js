@@ -39,7 +39,7 @@ function fixture(options={}){
   settle:(id,credits)=>{spent[id-1].actual=credits}});
  return {monitor,db,time,calls,spent};
 }
-test('official account options are reused; arbitrary usernames cannot be added',()=>{
+test('official account options are reused; arbitrary usernames cannot be added',async()=>{
  assert.deepEqual(ACCOUNTS.map(a=>a.id),['logearn_cn','logearn_global']);
  assert.equal(valid('logearn_cn'),true);
  assert.equal(valid('other_username'),false);
@@ -50,7 +50,7 @@ test('official account options are reused; arbitrary usernames cannot be added',
  assert.equal(f.calls.length,0);
  assert.throws(()=>f.monitor.setAutoSync('owner','not_official',true),/官方账号/);
  assert.throws(()=>f.monitor.setAutoSync('owner','logearn_cn',1),/是否/);
- assert.throws(()=>f.monitor.sync('owner','nonofficial'),/官方账号/);
+ await assert.rejects(f.monitor.sync('owner','nonofficial'),/官方账号/);
 });
 test('shared provider data, per-account and owner isolation, missing metrics are not zero',async()=>{
  const f=fixture();
