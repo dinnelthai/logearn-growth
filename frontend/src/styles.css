@@ -1396,7 +1396,10 @@ html>body{padding:0}
   border-radius: 6px;
   background: transparent;
   color: light-dark(#566b86,#adbcd0);
-  font: 600 12px/1.4 inherit;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
   cursor: pointer;
 }
 #la-login-overlay .la-password-toggle:hover {
@@ -1433,7 +1436,10 @@ html>body{padding:0}
   border-radius: 9px;
   background: light-dark(#3f60c9,#91a6ec);
   color: light-dark(#fff,#17233a);
-  font: 650 14px/1.5 inherit;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.5;
   cursor: pointer;
   transition: background .15s ease,transform .15s ease;
 }
