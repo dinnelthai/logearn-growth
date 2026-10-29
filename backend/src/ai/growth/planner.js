@@ -6,7 +6,7 @@ const {summarizeExperience}=require('./experienceFeedback');
 const goalMap={activation:['growth-overview','activation-funnel'],retention:['growth-overview','retention'],conversion:['growth-overview','channel-growth','trade-conversion','referral-and-invite','login-conversion'],revenue:['growth-overview','revenue']};
 function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[],focusSkillId=null,strategy=null,availableSpecialties=[],availableCapabilityIds=null,includeWeeklySpecialties=false}={}){
  if(!Object.hasOwn(goalMap,goal))throw Object.assign(Error('未知增长目标'),{status:400});
- if(!Number.isInteger(maxSkills)||maxSkills<1||maxSkills>6)throw Error('技能数量限制无效');
+ if(!Number.isInteger(maxSkills)||maxSkills<1||maxSkills>(includeWeeklySpecialties?8:6))throw Error('技能数量限制无效');
  if(!report||typeof report!=='object'||!report.business?.scope||!report.period)
   throw Error('必须提供现有业务报告作为任务规划依据');
  const specialized={
@@ -42,7 +42,11 @@ function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[
  if(typeof includeWeeklySpecialties!=='boolean')throw Error('周报专项授权标识无效');
  const additional=(goal==='conversion'||includeWeeklySpecialties)&&
    report.business.scope.source==='all'?availableSpecialties:[];
- const defaultIds=[...new Set([...additional,...goalMap[goal]])];
+ const weeklyEssential=['growth-overview','activation-funnel','seo-organic',
+  'channel-growth','retention','trade-conversion'];
+ const defaultIds=includeWeeklySpecialties&&report.business.scope.source==='all'
+  ?[...new Set([...weeklyEssential,...additional])]
+  :[...new Set([...additional,...goalMap[goal]])];
  const available=[...(focusSkillId?[getSkill(focusSkillId)]:[]),...defaultIds.filter(id=>id!==focusSkillId).map(getSkill)];
  const ordered=available.map((skill,i)=>({
   skill,match:ranked.findIndex(c=>skill.signals.includes(c.metric)),order:i,
@@ -52,7 +56,12 @@ function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[
    Number(additional.includes(b.skill.id))-Number(additional.includes(a.skill.id))||
    b.strategyFocus-a.strategyFocus||
    (a.match<0?999:a.match)-(b.match<0?999:b.match)||b.attention-a.attention||a.order-b.order);
- const selected=ordered.slice(0,maxSkills);
+ // A weekly operating report is cross-functional, not merely an
+ // activation investigation. Guarantee core SEO/channel/retention coverage
+ // before optional X specialties; ordinary task priorities remain unchanged.
+ const selected=includeWeeklySpecialties&&report.business.scope.source==='all'
+  ?defaultIds.slice(0,maxSkills).map(id=>({skill:getSkill(id)}))
+  :ordered.slice(0,maxSkills);
  return {
   version:'growth-plan-v1',goal,focusSkillId,scope:report.business.scope,period:report.period,
   triage,experienceFeedback:experience,
