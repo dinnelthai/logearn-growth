@@ -104,7 +104,7 @@ function createXContentMonitor({db=defaultDb,env=process.env,request=fetch,clock
  }
  async function syncDue(){
   if(!configured())return {checked:0};
-  const due=db.prepare('SELECT owner_id FROM x_content_accounts WHERE auto_sync=1 AND (last_attempt IS NULL OR last_attempt<?) ORDER BY COALESCE(last_attempt,0) LIMIT 10').all(clock()-DAY);
+  const due=db.prepare('SELECT owner_id FROM x_content_accounts WHERE auto_sync=1 AND (last_attempt IS NULL OR last_attempt<=?) ORDER BY COALESCE(last_attempt,0) LIMIT 10').all(clock()-DAY);
   for(const a of due)try{await sync(a.owner_id)}catch(e){console.warn('[x-content] sync:',e.message)}
   return {checked:due.length};
  }
