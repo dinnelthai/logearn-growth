@@ -52,3 +52,9 @@ test('scope, authorization, and paid ability remain server selected',async()=>{
  const bad=await runPlan(r,ctx,changed);
  assert.equal(bad.steps[0].status,'not_authorized');
 });
+test('full scan reports modules omitted by budget rather than claiming completeness',async()=>{
+ const r=fake(),plan=makePlan(r,ctx,{mode:'full',goal:'activation',maxCalls:1});
+ assert.equal(plan.steps.length,1);
+ assert.ok(plan.missing.some(x=>x.moduleId==='growth.seo'&&x.reason==='budget_exceeded'));
+ assert.equal((await runPlan(r,ctx,plan)).status,'partial');
+});

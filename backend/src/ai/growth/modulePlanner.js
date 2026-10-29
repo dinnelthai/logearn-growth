@@ -30,10 +30,11 @@ function makePlan(registry,context,{mode='full',goal='activation',question='',mo
   moduleIds.some(id=>typeof id!=='string'||id.length>80)))fail('模块列表无效');
  const registered=registry.listBusinessModules(context);
  const live=new Map(registered.map(m=>[m.moduleId,m]));
- const selected=moduleIds||goalModules[goal];
+ const selected=moduleIds||(mode==='full'?[...new Set([...goalModules[goal],...Object.keys(prefers)])]:goalModules[goal]);
  if(mode==='focused'&&(!selected.length||!question.trim()))fail('定向调查需要明确问题与模块');
  const steps=[],missing=[];
  for(const id of [...new Set(selected)]){
+  if(steps.length>=maxCalls){missing.push({moduleId:id,reason:'budget_exceeded'});continue;}
   const module=live.get(id);
   if(!module){missing.push({moduleId:id,reason:'unknown_module'});continue;}
   if(module.status!=='available'){missing.push({moduleId:id,reason:'unavailable_or_not_authorized'});continue;}
@@ -47,7 +48,6 @@ function makePlan(registry,context,{mode='full',goal='activation',question='',mo
   steps.push({moduleId:id,moduleVersion:module.version,
    capabilityId:cap.id,capabilityVersion:cap.version,input,
    purpose:module.description});
-  if(steps.length>=maxCalls)break;
  }
  return {version:'growth-module-plan-v1',mode,goal,question,
   period:context.period,scope:context.scope,steps,missing,

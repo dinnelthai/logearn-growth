@@ -28,7 +28,7 @@ async function scanModuleOpportunities({db,ownerId,registry,
  const created=[],updated=[],skipped=[];
  for(const step of result.steps){
   const status=step.coverage?.status||'unknown';
-  if(step.status!=='ok'||!step.evidenceIds?.length||!GAP.has(status)){
+  if(!['ok','unavailable'].includes(step.status)||!step.evidenceIds?.length||!GAP.has(status)){
    skipped.push({moduleId:step.moduleId,status:step.status,coverage:status});continue;
   }
   const subject='source-quality:'+step.moduleId;

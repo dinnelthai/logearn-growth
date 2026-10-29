@@ -31,7 +31,7 @@ export function mountAIGrowthModulesPanel(host,{esc}){
    '<option value="retention">留存</option><option value="conversion">转化</option>'+
    '<option value="revenue">收入</option></select></label> '+
    '<label>问题 <input name="question" maxlength="2000" required placeholder="例如：哪个环节可能限制有效分析用户增长？"></label> '+
-   '<button type="submit" class="a-button a-primary">开始只读调查 <span>→</span></button></form><p class="ai-module-form-note">最多调查 6 个模块，不会自动调用模型或发布内容。</p>'+
+   '<button type="submit" class="a-button a-primary">开始只读调查 <span>→</span></button></form><p class="ai-module-form-note">按目标固定顺序检查，最多 6 个模块；问题仅作记录，不会自动调用模型或发布内容。</p>'+
    '<p role="status" aria-live="polite" data-growth-modules-message></p>'+
    (runResult?'<section class="ai-module-results"><div class="ai-module-section-heading"><div><span class="ai-module-eyebrow">INVESTIGATION</span><h3>调查过程和证据</h3></div><p>结果：'+esc(labelStatus(runResult.result.status))+
     ' · 调用模块 '+runResult.result.steps.length+' · 模型付费调用 0</p></div>'+

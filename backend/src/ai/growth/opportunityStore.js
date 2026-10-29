@@ -91,14 +91,16 @@ function createOpportunityStore(db,{initialize=false,clock=Date.now,verifyEviden
    if(old?.evidence_hash===evidenceHash)return {...unpack(old),reused:true,changed:false};
    const at=now(),id=old?.id||randomUUID(),version=old?old.version+1:1;
    const body={...item,id,...(old?{assignee:JSON.parse(old.body_json).assignee||null}:{})};
-   if(old)db.prepare('UPDATE gw_agent_opportunities SET version=?,evidence_hash=?,body_json=?,updated_at=? WHERE owner_id=? AND id=?')
-    .run(version,evidenceHash,JSON.stringify(body),at,o,id);
+   const nextStatus=old?.status==='accepted'?'proposed':old?.status;
+   if(old)db.prepare('UPDATE gw_agent_opportunities SET status=?,version=?,evidence_hash=?,body_json=?,updated_at=? WHERE owner_id=? AND id=?')
+    .run(nextStatus,version,evidenceHash,JSON.stringify(body),at,o,id);
    else db.prepare('INSERT INTO gw_agent_opportunities VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)')
     .run(o,id,fp,'proposed',version,item.subject,item.moduleId,item.goalVersion,
      JSON.stringify(item.scope),evidenceHash,JSON.stringify(body),at,at);
    log(o,id,version,old?'evidence-updated':'created',
     {evidenceIds:item.evidenceIds,period:item.period,goalVersion:item.goalVersion,
-     moduleVersion:item.moduleVersion,origin:item.origin,definitionVersion:item.definitionVersion},at);
+     moduleVersion:item.moduleVersion,origin:item.origin,definitionVersion:item.definitionVersion,
+     ...(old?.status==='accepted'?{previousStatus:'accepted',status:'proposed',reason:'内容或证据已更新，需重新采纳'}:{})},at);
    return {...get(o,id),created:!old,changed:true};
   })
  }

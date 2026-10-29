@@ -38,3 +38,15 @@ test('schema only created on explicit approved migration',()=>{
  assert.throws(()=>store.list('alice'),/no such table/);
  }finally{db.close()}
 });
+test('changed opportunity content requires a fresh acceptance',()=>{
+ const db=new DatabaseSync(':memory:');try{
+  db.exec("CREATE TABLE gw_goals(owner_id TEXT,id TEXT,version INTEGER);INSERT INTO gw_goals VALUES('alice','goal',1)");
+  const store=createOpportunityStore(db,{initialize:true,verifyEvidence:()=>true});
+  const first=store.upsert('alice',original);
+  const accepted=store.decide('alice',first.id,{status:'accepted',expectedVersion:first.version,reason:'采纳'});
+  assert.equal(store.upsert('alice',original).status,'accepted');
+  const updated=store.upsert('alice',{...original,action:'新的行动'});
+  assert.equal(updated.status,'proposed');assert.equal(updated.version,accepted.version+1);
+  assert.equal(store.history('alice',first.id).at(-1).details.previousStatus,'accepted');
+ }finally{db.close()}
+});

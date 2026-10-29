@@ -35,3 +35,14 @@ test('completed scan periods use last seven complete Bangkok days',()=>{
  assert.equal(p.end-p.start,7*86400000);
  assert.ok(p.end<=NOW);
 });
+test('unavailable module with archived evidence creates a data gap, without inventing business impact',async()=>{
+ const db=new DatabaseSync(':memory:');try{
+  createOpportunityStore(db,{initialize:true});
+  const registry={listBusinessModules:()=>[{moduleId:'growth.seo',version:'1',status:'available',description:'SEO',capabilities:[{id:'get_seo_performance',version:'1',cost:'none'}]}],
+   executeBusinessModule:async()=>({status:'unavailable',evidenceIds:['ev-missing'],coverage:{status:'not-synced'}})};
+  const result=await scanModuleOpportunities({db,ownerId:'alice',now:NOW,goal:'conversion',registry,verifyEvidence:()=>true});
+  assert.equal(result.created.length,1);
+  const item=createOpportunityStore(db).get('alice',result.created[0]);
+  assert.equal(item.impact.affectedUsers,null);assert.match(item.issue,/not-synced/);
+ }finally{db.close()}
+});
