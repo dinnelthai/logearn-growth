@@ -73,9 +73,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
     safe(date(d.period.start))+' — '+safe(date(d.period.end-DAY))+' · UTC+7</p></div>'+
     (current?'<span class="ai-weekly-status">'+safe(row?'正在查看 · '+(statuses[row.status]||row.status):'本期 · '+(statuses[current.status]||current.status))+'</span>':
      '<button type="button" class="a-button a-primary" data-weekly-confirm>生成 AI 周报</button>')+'</div>'+
-    '<p>AI 调查真实的业务统计、历史变化与已保存的运营执行数量，输出可追溯证据和下周行动。只有人工点击确认才调用可能收费的模型；每个完整周只创建一份。</p>'+
-    '<form class="ai-weekly-consent" data-weekly-consent hidden><label><input name="ack" type="checkbox" required>我了解本次将调用 AI 分析模型，可能产生 Token 费用；不会自动执行建议、推文或其他外部操作。</label>'+
-    '<div><button type="submit" class="a-button a-primary">确认生成</button><button type="button" class="a-button" data-weekly-close>取消</button></div></form>'+
+    '<p>基于已观测的业务统计生成周报，包含问题、证据与下周行动。点击「生成 AI 周报」立即提交分析任务，可能产生 Token 费用；每个完整周只创建一份，不会自动执行建议或外部操作。</p>'+
     (rows.length?'<label class="ai-weekly-picker">查看历史周报 <select data-weekly-select>'+
      rows.map(x=>'<option value="'+safe(x.id)+'" '+(x.id===selected?'selected':'')+'>'+
       safe(date(x.date_range_start))+' — '+safe(date(Number(x.date_range_end)-DAY))+' · '+
@@ -89,15 +87,23 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
     queueAnalysisLaunch({kind:'analysis',analysisId:row.id});
     navigate('ai-analysis');
    });
-   const consent=root.querySelector('[data-weekly-consent]');
-   root.querySelector('[data-weekly-confirm]')?.addEventListener('click',()=>{consent.hidden=false;consent.querySelector('input')?.focus()});
-   root.querySelector('[data-weekly-close]')?.addEventListener('click',()=>{consent.hidden=true;consent.reset()});
-   consent.addEventListener('submit',async event=>{
-    event.preventDefault();if(busy)return;
-    busy=true;const submit=consent.querySelector('button[type=submit]');submit.disabled=true;
-    try{const result=await api('/ai-weekly-reports','POST',{});selected=result.analysisId;await load()}
-    catch(error){const note=root.querySelector('[data-weekly-note]');if(note)note.textContent='提交失败：'+error.message}
-    finally{busy=false;if(submit.isConnected)submit.disabled=false}
+   root.querySelector('[data-weekly-confirm]')?.addEventListener('click',async event=>{
+    if(busy)return;
+    busy=true;
+    const button=event.currentTarget;
+    button.disabled=true;button.textContent='正在提交…';
+    const note=root.querySelector('[data-weekly-note]');
+    if(note)note.textContent='正在创建本周 AI 分析任务…';
+    try{
+     const result=await api('/ai-weekly-reports','POST',{});
+     selected=result.analysisId;
+     if(!disposed)await load();
+    }catch(error){
+     if(!disposed&&button.isConnected){
+      button.disabled=false;button.textContent='生成 AI 周报';
+      if(note)note.textContent='提交失败：'+error.message;
+     }
+    }finally{busy=false}
    });
    if(row)await showReport(row,token);
    if(!disposed&&token===seq&&rows.some(x=>['pending','processing'].includes(x.status))){
