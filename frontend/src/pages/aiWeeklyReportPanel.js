@@ -95,10 +95,11 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
         }
        }finally{busy=false}
       });
-     }else if(row.error_message==='补充查询过多，请缩小问题范围或提高调查能力'&&
+     }else if(['补充查询过多，请缩小问题范围或提高调查能力',
+      'AI Token硬预算不足，未发起下一轮模型请求；已付费证据保留在断点'].includes(row.error_message)&&
       checkpoint.paidCallState==='received'&&checkpoint.recordStatus==='failed'&&checkpoint.modelCalls>0&&
       ['partial-tools','recorded'].includes(checkpoint.state)){
-      status.innerHTML='<p>已有模型响应已保存，不能从头重试。可以申请从原始检查点继续；后续新增模型轮次可能产生费用，服务端会重新核对原始响应和付费账本。</p>'+
+      status.innerHTML='<p>已保存的模型响应和证据可复用。原任务不会从头重新计费；点击继续后，后续尚未发起的模型轮次可能产生新费用。系统会重新核对断点和共享付费账本。</p>'+
        '<button type="button" class="a-button" data-weekly-continue>继续周报（可能新增模型费用）</button>';
       status.querySelector('[data-weekly-continue]')?.addEventListener('click',async event=>{
        if(busy)return;
