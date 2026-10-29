@@ -17,7 +17,7 @@ function contentGrowth(body,ctx){
   const {ACCOUNTS}=require('../../../analytics/officialXAccounts');
   xOfficial.accounts=ACCOUNTS.map(a=>{
    const info=db.prepare('SELECT followers,last_synced FROM x_official_account_sync WHERE owner_id=? AND account=?').get(owner,a.id);
-   const posts=db.prepare('SELECT post_id,published_at,body,impressions,likes,replies,reposts,quotes FROM x_official_posts WHERE owner_id=? AND account=? AND published_at>=? AND published_at<=? ORDER BY published_at DESC LIMIT 20').all(owner,a.id,
+   const posts=db.prepare('SELECT post_id,published_at,body,impressions,likes,replies,reposts,quotes,observed_at FROM x_official_posts WHERE owner_id=? AND account=? AND published_at>=? AND published_at<=? ORDER BY published_at DESC LIMIT 20').all(owner,a.id,
     new Date(body.start).toISOString(),new Date(body.end-1).toISOString());
    const snapshotRows=tables.has('x_official_post_snapshots')?
     db.prepare('SELECT post_id,observed_at,impressions,likes,replies,reposts FROM x_official_post_snapshots WHERE owner_id=? AND account=? ORDER BY observed_at DESC LIMIT 1800').all(owner,a.id):[];
