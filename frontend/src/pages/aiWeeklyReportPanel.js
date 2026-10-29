@@ -1,6 +1,7 @@
 import {getAnalysisDetail,getEvidence,getJobCheckpoint,retryAnalysis,continueWeeklyOverflow,deleteAnalysis} from '../api/aiAnalysis.js';
 import {canOfferTaskRetry} from './aiTaskStatus.js';
 import {queueAnalysisLaunch} from '../analysisLaunchContext.js';
+import {renderWeeklyDecisionReport} from './aiWeeklyDecisionView.js';
 
 const DAY=86400000;
 const date=ms=>Number.isFinite(Number(ms))?new Date(Number(ms)+7*3600000).toISOString().slice(0,10):'未知';
@@ -29,48 +30,8 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
  const section=(title,items,render)=>
   '<section class="ai-weekly-section"><h4>'+safe(title)+'</h4>'+
   (items?.length?'<ul>'+items.map(render).join('')+'</ul>':'<p class="a-muted">暂无经验证的内容，不能据此断定该项正常。</p>')+'</section>';
- const reportBody=(data,record)=>{
-  const w=data?.result?.weeklyReport;
-  if(!w)return '<p role="alert">任务已结束，但没有形成通过验证的周报正文。请到 AI 增长分析查看检查点，不应视作成功。</p>';
-  const calls=Array.isArray(data?.result?.calls)?data.result.calls:[];
-  const costAudit=calls.length?
-   '<div class="ai-weekly-table"><table><thead><tr><th>模型轮次</th><th>总Token</th><th>输入：实际/预估</th><th>上下文版本</th><th>输入构成（字节）</th></tr></thead><tbody>'+
-   calls.map((call,i)=>{
-    const segments=call.inputAttribution?.segmentsBytes;
-    const pieces=segments?[
-     ['指令',segments.system],['业务统计',segments.initialFacts],
-     ['工具计划',segments.toolPlans],['补查证据',segments.toolEvidence],
-     ['纠错消息',segments.corrections]
-    ].map(([label,value])=>label+' '+fmt(value)).join(' · '):'旧记录未采集';
-    return '<tr><td>第'+(i+1)+'轮</td><td>'+fmt(call.tokens)+'</td>'+
-      '<td>'+fmt(call.reportedInputTokens)+' / '+fmt(call.estimatedInputTokens)+'</td><td>'+
-      safe(call.modelTransportVersion||'历史协议')+'</td><td>'+safe(pieces)+'</td></tr>';
-   }).join('')+'</tbody></table></div>':
-   '<p>暂无逐轮模型用量记录。</p>';
-  return '<article class="ai-weekly-report">'+
-   '<header><span class="ai-eyebrow">AI OPERATIONS WEEKLY</span><h3>'+safe(record.title||'LogEarn AI 运营周报')+'</h3>'+
-   '<p class="a-muted">完整业务周 '+safe(date(record.date_range_start))+' — '+safe(date(Number(record.date_range_end)-DAY))+' · UTC+7 · 已保存的模型分析</p></header>'+
-   (w.partial?'<p class="ai-weekly-partial" role="status">部分周报：模型的结构化输出不完整。以下仅整理通过证据校验的结论；请参阅数据缺口，不要把未知指标当作零。</p>':'')+
-   '<section class="ai-weekly-section"><h4>执行摘要</h4><p>'+safe(w.executiveSummary)+'</p></section>'+
-   '<section class="ai-weekly-section"><h4>核心指标与上周对比</h4>'+
-   (w.metrics?.length?'<div class="ai-weekly-table"><table><thead><tr><th>指标</th><th>本周</th><th>上周</th><th>变化</th><th>证据</th></tr></thead><tbody>'+
-    w.metrics.map(m=>'<tr><td>'+safe(m.label)+'</td><td>'+fmt(m.current)+'</td><td>'+fmt(m.previous)+'</td><td>'+(typeof m.changePct==='number'?fmt(m.changePct)+'%':'未知')+'</td><td>'+links(m.evidenceIds)+'</td></tr>').join('')+'</tbody></table></div>':
-    '<p class="a-muted">缺少可验证的周度指标，不展示虚构对比。</p>')+'</section>'+
-   section('本周有效进展',w.highlights,row=>'<li>'+safe(row.text)+'<div class="ai-weekly-evidence">'+links(row.evidenceIds)+'</div></li>')+
-   section('核心问题与风险',w.issues,row=>'<li>'+safe(row.text)+'<div class="ai-weekly-evidence">'+links(row.evidenceIds)+'</div></li>')+
-   section('渠道与获客观察',w.channelFindings,row=>'<li>'+safe(row.text)+'<div class="ai-weekly-evidence">'+links(row.evidenceIds)+'</div></li>')+
-   section('下周行动计划',w.nextWeek,row=>'<li><strong>'+safe(row.priority)+' · '+safe(row.action)+'</strong>'+
-    '<p>验证指标：'+safe(row.metric||'待定义')+' · 观察条件：'+safe(row.reviewCondition||'待定义')+'</p>'+
-    '<div class="ai-weekly-evidence">'+links(row.evidenceIds)+'</div></li>')+
-   section('数据缺口与判断边界',w.dataGaps,x=>'<li>'+safe(x)+'</li>')+
-   '<details><summary>本次调查证据目录与模型记录</summary><p>证据取自归档业务统计及只读调查工具，引用必须经过服务端验证。</p>'+
-   '<p>证据编号：'+safe((data.result.evidenceIds||[]).join('、')||'无')+'</p>'+
-   '<p>模型：'+safe(record.model_name||'未提供')+' · 已记录费用：'+
-    (record.cost_usd==null?'费率或记录尚未确认':'$'+fmt(Number(record.cost_usd)))+'</p>'+
-   '<h4>逐轮模型调用与上下文体积</h4>'+costAudit+
-   '<p class="a-muted">输入构成按 UTF-8 字节计，预估 Token 使用保守算法；实际收费与使用量以中转站返回和共享账本为准，不能把未记录的费用算作零。</p></details>'+
-   '<div data-weekly-evidence-detail class="gws-detail" hidden role="status"></div></article>';
- };
+ const reportBody=(data,record)=>renderWeeklyDecisionReport({data,record,safe,fmt,date,links});
+
  async function showReport(row,token,currentPeriod){
   const target=root.querySelector('[data-weekly-body]');if(!target)return;
   if(row.status!=='completed'){
@@ -181,6 +142,8 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
    const detail=await getAnalysisDetail(row.id);
    if(disposed||token!==seq)return;
    target.innerHTML=reportBody(detail,row);
+   target.querySelectorAll('[data-weekly-navigate]').forEach(button=>
+    button.addEventListener('click',()=>{if(typeof navigate==='function')navigate(button.dataset.weeklyNavigate)}));
    target.querySelectorAll('[data-weekly-evidence]').forEach(button=>button.addEventListener('click',async()=>{
     const out=target.querySelector('[data-weekly-evidence-detail]');
     button.disabled=true;out.hidden=false;out.textContent='正在读取归档证据…';
