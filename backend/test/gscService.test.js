@@ -63,7 +63,6 @@ test('valid high Google ranking and long page URLs are not rejected by arbitrary
 test('invalid metrics name the Google dimension and row without leaking query text',()=>{
  const source=fixture();
  source.queries.rows[1].position=0;
- const error=assert.throws(()=>buildGoogleSnapshot('sc-domain:logearn.com',
+ assert.throws(()=>buildGoogleSnapshot('sc-domain:logearn.com',
   {startDate,endDate},source),/query 第 2 行 position 无效/);
- assert.equal(error,undefined);
 });
