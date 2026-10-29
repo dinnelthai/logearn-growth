@@ -46,3 +46,14 @@ test('unavailable module with archived evidence creates a data gap, without inve
   assert.equal(item.impact.affectedUsers,null);assert.match(item.issue,/not-synced/);
  }finally{db.close()}
 });
+test('resolved gap is reopened when a later scan still observes it',async()=>{
+ const db=new DatabaseSync(':memory:');try{
+  const store=createOpportunityStore(db,{initialize:true});
+  const registry={listBusinessModules:()=>[{moduleId:'growth.seo',version:'1',status:'available',capabilities:[{id:'get_seo_performance',cost:'none'}]}],executeBusinessModule:async()=>({status:'ok',evidenceIds:['ev'],coverage:{status:'partial'}})};
+  const args={db,ownerId:'alice',now:NOW,goal:'conversion',registry,verifyEvidence:()=>true};
+  const first=await scanModuleOpportunities(args);
+  store.decide('alice',first.created[0],{status:'resolved',expectedVersion:1,reason:'fixed'});
+  await scanModuleOpportunities({...args,now:NOW+86400000});
+  assert.equal(store.get('alice',first.created[0]).status,'proposed');
+ }finally{db.close()}
+});
