@@ -322,3 +322,31 @@ test('AI page excludes Search Console and monitor requests until their own views
  expect(api.getGrowthAlerts).not.toHaveBeenCalled();
  t.page.dispose();
 });
+
+test('history shows actual creation time, analysis period, adoption and execution counts',async()=>{
+ const t=setup()
+ api.getAnalysisList.mockResolvedValue({records:[{
+  id:'a',title:'业务增长分析',status:'completed',
+  created_at:String(Date.parse('2026-10-29T01:25:00Z')),
+  date_range_start:String(Date.parse('2026-10-20T00:00:00+07:00')),
+  date_range_end:String(Date.parse('2026-10-29T00:00:00+07:00')),
+  suggestion_count:'3',accepted_count:'2',executed_count:'1',retrospective_count:'1'
+ }]})
+ await t.page.draw()
+ expect(t.host.innerHTML).toContain('创建 2026-10-29 08:25 UTC+7')
+ expect(t.host.innerHTML).toContain('分析期 2026-10-20 ~ 2026-10-28')
+ expect(t.host.innerHTML).toContain('建议 3 · 已采纳 2 · 已执行 1 · 已复盘 1')
+ expect(t.host.innerHTML).toContain('ai-history-main')
+ expect(t.host.innerHTML).toContain('ai-history-delete')
+ t.page.dispose()
+})
+test('history never mistakes missing adoption counts for zero',async()=>{
+ const t=setup()
+ api.getAnalysisList.mockResolvedValue({records:[{
+  id:'a',title:'历史记录',status:'completed',suggestion_count:3,executed_count:0,retrospective_count:0
+ }]})
+ await t.page.draw()
+ expect(t.host.innerHTML).toContain('已采纳 —')
+ expect(t.host.innerHTML).toContain('时间待确认')
+ t.page.dispose()
+})
