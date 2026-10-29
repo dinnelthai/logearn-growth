@@ -60,20 +60,16 @@ function createRouter({db=require('../db/connection')}={}){
   const operations=weeklyOperations(store,owner,period);
   const userQuestion='请对本周 LogEarn 业务增长与运营工作输出可核对的完整 AI 运营周报：本周变化、核心漏斗、重要异常、渠道证据、人工运营工作量、下周优先事项和数据缺口。严禁无数据归因或编造业务指标。';
   const focusGoal='activation',scope={source:'all'},modelMode='auto',title='AI 运营周报 · '+new Date(period.start+25200000).toISOString().slice(0,10);
-  const record=await records.createAnalysisRecord({
-   ownerId:owner,requestKey,title,analysisType:'optimization',
-   dateRangeStart:period.start,dateRangeEnd:period.end,businessScope:scope,
-   userQuestion,dataSnapshot:{},filterConditions:{
-    businessScope:scope,focusGoal,modelMode,evidenceReportId:null,goalRef:null,
-    skillId:null,weeklyReport:'v1',weeklyOperations:operations}
+  const {record,created}=await records.createWeeklyReportRecord({
+   ownerId:owner,requestKey,title,start:period.start,end:period.end,question:userQuestion,
+   conditions:{businessScope:scope,focusGoal,modelMode,evidenceReportId:null,
+    goalRef:null,skillId:null,weeklyReport:'v1',weeklyOperations:operations}
   });
   if(record.filter_conditions?.weeklyReport!=='v1'||
      Number(record.date_range_start)!==period.start||Number(record.date_range_end)!==period.end)
    return res.status(409).json({error:'周报请求标识与已保存任务不一致，禁止重复付费'});
-  // Existing rows are never queued a second time. The original request
-  // may have reserved model calls; the safe recovery flow remains manual.
-  if(record.created_at< Date.now()-120000)
-   return res.json({analysisId:record.id,status:record.status,reused:true});
+  if(!created)return res.json({analysisId:record.id,status:record.status,reused:true,
+   notice:'已存在本周 AI 周报任务，未重复提交模型调用'});
   try{
    const job=await require('../queues/queues').addAIAnalysisJob('business-analysis',{
     analysisId:record.id,ownerId:owner,dateRangeStart:period.start,dateRangeEnd:period.end,
