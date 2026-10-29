@@ -204,6 +204,34 @@ test('v2 budget relaxation is forbidden without an archived prompt and paid rows
  assert.equal(env.observed.length,0);
  assert.equal(env.paid.length,0);
 });
+test('v4 weekly analysis sends core statistics first and preserves paid checkpoint semantics',async()=>{
+ const ctx=context();
+ ctx.current.totals.new_users=18;
+ ctx.previous.totals.new_users=40;
+ ctx.weeklyCoverage={version:'weekly-coverage-v1',modules:[
+  {id:'growth-overview',status:'collected',evidenceIds:['new-now'],facts:[{metric:'users',value:18}]},
+  {id:'seo-organic',status:'not-connected',evidenceIds:[],reason:'GSC 未同步'}]};
+ ctx.evidence=[{id:'new-now',metricId:'new_users',value:18,
+  period:{start:100,end:200},coverage:{status:'partial'}}];
+ const env=setup([investigations,final]);
+ const result=await runner().runTask({context:ctx,prompt:'weekly model test',
+  contextVersion:'v4',ownerId:'o',operationId:'v4-new',operationType:'analysis',
+  ...env,validate:()=>{}});
+ assert.equal(result.analysis.summary,'周报完成');
+ assert.equal(env.observed.length,2);
+ assert.match(env.observed[0].messages[0].content,/token-efficiency-v4/);
+ const first=JSON.parse(env.observed[0].messages[1].content);
+ assert.equal(first.transportVersion,'aggregated-business-v4');
+ assert.equal(first.coreMetrics.find(m=>m.id==='new_users').current,18);
+ assert.equal(first.weeklyCoverage.find(m=>m.id==='seo-organic').status,'not-connected');
+ const followup=env.observed[1].messages.find(m=>
+  m.role==='user'&&m.content.includes('"additionalEvidence"'));
+ assert.ok(followup);
+ const payload=JSON.parse(followup.content);
+ assert.ok(payload.additionalEvidence[0].result.evidence[0].value>0);
+ assert.deepEqual(env.paid,['begin:0','end:0:received','begin:1','end:1:received']);
+ assert.equal(env.archive.get(0).results.length,6);
+});
 test('legacy protocol remains v1 unless a new task opts in',async()=>{
  const env=setup([final]);
  await runner().runTask({context:context(),prompt:'legacy test',
