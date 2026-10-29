@@ -640,7 +640,7 @@
 #la-studio .ai-eyebrow { color: var(--a-accent); font-size: 10px; font-weight: 700; letter-spacing: .14em; }
 #la-studio .ai-decision-hero .a-primary { padding: 10px 17px; white-space: nowrap; }
 
-#la-studio .ai-status-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; }
+#la-studio .ai-status-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
 #la-studio .ai-status-grid article {
   min-width: 0; padding: 17px 19px;
   background: var(--a-panel); border: 1px solid var(--a-border); border-radius: var(--ui-radius-md);

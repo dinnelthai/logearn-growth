@@ -8,7 +8,7 @@ function setup({withTimeline=false,withGsc=false}={}){
  const timeline={innerHTML:'',textContent:'',querySelector(){return null}};
  const caseButton={dataset:{caseTimeline:'proposal-1'},disabled:false,isConnected:true};
  const panel={isConnected:true,innerHTML:'',querySelector(s){return ({'[data-checkpoint-result]':checkpoint,'[data-cancel-analysis]':cancel,'[data-resume-analysis]':checkpoint.button,'[data-detail-title]':heading,'[data-detail-summary]':summary,'[data-retry-analysis]':retry})[s]||null},querySelectorAll(){return []}};
- const nodes={'[data-detail]':panel,'[data-ai-message]':message,'[data-health]':{},'[data-refresh]':{},'[data-ai-form]':{}};
+ const nodes={'[data-detail]':panel,'[data-ai-message]':message,'[data-health]':{},'[data-refresh]':{},'[data-ai-form]':{},'[data-delete-cancel]':{focus:vi.fn()},'[data-delete-confirm]':{disabled:false,isConnected:true},'.ai-delete-dialog':{showModal:vi.fn(),close:vi.fn()}};
  const gscButton={disabled:false,isConnected:true};
  const monitorButton={disabled:false,isConnected:true};nodes['[data-monitor-toggle]']=monitorButton;
  if(withGsc){nodes['[data-gsc-save]']=gscButton;
@@ -44,117 +44,6 @@ test('active lease does not offer recovery',async()=>{
 });
 test('unauthorized checkpoint errors remain visible without a recovery button',async()=>{
  const t=setup();api.getJobCheckpoint.mockRejectedValue(Error('HTTP 403'));await t.page.draw();await t.button.onclick();await vi.waitFor(()=>expect(t.checkpoint.textContent).toContain('HTTP 403'));expect(t.checkpoint.button).toBeUndefined();t.page.dispose();
-});
-
-test('operator can inspect frozen anomaly-to-retrospective chain without a model request',async()=>{
- const t=setup({withTimeline:true});
- api.getGrowthInvestigationTimeline.mockResolvedValue({
-  version:'growth-investigation-timeline-v1',stage:'retrospective-recorded',
-  proposal:{id:'proposal-1'},alert:{metric:'active_users',direction:'decline',source:'all',priority:'P0'},
-  originalObservation:{baseline:100,observed:55,absolute:-45,
-   evidence:{baselineAnalysisId:'baseline-1',currentAnalysisId:'current-1'}},
-  analysis:{id:'analysis-1',status:'completed',summary:'Checked evidence',evidenceIds:['ev-1']},
-  actions:[{id:'suggestion-1',priority:'P0',problem:'Activation gap',status:'executed',
-   action:'Review funnel',actualAction:'Checked cohort'}],
-  retrospectives:[{id:'review-1',conclusion:'Observed change',confidence:'low',hasCausality:false}],
-  counts:{suggestions:1,retrospectives:1}
- });
- await t.page.draw();
- await t.caseButton.onclick();
- expect(api.getGrowthInvestigationTimeline).toHaveBeenCalledWith('proposal-1');
- expect(t.timeline.innerHTML).toContain('baseline-1');
- expect(t.timeline.innerHTML).toContain('Checked evidence');
- expect(t.timeline.innerHTML).toContain('Observed change');
- expect(t.timeline.innerHTML).toContain('未证明因果');
- expect(api.createBusinessAnalysis).not.toHaveBeenCalled();
- expect(api.createRetrospective).not.toHaveBeenCalled();
- t.page.dispose();
-});
-
-test('Search Console dashboard clearly distinguishes an actual connected site and finalized query evidence',async()=>{
- const t=setup({withGsc:true});
- api.getGscConnection.mockResolvedValue({
-  configured:true,mode:'service-account',sites:[{
-   siteUrl:'sc-domain:logearn.com',permissionLevel:'siteOwner'}],
-  selectedSite:'sc-domain:logearn.com'
- });
- api.getGscPerformance.mockResolvedValue({available:true,report:{
-  siteUrl:'sc-domain:logearn.com',startDate:'2026-10-18',endDate:'2026-10-20',
-  source:'gsc-api',dataState:'final',syncedAt:Date.parse('2026-10-25T00:00:00Z'),
-  metrics:{clicks:19,impressions:190,ctr:.1,position:4.5},
-  daily:[{date:'2026-10-18',clicks:9,impressions:90,ctr:.1,position:5}],
-  queries:[{query:'holder analytics',clicks:3,impressions:100,ctr:.03,position:6}],
-  pages:[{page:'https://logearn.com/holders',clicks:5,impressions:120,ctr:.04,position:3}],
-  opportunities:[],coverage:{expectedDays:3,reportedDays:2,queryRowsReturned:1,
-   pageRowsReturned:1},
-  warnings:['Partial queries']
- }});
- await t.page.draw();
- expect(t.host.innerHTML).toContain('已连接 · 站点已选定');
- expect(t.host.innerHTML).toContain('holder analytics');
- expect(t.host.innerHTML).toContain('按日走势');
- expect(t.host.innerHTML).toContain('10.00%');
- expect(t.host.innerHTML).toContain('Partial queries');
- expect(t.host.innerHTML).not.toContain('PRIVATE_TOKEN');
- api.saveGscSite.mockResolvedValue({selectedSite:'sc-domain:logearn.com'});
- await t.gscButton.onclick();
- expect(api.saveGscSite).toHaveBeenCalledWith('sc-domain:logearn.com');
- expect(api.createBusinessAnalysis).not.toHaveBeenCalled();
- t.page.dispose();
-});
-
-test('autonomous Growth panel distinguishes an unscored daily report from invented performance',async()=>{
- const t=setup();
- api.getAutonomyBriefs.mockResolvedValue({briefs:[{
-  day:'2026-10-26',status:'partial',strategy_version:null,
-  score:{value:null,qualityWarnings:['history incomplete']},
-  quality:{completedGoals:1,requiredGoals:4},
-  report:{overview:'Observed activation change only',priorityActions:[]}
- }]});
- await t.page.draw();
- expect(t.host.innerHTML).toContain('AI Growth Agent · 自主运营驾驶舱');
- expect(t.host.innerHTML).toContain('证据不足日报');
- expect(t.host.innerHTML).toContain('综合评分 未知');
- expect(t.host.innerHTML).toContain('history incomplete');
- expect(api.createBusinessAnalysis).not.toHaveBeenCalled();
- t.page.dispose();
-});
-
-test('proposal cards bind the real case ID and distinguish traceable evidence from missing coverage',async()=>{
- const t=setup();
- api.getGrowthInvestigations.mockResolvedValue({proposals:[{
-  id:'proposal-1',metric:'new_users',source:'seo',status:'proposed',version:1,
-  period_end:Date.parse('2026-10-27T17:00:00Z'),evidence:{baseline:100,observed:60},
-  diagnosis:{dataQuality:{status:'traceable-observation'},
-   observation:{baseline:100,current:60}}
- }]});
- await t.page.draw();
- expect(t.host.innerHTML).toContain('data-case-timeline="proposal-1"');
- expect(t.host.innerHTML).toContain('证据期间与源端快照可追溯');
- expect(t.host.innerHTML).toContain('已观察：100 → 60');
- expect(t.host.innerHTML).toContain('原因未知');
- expect(api.createBusinessAnalysis).not.toHaveBeenCalled();
- t.page.dispose();
-});
-
-test('operator switch calls server with version and never pretends worker is online',async()=>{
- const t=setup();
- api.setGrowthMonitorControl.mockResolvedValue({allowed:true,enabled:true,version:1,workerOnline:false});
- await t.page.draw();
- expect(t.host.innerHTML).toContain('开启自动监控');
- expect(t.host.innerHTML).toContain('未就绪');
- await t.monitorButton.onclick();
- expect(api.setGrowthMonitorControl).toHaveBeenCalledWith(true,0);
- expect(api.createBusinessAnalysis).not.toHaveBeenCalled();
- t.page.dispose();
-});
-test('monitor request failure disables the control with a message',async()=>{
- const t=setup();api.getGrowthMonitorControl.mockRejectedValue(Error('AI database unavailable'));
- await t.page.draw();
- expect(t.host.innerHTML).toContain('监控开关不可用');
- expect(t.host.innerHTML).toContain('data-monitor-toggle');
- expect(t.host.innerHTML).toContain('disabled');
- t.page.dispose();
 });
 
 test('incomplete investigation is presented as needing human attention rather than running',async()=>{
@@ -354,7 +243,7 @@ test('AI workspace prioritizes selected insights and actions before configuratio
  expect(t.host.innerHTML).toContain('ai-status-grid');
  expect(t.host.innerHTML).toContain('ai-history');
  expect(t.host.innerHTML.indexOf('ai-history')).toBeLessThan(t.host.innerHTML.indexOf('ai-result'));
- expect(t.host.innerHTML.indexOf('ai-result')).toBeLessThan(t.host.innerHTML.indexOf('id="ai-new-analysis"'));
+ expect(t.host.innerHTML).not.toContain('ai-gsc-settings');
  await t.button.onclick();
  expect(t.panel.innerHTML).toContain('ai-evidence-index');
  expect(t.panel.innerHTML.indexOf('ai-action-list')).toBeLessThan(t.panel.innerHTML.indexOf('ai-evidence-index'));
@@ -362,21 +251,17 @@ test('AI workspace prioritizes selected insights and actions before configuratio
  t.page.dispose();
 });
 
-test('top new-analysis action expands the real form instead of only moving to a closed anchor',async()=>{
+test('new analysis action opens the focused creation dialog',async()=>{
  const t=setup();
- const focus=vi.fn(),scrollIntoView=vi.fn();
- const form={open:false,scrollIntoView,querySelector:s=>s==='input[name="title"]'?{focus}:null};
+ const showModal=vi.fn(),close=vi.fn();
+ const dialog={showModal,close};
  const action={addEventListener:(_type,callback)=>{action.click=callback}};
  const original=t.host.querySelector;
- t.host.querySelector=selector=>selector==='[href="#ai-new-analysis"]'?action:
-   selector==='#ai-new-analysis'?form:original(selector);
+ t.host.querySelector=selector=>selector==='[data-open-analysis]'?action:
+   selector==='#ai-new-analysis'?dialog:original(selector);
  await t.page.draw();
- const preventDefault=vi.fn();
- action.click({preventDefault});
- expect(preventDefault).toHaveBeenCalledOnce();
- expect(form.open).toBe(true);
- expect(scrollIntoView).toHaveBeenCalled();
- expect(focus).toHaveBeenCalled();
+ action.click();
+ expect(showModal).toHaveBeenCalledOnce();
  t.page.dispose();
 });
 
@@ -424,5 +309,16 @@ test('history is paginated above the report, five items per page with filter res
  selector.change();
  expect(info.textContent).toContain('第 1 / 3 页');
  expect(rows.slice(0,5).every(r=>!r.hidden)).toBe(true);
+ t.page.dispose();
+});
+
+test('AI page excludes Search Console and monitor requests until their own views open',async()=>{
+ const t=setup();
+ await t.page.draw();
+ expect(t.host.innerHTML).not.toContain('ai-gsc-settings');
+ expect(t.host.innerHTML).not.toContain('增长异常自动监控');
+ expect(api.getSeoImports).not.toHaveBeenCalled();
+ expect(api.getGscConnection).not.toHaveBeenCalled();
+ expect(api.getGrowthAlerts).not.toHaveBeenCalled();
  t.page.dispose();
 });

@@ -1,6 +1,7 @@
 import {getToken} from '../auth/authClient.js'
 import {mountGrowthDecisionWorkspace} from './growthDecisionWorkspace.js'
 import {readPathsForTab} from './growthAgentRequestPlan.js'
+import {getAutonomyTargets,saveAutonomyTarget,refreshAutonomyBrief} from '../api/aiAnalysis.js'
 const base=(import.meta.env.VITE_BACKEND_BASE_URL??'http://localhost:3001')
 async function request(path,method='GET',body){
  const response=await fetch(base+path,{method,headers:{'Content-Type':'application/json',Authorization:'Bearer '+getToken()},...(body?{body:JSON.stringify(body)}:{})})
@@ -40,6 +41,8 @@ export function createGrowthAgentControl(ctx){
    const results=await Promise.allSettled(paths.map(p=>wanted.has(p)?cached(p):Promise.resolve({})))
   if(token!==generation)return
   const [status,briefs,learning,research,prompts,approved,costAudit]=results.map((x,i)=>x.status==='fulfilled'?x.value:{error:String(x.reason?.message||' unavailable'),endpoint:paths[i]})
+  const targetData=activeTab==='runtime'?await getAutonomyTargets().catch(error=>({targets:[],supportedMetrics:[],error:error.message})):null
+  if(token!==generation)return
   const err=x=>x?.error?'<p role="alert">'+safe(x.error)+'</p>':''
   const latest=status.latestBrief
   const score=latest?.score?.value??null
@@ -68,6 +71,20 @@ export function createGrowthAgentControl(ctx){
    <div class="a-scroll"><table><thead><tr><th>任务</th><th>调用次数</th><th>Tokens</th><th>未知费用</th></tr></thead><tbody>
    ${(costAudit.topOperations||[]).slice(0,6).map(o=>`<tr><td>${safe(o.operationType)} · ${safe(o.operationId)}</td><td>${safe(o.calls)}</td><td>${safe(o.totalTokens)}</td><td>${safe(o.unknownCostCalls)}</td></tr>`).join('')||'<tr><td colspan="4">暂无已登记的模型调用</td></tr>'}
    </tbody></table></div><small class="a-muted">未知价格或 Token 缺失时，不得把实际费用视为零。</small></div>
+  </section>
+  <section class="a-card a-details"><h2>自动日报评分目标</h2>
+   <p class="a-muted">目标仅用于日报评分，不自动发起 AI 调查。数值与权重由人工配置。</p>
+   ${err(targetData)}
+   <form data-auto-target style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+    <label>业务目标<select name="goal"><option value="activation">激活</option><option value="retention">留存</option><option value="conversion">转化</option><option value="revenue">收入</option></select></label>
+    <label>观测指标<select name="metric">${(targetData?.supportedMetrics||[]).map(m=>`<option value="${safe(m)}">${safe(m)}</option>`).join('')}</select></label>
+    <label>观察值目标<input name="target" type="number" min="0.000001" step="any" required></label>
+    <label>权重（1–10）<input name="weight" type="number" min="1" max="10" value="1" required></label>
+    <button class="a-button" type="submit" ${!(targetData?.supportedMetrics||[]).length?'disabled':''}>保存日报目标</button>
+   </form>
+   ${(targetData?.targets||[]).map(t=>`<p>${safe(t.goal)} · ${safe(t.metric)} ≥ ${safe(t.target)} · 权重 ${safe(t.weight)} · v${safe(t.version)}</p>`).join('')||'<p>尚未配置日报目标</p>'}
+   <button class="a-button" type="button" data-brief-refresh>刷新既有日报与学习记录（不调用模型）</button>
+   <p data-target-result role="status"></p>
   </section>
   <section class="a-card a-details"><h2>自我评价与下一轮策略</h2>${err(learning)}
    <p>成熟复盘 ${learning.assessment?.reviewed??'未知'} · 观察支持 ${learning.assessment?.observedSupported??'未知'} · 观察不支持 ${learning.assessment?.observedContradicted??'未知'}</p>
@@ -101,8 +118,8 @@ export function createGrowthAgentControl(ctx){
   governancePanel.className='ga-governance ga-panel'
   governancePanel.id='ga-panel-governance'
   governancePanel.setAttribute('role','tabpanel')
-  sections.slice(0,3).forEach(section=>runtimePanel.append(section))
-  sections.slice(3).forEach(section=>governancePanel.append(section))
+  sections.slice(0,4).forEach(section=>runtimePanel.append(section))
+  sections.slice(4).forEach(section=>governancePanel.append(section))
   const workspaceRoot=document.createElement('div')
   workspaceRoot.className='ga-workspace ga-panel'
   workspaceRoot.id='ga-panel-workspace'
@@ -141,6 +158,23 @@ export function createGrowthAgentControl(ctx){
   setTab(activeTab)
   if(activeTab==='workspace')workspaceDispose=mountGrowthDecisionWorkspace(workspaceRoot)
   host().querySelector('[data-refresh]').onclick=()=>{invalidate();draw()}
+  const targetForm=host().querySelector('[data-auto-target]')
+  if(targetForm)targetForm.onsubmit=async event=>{
+   event.preventDefault();const button=event.target.querySelector('button');button.disabled=true
+   const note=host().querySelector('[data-target-result]')
+   try{
+    const data=new FormData(event.target),goal=String(data.get('goal')),metric=String(data.get('metric'))
+    const old=(targetData?.targets||[]).find(t=>t.goal===goal&&t.metric===metric&&t.source==='all')
+    await saveAutonomyTarget({goal,metric,source:'all',target:Number(data.get('target')),weight:Number(data.get('weight')),expectedVersion:old?.version??null})
+    invalidate();await draw()
+   }catch(e){if(note)note.textContent=e.message;button.disabled=false}
+  }
+  const refreshBrief=host().querySelector('[data-brief-refresh]')
+  if(refreshBrief)refreshBrief.onclick=async()=>{
+   refreshBrief.disabled=true
+   try{await refreshAutonomyBrief();invalidate();await draw()}
+   catch(e){refreshBrief.disabled=false;const note=host().querySelector('[data-target-result]');if(note)note.textContent=e.message}
+  }
   host().querySelector('[data-scan]').onclick=async()=>{const node=host().querySelector('[data-research-message]');try{const result=await request('/api/growth-agent/research/scan','POST',{source:'all'});node.textContent='新增 '+result.inserted.length+' 个研究问题';invalidate();await draw()}catch(e){node.textContent=e.message}}
   host().querySelectorAll('[data-dispatch]').forEach(button=>button.onclick=async()=>{
    if(!window.confirm('确认创建这项 AI 调查？后台执行时可能调用付费模型，并需要服务端明确开启研究开关。'))return
