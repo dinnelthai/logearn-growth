@@ -1,6 +1,6 @@
 import './aiAnalysis.css';
 import {loadingState} from './loadingState.js';
-import {getGrowthInbox,getGrowthAlerts,getGrowthMonitorControl,setGrowthMonitorControl,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead,getGrowthInvestigationTimeline} from '../api/aiAnalysis.js';
+import {getGrowthAlerts,getGrowthMonitorControl,setGrowthMonitorControl,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead,getGrowthInvestigationTimeline} from '../api/aiAnalysis.js';
 import {TASK_LABELS} from './aiTaskStatus.js';
 
 const DAY=86400000,OFFSET=7*3600000;
@@ -15,8 +15,7 @@ export function createGrowthMonitorPage(ctx){
   ctx.clear?.();const token=++generation,host=$('#as-output');
   host.innerHTML=loadingState('正在读取增长异常与调查提案…');
   try{
-   const [inbox,alertData,monitorControl,proposalData,noticeData,budgetData]=await Promise.all([
-    getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]})),
+   const [alertData,monitorControl,proposalData,noticeData,budgetData]=await Promise.all([
     getGrowthAlerts().catch(error=>({alerts:[],error:error.message})),
     getGrowthMonitorControl().catch(error=>({allowed:false,enabled:false,error:error.message})),
     getGrowthInvestigations().catch(error=>({proposals:[],error:error.message})),
@@ -26,13 +25,7 @@ export function createGrowthMonitorPage(ctx){
    if(token!==generation)return;
    host.innerHTML=`<div class="si-page ai-analysis-page ai-ops-monitor">
     <header class="ai-decision-hero"><div><span class="ai-eyebrow">GROWTH OPERATIONS</span><h1>异常监控与调查</h1><p>基于既有业务证据监控风险，调查任务需要人工批准。</p></div><button class="a-button" data-monitor-refresh type="button">刷新</button></header>
-    <p data-monitor-message role="status" aria-live="polite">${esc(notice)}</p>
-        <section class="a-card"><h2>Growth 运营待办</h2>
-        <p>只读工作台：待审批、待执行、待复盘与失败调查。不会自动执行外部运营动作。</p>
-        <p>当前待办 ${esc(inbox.counts?.total??0)} 条 · 等待审批 ${esc(inbox.counts?.approval??0)} · 待复盘 ${esc(inbox.counts?.review??0)}</p>
-        ${(inbox.warnings||[]).map(w=>'<p>'+esc(w)+'</p>').join('')}
-        ${(inbox.tasks||[]).slice(0,20).map(t=>`<p>${esc(t.priority)} · ${esc(t.title)} · ${esc(t.status)}${t.source?' · 来源 '+esc(t.source):''}${t.evidenceStatus?' · '+esc(t.evidenceStatus==='traceable-observation'?'证据可追溯':'证据待核查'):''} ${t.analysisId?'<button class="a-button" data-analysis="'+esc(t.analysisId)+'">查看分析</button>':''}${t.proposalId?'<button class="a-button" data-case-timeline="'+esc(t.proposalId)+'">查看链路</button>':''}</p>`).join('')||'<p>目前没有需要处理的运营待办。</p>'}
-        </section>
+    <p data-monitor-message role="status" aria-live="polite">${esc(notice)}</p><p class="a-muted">执行与跟进任务请进入 <button class="a-button" type="button" data-open-workbench>运营待办</button> 统一处理。</p>
         <section class="a-card"><h2>增长异常自动监控</h2>
           <p>自动检查拉新/激活与回访分析人数变化，不调用付费 AI，不自动执行运营动作。</p>
           ${monitorControl.error?'<p role="alert">监控开关不可用：'+esc(monitorControl.error)+'。请检查 AI 数据库迁移。</p>':''}
@@ -106,6 +99,7 @@ export function createGrowthMonitorPage(ctx){
 
    </div>`;
    host.querySelector('[data-monitor-refresh]').onclick=draw;
+   host.querySelector('[data-open-workbench]').onclick=()=>ctx.navigate?.('workbench');
    host.querySelectorAll('[data-analysis]').forEach(button=>button.onclick=()=>ctx.navigate?.('ai-analysis'));
       const monitorToggle=host.querySelector('[data-monitor-toggle]');
       if(monitorToggle)monitorToggle.onclick=async()=>{
