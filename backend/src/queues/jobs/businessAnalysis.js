@@ -46,7 +46,10 @@ async function businessAnalysis(job) {
   const isWeeklyReport=executionClaim.record.filter_conditions?.weeklyReport==='v1';
   // Only NEW business analyses opt into v2. Archived checkpoints select their
   // version from the saved system prompt, so deployment cannot rewrite replay.
-  const useContextV2=process.env.AI_MODEL_CONTEXT_V2_ENABLED!=='0';
+  // New tasks use v3 to reduce repeated tool plans/evidence. Either
+  // rollout switch can turn it off without mutating archived v1/v2 jobs.
+  const useContextV3=process.env.AI_MODEL_CONTEXT_V3_ENABLED!=='0'&&
+    process.env.AI_MODEL_CONTEXT_V2_ENABLED!=='0';
   let leaseError=null,renewing=false;
   const heartbeat=setInterval(async()=>{
     if(renewing)return;
@@ -153,8 +156,8 @@ async function businessAnalysis(job) {
     const currentPrompt=require('../../ai/optimization/promptRegistry')
       .createPromptRegistry(require('../../db/connection'))
       .resolve(ownerId,'analysis',prompt,{runId:analysisId});
-    const result=await runTask({context:compact,prompt:isWeeklyReport?currentPrompt+'\n'+(useContextV2?weeklyReport.weeklyPromptV2:weeklyReport.weeklyPrompt):currentPrompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
-      contextVersion:useContextV2?'v2':'v1',
+    const result=await runTask({context:compact,prompt:isWeeklyReport?currentPrompt+'\n'+(useContextV3?weeklyReport.weeklyPromptV2:weeklyReport.weeklyPrompt):currentPrompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
+      contextVersion:useContextV3?'v3':'v1',
       ...(isWeeklyReport?{modelTimeoutMs:weeklyReport.weeklyModelTimeoutMs()}:{}),
       paidCalls:{
         begin:round=>executionClaim.record.filter_conditions?.proposalId
