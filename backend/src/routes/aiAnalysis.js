@@ -279,8 +279,9 @@ router.post('/:id/resume-weekly-overflow',handle(async(req,res)=>{
   if(!record)return res.status(404).json({error:'分析不存在或无权限'});
   if(record.status!=='failed'||record.cancel_requested||
     record.filter_conditions?.weeklyReport!=='v1'||
-    record.error_message!=='补充查询过多，请缩小问题范围或提高调查能力')
-    return res.status(409).json({error:'仅允许人工继续因补查超额失败的周报'});
+    !['补充查询过多，请缩小问题范围或提高调查能力',
+      'AI Token硬预算不足，未发起下一轮模型请求；已付费证据保留在断点'].includes(record.error_message))
+    return res.status(409).json({error:'仅允许人工继续已确认模型响应的超额补查或Token预算周报'});
   const guards=await records.listAnalysisPaidCalls(record.id,ownerId);
   if(!guards.length||guards.some(item=>item.status!=='received'))
     return res.status(409).json({error:'存在无法确认的模型费用或调用状态，禁止续跑'});
