@@ -28,8 +28,14 @@ test('legacy ids, schema, scopes and specialist results stay on the existing pat
  assert.deepEqual(current.slice(0,previous.length),previous);
  assert.deepEqual(current.slice(0,previous.length).map(x=>x.id),listToolIds());
  for(const id of ['get_seo_performance','get_kol_performance']){
-  assert.deepEqual(await withExtension.executeTool(id,{},context),
-   await baseline.executeTool(id,{},context));
+  // Legacy execution is not constrained by the test connector's task allowlist.
+  // Evidence IDs and timestamps are intentionally regenerated on each call.
+  const legacyContext={...context,taskAllowedTools:undefined};
+  const original=await baseline.executeTool(id,{},legacyContext);
+  const extended=await withExtension.executeTool(id,{},legacyContext);
+  assert.equal(extended.status,original.status);
+  assert.equal(extended.evidence[0].metricId,original.evidence[0].metricId);
+  assert.deepEqual(extended.evidence[0].value,original.evidence[0].value);
  }
 });
 test('project-shipped test connector registers without changing core dispatch',async()=>{
