@@ -224,11 +224,6 @@
 #la-studio .ai-weekly-heading h3 { font-size:18px; margin:0 0 6px; }
 #la-studio .ai-weekly-heading p { margin:0; }
 #la-studio .ai-weekly-status { display:inline-block; padding:7px 12px; border-radius:24px; border:1px solid var(--a-border); font-size:13px; }
-#la-studio .ai-weekly-consent[hidden] { display:none; }
-#la-studio .ai-weekly-consent { display:grid; gap:14px; padding:16px; margin:14px 0; border-radius:10px; border:1px solid var(--a-border); }
-#la-studio .ai-weekly-consent label { font-size:13px; line-height:1.65; }
-#la-studio .ai-weekly-consent label input { margin-right:8px; }
-#la-studio .ai-weekly-consent>div { display:flex; gap:12px; }
 #la-studio .ai-weekly-picker { display:flex; align-items:center; gap:12px; margin:18px 0 12px; font-size:13px; }
 #la-studio .ai-weekly-picker select { min-width:260px; padding:8px; border:1px solid var(--a-border); border-radius:8px; }
 #la-studio .ai-weekly-report { display:grid; gap:18px; padding:20px 0 8px; min-width:0; }
