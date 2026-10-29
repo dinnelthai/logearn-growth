@@ -36,17 +36,10 @@ export function renderWeeklyCoverage(data,{safe,fmt,links}){
     source?.insightType==='recommendation'?'recommendation':'fact',
    nextAction:typeof source?.nextAction==='string'?source.nextAction.slice(0,160):''};
  });
- const confirmed=rows.filter(r=>r.status==='analyzed').length;
- const collected=rows.filter(r=>r.status==='collected').length;
- const incomplete=rows.length-confirmed-collected;
- return '<section class="ai-weekly-section ai-weekly-module-section">'+
-  '<div class="ai-weekly-section-heading"><div>'+
-   '<span class="ai-weekly-section-index">03 / SOURCE COVERAGE</span>'+
-   '<h4>增长模块调查与分析</h4></div>'+
-   '<span>已分析 '+confirmed+' · 已取数待分析 '+collected+' · 其余 '+incomplete+'</span></div>'+
-  '<p class="ai-weekly-module-intro">所有 12 个增长模块均列出实际调查状态。已取数不等于 AI 已分析；缺失数据不等于业务指标为零。模型仅引用已授权的聚合证据。</p>'+
-  '<div class="ai-weekly-module-grid">'+rows.map(row=>
-   '<div class="ai-weekly-module" data-module="'+safe(row.id)+
+ const analyzed=rows.filter(r=>r.status==='analyzed');
+ const collected=rows.filter(r=>r.status==='collected');
+ const other=rows.filter(r=>!['analyzed','collected'].includes(r.status));
+ const renderCard=row=>'<div class="ai-weekly-module" data-module="'+safe(row.id)+
    '" data-status="'+safe(row.status)+'">'+
     '<div class="ai-weekly-module-top"><strong>'+safe(row.label)+'</strong>'+
      '<span class="ai-weekly-module-status">'+safe(LABELS[row.status])+'</span></div>'+
@@ -63,6 +56,20 @@ export function renderWeeklyCoverage(data,{safe,fmt,links}){
        '<div><span>'+safe(f.metric)+'</span><strong>'+fmt(f.value)+'</strong></div>'
       ).join('')+'</div>':'')+
     (row.evidenceIds.length?'<div class="ai-weekly-ref">'+links(row.evidenceIds)+
-     '</div>':'')+'</div>').join('')+'</div></section>';
+     '</div>':'')+'</div>';
+ return '<section class="ai-weekly-section ai-weekly-module-section">'+
+  '<div class="ai-weekly-section-heading"><div>'+
+   '<span class="ai-weekly-section-index">03 / SOURCE COVERAGE</span>'+
+   '<h4>增长模块调查与分析</h4></div>'+
+   '<span>有数值结论 '+analyzed.length+' · 已取数待分析 '+collected.length+
+    ' · 数据缺口 '+other.length+'</span></div>'+
+  '<p class="ai-weekly-module-intro">12 个增长模块全部保留在归档。只有引用了本模块真实数值的结论才标记为已分析；未调查或数据缺失不代表指标为零。</p>'+
+  (analyzed.length||collected.length?
+   '<div class="ai-weekly-module-grid">'+[...analyzed,...collected].map(renderCard).join('')+'</div>':
+   '<p class="ai-weekly-empty">本期尚无能够形成模块级业务结论的统计记录。</p>')+
+  (other.length?'<details class="ai-weekly-coverage-gaps">'+
+   '<summary>数据不足、未连接及未调查模块 · '+other.length+' 项（点击展开）</summary>'+
+   '<div class="ai-weekly-module-grid">'+other.map(renderCard).join('')+'</div></details>':'')+
+  '</section>';
 }
 export {MODULES};
