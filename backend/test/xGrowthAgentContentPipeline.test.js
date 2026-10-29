@@ -42,7 +42,7 @@ test('daily conversion includes last 30-day X sample with as-of metric, not only
   assert.equal(report.xOfficial.accounts[0].measuredImpressions,980);
   assert.equal(report.xOfficial.accounts[0].followers,9721);
   assert.equal(report.xOfficial.accounts[0].posts[0].observedAt,observed);
-  assert.equal(report.xOfficial.accounts[0].posts[0].likeRate,3/980*100>0?0.31:null);
+  assert.equal(report.xOfficial.accounts[0].posts[0].likeRate,0.31);
   assert.equal(report.xOfficial.accounts[0].posts[0].milestones.h24,null);
   assert.equal(report.xOfficial.accounts[1].sampledPosts,0);
   const projection=statView(report);
@@ -71,5 +71,25 @@ test('no snapshots before report cutoff does not transmit future observations',(
   assert.equal(report.xOfficial.accounts[0].sampledPosts,0);
   assert.equal(report.xOfficial.accounts[0].measuredImpressions,null);
   assert.equal(report.xOfficial.accounts[0].posts.length,0);
+ }finally{db.close()}
+});
+
+test('the existing daily brief carries a bounded source-only X summary without model calls',()=>{
+ const db=setup();
+ try{
+  const observed=Date.parse('2026-10-29T01:00:00Z');
+  db.prepare('INSERT INTO x_official_account_sync VALUES(?,?,?,?)').run('alice','logearn_cn',1000,observed);
+  db.prepare('INSERT INTO x_official_posts VALUES(?,?,?,?,?,?,?,?,?,?,?)')
+   .run('alice','logearn_cn','101',posted,'Example',500,5,3,2,null,observed);
+  db.prepare('INSERT INTO x_official_post_snapshots VALUES(?,?,?,?,?,?,?,?)')
+   .run('alice','logearn_cn','101',observed,500,5,3,2);
+  const brief=require('../src/ai/growth/channelObservations').collectChannelObservations('alice','2026-10-29',{db});
+  assert.equal(brief.x_content_30d.available,true);
+  assert.equal(brief.x_content_30d.accounts[0].sampledPosts,1);
+  assert.equal(brief.x_content_30d.accounts[0].measuredImpressions,500);
+  assert.equal(brief.x_content_30d.accounts[0].measuredEngagementRate,2);
+  assert.equal(brief.x_content_30d.accounts[1].sampledPosts,0);
+  assert.equal(brief.causalProof,false);
+  assert.match(brief.x_content_30d.interpretation,/不是AI/);
  }finally{db.close()}
 });
