@@ -368,6 +368,14 @@ function fitWeeklyModelContext(context,raw){
   context.omissions.weeklyProvenance='重复版本号及水位明细留存在证据档案；本次模型仅使用已展示的日期、覆盖和数值，未知不能按0处理';
  }
  if(size()>limit){
+  // Query authorization is enforced by the registry, not by repeated scopes
+  // in every model-visible tool description. Keep callable input fields.
+  context.capabilities=context.capabilities.map(x=>({
+   id:x.id,description:safeText(x.description||'',26),
+   required:x.required,input:x.input
+  }));
+ }
+ if(size()>limit){
   context.current={totals:context.current.totals||{},
    coverage:context.current.coverage||{status:'unknown'}};
   context.previous={totals:context.previous.totals||{},
