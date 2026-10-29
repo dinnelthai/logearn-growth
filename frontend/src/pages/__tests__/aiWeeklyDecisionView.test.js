@@ -53,7 +53,7 @@ describe('decision-first weekly view',()=>{
   expect(html).not.toContain('↓ -55%');
   expect(html).toContain('class="ai-weekly-kpi" data-trend="down"');
   expect(html).toContain('class="ai-weekly-action" data-priority="p0"');
-  expect(html).toContain('data-coverage="unknown"');
+  expect(html).toContain('data-status="not-investigated"');
  });
  it('does not invent historical SEO results without saved GSC evidence',()=>{
   const html=renderWeeklyDecisionReport({...options,data:base,record});
