@@ -568,3 +568,23 @@
 #la-studio .ai-weekly-regenerate-confirm .ai-weekly-regenerate-buttons {
  display:flex;justify-content:flex-end;align-items:center;gap:9px;
 }
+
+/* Unobserved weekly modules remain inspectable without dominating decisions. */
+#la-studio .ai-weekly-coverage-gaps {
+ border:1px solid var(--weekly-divider,var(--a-border));
+ border-radius:10px;background:var(--weekly-raised,transparent);
+ padding:0 15px;
+}
+#la-studio .ai-weekly-coverage-gaps>summary {
+ cursor:pointer;padding:14px 2px;font-size:12px;
+ line-height:1.7;font-weight:700;color:var(--a-muted);
+}
+#la-studio .ai-weekly-coverage-gaps>summary:focus-visible {
+ outline:2px solid var(--weekly-accent);outline-offset:3px;
+}
+#la-studio .ai-weekly-coverage-gaps[open]>.ai-weekly-module-grid {
+ padding:0 0 15px;
+}
+#la-studio .ai-weekly-coverage-gaps .ai-weekly-module {
+ background:var(--weekly-surface,transparent);
+}
