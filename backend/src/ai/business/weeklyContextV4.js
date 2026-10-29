@@ -23,6 +23,7 @@ function factsFromValue(value,max=4){
   'users','visits','clicks','impressions','ctr','position','views','likes',
   'replies','retweets','reposts','posts','followers','followerChange',
   'engagementRate','replyRate','repostRate','likeRate','h24Views','h48Views',
+  'measuredPosts','followerChange','comments','shares',
   'converted','rate','eligible','returned','pending','trades','volume_usd',
   'volume','revenue','cost','cost_usd','total','count','started','success','failed'
  ]);
@@ -75,8 +76,8 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText}){
   const current=raw.current?.totals?.[id],previous=raw.previous?.totals?.[id];
   if(!valid(current)&&!valid(previous))return null;
   const cur=valid(current)?current:null,prev=valid(previous)?previous:null;
-  const refs=[periodEvidence(id,period.start,period.end,cur)?.id,
-   periodEvidence(id,period.previousStart,period.previousEnd,prev)?.id].filter(Boolean);
+  const refs=[cur===null?null:periodEvidence(id,period.start,period.end,cur)?.id,
+   prev===null?null:periodEvidence(id,period.previousStart,period.previousEnd,prev)?.id].filter(Boolean);
   const changePct=cur!==null&&prev!==null&&prev!==0?
    Math.round((cur-prev)/prev*10000)/100:null;
   return {id,label,current:cur,previous:prev,changePct,evidenceIds:refs,
@@ -87,7 +88,8 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText}){
   .sort((a,b)=>b.score-a.score).slice(0,4)
   .map(({id,label,current,previous,changePct,evidenceIds,coverage})=>
    ({metricId:id,label,current,previous,changePct,evidenceIds,coverage,
-    classification:'observed-decline;cause-unverified'}));
+    classification:coverage==='period-evidence'?'observed-decline;cause-unverified':
+     'snapshot-decline;period-evidence-incomplete'}));
  const favored=new Set([
   ...core.flatMap(x=>x.evidenceIds),
   ...summaries.filter(m=>m.status==='collected'||m.status==='analyzed')
@@ -98,7 +100,7 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText}){
  const evidence=ordered.slice(0,16).map(e=>{
   const sanitized=modelEvidence(e);
   const value=sanitized.value;
-  const stats=factsFromValue(value,5);
+  const stats=typeof value==='number'||value===null?[]:factsFromValue(value,5);
   const scalar=typeof value==='number'||value===null?value:undefined;
   return {
    id:sanitized.id,metricId:sanitized.metricId,
