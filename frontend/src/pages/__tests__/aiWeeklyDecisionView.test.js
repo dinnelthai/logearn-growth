@@ -59,7 +59,7 @@ describe('decision-first weekly view',()=>{
  });
  it('validates values against the archived business weeks',()=>{
   const rows=trustedMetrics(base);
-  expect(rows.find(x=>x.metricId==='new_users').changePct).toBe(-55);
+  expect(rows.find(x=>x.metricId==='new_users').changePct).toBeCloseTo(-55,8);
   expect(rows.find(x=>x.metricId==='active_users').changePct).toBeCloseTo(-13.4146,3);
   const wrong={...base,context_payload:{...base.context_payload,
    evidence:base.context_payload.evidence.filter(x=>x.id!=='new_users-current')}};
