@@ -40,7 +40,7 @@ const weeklyPrompt=`
  "nextWeek":[{"priority":"P0|P1|P2","action":"操作建议","metric":"验证指标","reviewCondition":"观察条件","evidenceIds":["证据ID"]}],
  "dataGaps":["未覆盖或未知项"]
 }
-每一个真实数值必须有对应可核对证据ID；没有数据则使用 null、空数组及 dataGaps，不得套用虚构数字。上述各项中的 evidenceIds 必须同时出现在经过校验的 claims.evidenceIds 中；如果没有对应证据，应改写为数据缺口，不列为确定性事实。
+每一个真实数值必须有对应可核对证据ID；没有数据则使用 null、空数组及 dataGaps，不得套用虚构数字。 changePct 表示相对变化百分数（如10变12写20），分母为0或上周未知时使用 null。上述各项中的 evidenceIds 必须同时出现在经过校验的 claims.evidenceIds 中；如果没有对应证据，应改写为数据缺口，不列为确定性事实。
 `;
 function validateWeeklyReport(analysis){
  const r=analysis?.weeklyReport;
@@ -60,10 +60,15 @@ function validateWeeklyReport(analysis){
      throw Error('周报指标必须是有限数字或未知');
    if([row.current,row.previous,row.changePct].some(v=>v!=null)&&!row.evidenceIds.length)
     throw Error('周报数值不能没有证据');
+   if(row.changePct!=null&&
+     (row.current==null||row.previous==null||row.previous===0||
+      Math.abs((row.current-row.previous)/row.previous*100-row.changePct)>0.55))
+    throw Error('周报环比数据与本周、上周数值不一致');
   }else if(typeof row.text!=='string'||!row.text.trim())throw Error('周报发现内容缺失');
  };
  r.metrics.forEach(row=>verify(row,{numeric:true}));
  for(const kind of ['highlights','issues','channelFindings'])r[kind].forEach(row=>verify(row));
+ if(r.highlights.some(row=>row.evidenceIds.length===0))throw Error('周报亮点必须有原始证据');
  r.nextWeek.forEach(row=>{
   if(!['P0','P1','P2'].includes(row?.priority)||typeof row.action!=='string'||!row.action.trim()||
    typeof row.metric!=='string'||typeof row.reviewCondition!=='string')throw Error('周报行动项无效');
@@ -84,7 +89,7 @@ function ensureWeeklyReport(analysis){
   analysis.weeklyReport={
    executiveSummary:analysis.summary||'AI 调查完成，但摘要缺失。',
    metrics:[],
-   highlights:(analysis.claims||[]).filter(c=>c.kind==='fact'&&typeof c.text==='string')
+   highlights:(analysis.claims||[]).filter(c=>c.kind==='fact'&&typeof c.text==='string'&&references(c).length)
     .slice(0,8).map(c=>({text:c.text,evidenceIds:references(c)})),
    issues:(analysis.claims||[]).filter(c=>c.kind==='hypothesis'&&typeof c.text==='string')
     .slice(0,8).map(c=>({text:'待验证：'+c.text,evidenceIds:references(c)})),
