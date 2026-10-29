@@ -109,7 +109,11 @@ async function businessAnalysis(job) {
     for(const skillId of availableSpecialties){
       const tool=skillId==='content-growth'?'get_content_growth':'get_follower_quality';
       const observed=await session.investigate({tool,input:{start,end,scope:{source:'all'}}});
-      if(observed.status==='ok'&&Array.isArray(observed.evidence))compact.evidence.push(...observed.evidence);
+      if(observed.status==='ok'&&Array.isArray(observed.evidence)){
+        // Prioritize selected evidence before model-context byte-cap truncation.
+        // This does not bypass the regular statistical projection or tool quota.
+        compact.evidence.unshift(...observed.evidence);
+      }
       else compact.warnings=[...(compact.warnings||[]),tool+': source unavailable'];
     }
     const snapshot={snapshot_id:compact.snapshot.id,snapshot_cutoff:compact.snapshot.cutoff,as_of:compact.snapshot.asOf,
