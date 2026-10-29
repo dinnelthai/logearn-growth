@@ -328,8 +328,10 @@ function modelContext(raw,{transportVersion='v1'}={}){
    coverage:e.coverage,watermarks:e.watermarks,
    warnings:['统计维度已缩略，原始证据保存在业务系统']}));
   context.evidenceMeta.shown=context.evidence.length;
-  context.capabilities=context.capabilities.map(x=>({
-   id:x.id,description:x.description,inputSchema:x.inputSchema}));
+  context.capabilities=context.capabilities.map(x=>transportVersion==='v2'?
+   {id:x.id,description:x.description,input:x.input,required:x.required,
+    supportedScopes:x.supportedScopes}:
+   {id:x.id,description:x.description,inputSchema:x.inputSchema});
   context.current={totals:context.current.totals||{}};
   context.previous={totals:context.previous.totals||{}};
   context.warnings=context.warnings.slice(0,4);
