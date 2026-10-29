@@ -25,19 +25,24 @@ const labels={brand:'品牌词',candidate:'非品牌候选',review:'待归类'};
 function svgTrend(daily,h){
  if(!daily.length)return '<p class="seo-muted">暂无逐日数据，不能当作零流量。</p>';
  const days=[...daily].sort((a,b)=>String(a.date).localeCompare(String(b.date)));
- const width=920,height=180,top=14,bottom=158,left=22,right=896;
- const max=Math.max(1,...days.map(d=>Number(d.impressions)||0),...days.map(d=>Number(d.clicks)||0));
+ const width=920,top=20,bottom=133,left=38,right=896;
  const x=i=>left+(days.length===1?0:i*(right-left)/(days.length-1));
- const y=n=>bottom-(Math.max(0,Number(n)||0)/max)*(bottom-top);
- const line=key=>days.map((d,i)=>(i?'L':'M')+x(i).toFixed(1)+','+y(d[key]).toFixed(1)).join(' ');
- const circles=(key,color)=>days.map((d,i)=>'<circle cx="'+x(i).toFixed(1)+'" cy="'+y(d[key]).toFixed(1)+'" r="3.5" fill="'+color+'"><title>'+h(d.date)+' · '+(key==='clicks'?'点击':'曝光')+' '+h(number(d[key]))+'</title></circle>').join('');
- return '<div class="seo-trend-legend"><span class="seo-dot seo-dot-clicks"></span>点击 <span class="seo-dot seo-dot-impressions"></span>曝光</div>'+
-  '<svg class="seo-trend" viewBox="0 0 '+width+' '+height+'" role="img" aria-label="点击及曝光量每日走势，详细数值见下方按日数据表">'+
-  '<line x1="'+left+'" y1="'+bottom+'" x2="'+right+'" y2="'+bottom+'" class="seo-axis"/>'+
-  '<path d="'+line('impressions')+'" class="seo-line seo-line-impressions"/>'+
-  '<path d="'+line('clicks')+'" class="seo-line seo-line-clicks"/>'+circles('impressions','#77859f')+circles('clicks','#3b82f6')+
-  '<text x="'+left+'" y="177" class="seo-chart-label">'+h(days[0].date)+'</text>'+
-  '<text x="'+right+'" y="177" text-anchor="end" class="seo-chart-label">'+h(days[days.length-1].date)+'</text></svg>';
+ const plot=(key,title,color)=>{
+  const max=Math.max(1,...days.map(d=>Math.max(0,Number(d[key])||0)));
+  const y=n=>bottom-(Math.max(0,Number(n)||0)/max)*(bottom-top);
+  const path=days.map((d,i)=>(i?'L':'M')+x(i).toFixed(1)+','+y(d[key]).toFixed(1)).join(' ');
+  const circles=days.map((d,i)=>'<circle cx="'+x(i).toFixed(1)+'" cy="'+y(d[key]).toFixed(1)+'" r="3.5" fill="'+color+'"><title>'+
+   h(d.date)+' · '+title+' '+h(number(d[key]))+'</title></circle>').join('');
+  return '<div class="seo-trend-panel"><div class="seo-trend-heading"><strong>'+title+'趋势</strong>'+
+   '<span>独立刻度 · 最高日 '+number(max)+'</span></div>'+
+   '<svg class="seo-trend" viewBox="0 0 '+width+' 156" role="img" aria-label="'+title+'逐日趋势，完整数据见逐日明细表">'+
+   '<line x1="'+left+'" y1="'+bottom+'" x2="'+right+'" y2="'+bottom+'" class="seo-axis"/>'+
+   '<text x="'+left+'" y="13" class="seo-chart-label">'+number(max)+'</text>'+
+   '<path d="'+path+'" fill="none" stroke="'+color+'" stroke-width="2.6" stroke-linejoin="round"/>'+circles+
+   '<text x="'+left+'" y="152" class="seo-chart-label">'+h(days[0].date)+'</text>'+
+   '<text x="'+right+'" y="152" text-anchor="end" class="seo-chart-label">'+h(days[days.length-1].date)+'</text></svg></div>';
+ };
+ return '<div class="seo-trend-grid">'+plot('clicks','点击','#3b82f6')+plot('impressions','曝光','#77859f')+'</div>';
 }
 function weekComparison(daily){
  const ordered=[...daily].sort((a,b)=>String(a.date).localeCompare(String(b.date)));
@@ -92,7 +97,12 @@ export function renderSeoReport(report,h){
  '<button type="button" data-seo-filter="review" aria-pressed="false">待归类</button></div>'+
  '<div class="ai-gsc-table"><table class="seo-keyword-table"><thead><tr><th>查询词</th><th>类别</th><th>点击</th><th>曝光</th><th>CTR</th><th>排名</th></tr></thead><tbody>'+
  (queries.length?queries.map(q=>'<tr data-seo-kind="'+queryGroup(q.query)+'"><td>'+h(q.query)+'</td><td><span class="seo-kind">'+labels[queryGroup(q.query)]+'</span></td><td>'+number(q.clicks)+'</td><td>'+number(q.impressions)+'</td><td>'+pct(q.ctr)+'</td><td>'+rank(q.position)+'</td></tr>').join(''):'<tr><td colspan="6">Google 未返回可显示的搜索查询行。</td></tr>')+
- '</tbody></table></div><p class="seo-muted">当前候选阈值发现 '+(r.opportunities||[]).length+' 个机会；样本量不足时，不能据此认为没有优化空间。</p></section>'+
+ '</tbody></table></div><p class="seo-muted">当前候选阈值发现 '+(r.opportunities||[]).length+' 个线索；样本量不足时，不能据此认为没有优化空间。</p></section>'+
+ '<section class="seo-panel" aria-label="值得核查的 SEO 机会"><header><div><h3>值得核查的搜索机会</h3><p>以下仅是已同步样本中的候选线索，需要结合覆盖、排名及页面目标人工确认，不代表已带来转化。</p></div></header>'+
+ ((r.opportunities||[]).length?'<ol class="seo-opportunities">'+(r.opportunities||[]).slice(0,8).map(o=>'<li><strong>'+h(o.query||o.page||o.title||o.kind||o.type||'未命名机会')+'</strong>'+
+ '<span>'+h(o.reason||o.description||o.label||'需核对搜索意图、查询和落地页数据')+'</span>'+
+ '<small>曝光 '+number(o.impressions)+' · 点击 '+number(o.clicks)+' · 排名 '+rank(o.position)+'</small></li>').join('')+'</ol>':
+ '<p class="seo-muted">当前没有符合候选规则的线索。可检查关键词表、数据覆盖与网站页面，不代表没有 SEO 机会。</p>')+'</section>'+
  '<section class="seo-panel"><header><div><h3>落地页表现与技术提示</h3><p>名称优先，完整路径和查询参数键作为次要信息展示；参数值始终遮蔽。</p></div></header>'+
  problemList(r.pages||[],h)+
  '<div class="ai-gsc-table"><table class="seo-pages-table"><thead><tr><th>页面</th><th>点击</th><th>曝光</th><th>CTR</th></tr></thead><tbody>'+
