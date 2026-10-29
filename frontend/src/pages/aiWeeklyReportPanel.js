@@ -17,6 +17,21 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
  const reportBody=(data,record)=>{
   const w=data?.result?.weeklyReport;
   if(!w)return '<p role="alert">任务已结束，但没有形成通过验证的周报正文。请到 AI 增长分析查看检查点，不应视作成功。</p>';
+  const calls=Array.isArray(data?.result?.calls)?data.result.calls:[];
+  const costAudit=calls.length?
+   '<div class="ai-weekly-table"><table><thead><tr><th>模型轮次</th><th>总Token</th><th>输入估算</th><th>上下文版本</th><th>输入构成（字节）</th></tr></thead><tbody>'+
+   calls.map((call,i)=>{
+    const segments=call.inputAttribution?.segmentsBytes;
+    const pieces=segments?[
+     ['指令',segments.system],['业务统计',segments.initialFacts],
+     ['工具计划',segments.toolPlans],['补查证据',segments.toolEvidence],
+     ['纠错消息',segments.corrections]
+    ].map(([label,value])=>label+' '+fmt(value)).join(' · '):'旧记录未采集';
+    return '<tr><td>第'+(i+1)+'轮</td><td>'+fmt(call.tokens)+'</td>'+
+      '<td>'+fmt(call.estimatedInputTokens)+'</td><td>'+
+      safe(call.modelTransportVersion||'历史协议')+'</td><td>'+safe(pieces)+'</td></tr>';
+   }).join('')+'</tbody></table></div>':
+   '<p>暂无逐轮模型用量记录。</p>';
   return '<article class="ai-weekly-report">'+
    '<header><span class="ai-eyebrow">AI OPERATIONS WEEKLY</span><h3>'+safe(record.title||'LogEarn AI 运营周报')+'</h3>'+
    '<p class="a-muted">完整业务周 '+safe(date(record.date_range_start))+' — '+safe(date(Number(record.date_range_end)-DAY))+' · UTC+7 · 已保存的模型分析</p></header>'+
@@ -36,7 +51,9 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
    '<details><summary>本次调查证据目录与模型记录</summary><p>证据取自归档业务统计及只读调查工具，引用必须经过服务端验证。</p>'+
    '<p>证据编号：'+safe((data.result.evidenceIds||[]).join('、')||'无')+'</p>'+
    '<p>模型：'+safe(record.model_name||'未提供')+' · 已记录费用：'+
-    (record.cost_usd==null?'费率或记录尚未确认':'$'+fmt(Number(record.cost_usd)))+'</p></details>'+
+    (record.cost_usd==null?'费率或记录尚未确认':'$'+fmt(Number(record.cost_usd)))+'</p>'+
+   '<h4>逐轮模型调用与上下文体积</h4>'+costAudit+
+   '<p class="a-muted">输入构成按 UTF-8 字节计，预估 Token 使用保守算法；实际收费与使用量以中转站返回和共享账本为准，不能把未记录的费用算作零。</p></details>'+
    '<div data-weekly-evidence-detail class="gws-detail" hidden role="status"></div></article>';
  };
  async function showReport(row,token,currentPeriod){
