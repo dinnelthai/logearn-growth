@@ -52,9 +52,12 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
     try{
      const checkpoint=await getJobCheckpoint(row.id);
      if(disposed||token!==seq||!status.isConnected)return;
+     const timedOut=/(?:timed out|timeout|请求超时|模型请求超时)/i.test(row.error_message||'');
+     const billingLabels={'not-started':'尚未发起调用','received':'已确认收到响应',
+      'uncertain':'请求已发出，响应和费用待核对','mismatch':'本地与共享账本不一致'};
      if(recoveryQueued){
       status.textContent='已提交断点续跑，正在等待 Worker 领取任务。原始模型响应不会重新付费。';
-     }else if(canOfferTaskRetry({status:row.status,cancel_requested:false},checkpoint)){
+     }else if(checkpoint.safeToRetry===true&&canOfferTaskRetry({status:row.status,cancel_requested:false},checkpoint)){
       status.innerHTML='<p>检查点没有模型调用记录。可以手动重试；后端还会核查共享付费账本，确认安全才会入队。</p>'+
        '<button type="button" class="a-button" data-weekly-retry>重新生成本周报</button>';
       status.querySelector('[data-weekly-retry]')?.addEventListener('click',async event=>{
@@ -64,7 +67,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
        button.disabled=true;button.textContent='正在重新核对…';
        try{
         const fresh=await getJobCheckpoint(row.id);
-        if(!canOfferTaskRetry({status:row.status,cancel_requested:false},fresh))
+        if(fresh.safeToRetry!==true||!canOfferTaskRetry({status:row.status,cancel_requested:false},fresh))
          throw Error('任务检查点已变化，无法安全重试');
         await retryAnalysis(row.id);
         if(!disposed){selected=row.id;await load()}
@@ -76,7 +79,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
        }finally{busy=false}
       });
      }else if(row.error_message==='补充查询过多，请缩小问题范围或提高调查能力'&&
-      checkpoint.recordStatus==='failed'&&checkpoint.modelCalls>0&&
+      checkpoint.paidCallState==='received'&&checkpoint.recordStatus==='failed'&&checkpoint.modelCalls>0&&
       ['partial-tools','recorded'].includes(checkpoint.state)){
       status.innerHTML='<p>已有模型响应已保存，不能从头重试。可以申请从原始检查点继续；后续新增模型轮次可能产生费用，服务端会重新核对原始响应和付费账本。</p>'+
        '<button type="button" class="a-button" data-weekly-continue>继续周报（可能新增模型费用）</button>';
@@ -97,7 +100,12 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
        }finally{busy=false}
       });
      }else{
-      status.textContent='已有模型调用记录或检查点未确认，不能从头重试。请查看原始调查记录并人工核查费用。';
+      status.textContent=(timedOut
+       ?'模型连接已超时，但无法确认请求是否已被上游处理或计费。'
+       :'无法安全重新执行当前任务。')+
+       '共享付费账本：'+(billingLabels[checkpoint.paidCallState]||'状态待核查')+
+       '；已登记调用 '+Number(checkpoint.paidCallCount||0)+' 次。'+
+       '禁止直接重试或新建同周付费任务。请到模型中转站核查对应时间的请求及账单，再通过原始 AI 调查记录核对调用状态。';
      }
     }catch(error){
      if(!disposed&&token===seq&&status.isConnected)
