@@ -98,12 +98,13 @@ async function readRankings({env=process.env,binding,input={},fetchImpl=fetch,si
    typeof data.config?.lastCheckedAt==='string'?data.config.lastCheckedAt:null;
   const completed=run?.status==='completed';
   const rankings=rows.map(row=>{
-   const desktop=row?.desktop;
-   const position=desktop?.position;
-   const rank=Number.isSafeInteger(position)&&position>=1&&position<=1000?position:null;
+   const pos=value=>Number.isSafeInteger(value)&&value>=1&&value<=1000?value:null;
+   const desktopRank=pos(row?.desktop?.position),mobileRank=pos(row?.mobile?.position);
+   const rank=desktopRank??mobileRank;
+   const device=desktopRank!==null?'desktop':mobileRank!==null?'mobile':null;
    const keyword=typeof row?.keyword==='string'?row.keyword.slice(0,100):'';
    return {keyword,
-    ...(rank!==null&&completed?{rank}:{}),
+    ...(rank!==null&&completed?{rank,device}:{}),
     status:!completed?'not_checked':rank!==null?'ranked':'not_found',
     ...(checkedAt?{checkedAt:checkedAt.slice(0,40)}:{})};
   }).filter(row=>row.keyword);
@@ -132,6 +133,7 @@ const outputSchema=schema({
  rankings:{type:'array',maxItems:30,items:schema({
   keyword:{type:'string',maxLength:100},
   rank:{type:'integer',minimum:1,maximum:1000},
+  device:{type:'string',maxLength:10,enum:['desktop','mobile']},
   status:{type:'string',maxLength:30},
   checkedAt:{type:'string',maxLength:40}
  })},

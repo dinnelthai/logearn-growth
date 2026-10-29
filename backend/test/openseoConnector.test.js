@@ -59,6 +59,25 @@ test('missing saved position is not below depth; failed checks are not zeros',as
  assert.equal(second.status,'run_failed');
  assert.equal(second.rankings[0].rank,undefined);
 });
+test('mobile-only saved rank is not incorrectly reported as not_found',async()=>{
+ const binding=bindingFor(env,{ownerId:'alice'});
+ const f=fixture({notFound:true});
+ const fetchImpl=async(url,opts)=>{
+  const response=await f.fetchImpl(url,opts);
+  if(opts.body){
+   const request=JSON.parse(opts.body);
+   if(request.method==='tools/call'){
+    const body=await response.json();
+    body.result.structuredContent.results.rows[0].mobile={position:7};
+    return new Response(JSON.stringify(body),{status:200,headers:{'content-type':'application/json'}});
+   }
+  }
+  return response;
+ };
+ const result=await readRankings({env,binding,fetchImpl});
+ assert.equal(result.rankings[0].rank,7);
+ assert.equal(result.rankings[0].device,'mobile');
+});
 test('project binding cannot be replaced by input or another owner',async()=>{
  await assert.rejects(readRankings({env,binding:{ownerId:'bob',projectId},
   fetchImpl:fixture().fetchImpl}),e=>e.status===403);

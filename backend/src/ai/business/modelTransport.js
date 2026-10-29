@@ -123,6 +123,7 @@ function externalModelEvidence(row){
  const rankings=entries.slice(0,12).map(x=>({
   keyword:safeText(x?.keyword||'',100),
   rank:Number.isSafeInteger(x?.rank)&&x.rank>0?x.rank:null,
+  device:['desktop','mobile'].includes(x?.device)?x.device:null,
   status:['ranked','not_found','not_checked'].includes(x?.status)?x.status:'unknown',
   checkedAt:safeText(x?.checkedAt||'',80)
  }));
