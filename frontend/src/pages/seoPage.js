@@ -154,7 +154,8 @@ export function createSeoPage(ctx){
              clearOAuthWatch();
              try{
                const state=await getGscConnection();
-               if(state.oauthConnected){message('Google 授权成功');await draw()}
+               if(state.oauthConnected&&!gscConnection.oauthConnected){message('Google 授权成功');await draw()}
+               else if(gscConnection.oauthConnected)message('可点击刷新检查 Google 重新授权状态');
                else message('Google 授权未完成，请重试');
              }catch(error){message('授权状态检查失败：'+error.message)}
            },1500);
