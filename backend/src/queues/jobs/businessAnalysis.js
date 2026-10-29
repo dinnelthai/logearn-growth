@@ -107,7 +107,9 @@ async function businessAnalysis(job) {
     const growthPlan=require('../../ai/growth/planner').planGrowthInvestigation({
       goal:focusGoal,report:compact,history:memory,focusSkillId,
       maxSkills:Math.min(6,3+availableSpecialties.length),availableSpecialties,
-      strategy:learnedStrategy,availableCapabilityIds
+      strategy:learnedStrategy,availableCapabilityIds,
+      // Weekly reports cover channels beyond the primary activation goal.
+      includeWeeklySpecialties:isWeeklyReport
     });
     const memoryView=require('../../ai/business/contextBudget').compactMemory(memory);
     compact={...compact,business:{...compact.business,question:userQuestion||compact.business.question},
@@ -119,8 +121,15 @@ async function businessAnalysis(job) {
     // Existing read-only tool registry creates archived, owner-scoped evidence.
     // This guarantees observed content/follower data are available to the daily
     // conversion prompt when the corresponding owner data exists.
+    const permittedTools=new Set(compact.capabilities.map(cap=>cap.id));
     for(const skillId of availableSpecialties){
       const tool=skillId==='content-growth'?'get_content_growth':'get_follower_quality';
+      // An optional prefetch is not permission to widen the signed task plan.
+      // Missing capabilities are data gaps, not fatal authorization errors.
+      if(!permittedTools.has(tool)){
+        compact.warnings=[...(compact.warnings||[]),tool+': not included in this task plan'];
+        continue;
+      }
       const observed=await session.investigate({tool,input:{start,end,scope:{source:'all'}}});
       if(observed.status==='ok'&&Array.isArray(observed.evidence)){
         // Prioritize selected evidence before model-context byte-cap truncation.
