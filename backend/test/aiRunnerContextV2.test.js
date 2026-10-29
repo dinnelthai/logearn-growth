@@ -135,6 +135,75 @@ test('v2 blocks a second paid round when previous usage exhausts the remaining b
  assert.deepEqual(env.paid,['begin:0','end:0:received']);
  assert.equal(env.archive.get(0).results.length,6);
 });
+test('v3 completes a report beyond estimated task tokens without blind auto-retries',async()=>{
+ const env=setup([investigations,investigations,final]);
+ const result=await runner({AI_TASK_MAX_TOKENS:'6000'}).runTask({
+  context:context(),prompt:'weekly model test',contextVersion:'v3',
+  ownerId:'o',operationId:'v3-budget-advisory',operationType:'analysis',
+  ...env,validate:()=>{}
+ });
+ assert.equal(result.analysis.summary,'周报完成');
+ assert.equal(env.observed.length,3);
+ assert.equal(env.tools.length,12);
+ assert.equal(env.archive.get(0).results.length,6);
+ assert.equal(env.archive.get(1).results.length,6);
+ assert.deepEqual(env.paid,['begin:0','end:0:received','begin:1',
+  'end:1:received','begin:2','end:2:received']);
+ assert.match(env.observed[0].messages[0].content,/token-efficiency-v3/);
+ assert.match(env.observed[0].messages[1].content,/aggregated-business-v3/);
+ assert.ok(env.observed[2].messages.some(message=>
+  message.content.includes('"priorToolEvidence"')));
+});
+test('v3 history reduces the third-round input while preserving full tool journal',async()=>{
+ const compact=setup([investigations,investigations,final]);
+ const baseline=setup([investigations,investigations,final]);
+ await runner().runTask({context:context(),prompt:'weekly model test',contextVersion:'v3',
+  ownerId:'o',operationId:'v3-size',operationType:'analysis',...compact,validate:()=>{}});
+ await runner().runTask({context:context(),prompt:'weekly model test',contextVersion:'v2',
+  ownerId:'o',operationId:'v2-size',operationType:'analysis',...baseline,validate:()=>{}});
+ const bytes=messages=>Buffer.byteLength(JSON.stringify(messages),'utf8');
+ assert.ok(bytes(compact.observed[2].messages)<bytes(baseline.observed[2].messages));
+ assert.equal(compact.archive.get(0).results.length,baseline.archive.get(0).results.length);
+ assert.equal(compact.archive.get(1).results.length,baseline.archive.get(1).results.length);
+});
+test('manual verified v2 budget recovery reuses two paid calls and only bills the next round',async()=>{
+ const original=runner();
+ const prompt='original weekly budget report';
+ const pinnedPrompt=original.buildSystemPrompt(prompt,'v2');
+ const hash=crypto.createHash('sha256').update(pinnedPrompt).digest('hex');
+ const report=context();
+ const contextHash=crypto.createHash('sha256').update(JSON.stringify(report)).digest('hex');
+ const questions=Array.from({length:6},(_,i)=>query(i));
+ const rows=[0,1].map(round=>({
+  round,status:'received',trace_id:'paid-round-'+round,prompts:{analysis:hash},
+  result:{model:'mock',provider:'mock',contextHash,
+   responseContent:JSON.stringify({investigations:questions}),
+   tokens:20000,cost:0.02,costKnown:true,fromCache:false,
+   investigations:questions.map((q,i)=>({query:q,
+    result:{status:'ok',evidence:[{id:'existing-'+round+'-'+i,
+     metricId:'active_users',value:100+i}]}}))}
+ }));
+ const env=setup([final]);
+ const result=await runner({AI_TASK_MAX_TOKENS:'50000'}).runTask({
+  context:report,prompt,ownerId:'o',operationId:'budget-recovery',
+  operationType:'analysis',resumeRows:rows,systemPromptOverride:pinnedPrompt,
+  relaxV2BudgetOnManualResume:true,...env,validate:()=>{}
+ });
+ assert.equal(result.analysis.summary,'周报完成');
+ assert.equal(env.observed.length,1);
+ assert.equal(env.tools.length,0);
+ assert.deepEqual(env.paid,['begin:2','end:2:received']);
+});
+test('v2 budget relaxation is forbidden without an archived prompt and paid rows',async()=>{
+ const env=setup([final]);
+ await assert.rejects(runner().runTask({context:context(),prompt:'normal',
+  contextVersion:'v2',relaxV2BudgetOnManualResume:true,
+  ownerId:'o',operationId:'not-allowed',operationType:'analysis',
+  ...env,validate:()=>{}
+ }),/已确认的原始付费断点/);
+ assert.equal(env.observed.length,0);
+ assert.equal(env.paid.length,0);
+});
 test('legacy protocol remains v1 unless a new task opts in',async()=>{
  const env=setup([final]);
  await runner().runTask({context:context(),prompt:'legacy test',
