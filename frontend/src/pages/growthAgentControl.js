@@ -169,7 +169,7 @@ export function createGrowthAgentControl(ctx){
    event.preventDefault();activeTab=keys[next];draw().then(()=>host().querySelector('[data-ga-tab="'+keys[next]+'"]')?.focus())
   })
   setTab(activeTab)
-  if(activeTab==='workspace')workspaceDispose=mountGrowthDecisionWorkspace(workspaceRoot)
+  if(activeTab==='workspace')workspaceDispose=mountGrowthDecisionWorkspace(workspaceRoot,{navigate:ctx.navigate})
   host().querySelector('[data-refresh]').onclick=()=>{invalidate();draw()}
   const targetForm=host().querySelector('[data-auto-target]')
   if(targetForm)targetForm.onsubmit=async event=>{
