@@ -36,7 +36,9 @@ function planInvestigationResume({rows,guards,context,systemPrompt}) {
     }
     if(requested.length){
       if(!last&&savedTools.length!==requested.length)return block('nonterminal-partial-tools');
-      toolsToRun+=requested.length-savedTools.length;
+      // Only the first six requests can invoke real tools. Omitted requests
+      // are journaled as explicit unknown observations, not tool executions.
+      toolsToRun+=Math.max(0,Math.min(6,requested.length)-Math.min(6,savedTools.length));
     }else if(!last&&!row.result.followup&&!row.result.validatedAnalysis)
       return block('unrecorded-validation-turn');
   }
