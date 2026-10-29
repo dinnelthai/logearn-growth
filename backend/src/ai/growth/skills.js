@@ -25,7 +25,7 @@ const skills=Object.freeze([
   instructions:'优先使用 Google API 已最终确定的聚合快照，手动导入仅为有限证据；报告期可能与业务分析期不一致，不得据此计算 SEO 转化或声称因果关系；GSC 查询行不代表全站总量'},
  {id:'content-growth',version:'1',goal:'conversion',label:'内容增长与渠道表现',
   tools:['get_content_growth','get_channels','get_funnel'],signals:['new_users','activation_rate'],
-  instructions:'人工登记内容数据仅作累积表现参考；必须额外查验独立访问和注册事实，不能归因假设当因果证据'},
+  instructions:'区分人工登记与官方 X API 只读采样；评价内容主题与曝光互动时标注样本覆盖和累计时间，不将点赞、粉丝或曝光视为注册和交易归因事实'},
  {id:'follower-quality',version:'1',goal:'conversion',label:'X粉丝质量与潜在受众',
   tools:['get_follower_quality','get_channels'],signals:['new_users'],
   instructions:'粉丝类别基于有限的简介和帖子关键词；只汇总类别，不输出个人档案，不推断真实购买意向'},

@@ -11,13 +11,35 @@ function contentGrowth(body,ctx){
    new Date(body.start+7*3600000).toISOString().slice(0,10),
    new Date(body.end-1+7*3600000).toISOString().slice(0,10));
  const truncated=rows.length>500,items=rows.slice(0,500);
- return {available:items.length>0,summary:summarize(items),
+ let xOfficial={available:false,source:'x-api-v2-public-metrics',conversionAttribution:false};
+ const tables=new Set(db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r=>r.name));
+ if(tables.has('x_content_accounts')&&tables.has('x_content_posts')){
+  const account=db.prepare('SELECT username,followers,last_synced FROM x_content_accounts WHERE owner_id=?').get(owner);
+  if(account){
+   const posts=db.prepare('SELECT post_id,published_at,body,impressions,likes,replies,reposts,quotes FROM x_content_posts WHERE owner_id=? AND published_at>=? AND published_at<=? ORDER BY published_at DESC LIMIT 20').all(owner,
+    new Date(body.start).toISOString(),new Date(body.end-1).toISOString());
+   const measured=posts.filter(p=>p.impressions>0&&[p.likes,p.replies,p.reposts,p.quotes].every(v=>v!=null));
+   const exposures=measured.reduce((n,p)=>n+p.impressions,0);
+   const engagement=measured.reduce((n,p)=>n+p.likes+p.replies+p.reposts+p.quotes,0);
+   xOfficial={available:posts.length>0,source:'x-api-v2-public-metrics',username:account.username,
+    lastSynced:account.last_synced,followers:account.followers,
+    sampledPosts:posts.length,measuredPosts:measured.length,
+    measuredImpressions:exposures||null,
+    measuredEngagementRate:exposures?Math.round(engagement/exposures*10000)/100:null,
+    posts:posts.slice(0,10).map(p=>({id:p.post_id,publishedAt:p.published_at,
+     text:p.body.slice(0,320),impressions:p.impressions,likes:p.likes,
+     replies:p.replies,reposts:p.reposts,quotes:p.quotes})),
+    coverage:'bounded-sample-cumulative-public-metrics',conversionAttribution:false};
+  }
+ }
+ return {available:items.length>0||xOfficial.available,summary:summarize(items),xOfficial,
    trends:performanceTrend(items),sampleSize:items.length,
    coverage:{status:truncated?'truncated':'manual-only',
-    platformSync:false,conversionAttribution:false},
+    platformSync:xOfficial.available,conversionAttribution:false},
    warnings:['内容指标为人工登记的累计值，不代表统计窗口内的曝光',
     '缺失指标不是零；各渠道曝光口径不可合并',
     '没有带来源的用户注册或交易证据，不能计算内容带来的转化',
+    'X 官方数据是至多20条已采集推文的累计公开指标，不是整个平台的日曝光或因果效果',
     ...(truncated?['超过500条记录，结果不完整']:[])]};
 }
 function followerQuality(body,ctx){

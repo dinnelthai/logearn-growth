@@ -27,6 +27,21 @@ function collectChannelObservations(ownerId,day,{db=require('../../db/connection
    scans:progress,source:'third-party-partial-scan',snapshot:'latest-ever; not day-scoped'};
   report.available||=rows.length>0;
  }
+ if(tables.has('x_content_accounts')&&tables.has('x_content_posts')){
+  const x=db.prepare('SELECT username,followers,last_synced FROM x_content_accounts WHERE owner_id=?').get(ownerId);
+  if(x){
+   const posts=db.prepare('SELECT COUNT(*) AS posts,SUM(impressions) AS impressions,SUM(CASE WHEN impressions IS NULL THEN 1 ELSE 0 END) AS missing FROM x_content_posts WHERE owner_id=? AND published_at>=? AND published_at<?')
+    .get(ownerId,day+'T00:00:00Z',new Date(Date.parse(day+'T00:00:00Z')+86400000).toISOString());
+   const snapshot=tables.has('x_content_follower_daily')?
+    db.prepare('SELECT followers FROM x_content_follower_daily WHERE owner_id=? AND day=?').get(ownerId,day):null;
+   report.x_official={available:!!posts.posts||!!snapshot,source:'x-api-v2-public-metrics',
+    username:x.username,lastSynced:x.last_synced,publishedPosts:posts.posts,
+    impressions:posts.posts>0&&posts.missing===0?posts.impressions:null,
+    followersObservedToday:snapshot?.followers??null,
+    coverage:'bounded-cumulative-public-metrics; not verified conversions'};
+   report.available||=report.x_official.available;
+  }
+ }
  return report;
 }
 module.exports={collectChannelObservations};
