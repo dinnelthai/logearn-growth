@@ -118,8 +118,8 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText}){
  const originalCapabilities=Array.isArray(raw.capabilities)?raw.capabilities:[];
  const allowedIds=originalCapabilities.map(x=>x.id);
  const toolOrder=['query_metrics',
-  ...(issues.some(x=>x.id==='new_users'||x.id==='active_users')?
-   ['get_channels','get_funnel']:[]),
+  ...(issues.some(x=>x.metricId==='new_users'||x.metricId==='active_users')?
+   ['get_channels','get_funnel','get_login_conversion']:[]),
   'get_seo_performance','get_product_chain','get_retention',
   ...(raw.business?.focusGoal==='content-growth'?['get_content_growth']:[]),
   ...allowedIds];
@@ -131,6 +131,20 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText}){
   input:Object.fromEntries(Object.entries(x.input||{}).slice(0,9)),
   description:safeText(x.description,75)
  }));
+ // Tie investigation to the largest verified change. Tool names here
+ // are suggestions, never new permissions or automatic paid queries.
+ const primary=issues[0]||null;
+ const investigationFocus=primary?{
+  metricId:primary.metricId,changePct:primary.changePct,
+  question:primary.metricId==='new_users'?
+   '首次分析人数下降：优先区分渠道流量减少、登录转化下降和首次有效分析漏斗损失；目前不能归因':
+   '识别该指标变化贡献最大的已观测步骤或人群；没有可比证据就说明阻塞点',
+  candidateTools:relevant.filter(id=>
+   primary.metricId==='new_users'?
+    ['get_channels','get_funnel','get_login_conversion','get_seo_performance'].includes(id):
+    ['get_channels','get_funnel','get_retention','get_product_chain'].includes(id)),
+  instruction:'优先复用本周已采集的证据；只有新增分渠道或分步骤信息能解决关键歧义时才补查。相同请求不得重复执行。'
+ }:null;
  const seo=raw.weeklySources?.seo||{};
  const out={
   transportVersion:'aggregated-business-v4',
@@ -143,6 +157,7 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText}){
    historyComplete:raw.snapshot?.historyComplete===true},
   coreMetrics:core.map(({score,...rest})=>rest),
   priorityIssues:issues,
+  investigationFocus,
   weeklyCoverage:summaries,
   evidence,
   evidenceMeta:{available:source.length,shown:evidence.length,
