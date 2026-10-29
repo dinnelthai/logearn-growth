@@ -83,6 +83,49 @@ function createRouter({db=require('../db/connection')}={}){
    throw error;
   }
  }));
+ // Only a human can deliberately authorize another paid task when the last
+ // model call timed out with UNKNOWN cost. Preserve the failed record and ledger.
+ // Never reset its original request key or replay the old unknown provider call.
+ router.post('/ai-weekly-reports/:id/new-attempt',h(async(req,res,owner)=>{
+  if(req.body?.acceptPotentialDuplicateCharge!==true)
+   return res.status(400).json({error:'需要明确确认此前模型请求可能已计费，本次将新建付费任务'});
+  const records=require('../db/aiRecords');
+  const {weeklyPeriod,weeklyKey}=require('../ai/growth/weeklyReport');
+  const period=weeklyPeriod();
+  const previous=await records.getAnalysisRecord(req.params.id,owner);
+  if(!previous||previous.filter_conditions?.weeklyReport!=='v1')
+   return res.status(404).json({error:'原周报不存在或无访问权限'});
+  if(previous.status!=='failed'||previous.cancel_requested||
+     previous.filter_conditions?.weeklyReissueOf||
+     !/(?:timed out|timeout|请求超时|模型请求超时)/i.test(previous.error_message||'')||
+     Number(previous.date_range_start)!==period.start||
+     Number(previous.date_range_end)!==period.end)
+   return res.status(409).json({error:'只有本周首次请求超时且费用未知的周报可人工新建一次'});
+  const ledger=await records.listAnalysisPaidCalls(previous.id,owner);
+  if(!ledger.some(call=>['unknown','started'].includes(call.status)))
+   return res.status(409).json({error:'前一次调用账本不是未确认状态，禁止绕过原任务'});
+  const requestKey=weeklyKey(period)+':manual-timeout:'+previous.id;
+  const conditions={...previous.filter_conditions,weeklyReissueOf:previous.id};
+  const {record,created}=await records.createWeeklyReportRecord({
+   ownerId:owner,requestKey,
+   title:'AI 运营周报 · 人工新尝试 · '+new Date(period.start+25200000).toISOString().slice(0,10),
+   start:period.start,end:period.end,question:previous.user_question,conditions
+  });
+  if(!created)return res.json({analysisId:record.id,status:record.status,reused:true,
+   notice:'已有人工新尝试，未再次提交付费调用'});
+  try{
+   const job=await require('../queues/queues').addAIAnalysisJob('business-analysis',{
+    analysisId:record.id,ownerId:owner,dateRangeStart:period.start,dateRangeEnd:period.end,
+    businessScope:{source:'all'},userQuestion:previous.user_question,
+    focusGoal:conditions.focusGoal||'activation',modelMode:conditions.modelMode||'auto'
+   },{jobId:record.id,attempts:1});
+   res.status(202).json({analysisId:record.id,jobId:job.id,status:record.status,queued:true,
+    notice:'人工发起新的付费周报任务；原超时任务及未确认费用保持不变'});
+  }catch(error){
+   await records.updateAnalysisStatus(record.id,'failed',null,'队列提交失败：'+error.message);
+   throw error;
+  }
+ }));
  router.get('/reports',h(async(req,res,owner)=>res.json({reports:store.reportList(owner,{kind:req.query.kind||null})})));
  router.post('/reports/:kind',h(async(req,res,owner)=>{const report=store.buildReport(owner,req.params.kind,{publish:req.body?.publish===true,forceRevision:req.body?.forceRevision===true});res.json(report)}));
  router.get('/quality',h(async(req,res,owner)=>res.json(store.qualitySummary(owner))));
