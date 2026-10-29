@@ -350,3 +350,24 @@ test('history never mistakes missing adoption counts for zero',async()=>{
  expect(t.host.innerHTML).toContain('时间待确认')
  t.page.dispose()
 })
+
+test('review queue and history share one low-density section with true record timestamps',async()=>{
+ const t=setup()
+ api.getRetrospectives.mockResolvedValue({retrospectives:[{
+   analysis_title:'首次分析漏斗',conclusion:'需要补充端到端观测',
+   created_at:Date.parse('2026-10-29T01:30:00Z'),
+   confidence:'low',has_causality:false,lessons_learned:'核对身份关联'
+ }]})
+ await t.page.draw()
+ const html=t.host.innerHTML
+ expect(html).toContain('id="ai-review"')
+ expect(html).toContain('class="a-card ai-review-workspace"')
+ expect(html).toContain('ai-review-history-item')
+ expect(html).toContain('2026-10-29 · UTC+7')
+ expect(html).toContain('需要补充端到端观测')
+ expect(html).toContain('核对身份关联')
+ expect(html).not.toContain('class="a-card ai-review-history"')
+ expect(html).not.toContain('class="a-card ai-review"')
+ expect(api.createRetrospective).not.toHaveBeenCalled()
+ t.page.dispose()
+})
