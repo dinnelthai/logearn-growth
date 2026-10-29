@@ -73,4 +73,32 @@ function validateWeeklyReport(analysis){
  if(r.dataGaps.some(x=>typeof x!=='string'))throw Error('周报数据限制格式无效');
  return r;
 }
-module.exports={weeklyPeriod,weeklyKey,weeklyOperations,weeklyPrompt,validateWeeklyReport};
+// If a provider returns a valid base analysis but omits the additional report
+// schema, preserve the paid, evidence-validated result as a clearly partial report.
+// Never retry automatically or reuse unverifiable numbers and citations.
+function ensureWeeklyReport(analysis){
+ try{validateWeeklyReport(analysis);return analysis.weeklyReport}
+ catch(error){
+  const cited=new Set((analysis.claims||[]).flatMap(c=>c.evidenceIds||[]));
+  const references=row=>(Array.isArray(row.evidenceIds)?row.evidenceIds:[]).filter(id=>cited.has(id));
+  analysis.weeklyReport={
+   executiveSummary:analysis.summary||'AI 调查完成，但摘要缺失。',
+   metrics:[],
+   highlights:(analysis.claims||[]).filter(c=>c.kind==='fact'&&typeof c.text==='string')
+    .slice(0,8).map(c=>({text:c.text,evidenceIds:references(c)})),
+   issues:(analysis.claims||[]).filter(c=>c.kind==='hypothesis'&&typeof c.text==='string')
+    .slice(0,8).map(c=>({text:'待验证：'+c.text,evidenceIds:references(c)})),
+   channelFindings:[],
+   nextWeek:(analysis.suggestions||[]).slice(0,8).map(s=>({
+    priority:s.priority,action:s.action,metric:s.validationMetrics?.primary||'待定义',
+    reviewCondition:(s.reviewConditions||[]).join('；')||'需人工确定观察条件',
+    evidenceIds:references(s.evidence||{})})),
+   dataGaps:['本次 AI 返回的结构化周报不完整，已按通过验证的 AI 结论生成部分版；未重新调用模型。',
+    '周度 KPI 对照和渠道分项未能形成完整证据表，不能视为零增长。'],
+   partial:true
+  };
+  validateWeeklyReport(analysis);
+  return analysis.weeklyReport;
+ }
+}
+module.exports={weeklyPeriod,weeklyKey,weeklyOperations,weeklyPrompt,validateWeeklyReport,ensureWeeklyReport};
