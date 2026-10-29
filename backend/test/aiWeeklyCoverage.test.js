@@ -69,8 +69,14 @@ test('only an AI claim with recorded evidence promotes collected data to analyze
   }]})});
  const noClaims=finalizeWeeklyCoverage(out,{claims:[]});
  assert.equal(noClaims.modules.find(x=>x.id==='seo-organic').status,'collected');
- const claimed=finalizeWeeklyCoverage(out,{claims:[{evidenceIds:['seo-verified']}]});
+ const claimed=finalizeWeeklyCoverage(out,{
+  claims:[{kind:'fact',text:'有可验证搜索点击',evidenceIds:['seo-verified']}],
+  suggestions:[{action:'下周核查有效搜索页面',
+   evidence:{evidenceIds:['seo-verified']}}]
+ });
  assert.equal(claimed.modules.find(x=>x.id==='seo-organic').status,'analyzed');
+ assert.equal(claimed.modules.find(x=>x.id==='seo-organic').insight,'有可验证搜索点击');
+ assert.equal(claimed.modules.find(x=>x.id==='seo-organic').nextAction,'下周核查有效搜索页面');
  assert.equal(claimed.counts.analyzed,1);
 });
 test('model investigations can fill an uninvestigated module without rerunning tools',()=>{
@@ -79,7 +85,7 @@ test('model investigations can fill an uninvestigated module without rerunning t
   result:{status:'ok',evidence:[{id:'kol-3',metricId:'kol_performance',
    value:{summary:{users:5}}}]}}];
  const result=finalizeWeeklyCoverage(baselineManifest,
-  {claims:[{evidenceIds:['kol-3']}]},{additionalEvidence:later});
+  {claims:[{text:'KOL归组观察存在',evidenceIds:['kol-3']}]},{additionalEvidence:later});
  assert.equal(result.modules.find(x=>x.id==='kol-impact').status,'analyzed');
  assert.deepEqual(result.modules.find(x=>x.id==='kol-impact').evidenceIds,['kol-3']);
 });
@@ -92,4 +98,15 @@ test('query quota exhaustion does not create zero observations or a model retry'
  assert.equal(calls,1);
  assert.equal(result.modules.find(x=>x.id==='seo-organic').status,'insufficient');
  assert.equal(result.modules.find(x=>x.id==='channel-growth').status,'not-investigated');
+});
+
+test('a successful but empty tool payload is not business evidence',async()=>{
+ const ctx=context();
+ const out=await collectWeeklyCoverage({context:ctx,allowedTools:toolIds,
+  maxQueries:1,investigate:async()=>({status:'ok',evidence:[{
+   id:'no-real-metric',metricId:'seo_search',
+   value:{available:true,metrics:{clicks:null,impressions:null}},
+   coverage:{status:'unknown',periodMatched:true}
+  }]})});
+ assert.equal(out.modules.find(x=>x.id==='seo-organic').status,'insufficient');
 });
