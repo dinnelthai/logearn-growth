@@ -5,6 +5,7 @@ const base=(import.meta.env.VITE_BACKEND_BASE_URL??'http://localhost:3001')+'/ap
 const labels={x:'X 官方账号',blog:'博客',youtube:'YouTube'}
 async function request(path='',method='GET',body){const r=await fetch(base+path,{method,headers:{'Content-Type':'application/json',Authorization:'Bearer '+getToken()},...(body?{body:JSON.stringify(body)}:{})});const d=await r.json().catch(()=>({}));if(!r.ok){notifyExpiredSession(r);throw Error(d.error||'内容渠道请求失败')};return d}
 function renderXPanel(x,esc){
+ if(!x)return '<section class="a-card a-details"><h2>X 官方账号监测</h2><p>内容渠道数据已加载，但后端尚未提供 X 监测接口。请更新并重启后端服务，然后刷新页面。</p></section>';
  const a=x?.account,metrics=x?.metrics||{},fmt=v=>v==null?'未知':Number(v).toLocaleString('zh-CN');
  let html='<section class="a-card a-details"><h2>X 官方账号监测</h2><p>只读公开数据，不授权账号、不发帖。手工内容登记与官方 X 数据分别统计。</p>';
  html+='<form data-x-account style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">'+
@@ -57,7 +58,7 @@ export function createContentGrowth(ctx){const host=()=>ctx.$('#as-output');let 
   catch(error){setXNotice(error.message)}
   finally{xBusy=false}
  };
- host().querySelector('[data-x-notice]').textContent=xNotice;
+ const xNoticeNode=host().querySelector('[data-x-notice]');if(xNoticeNode)xNoticeNode.textContent=xNotice;
  const platformSelect=host().querySelector('[data-trend-platform]'),metricSelect=host().querySelector('[data-trend-metric]');chart=echarts.init(host().querySelector('[data-trend-chart]'));const drawTrend=()=>{const rows=data.performance_trend[platformSelect.value],metric=metricSelect.value;chart.setOption({tooltip:{trigger:'axis'},grid:{left:55,right:20,top:20,bottom:45},xAxis:{type:'category',data:rows.map(r=>r.week)},yAxis:{type:'value',min:0},series:[{type:'line',connectNulls:false,data:rows.map(r=>r[metric]==null?null:Math.round(r[metric]/r.count*100)/100)}]},true);host().querySelector('[data-trend-empty]').textContent=rows.some(r=>r[metric]!=null)?'':'当前渠道暂无完整的周度指标数据。'};platformSelect.onchange=drawTrend;metricSelect.onchange=drawTrend;drawTrend();const form=host().querySelector('[data-form]'),cancel=host().querySelector('[data-cancel]');let editing=null;host().querySelectorAll('[data-edit]').forEach(button=>button.onclick=()=>{const item=data.items.find(i=>i.id===button.dataset.edit);editing=item.id;for(const key of ['platform','title','url','published_at','topic','impressions','likes','comments','shares','audience_fit','actionability','evidence','review_note'])form.elements[key].value=item[key]??'';form.elements.platform.disabled=true;cancel.hidden=false;form.scrollIntoView({behavior:'smooth',block:'center'})});cancel.onclick=()=>{editing=null;form.reset();form.elements.platform.disabled=false;cancel.hidden=true};form.onsubmit=async e=>{e.preventDefault();const form=e.currentTarget,button=form.querySelector('button'),msg=host().querySelector('[data-message]');button.disabled=true;try{const body=Object.fromEntries(new FormData(form));body.platform=form.elements.platform.value;await request(editing?'/items/'+encodeURIComponent(editing):'/items',editing?'PUT':'POST',body);await draw()}catch(err){msg.textContent=err.message;button.disabled=false}}}
  return {draw,dispose(){generation++;chart?.dispose();chart=null}}
 }
