@@ -80,3 +80,29 @@ test('monitor action requires actual operator interaction and preserves server v
  expect(api.setGrowthMonitorControl).toHaveBeenCalledWith(true,7)
  t.page.dispose()
 })
+
+test('GSC sync provides inline progress and precise backend errors beside submit button',async()=>{
+ api.getGscConnection.mockResolvedValue({
+  configured:true,selectedSite:'sc-domain:logearn.com',sites:[{
+   siteUrl:'sc-domain:logearn.com',permissionLevel:'siteOwner'
+  }]
+ })
+ api.syncGscPerformance.mockRejectedValue(Error('Search Console query 第 2 行 position 无效，拒绝保存'))
+ const t=setup(createSeoPage)
+ const form={onsubmit:null},syncStatus={textContent:''}
+ t.nodes['[data-gsc-sync-form]']=form
+ t.nodes['[data-gsc-sync-status]']=syncStatus
+ await t.page.draw()
+ expect(t.host.innerHTML).toContain('data-gsc-sync-status')
+ const button={disabled:false,isConnected:true}
+ const original=globalThis.FormData
+ globalThis.FormData=class {
+  get(name){return name==='startDate'?'2026-10-18':'2026-10-19'}
+ }
+ try{
+  await form.onsubmit({preventDefault:vi.fn(),target:{querySelector:()=>button}})
+  expect(api.syncGscPerformance).toHaveBeenCalledWith('2026-10-18','2026-10-19')
+  expect(syncStatus.textContent).toContain('query 第 2 行 position 无效')
+  expect(button.disabled).toBe(false)
+ }finally{globalThis.FormData=original;t.page.dispose()}
+})

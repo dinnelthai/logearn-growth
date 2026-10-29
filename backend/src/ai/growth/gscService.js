@@ -16,13 +16,14 @@ function normalizeGoogleRows(response,dimension,max){
   fail('Search Console 响应无效',503);
  const rows=response.rows||[];
  if(rows.length>max)fail('Google 行数超过服务端预算',503);
- return rows.map(r=>{
-  if(!Array.isArray(r.keys)||r.keys.length!==1||typeof r.keys[0]!=='string'||
-     r.keys[0].length>1500||!Number.isFinite(r.clicks)||r.clicks<0||
-     !Number.isFinite(r.impressions)||r.impressions<0||
-     !Number.isFinite(r.ctr)||r.ctr<0||r.ctr>1||
-     !Number.isFinite(r.position)||r.position<1||r.position>1000)
-    fail('Search Console 返回无效维度或指标，拒绝保存',503);
+ return rows.map((r,index)=>{
+  const invalid=!Array.isArray(r?.keys)||r.keys.length!==1||
+   typeof r.keys[0]!=='string'||r.keys[0].length>4096?'keys':
+   !Number.isFinite(r.clicks)||r.clicks<0?'clicks':
+   !Number.isFinite(r.impressions)||r.impressions<0?'impressions':
+   !Number.isFinite(r.ctr)||r.ctr<0||r.ctr>1?'ctr':
+   !Number.isFinite(r.position)||r.position<1?'position':null;
+  if(invalid)fail(`Search Console ${dimension} 第 ${index+1} 行 ${invalid} 无效，拒绝保存`,503);
   if(dimension==='date')dateMs(r.keys[0]);
   return {[dimension]:r.keys[0],clicks:r.clicks,
    impressions:r.impressions,ctr:r.ctr,position:r.position};
