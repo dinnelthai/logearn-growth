@@ -48,6 +48,25 @@ function collectChannelObservations(ownerId,day,{db=require('../../db/connection
    source:'twitterapi.io',accounts,scope:'third-party-cumulative-observations-not-daily-engagement-or-verified-conversions'};
   report.available||=report.x_official.available;
  }
+ // Use the exact same as-of 30-day evidence reader as the model tool.
+ // This is source observation in the saved brief, NOT AI analysis or KPI score.
+ if(tables.has('content_growth_items')&&tables.has('x_official_account_sync')&&tables.has('x_official_posts')){
+  const end=Date.parse(day+'T00:00:00+07:00')+86400000;
+  const view=require('../business/tools/contentAdapters').createContentAdapters(db)
+   .contentGrowth({start:end-86400000,end},{ownerId});
+  report.x_content_30d={source:'twitterapi.io',lookbackDays:30,
+   asOfExclusive:end,available:view.xOfficial.available,
+   accounts:view.xOfficial.accounts.map(a=>({
+    account:a.account,sampledPosts:a.sampledPosts,measuredPosts:a.measuredPosts,
+    measuredImpressions:a.measuredImpressions,measuredEngagementRate:a.measuredEngagementRate,
+    followerChange:a.followerChange,observedAt:a.lastSynced,
+    age24hSamples:a.publishAge24hBenchmark.sampleSize,
+    age48hSamples:a.publishAge48hBenchmark.sampleSize
+   })),
+   coverage:'up-to-20-saved-posts-per-account;as-of-observation;not-exhaustive',
+   interpretation:'只读数据证据，不是AI生成的判断、X推荐分或注册交易归因'};
+  report.available||=view.xOfficial.available;
+ }
  return report;
 }
 module.exports={collectChannelObservations};
