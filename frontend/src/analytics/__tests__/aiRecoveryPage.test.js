@@ -243,7 +243,7 @@ test('AI workspace prioritizes selected insights and actions before configuratio
  expect(t.host.innerHTML).toContain('ai-status-grid');
  expect(t.host.innerHTML).toContain('ai-history');
  expect(t.host.innerHTML.indexOf('ai-history')).toBeLessThan(t.host.innerHTML.indexOf('ai-result'));
- expect(t.host.innerHTML.indexOf('ai-result')).toBeLessThan(t.host.innerHTML.indexOf('id="ai-new-analysis"'));
+ expect(t.host.innerHTML).not.toContain('ai-gsc-settings');
  await t.button.onclick();
  expect(t.panel.innerHTML).toContain('ai-evidence-index');
  expect(t.panel.innerHTML.indexOf('ai-action-list')).toBeLessThan(t.panel.innerHTML.indexOf('ai-evidence-index'));
