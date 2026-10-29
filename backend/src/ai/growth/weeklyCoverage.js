@@ -51,7 +51,19 @@ function baselineEvidence(context){
 function describeAvailable(result){
  const evidence=Array.isArray(result?.evidence)?result.evidence:[];
  if(result?.status!=='ok'||!evidence.length)return 'insufficient';
- if(evidence.every(e=>e?.value?.available===false))return 'insufficient';
+ if(evidence.every(e=>e?.value?.available===false||e?.value==null))return 'insufficient';
+ // A nominally successful tool request with no observed statistic should
+ // remain a data gap; it is not proof that a business outcome was observed.
+ const containsStatistic=(value,depth=0)=>{
+  if(depth>4||value==null)return false;
+  if(validNumber(value))return true;
+  if(Array.isArray(value))return value.slice(0,8).some(x=>containsStatistic(x,depth+1));
+  if(typeof value!=='object')return false;
+  return Object.entries(value).slice(0,28).some(([key,v])=>
+   ALLOWED_NUMBERS.has(key)&&validNumber(v)||
+   (typeof v==='object'&&containsStatistic(v,depth+1)));
+ };
+ if(!evidence.some(e=>containsStatistic(e.value)))return 'insufficient';
  if(evidence.some(e=>e.metricId==='seo_search'&&e.coverage?.periodMatched!==true))
   return 'insufficient'; // reference-only GSC must not qualify as weekly analyzed
  return 'collected'; // only model citations can promote a source to analyzed
@@ -162,8 +174,20 @@ function finalizeWeeklyCoverage(raw,analysis,{additionalEvidence=[]}={}){
    status:chosen.status,reason:chosen.reason,source:chosen.source,
    evidenceIds:[...(chosen.evidenceIds||[])].slice(0,4),
    facts:(chosen.facts||[]).filter(x=>typeof x.metric==='string'&&validNumber(x.value)).slice(0,4)};
-  if(row.status==='collected'&&row.evidenceIds.some(id=>claimed.has(id))){
-   row.status='analyzed';row.reason='AI 结论已引用该模块的可验证证据';
+  const matchedClaim=(analysis?.claims||[]).find(claim=>
+   Array.isArray(claim?.evidenceIds)&&
+   claim.evidenceIds.some(id=>row.evidenceIds.includes(id))&&
+   typeof claim.text==='string'&&claim.text.trim());
+  if(row.status==='collected'&&matchedClaim&&
+     matchedClaim.evidenceIds.some(id=>claimed.has(id))){
+   row.status='analyzed';
+   row.reason='AI 结论已引用该模块的可验证证据';
+   row.insight=cleanText(matchedClaim.text,200);
+   const action=(analysis?.suggestions||[]).find(s=>
+    Array.isArray(s?.evidence?.evidenceIds)&&
+    s.evidence.evidenceIds.some(id=>row.evidenceIds.includes(id))&&
+    typeof s.action==='string'&&s.action.trim());
+   if(action)row.nextAction=cleanText(action.action,160);
   }
   return row;
  });
