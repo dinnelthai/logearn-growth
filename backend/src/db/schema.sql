@@ -575,3 +575,12 @@ CREATE TABLE IF NOT EXISTS x_official_follower_daily(
 -- OAuth is not used: this service is strictly read-only.
 DROP TABLE IF EXISTS x_oauth_states;
 DROP TABLE IF EXISTS x_oauth_connections;
+
+-- Immutable observed totals, not backfilled publication-time impressions.
+CREATE TABLE IF NOT EXISTS x_official_post_snapshots(
+ owner_id TEXT NOT NULL,account TEXT NOT NULL,post_id TEXT NOT NULL,
+ observed_at INTEGER NOT NULL,impressions INTEGER,likes INTEGER,
+ replies INTEGER,reposts INTEGER,source TEXT NOT NULL,
+ PRIMARY KEY(owner_id,account,post_id,observed_at)
+);
+CREATE INDEX IF NOT EXISTS x_official_snapshot_age ON x_official_post_snapshots(owner_id,account,observed_at);

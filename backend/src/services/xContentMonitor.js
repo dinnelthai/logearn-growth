@@ -5,6 +5,7 @@ const {randomUUID}=require('node:crypto');
 const defaultDb=require('../db/connection');
 const upstream=require('./twitterAccounts');
 const {ACCOUNTS,valid}=require('../analytics/officialXAccounts');
+const metrics=require('../analytics/xContentMetrics');
 const DAY=86400000;
 const fail=(message,status=400)=>{throw Object.assign(Error(message),{status})};
 const positive=value=>Number.isSafeInteger(value)&&value>=0?value:null;
@@ -22,6 +23,14 @@ function createXContentMonitor({db=defaultDb,clock=Date.now,
   const accounts=ACCOUNTS.map(a=>{
    const info=status(id,a.id);
    const posts=db.prepare('SELECT post_id,published_at,body,impressions,likes,replies,reposts,quotes,observed_at FROM x_official_posts WHERE owner_id=? AND account=? ORDER BY published_at DESC LIMIT 20').all(id,a.id);
+   const rawHistory=db.prepare('SELECT post_id,observed_at,impressions,likes,replies,reposts FROM x_official_post_snapshots WHERE owner_id=? AND account=? AND observed_at>=? ORDER BY observed_at DESC LIMIT 1800')
+    .all(id,a.id,clock()-90*DAY);
+   const byPost=new Map();
+   for(const row of rawHistory){
+    if(!byPost.has(row.post_id))byPost.set(row.post_id,[]);
+    byPost.get(row.post_id).push(row);
+   }
+   const observed=posts.map(p=>metrics.enrich(p,byPost.get(p.post_id)||[]));
    const daily=db.prepare('SELECT day,followers FROM x_official_follower_daily WHERE owner_id=? AND account=? ORDER BY day DESC LIMIT 30').all(id,a.id).reverse();
    const recent=posts.filter(p=>p.published_at>=new Date(clock()-30*DAY).toISOString());
    const measured=recent.filter(p=>p.impressions>0&&[p.likes,p.replies,p.reposts].every(v=>v!=null));
@@ -36,7 +45,7 @@ function createXContentMonitor({db=defaultDb,clock=Date.now,
    return {id:a.id,label:a.label,username:a.id,autoSync:!!info?.auto_sync,
     followers:info?.followers??null,lastSynced:info?.last_synced??null,
     lastAttempt:info?.last_attempt??null,error:info?.sync_error??null,
-    posts,daily,metrics:{
+    posts:observed,daily,benchmarks:{h24:metrics.benchmark(observed,'h24'),h48:metrics.benchmark(observed,'h48')},metrics:{
      samplePosts:recent.length,measuredPosts:measured.length,
      impressions:views||null,engagementRate:views?Math.round(interactions/views*10000)/100:null,
      followerChange:first&&first.day!==last.day?last.followers-first.followers:null,
@@ -88,6 +97,13 @@ function createXContentMonitor({db=defaultDb,clock=Date.now,
      new Date(post.createdAt).toISOString(),post.text.slice(0,1500),
      positive(post.viewCount),positive(post.likeCount),positive(post.replyCount),
      positive(post.retweetCount),null,stamp);
+    const capture=db.prepare('INSERT OR IGNORE INTO x_official_post_snapshots(owner_id,account,post_id,observed_at,impressions,likes,replies,reposts,source) VALUES(?,?,?,?,?,?,?,?,?)');
+    for(const post of posts)capture.run(id,account,String(post.id),stamp,
+     positive(post.viewCount),positive(post.likeCount),positive(post.replyCount),
+     positive(post.retweetCount),'twitterapi.io');
+    // Bound time-series storage without touching the latest-post table.
+    db.prepare('DELETE FROM x_official_post_snapshots WHERE owner_id=? AND account=? AND observed_at<?')
+     .run(id,account,stamp-90*DAY);
     db.exec('COMMIT');
    }catch(e){db.exec('ROLLBACK');throw e}
    return overview(id);
