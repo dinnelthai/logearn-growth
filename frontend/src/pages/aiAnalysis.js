@@ -61,6 +61,7 @@ export function createAIAnalysis(ctx){
       ]);
       if(token!==generation)return;
       const launch=consumeAnalysisLaunch();
+      if(launch)contentPresetConsumed=true; // A direct task launch takes precedence over any old URL skill preset.
       if(launch?.kind==='analysis'&&typeof launch.analysisId==='string')selected=launch.analysisId;
       else if(!list.records?.some(r=>r.id===selected))selected=list.records?.[0]?.id??null;
       host.innerHTML=`<div class="si-page ai-analysis-page">
