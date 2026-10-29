@@ -190,7 +190,47 @@ function modelQuery(query){
    ...(input.scope?.source?{scope:{source:safeText(input.scope.source,120)}}:{})
   }};
 }
-function modelContext(raw){
+// Model-only transport v2. Full evidence and input schemas remain in the
+// immutable context/registry. A reference to shared provenance is explicit.
+function compactCapabilities(capabilities){
+ return capabilities.map(cap=>{
+  const props=cap.inputSchema?.properties||{};
+  return {
+   id:cap.id,description:safeText(cap.description||'',110),
+   supportedScopes:cap.supportedScopes,
+   required:cap.inputSchema?.required||[],
+   input:Object.fromEntries(Object.entries(props).slice(0,18).map(([key,field])=>[
+    key,{type:field.type||'unknown',
+     ...(Array.isArray(field.enum)?{values:field.enum.slice(0,16)}:{}),
+     ...(Number.isFinite(field.minimum)?{min:field.minimum}:{}),
+     ...(Number.isFinite(field.maximum)?{max:field.maximum}:{})}
+   ]))
+  };
+ });
+}
+function shareEvidenceProvenance(context){
+ const shared={};
+ for(const key of ['period','sourceVersions','watermarks','coverage']){
+  const counts=new Map();
+  for(const e of context.evidence){
+   if(e[key]==null)continue;
+   const encoded=JSON.stringify(e[key]);
+   const count=counts.get(encoded)||{value:e[key],count:0};
+   count.count++;counts.set(encoded,count);
+  }
+  const popular=[...counts.values()].sort((a,b)=>b.count-a.count)[0];
+  if(popular?.count<3||Buffer.byteLength(JSON.stringify(popular.value),'utf8')<20)continue;
+  shared[key]=popular.value;
+  for(const e of context.evidence){
+   if(JSON.stringify(e[key])!==JSON.stringify(popular.value))continue;
+   delete e[key];
+   e.shared??=[];e.shared.push(key);
+  }
+ }
+ if(Object.keys(shared).length)context.sharedEvidence=shared;
+}
+function modelContext(raw,{transportVersion='v1'}={}){
+ if(!['v1','v2'].includes(transportVersion))throw Error('不支持的模型上下文版本');
  const scope=raw.business?.scope||{};
  const evidence=Array.isArray(raw.evidence)?raw.evidence:[];
  const candidates=Array.isArray(raw.candidates)?raw.candidates:[];
@@ -254,11 +294,20 @@ function modelContext(raw){
    note:'原始用户/事件明细及操作记录仅保存在业务库；模型仅接收聚合统计与可追溯证据ID，未知值不是零'
   }
  };
+ if(transportVersion==='v2'){
+  context.transportVersion='aggregated-business-v2';
+  // Do not discard metric values, provenance or authorized tools. Compress
+  // repeated safe metadata, never raw business rows or mutable credentials.
+  context.capabilities=compactCapabilities(context.capabilities);
+  shareEvidenceProvenance(context);
+  context.omissions.sharedEvidenceSemantics='证据项 shared 引用 sharedEvidence 同名字段；缺省且未引用表示来源未提供，不得按零或已验证处理';
+ }
  // Strict transport byte cap for the first model message, independent of
  // the multilingual token preflight. Do not hide unknown data as zeros.
  const fits=()=>Buffer.byteLength(JSON.stringify(context),'utf8')<=22000;
  if(!fits()){
   context.evidence=context.evidence.slice(0,18);
+  if(transportVersion==='v2')shareEvidenceProvenance(context);
   context.evidenceMeta.shown=context.evidence.length;
   context.candidates=context.candidates.slice(0,6);
   context.candidatesMeta.shown=context.candidates.length;
@@ -275,7 +324,7 @@ function modelContext(raw){
    id:e.id,metricId:e.metricId,definitionVersion:e.definitionVersion,
    unit:e.unit,value:typeof e.value==='number'||e.value==null?e.value:null,
    numerator:e.numerator,denominator:e.denominator,
-   sampleSize:e.sampleSize,period:e.period,
+   sampleSize:e.sampleSize,period:e.period,shared:e.shared,
    coverage:e.coverage,watermarks:e.watermarks,
    warnings:['统计维度已缩略，原始证据保存在业务系统']}));
   context.evidenceMeta.shown=context.evidence.length;
@@ -288,4 +337,4 @@ function modelContext(raw){
  if(!fits())throw Error('聚合模型上下文仍超出22000字节预算；需要缩小业务期间或来源');
  return context;
 }
-module.exports={statView,modelEvidence,modelContext,modelQuery,safeText};
+module.exports={statView,modelEvidence,modelContext,modelQuery,safeText,compactCapabilities};
