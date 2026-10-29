@@ -141,6 +141,18 @@ async function hideAnalysisRecord(id, ownerId) {
   return result.rows[0] || null;
 }
 
+// Owner-scoped completed-week reports live in the existing AI analysis records.
+// Read the same shared PostgreSQL store as the Worker; no parallel report database.
+async function listWeeklyReportRecords(ownerId,{limit=20}={}){
+ const safeLimit=Number.isSafeInteger(limit)?Math.max(1,Math.min(50,limit)):20;
+ const result=await read(`SELECT id,title,status,created_at,completed_at,error_message,
+   date_range_start,date_range_end,result,cost_usd,model_name
+   FROM ai_analysis_records
+   WHERE owner_id=$1 AND filter_conditions->>'weeklyReport'='v1'
+     AND COALESCE(filter_conditions->>'hiddenFromHistory','false')<>'true'
+   ORDER BY date_range_end DESC,created_at DESC LIMIT $2`,[ownerId,safeLimit]);
+ return result.rows;
+}
 /**
  * 获取单个分析记录详情
  */
@@ -744,6 +756,7 @@ module.exports = {
   updateAnalysisStatus,
   updateAnalysisModel,
   listAnalysisRecords,
+  listWeeklyReportRecords,
   hideAnalysisRecord,
   getAnalysisRecord,
 
