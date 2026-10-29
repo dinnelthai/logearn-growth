@@ -126,7 +126,8 @@ function createToolRegistry(deps){
   const view=rows?{...e,value:{...e.value,rows:rows.slice(offset,offset+limit)},page:{offset,limit,total:rows.length}}:e;
   return {status:'ok',evidence:[view],cursor:next,warnings:e.warnings};
  }
- const catalog=createCapabilityCatalog({legacyIds:Object.keys(definitions),extensions:deps.extensions||[],assertOwner:owner});
+ const catalog=createCapabilityCatalog({legacyIds:Object.keys(definitions),extensions:deps.extensions||[],assertOwner:owner,
+  evidenceStore:deps.evidenceStore,makeExternalEvidence:require('./externalEvidence').makeExternalEvidence});
  return {listCapabilities:context=>catalog.list(context,listLegacyCapabilities),
   executeTool:(id,input,context)=>catalog.execute(id,input,context,executeLegacyTool),describeMetric};
 }

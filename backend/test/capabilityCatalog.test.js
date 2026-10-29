@@ -10,6 +10,7 @@ const extension=(overrides={})=>({
  supportedScopes:['source'],permission:'owner-read',cost:'none',
  inputSchema:schema({keyword:{type:'string',maxLength:80}}),
  outputSchema:schema({status:{type:'string',maxLength:20},count:{type:'integer',minimum:0}}),
+ provider:'test',sourceType:'third_party_observation',
  enabled:()=>true,authorize:ctx=>ctx.ownerId==='alice',
  connection:ctx=>({id:'conn-a',ownerId:ctx.ownerId,projectId:'project-a',enabled:true}),
  execute:async input=>({status:'ok',count:input.keyword.length,secret:'must-not-leak'}),
@@ -34,7 +35,8 @@ test('legacy ids, schema, scopes and specialist results stay on the existing pat
 test('project-shipped test connector registers without changing core dispatch',async()=>{
  const registry=createToolRegistry({...deps,extensions:[extension()]});
  assert.ok(registry.listCapabilities(context).some(x=>x.id==='test.snapshot'));
- assert.deepEqual(await registry.executeTool('test.snapshot',{keyword:'seo'},context),{status:'ok',count:3});
+ const result=await registry.executeTool('test.snapshot',{keyword:'seo'},context);
+ assert.equal(result.status,'ok');assert.equal(result.evidence[0].value.count,3);
  assert.equal(registry.listCapabilities({...context,ownerId:'bob'}).some(x=>x.id==='test.snapshot'),false);
  await assert.rejects(registry.executeTool('test.snapshot',{keyword:'seo'},{...context,ownerId:'bob'}),e=>e.status===403);
  await assert.rejects(registry.executeTool('test.snapshot',{keyword:'seo',apiKey:'secret'},context),/输入/);

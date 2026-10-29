@@ -9,6 +9,7 @@ const s=(p={})=>({type:'object',additionalProperties:false,properties:p});
 function extension(options={}){
  return {id:'test.ranks',version:'1.0.0',description:'static approved connector',
   supportedScopes:['source'],permission:'owner-read',cost:'none',
+  provider:'test',sourceType:'third_party_observation',
   inputSchema:s({limit:{type:'integer',minimum:1,maximum:10}}),
   outputSchema:s({status:{type:'string',maxLength:20},count:{type:'integer',minimum:0}}),
   enabled:()=>true,authorize:()=>true,
@@ -21,7 +22,7 @@ test('new capability needs a trusted task scope, not merely a visible catalog',a
  const r=registry(extension());
  assert.ok(r.listCapabilities({...ctx,taskAllowedTools:undefined}).some(x=>x.id==='test.ranks'));
  await assert.rejects(r.executeTool('test.ranks',{}, {...ctx,taskAllowedTools:undefined}),e=>e.status===403);
- assert.equal((await r.executeTool('test.ranks',{},ctx)).count,3);
+ assert.equal((await r.executeTool('test.ranks',{},ctx)).evidence[0].value.count,3);
  await assert.rejects(r.executeTool('test.ranks',{}, {...ctx,taskAllowedTools:['query_metrics']}),e=>e.status===403);
 });
 test('owner, connection state, and project binding are server-owned and live-checked',async()=>{
@@ -39,7 +40,7 @@ test('owner, connection state, and project binding are server-owned and live-che
  enabled=true;ownerId='bob';
  await assert.rejects(r.executeTool('test.ranks',{},ctx),e=>e.status===403);
  ownerId='alice';projectId='project-2';
- assert.equal((await r.executeTool('test.ranks',{},ctx)).count,1);
+ assert.equal((await r.executeTool('test.ranks',{},ctx)).evidence[0].value.count,1);
  assert.deepEqual(calls.at(-1),['project-2','conn-1']);
 });
 test('revocation during execution suppresses late results',async()=>{

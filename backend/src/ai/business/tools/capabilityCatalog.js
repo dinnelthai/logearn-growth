@@ -66,10 +66,12 @@ function validateDescriptor(item,legacyIds){
     item.inputSchema.type!=='object'||item.outputSchema.type!=='object'||
     typeof item.execute!=='function'||typeof item.project!=='function'||
     typeof item.enabled!=='function'||typeof item.authorize!=='function'||
-    typeof item.connection!=='function'||item.permission==='owner-write')
+    typeof item.connection!=='function'||item.permission==='owner-write'||
+    typeof item.provider!=='string'||!/^[a-z][a-z0-9_-]{1,40}$/.test(item.provider)||
+    !['third_party_estimate','third_party_observation'].includes(item.sourceType))
   fail('连接器能力声明无效');
 }
-function createCapabilityCatalog({legacyIds=[],extensions=[],assertOwner}={}){
+function createCapabilityCatalog({legacyIds=[],extensions=[],assertOwner,evidenceStore,makeExternalEvidence}={}){
  const old=new Set(legacyIds),byId=new Map();
  if(typeof assertOwner!=='function')fail('能力目录缺少可信身份检查');
  if(!Array.isArray(extensions))fail('连接器集合必须由项目静态声明');
@@ -142,7 +144,13 @@ function createCapabilityCatalog({legacyIds=[],extensions=[],assertOwner}={}){
    if(!plain(projected)||!matches(item.outputSchema,projected)||
       Buffer.byteLength(JSON.stringify(projected))>16000)
     fail('连接器输出未通过安全投影',422);
-   return projected;
+   if(typeof makeExternalEvidence!=='function'||!evidenceStore?.save)
+    fail('连接器证据存储未配置',503);
+   const evidence=makeExternalEvidence({value:projected,provider:item.provider,
+    capabilityId:item.id,version:item.version,sourceType:item.sourceType,
+    connectionId:binding.id,projectId:binding.projectId,input},trustedContext);
+   evidenceStore.save(evidence,trustedContext);
+   return {status:'ok',evidence:[evidence],warnings:evidence.warnings};
   }catch(error){
    if(error.status&&error.status<500)throw error;
    return {status:'unavailable',evidence:[],warnings:['外部数据不可用，不得记为零'],

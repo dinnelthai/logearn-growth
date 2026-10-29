@@ -116,8 +116,36 @@ function statView(value,{depth=0,maxRows=MAX_GROUPS}={}){
  return result;
 }
 const numericFact=value=>typeof value==='number'&&Number.isFinite(value)?value:null;
+
+function externalModelEvidence(row){
+ const raw=row.value&&typeof row.value==='object'?row.value:{};
+ const entries=Array.isArray(raw.rankings)?raw.rankings:[];
+ const rankings=entries.slice(0,12).map(x=>({
+  keyword:safeText(x?.keyword||'',100),
+  rank:Number.isSafeInteger(x?.rank)&&x.rank>0?x.rank:null,
+  status:['ranked','not_found','not_checked'].includes(x?.status)?x.status:'unknown',
+  checkedAt:safeText(x?.checkedAt||'',80)
+ }));
+ return {id:row.id,metricId:'external_rank_snapshot',unit:'rank',
+  external:{provider:safeText(row.external.provider,60),
+   capabilityId:safeText(row.external.capabilityId,90),
+   version:safeText(row.external.version,30),
+   sourceType:safeText(row.external.sourceType,50),
+   acquiredAt:safeText(row.external.acquiredAt,80),
+   checkedAt:safeText(row.external.checkedAt||'',80),
+   costStatus:safeText(row.external.costStatus||'unknown',40),
+   truncated:row.external.truncated===true||entries.length>12},
+  value:{status:safeText(raw.status||'unknown',40),
+   checkedAt:safeText(raw.checkedAt||'',80),rankings,
+   omittedRankings:Math.max(0,entries.length-rankings.length)},
+  period:statView(row.period||{}),
+  coverage:{status:safeText(row.coverage?.status||'unknown',40)},
+  warnings:(row.warnings||[]).slice(0,6).map(s=>safeText(s))};
+}
+
 function modelEvidence(row){
  if(!row||typeof row!=='object')return {value:null,warnings:['缺少证据结构']};
+ if(row.external)return externalModelEvidence(row);
  return {
   id:typeof row.id==='string'?row.id:null,
   metricId:typeof row.metricId==='string'?row.metricId:null,
