@@ -17,6 +17,7 @@ describe('AI weekly 12-module coverage',()=>{
   const manifest={version:'weekly-coverage-v1',modules:[{
    id:'seo-organic',label:'SEO',status:'analyzed',
    reason:'GSC matched PT dates',evidenceIds:['ev-1'],
+   insight:'GSC 可验证搜索点击上升',nextAction:'复查重点着陆页',
    facts:[{metric:'metrics.clicks',value:14},{metric:'metrics.impressions',value:180}]
   },{
    id:'revenue',status:'not-connected',reason:'账本尚未连接'
@@ -27,6 +28,9 @@ describe('AI weekly 12-module coverage',()=>{
   const html=renderWeeklyCoverage({result:{weeklyCoverage:manifest}},options);
   expect(html).toContain('data-module="seo-organic" data-status="analyzed"');
   expect(html).toContain('data-weekly-evidence="ev-1"');
+  expect(html).toContain('关键判断：');
+  expect(html).toContain('GSC 可验证搜索点击上升');
+  expect(html).toContain('复查重点着陆页');
   expect(html).toContain('metrics.clicks');
   expect(html).toContain('180');
   expect(html).toContain('data-module="revenue" data-status="not-connected"');
