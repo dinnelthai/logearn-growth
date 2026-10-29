@@ -1,4 +1,4 @@
-import {getAnalysisDetail,getEvidence,getJobCheckpoint,retryAnalysis,continueWeeklyOverflow} from '../api/aiAnalysis.js';
+import {getAnalysisDetail,getEvidence,getJobCheckpoint,retryAnalysis,continueWeeklyOverflow,deleteAnalysis} from '../api/aiAnalysis.js';
 import {canOfferTaskRetry} from './aiTaskStatus.js';
 import {queueAnalysisLaunch} from '../analysisLaunchContext.js';
 
@@ -7,7 +7,7 @@ const date=ms=>Number.isFinite(Number(ms))?new Date(Number(ms)+7*3600000).toISOS
 const fmt=x=>typeof x==='number'&&Number.isFinite(x)?x.toLocaleString('zh-CN',{maximumFractionDigits:2}):'未知';
 const statuses={pending:'排队中',processing:'AI 正在分析',completed:'已完成',failed:'生成失败',cancelled:'已取消'};
 export function mountAIWeeklyReport(root,{api,safe,navigate}){
- let disposed=false,seq=0,poll=null,selected=null,busy=false,recoveryQueued=false;
+ let disposed=false,seq=0,poll=null,selected=null,busy=false,recoveryQueued=false,notice='';
  const clear=()=>{if(poll){clearTimeout(poll);poll=null}};
  const links=ids=>(Array.isArray(ids)?ids:[]).map(id=>
   '<button type="button" class="a-button" data-weekly-evidence="'+safe(id)+'" title="查看来源证据">证据 '+safe(String(id).slice(0,8))+'</button>').join(' ');
@@ -190,6 +190,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
    root.innerHTML='<div class="ai-weekly-heading"><div><h3>AI 运营周报</h3><p class="a-muted">最近完整周：'+
     safe(date(d.period.start))+' — '+safe(date(d.period.end-DAY))+' · UTC+7</p></div>'+
     (current?'<span class="ai-weekly-status">'+safe(row?'正在查看 · '+(statuses[row.status]||row.status):'本期 · '+(statuses[current.status]||current.status))+'</span>':
+     d.archivedCurrentWeek?'<span class="ai-weekly-status">本周记录已移除</span>':
      '<button type="button" class="a-button a-primary" data-weekly-confirm>生成 AI 周报</button>')+'</div>'+
     '<p>分析上个完整自然周的真实业务数据，形成问题、证据与下周行动。单击生成将调用可能收费的模型；同一周不会重复创建任务。</p>'+
     (rows.length?'<label class="ai-weekly-picker">查看历史周报 <select data-weekly-select>'+
@@ -198,12 +199,47 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
       safe(statuses[x.status]||x.status)+'</option>').join('')+'</select></label>':
      '')+
     (row?'<button type="button" class="a-button" data-weekly-inspect>查看原始 AI 调查记录、检查点与费用</button>':'')+
-    '<div data-weekly-body aria-live="polite"></div><p data-weekly-note role="status"></p>';
+    (row?.status==='failed'?
+     '<button type="button" class="a-button ai-weekly-delete-trigger" data-weekly-delete>删除失败周报</button>'+
+     '<div class="ai-weekly-delete-confirmation" data-weekly-delete-confirmation hidden>'+
+     '<p>将这条失败周报从周报列表和历史分析中移除。已产生的模型费用、调用证据与原始任务会保留用于核对；不会清除付费记录或自动重新生成。</p>'+
+     '<div><button type="button" class="a-button" data-weekly-delete-cancel>取消</button>'+
+     '<button type="button" class="a-button ai-weekly-delete-submit" data-weekly-delete-submit>确认删除</button></div></div>':'')+
+    '<div data-weekly-body aria-live="polite"></div><p data-weekly-note role="status">'+safe(notice)+'</p>';
    root.querySelector('[data-weekly-select]')?.addEventListener('change',e=>{selected=e.target.value;load()});
    root.querySelector('[data-weekly-inspect]')?.addEventListener('click',()=>{
     if(!row||typeof navigate!=='function')return;
     queueAnalysisLaunch({kind:'analysis',analysisId:row.id});
     navigate('ai-analysis');
+   });
+   const deletion=root.querySelector('[data-weekly-delete-confirmation]');
+   root.querySelector('[data-weekly-delete]')?.addEventListener('click',()=>{
+    if(!deletion||busy)return;
+    deletion.hidden=false;
+    deletion.querySelector('[data-weekly-delete-cancel]')?.focus();
+   });
+   root.querySelector('[data-weekly-delete-cancel]')?.addEventListener('click',()=>{
+    deletion.hidden=true;
+    root.querySelector('[data-weekly-delete]')?.focus();
+   });
+   root.querySelector('[data-weekly-delete-submit]')?.addEventListener('click',async event=>{
+    if(busy||row?.status!=='failed')return;
+    busy=true;
+    const button=event.currentTarget;
+    button.disabled=true;button.textContent='正在删除…';
+    try{
+     await deleteAnalysis(row.id);
+     if(disposed)return;
+     selected=null;recoveryQueued=false;
+     notice='失败周报已从列表移除；原始费用和审计记录保留。';
+     await load();
+    }catch(error){
+     if(!disposed&&button.isConnected){
+      button.disabled=false;button.textContent='确认删除';
+      const status=root.querySelector('[data-weekly-note]');
+      if(status)status.textContent='删除失败：'+error.message;
+     }
+    }finally{busy=false}
    });
    root.querySelector('[data-weekly-confirm]')?.addEventListener('click',async event=>{
     if(busy)return;
