@@ -166,8 +166,20 @@ async function listWeeklyReportRecords(ownerId,{limit=20}={}){
    filter_conditions->>'weeklyReissueOf' AS weekly_reissue_of
    FROM ai_analysis_records
    WHERE owner_id=$1 AND filter_conditions->>'weeklyReport'='v1'
+     AND COALESCE(filter_conditions->>'hiddenFromHistory','false')<>'true'
    ORDER BY date_range_end DESC,created_at DESC LIMIT $2`,[ownerId,safeLimit]);
  return result.rows;
+}
+// A hidden, owner-scoped weekly report must not reappear as a new task:
+ // its original idempotency key and paid-call journal remain durable.
+async function hasHiddenWeeklyReport(ownerId,{start,end}){
+ const result=await read(`SELECT EXISTS(
+  SELECT 1 FROM ai_analysis_records
+  WHERE owner_id=$1 AND date_range_start=$2 AND date_range_end=$3
+    AND filter_conditions->>'weeklyReport'='v1'
+    AND filter_conditions->>'hiddenFromHistory'='true'
+ ) AS has_hidden`,[ownerId,start,end]);
+ return result.rows[0]?.has_hidden===true;
 }
 /**
  * 获取单个分析记录详情
@@ -794,6 +806,7 @@ module.exports = {
   updateAnalysisModel,
   listAnalysisRecords,
   listWeeklyReportRecords,
+  hasHiddenWeeklyReport,
   createWeeklyReportRecord,
   hideAnalysisRecord,
   getAnalysisRecord,
