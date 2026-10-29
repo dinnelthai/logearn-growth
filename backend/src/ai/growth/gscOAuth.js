@@ -43,8 +43,13 @@ function createGscOAuth({db=pool,env=process.env,request=fetch,clock=Date.now}={
   env.GSC_FRONTEND_ORIGIN&&env.GSC_OAUTH_ENCRYPTION_KEY);
  const connected=async ownerId=>{
   if(!ownerId)return false;
-  const r=await db.query('SELECT owner_id FROM ai_growth_gsc_oauth_connections WHERE owner_id=$1',[String(ownerId)]);
-  return !!r.rows[0];
+  try{
+   const r=await db.query('SELECT owner_id FROM ai_growth_gsc_oauth_connections WHERE owner_id=$1',[String(ownerId)]);
+   return !!r.rows[0];
+  }catch(error){
+   if(error.code==='42P01')fail('AI 数据库缺少 GSC OAuth 表。请先核对 AI_DATABASE_URL 指向的数据库，并按文档执行已授权的 AI 表迁移（npm run migrate:ai）',503);
+   throw error;
+  }
  };
  async function start(ownerId){
   if(!ownerId)fail('未登录',401);

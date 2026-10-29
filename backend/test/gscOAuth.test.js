@@ -91,3 +91,16 @@ test('OAuth callback without refresh token does not establish a connection',asyn
  await assert.rejects(oauth.complete(new URL(authorizationUrl).searchParams.get('state'),'code'),/刷新令牌/);
  assert.equal(await oauth.connected('owner-a'),false);
 });
+
+test('missing GSC OAuth table reports an actionable AI migration error, not raw PostgreSQL SQL',async()=>{
+ const db={query:async()=>{throw Object.assign(new Error('relation "ai_growth_gsc_oauth_connections" does not exist'),{code:'42P01'})}};
+ const oauth=createGscOAuth({db,env});
+ await assert.rejects(oauth.connected('owner-a'),error=>
+   error.status===503&&/AI_DATABASE_URL/.test(error.message)&&/migrate:ai/.test(error.message));
+});
+
+test('GSC connection check propagates unrelated database errors',async()=>{
+ const db={query:async()=>{throw Object.assign(new Error('database unavailable'),{code:'08006'})}};
+ const oauth=createGscOAuth({db,env});
+ await assert.rejects(oauth.connected('owner-a'),/database unavailable/);
+});
