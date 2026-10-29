@@ -25,8 +25,7 @@ async function persistValidatedResult({job,analysisId,ownerId,token,compact,resu
       growthSignals:compact.growthPlan?.triage?.signals||[],
       growthSkills:compact.growthPlan?.steps?.map(step=>({id:step.skillId,version:step.skillVersion}))||[],
       evidenceIds:compact.evidence.map(e=>e.id),goalVersion:compact.goal?.version||null,candidates:compact.candidates,routing:result.routing,calls:result.calls,additionalEvidence:result.evidence,cost:result.cost,analysisId,
-      ...(analysis.weeklyReport?{weeklyReport:analysis.weeklyReport,weeklyOperations:compact.weeklyOperations||null}:{}),
-      reportPeriod:analysis.weeklyReport?compact.period:null};
+      ...(compact.weeklyOperations&&analysis.weeklyReport?{weeklyReport:analysis.weeklyReport,weeklyOperations:compact.weeklyOperations,reportPeriod:compact.period}:{})};
     await records.assertAnalysisLease(analysisId,ownerId,token);
     await records.completeAnalysis(analysisId,ownerId,suggestions,saved,result,token);await job.progress(100);
     return saved;
@@ -153,7 +152,7 @@ async function businessAnalysis(job) {
             :records.beginAnalysisPaidCall(analysisId,ownerId,token,round),
         finish:(round,status)=>records.finishAnalysisPaidCall(analysisId,ownerId,token,round,status)
       },
-      validate:value=>{validateAnalysis(value);session.validate(value);if(isWeeklyReport)weeklyReport.validateWeeklyReport(value);}});
+      validate:value=>{validateAnalysis(value);session.validate(value);if(isWeeklyReport)weeklyReport.ensureWeeklyReport(value);}});
     await beforeStep();
     return await persistValidatedResult({job,analysisId,ownerId,token,compact,result});
   }catch(error){await records.failClaimedAnalysis(analysisId,ownerId,token,error.message);throw error;}
