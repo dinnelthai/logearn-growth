@@ -100,7 +100,7 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,links}){
   '<h3>运营决策周报</h3><p>'+safe(date(record.date_range_start))+' — '+
   safe(date(Number(record.date_range_end)-86400000))+' · Asia/Bangkok · 已保存分析</p></div>'+
   '<span class="ai-weekly-quality" data-quality="'+(w.partial?'partial':'validated')+'">'+
-   (w.partial?'部分验证':'结构已验证')+'</span></header>'+
+   (w.partial?'部分校验 · 业务结论待核实':'结构校验通过 · 业务结论待核实')+'</span></header>'+
   (w.partial?'<p class="ai-weekly-partial" role="status">这是部分周报：AI 的结构化结果未全部通过校验。可信的业务数字从本次归档快照补充，缺失的 SEO 与归因不会虚构。</p>':'')+
   '<div class="ai-weekly-focus"><div class="ai-weekly-focus-label"><span>本周经营判断</span>'+
    '<span>EXECUTIVE BRIEF</span></div><p>'+safe(w.executiveSummary||'没有经过验证的摘要')+'</p></div>'+
