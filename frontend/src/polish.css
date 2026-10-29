@@ -174,3 +174,46 @@
 #la-studio [data-path-details-result]{display:flex;flex-direction:column;gap:18px;min-width:0;margin-top:16px}
 #la-studio [data-path-details-result]>.a-card{margin:0;padding:22px;min-width:0;background:var(--a-panel);border-radius:14px}
 @media(max-width:640px){#la-studio [data-path-details-result]>.a-card{padding:16px}}
+
+
+/* Decision-workspace readability: shared detail and AI inbox patterns. */
+#la-studio[data-current-mode="ai-analysis"] .a-head,
+#la-studio[data-current-mode="seo"] .a-head { display: none; }
+#la-studio .gws-detail[hidden],
+#la-studio .ai-module-inline-form[hidden] { display: none; }
+#la-studio .gws-detail {
+  margin-top: 12px; padding: 16px; border: 1px solid var(--a-border);
+  border-radius: 10px; background: var(--a-bg); min-width: 0;
+  overflow-wrap: anywhere;
+}
+#la-studio .gws-evidence h4 { font-size: 14px; margin: 0 0 10px; }
+#la-studio .gws-evidence p { line-height: 1.65; }
+#la-studio .gws-evidence dl {
+  display: grid; grid-template-columns: repeat(auto-fit,minmax(170px,1fr));
+  gap: 10px; margin: 12px 0;
+}
+#la-studio .gws-evidence dl > div { min-width: 0; }
+#la-studio .gws-evidence dt { font-size: 12px; color: var(--a-muted); }
+#la-studio .gws-evidence dd { margin: 4px 0 0; overflow-wrap: anywhere; }
+#la-studio .gws-timeline { margin: 10px 0; padding-left: 22px; }
+#la-studio .gws-timeline li { padding: 8px 0 12px; border-bottom: 1px solid var(--a-border); }
+#la-studio .gws-timeline time { display: block; color: var(--a-muted); font-size: 12px; }
+#la-studio .gws-evidence details, #la-studio .gws-detail details { margin-top: 10px; }
+#la-studio .gws-detail pre {
+  font-size: 12px; line-height: 1.5; max-height: 320px;
+  overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+#la-studio .work-ai-task {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--a-border);
+}
+#la-studio .work-ai-task strong { font-size: 14px; font-weight: 650; }
+#la-studio .work-ai-task p { margin: 6px 0 0; line-height: 1.5; }
+#la-studio .work-ai-task button { flex-shrink: 0; }
+#la-studio .ai-module-inline-form {
+  margin: 12px 0; padding: 14px; border: 1px solid var(--a-border);
+  border-radius: 10px; background: var(--a-bg);
+}
+#la-studio .ai-module-form-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+#la-studio .ai-module-inline-form textarea { min-height: 72px; resize: vertical; }
+#la-studio .ai-module-inline-form label { font-size: 13px; font-weight: 600; }
