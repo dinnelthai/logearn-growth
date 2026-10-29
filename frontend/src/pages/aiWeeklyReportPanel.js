@@ -39,7 +39,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
     (record.cost_usd==null?'费率或记录尚未确认':'$'+fmt(Number(record.cost_usd)))+'</p></details>'+
    '<div data-weekly-evidence-detail class="gws-detail" hidden role="status"></div></article>';
  };
- async function showReport(row,token){
+ async function showReport(row,token,currentPeriod){
   const target=root.querySelector('[data-weekly-body]');if(!target)return;
   if(row.status!=='completed'){
    target.innerHTML='<p '+(row.status==='failed'?'role="alert"':'class="a-muted"')+'>'+
@@ -105,7 +105,37 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
        :'无法安全重新执行当前任务。')+
        '共享付费账本：'+(billingLabels[checkpoint.paidCallState]||'状态待核查')+
        '；已登记调用 '+Number(checkpoint.paidCallCount||0)+' 次。'+
-       '禁止直接重试或新建同周付费任务。请到模型中转站核查对应时间的请求及账单，再通过原始 AI 调查记录核对调用状态。';
+       '不能在原任务上重试。建议先到模型中转站核查对应时间的请求与账单。';
+      const currentWeek=Number(row.date_range_start)===Number(currentPeriod?.start)&&
+        Number(row.date_range_end)===Number(currentPeriod?.end);
+      if(timedOut&&checkpoint.paidCallState==='uncertain'&&
+        !row.weekly_reissue_of&&currentWeek){
+       const form=document.createElement('div');
+       form.className='ai-weekly-unknown-charge';
+       form.innerHTML='<p>如仍需本周周报，可以人工发起一次全新的付费分析。原请求可能已经计费；新任务不会覆盖旧账本，也不会再次提供自动重试。</p>'+
+        '<label><input type="checkbox" data-weekly-cost-ack> 我知道前一次模型请求的费用尚未确认，同意本次重新调用模型可能重复产生费用。</label>'+
+        '<button type="button" class="a-button" data-weekly-new-attempt disabled>创建一次新的 AI 周报</button>';
+       status.append(form);
+       const ack=form.querySelector('[data-weekly-cost-ack]');
+       const button=form.querySelector('[data-weekly-new-attempt]');
+       ack.addEventListener('change',()=>{button.disabled=!ack.checked});
+       button.addEventListener('click',async()=>{
+        if(busy||!ack.checked)return;
+        busy=true;button.disabled=true;button.textContent='正在创建独立任务…';
+        try{
+         const result=await api('/ai-weekly-reports/'+encodeURIComponent(row.id)+'/new-attempt',
+          'POST',{acceptPotentialDuplicateCharge:true});
+         if(disposed)return;
+         selected=result.analysisId;await load();
+        }catch(error){
+         if(!disposed&&button.isConnected){
+          button.textContent='创建一次新的 AI 周报';
+          button.disabled=!ack.checked;
+          status.querySelector('p').textContent='创建被拒绝：'+error.message;
+         }
+        }finally{busy=false}
+       });
+      }
      }
     }catch(error){
      if(!disposed&&token===seq&&status.isConnected)
@@ -175,7 +205,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
      }
     }finally{busy=false}
    });
-   if(row)await showReport(row,token);
+   if(row)await showReport(row,token,d.period);
    if(!disposed&&token===seq&&(recoveryQueued||rows.some(x=>['pending','processing'].includes(x.status)))){
     poll=setTimeout(load,6000);
    }
