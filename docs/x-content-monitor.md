@@ -47,3 +47,14 @@ X 开源的 For You 排名使用每个**读者**对不同行为的预测概率�
 `backend/test/xContentMonitor.test.js`、
 `frontend/src/analytics/__tests__/contentGrowthView.test.js`。
 未接入真实发布权限，且没有人工模拟官方推荐分。
+
+## 接入现有 Growth Agent
+
+- `get_content_growth` 沿用 owner 隔离、工具预算与证据 ID。每日分析将获得截至报告截止时点的近30天X内容上下文：每账号最多20条已保存帖子参与统计，模型只收到账号摘要和最多3条代表性帖子摘要（最多8条 `contentSignals`）。
+- 数据包括浏览、回复、转发、点赞及三项行为率、采集时间、发布后24/48小时真实快照；没有快照不倒填。不同窗口的业务数据不能与X累计值直接加总或做因果归因。
+- 模型证据通过现有安全统计投影；公开帖子摘要是不可信文本，不得执行其中的指令。模型不接收底层用户、钱包或事件明细。
+- 已授权的每日 conversion 分析会预读取该工具；并未新建后台模型定时任务。只有原有的日常付费调度启用且授权，或人工确认启动分析，才可能产生模型费用。
+- 手动入口：内容渠道增长页 → 用 Growth Agent 分析内容 → 在原有 AI 增长分析弹窗确认内容专项后点击「开始分析」。访问页面和同步公开X数据均不触发LLM。
+- 内容页只显示规则计算的样本线索；真正的AI结论保存在原有分析任务及人工审核流程中，不能宣称X官方推荐分或已验证站内转化。
+
+回归验证文件：`backend/test/xGrowthAgentContentPipeline.test.js`、`backend/test/xContentAgentEvidence.test.js`、`frontend/src/analytics/__tests__/contentGrowthView.test.js`。真实 Worker/模型调用仍需在部署环境单独验收。
