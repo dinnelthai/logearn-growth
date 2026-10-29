@@ -550,16 +550,23 @@ CREATE TABLE IF NOT EXISTS agent_prompt_rollouts (
  version INTEGER NOT NULL DEFAULT 1,
  PRIMARY KEY(owner_id,role));
 
--- X OAuth 2.0 account link for content growth (separate from manual content).
-CREATE TABLE IF NOT EXISTS x_oauth_states (
- state_hash TEXT PRIMARY KEY, owner_id TEXT NOT NULL,
- code_verifier TEXT NOT NULL, expires_at INTEGER NOT NULL
+-- Read-only X channel monitoring, keyed by operator (not the manual content table).
+CREATE TABLE IF NOT EXISTS x_content_accounts (
+ owner_id TEXT PRIMARY KEY,username TEXT NOT NULL,user_id TEXT,
+ display_name TEXT,followers INTEGER,auto_sync INTEGER NOT NULL DEFAULT 0,
+ last_synced INTEGER,last_attempt INTEGER,sync_error TEXT
 );
-CREATE INDEX IF NOT EXISTS x_oauth_states_owner ON x_oauth_states(owner_id);
-CREATE TABLE IF NOT EXISTS x_oauth_connections (
- owner_id TEXT PRIMARY KEY, x_user_id TEXT NOT NULL,
- username TEXT NOT NULL, display_name TEXT NOT NULL,
- profile_image_url TEXT NOT NULL, access_token_enc TEXT NOT NULL,
- refresh_token_enc TEXT NOT NULL, expires_at INTEGER NOT NULL,
- connected_at INTEGER NOT NULL
+CREATE TABLE IF NOT EXISTS x_content_posts (
+ owner_id TEXT NOT NULL,post_id TEXT NOT NULL,published_at TEXT NOT NULL,
+ body TEXT NOT NULL,impressions INTEGER,likes INTEGER,replies INTEGER,
+ reposts INTEGER,quotes INTEGER,bookmarks INTEGER,observed_at INTEGER NOT NULL,
+ PRIMARY KEY(owner_id,post_id)
 );
+CREATE INDEX IF NOT EXISTS x_content_posts_time ON x_content_posts(owner_id,published_at DESC);
+CREATE TABLE IF NOT EXISTS x_content_follower_daily (
+ owner_id TEXT NOT NULL,day TEXT NOT NULL,followers INTEGER NOT NULL,
+ observed_at INTEGER NOT NULL,PRIMARY KEY(owner_id,day)
+);
+-- Retire the superseded account authorization and delete local OAuth secrets.
+DROP TABLE IF EXISTS x_oauth_states;
+DROP TABLE IF EXISTS x_oauth_connections;

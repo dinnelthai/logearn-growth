@@ -54,8 +54,6 @@ app.get('/metrics', require('./monitoring/prometheus').handler)
 // Google authorization code arrives without the LogEarn bearer header.
 // Ownership is resolved only after consuming one-time server-side state.
 app.use('/api/gsc', require('./routes/gscOAuthCallback'))
-// Public X callback resolves owner exclusively from one-time OAuth state.
-app.use('/api/x', require('./routes/xOAuthCallback'))
 // Auth routes (login is public, rest require auth internally)
 app.use('/api/auth', authRouter)
 
@@ -173,6 +171,11 @@ server.listen(PORT, require('./middleware/localDevLogin').enabled()?'127.0.0.1':
  console.log(`Backend (HTTP + WebSocket) running on http://localhost:${PORT}`);
  // No extra Worker/PM2 service: one lightweight cron in each HTTP process.
  // PostgreSQL's existing scheduler lease prevents concurrent replicas scanning.
- try{require('./ai/growth/monitorScheduler').start()}
+ // Opt-in daily X read-only monitor, max one run per owner/day.
+  const runXMonitor=()=>require('./services/xContentMonitor').monitor.syncDue()
+    .catch(error=>console.warn('[x-content] scheduler:',error.message));
+  setTimeout(runXMonitor,30000).unref();
+  setInterval(runXMonitor,60*60*1000).unref();
+  try{require('./ai/growth/monitorScheduler').start()}
  catch(error){console.error('[growth-monitor] scheduler startup failed',error.message)}
 });
