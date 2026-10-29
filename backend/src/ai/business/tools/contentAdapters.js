@@ -19,6 +19,15 @@ function contentGrowth(body,ctx){
    const info=db.prepare('SELECT followers,last_synced FROM x_official_account_sync WHERE owner_id=? AND account=?').get(owner,a.id);
    const posts=db.prepare('SELECT post_id,published_at,body,impressions,likes,replies,reposts,quotes FROM x_official_posts WHERE owner_id=? AND account=? AND published_at>=? AND published_at<=? ORDER BY published_at DESC LIMIT 20').all(owner,a.id,
     new Date(body.start).toISOString(),new Date(body.end-1).toISOString());
+   const snapshotRows=tables.has('x_official_post_snapshots')?
+    db.prepare('SELECT post_id,observed_at,impressions,likes,replies,reposts FROM x_official_post_snapshots WHERE owner_id=? AND account=? ORDER BY observed_at DESC LIMIT 1800').all(owner,a.id):[];
+   const byPost=new Map();
+   for(const row of snapshotRows){
+    if(!byPost.has(row.post_id))byPost.set(row.post_id,[]);
+    byPost.get(row.post_id).push(row);
+   }
+   const {enrich,benchmark}=require('../../../analytics/xContentMetrics');
+   const enriched=posts.map(p=>enrich(p,byPost.get(p.post_id)||[]));
    const measurable=posts.filter(p=>p.impressions>0&&[p.likes,p.replies,p.reposts].every(v=>v!=null));
    const impressions=measurable.reduce((n,p)=>n+p.impressions,0);
    const engagements=measurable.reduce((n,p)=>n+p.likes+p.replies+p.reposts+(p.quotes||0),0);
@@ -28,10 +37,13 @@ function contentGrowth(body,ctx){
      new Date(body.end-1+7*3600000).toISOString().slice(0,10)).reverse():[];
    return {account:a.id,lastSynced:info?.last_synced??null,followers:info?.followers??null,
     sampledPosts:posts.length,measuredPosts:measurable.length,
+    publishAge24hBenchmark:benchmark(enriched,'h24'),publishAge48hBenchmark:benchmark(enriched,'h48'),
     measuredImpressions:impressions||null,measuredEngagementRate:impressions?Math.round(engagements/impressions*10000)/100:null,
     followerHistory:history,followerChange:history.length>=2?history.at(-1).followers-history[0].followers:null,
-    posts:posts.slice(0,10).map(p=>({id:p.post_id,publishedAt:p.published_at,text:p.body.slice(0,320),
-     impressions:p.impressions,likes:p.likes,replies:p.replies,reposts:p.reposts,quotes:p.quotes})),
+    posts:enriched.slice(0,10).map(p=>({id:p.post_id,publishedAt:p.published_at,observedAt:p.observed_at,
+     source:'twitterapi.io',text:p.body.slice(0,320),impressions:p.impressions,likes:p.likes,
+     replies:p.replies,reposts:p.reposts,replyRate:p.replyRate,repostRate:p.repostRate,
+     likeRate:p.likeRate,milestones:p.milestones})),
     coverage:'third-party-bounded-cumulative-public-metrics'};
   });
   xOfficial.available=xOfficial.accounts.some(a=>a.sampledPosts>0||a.followerHistory.length>0);
@@ -44,6 +56,7 @@ function contentGrowth(body,ctx){
     '缺失指标不是零；各渠道曝光口径不可合并',
     '没有带来源的用户注册或交易证据，不能计算内容带来的转化',
     'X 第三方数据源对每个官方账号最多取20条已采集推文；浏览量可能缺失，累计互动不等于日曝光或因果获客',
+    'X 推荐排序依赖个性化预测行为概率，实际回复、转发、点赞率不是推荐分；24/48小时只用真实相近发布年龄快照',
     ...(truncated?['超过500条记录，结果不完整']:[])]};
 }
 function followerQuality(body,ctx){
