@@ -118,7 +118,11 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
     // analysis prose. The unmodified completion is still in the trace journal.
     const hasQueries=Array.isArray(value.investigations)&&value.investigations.length>0;
     const assistantReply=compactToolReplies&&hasQueries?
-      JSON.stringify({investigations:value.investigations,reason:String(value.reason||'').slice(0,320)}):response.content;
+      JSON.stringify({
+        investigations:value.investigations.length>6?value.investigations.slice(0,6):value.investigations,
+        ...(value.investigations.length>6?{omittedInvestigations:value.investigations.length-6}:{}),
+        reason:String(value.reason||'').slice(0,320)
+      }):response.content;
     messages.push({role:'assistant',content:assistantReply});
     if (Array.isArray(value.investigations) && value.investigations.length) {
       if (!investigate) throw Error('该任务暂不支持请求的补充调查，任务未完成');
