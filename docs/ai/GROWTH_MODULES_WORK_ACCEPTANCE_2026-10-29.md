@@ -32,6 +32,7 @@
 8. 仅获明确批准后再启用每日扫描，并核查幂等、调度容量、异常降级、禁用付费外呼。
 9. 检查 OpenSEO 自部署真实连接及 DataForSEO 费用策略；本次不授权付费研究上线。
 10. 对人工行动与既有待办、复盘入口进行端到端核查；未知投入不能伪造 ROI，前后变化不能宣称因果。
+11. 验证人工采纳后机会转入现有 Growth Workspace：证据桥接、同一负责人/问题的重复转入、跨 owner 拒绝、待办只创建不执行。
 
 ### 推荐测试命令
 
@@ -55,6 +56,7 @@ npm run build
 - GET /api/growth-agent/opportunities/:id/history
 - POST /api/growth-agent/opportunities
 - POST /api/growth-agent/opportunities/:id/status
+- POST /api/growth-agent/opportunities/:id/promote（仅人工采纳后，带负责人转入现有 Growth Workspace 问题与待办；不执行行动）
 
 用户由已存在的认证中间件确定；机会状态写入独立 Agent 表而非业务表。
 模型工具调用仍通过已有能力网关、授权及预算。

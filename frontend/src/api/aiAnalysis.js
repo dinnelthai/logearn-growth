@@ -130,3 +130,6 @@ export const saveOpportunity=body=>aiFetch('/api/growth-agent/opportunities',
  {method:'POST',body:JSON.stringify(body)});
 export const decideOpportunity=(id,body)=>aiFetch('/api/growth-agent/opportunities/'+encodeURIComponent(id)+'/status',
  {method:'POST',body:JSON.stringify(body)});
+
+export const promoteOpportunity=(id,body)=>aiFetch('/api/growth-agent/opportunities/'+encodeURIComponent(id)+'/promote',
+ {method:'POST',body:JSON.stringify(body)});

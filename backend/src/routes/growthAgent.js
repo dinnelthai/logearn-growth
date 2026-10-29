@@ -70,6 +70,40 @@ function createRouter({db,registry}){
   const item=opportunities.upsert(String(req.user.user_id),req.body||{});
   res.status(item.created?201:200).json(item);
  }));
+ router.post('/opportunities/:id/promote',handle(async(req,res)=>{
+  // Human-accepted opportunity -> existing workspace problem and proposed
+  // action. This does not execute business changes or publish anything.
+  const ownerId=String(req.user.user_id);
+  const item=opportunities.get(ownerId,req.params.id);
+  if(!item)return res.status(404).json({error:'机会不存在或无权限'});
+  if(item.status!=='accepted')return res.status(409).json({error:'请先人工采纳机会'});
+  const assignee=req.body?.assignee;
+  if(typeof assignee!=='string'||!assignee.trim()||assignee.length>120)
+   return res.status(400).json({error:'必须明确行动负责人'});
+  const workspace=require('../ai/growth/workspace/store').workspaceStore(db);
+  const bridge=require('../ai/growth/workspace/legacyEvidenceBridge');
+  for(const id of item.evidenceIds){
+   const legacy=evidence.get(id,{ownerId,scope:item.scope});
+   bridge.importExistingEvidence(workspace,ownerId,legacy);
+  }
+  const problem=workspace.observeProblem(ownerId,{
+   type:'hypothesis',subject:item.subject,scope:item.scope,
+   metricId:item.metricId||null,goalId:item.goalId||null,
+   goalVersion:item.goalVersion?Number(item.goalVersion):null,
+   description:item.issue,priority:2,evidenceIds:item.evidenceIds,
+   impact:{status:'unknown',agentOpportunityId:item.id},
+   nextStep:item.action
+  });
+  const existing=workspace.actions(ownerId,{limit:200}).find(a=>
+   a.problem_id===problem.id&&a.description===item.action&&a.assignee===assignee.trim());
+  const action=existing||workspace.createAction(ownerId,problem.id,{
+   description:item.action,assignee:assignee.trim(),metricId:item.metricId||null,
+   definitionVersion:item.definitionVersion||null
+  });
+  res.json({problemId:problem.id,actionId:action.id,
+   reused:!!existing,modelCalls:0,externalActions:0,
+   note:'只创建人工待办；实际执行时间和观察期必须后续人工记录'});
+ }));
  router.post('/opportunities/:id/status',handle(async(req,res)=>{
   const item=opportunities.decide(String(req.user.user_id),req.params.id,req.body||{});
   res.json(item);

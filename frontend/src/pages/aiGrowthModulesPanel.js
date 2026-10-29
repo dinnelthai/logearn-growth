@@ -1,5 +1,5 @@
 import {getBusinessModules,runBusinessModuleInvestigation,getOpportunities,
- saveOpportunity,decideOpportunity,getOpportunityHistory,getEvidence} from '../api/aiAnalysis.js';
+ saveOpportunity,decideOpportunity,promoteOpportunity,getOpportunityHistory,getEvidence} from '../api/aiAnalysis.js';
 
 const DAY=86400000;
 const day=ms=>new Date(ms+7*3600000).toISOString().slice(0,10);
@@ -59,6 +59,7 @@ export function mountAIGrowthModulesPanel(host,{esc}){
         '" data-next="accepted">采纳</button> '+
       '<button type="button" class="a-button" data-module-status="'+esc(o.id)+'" data-version="'+o.version+
         '" data-next="deferred">暂缓</button>'+
+      (o.status==='accepted'?'<button type="button" class="a-button" data-module-promote="'+esc(o.id)+'">转入运营待办</button>':'')+
       '<pre data-module-history-view="'+esc(o.id)+'" hidden></pre></article>').join(''):
       '<p class="a-muted">暂无已确认的机会；不代表各渠道正常。</p>')+'</section></div>';
   host.querySelector('[data-modules-form]')?.addEventListener('submit',async event=>{
@@ -89,6 +90,16 @@ export function mountAIGrowthModulesPanel(host,{esc}){
      metricId:null,definitionVersion:null});
     await load();
    }catch(error){if(alive())message('保存失败：'+error.message)}
+   finally{if(button.isConnected)button.disabled=false;}
+  }));
+  host.querySelectorAll('[data-module-promote]').forEach(button=>button.addEventListener('click',async()=>{
+   const assignee=window.prompt('填写运营待办的负责人（必填）');
+   if(!assignee?.trim())return;
+   button.disabled=true;
+   try{
+    const linked=await promoteOpportunity(button.dataset.modulePromote,{assignee:assignee.trim()});
+    if(alive())message('已创建待办 '+linked.actionId+'，需人工执行并按成熟观察期复盘。');
+   }catch(error){if(alive())message('转入待办失败：'+error.message)}
    finally{if(button.isConnected)button.disabled=false;}
   }));
   host.querySelectorAll('[data-module-history]').forEach(button=>button.addEventListener('click',async()=>{
