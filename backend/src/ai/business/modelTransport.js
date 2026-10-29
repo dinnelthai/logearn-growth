@@ -219,7 +219,7 @@ function shareEvidenceProvenance(context){
    count.count++;counts.set(encoded,count);
   }
   const popular=[...counts.values()].sort((a,b)=>b.count-a.count)[0];
-  if(popular?.count<3||Buffer.byteLength(JSON.stringify(popular.value),'utf8')<20)continue;
+  if(!popular||popular.count<3||Buffer.byteLength(JSON.stringify(popular.value),'utf8')<20)continue;
   shared[key]=popular.value;
   for(const e of context.evidence){
    if(JSON.stringify(e[key])!==JSON.stringify(popular.value))continue;
