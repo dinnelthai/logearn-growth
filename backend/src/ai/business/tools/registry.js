@@ -17,7 +17,7 @@ const definitions={
  check_data_quality:{metric:'quality',adapter:'tracking-audit',scopes:['source'],description:'埋点覆盖诊断，不将水位ID解释成强一致快照'},
  get_seo_performance:{metric:'seo_search',adapter:'seo-performance',scopes:['source'],description:'只读读取已同步的 Search Console 最终聚合快照或有限手动导入；日期可能不匹配、查询覆盖不完整'},
  get_kol_performance:{metric:'kol_performance',adapter:'kol-performance',scopes:['source'],description:'复用已有 KOL CRM 归组和真实观察行为；不等于因果归因'},
- get_content_growth:{metric:'content_growth',adapter:'content-growth',scopes:['source'],description:'只读人工登记内容累计表现，无平台自动同步或注册交易归因'},
+ get_content_growth:{metric:'content_growth',adapter:'content-growth',scopes:['source'],description:'只读已采集的LogEarn双账号X内容：近30天有界公开浏览、回复/转发/点赞率、快照和覆盖；人工登记独立，非推荐分及转化归因'},
  get_follower_quality:{metric:'follower_quality',adapter:'follower-quality',scopes:['source'],description:'只读粉丝采集分类汇总，无个人资料外传，数据覆盖可能不足'}
 };
 const fields=['scope','start','end','metrics','dimensions','filters','steps','hours','initial','returning','limit','cursor','siteUrl'];

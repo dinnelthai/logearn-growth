@@ -32,7 +32,9 @@ const numeric=new Set([
  'exposures','clicked','exposed_users','clicked_users','unmatched_clicks','missing_visit_clicks',
  'visitor_users','clicks','details','successes','day',
  'confidence_interval_low','confidence_interval_high','min','max',
- 'week','weekStart','weekEnd','targetValue','effectivenessScore','evidenceCount'
+ 'week','weekStart','weekEnd','targetValue','effectivenessScore','evidenceCount',
+ 'observedAt','followers','followerChange','measuredPosts','engagementRate',
+ 'replyRate','repostRate','likeRate','h24Views','h48Views'
 ]);
 const flags=new Set(['available','historyComplete','history_complete','complete',
  'truncated','mature','known','coverageVerified','platformSync','conversionAttribution',
@@ -57,6 +59,7 @@ const groups=new Set(['totals','days','growth','change','dimensions','channels',
  'funnels','paths','pages','summary','sample','byCurrency','trends','rates','counts',
  'metrics','series','distribution','sources','bySource','period','filters',
  'sourceVersions','watermarks','goal','current','previous','weekly','northStar',
+ 'contentSignals',
  'candidate','candidates','result','data','snapshots','snapshot']);
 const ids=new Set(['snapshot_id','snapshotId','as_of','eventsCompleteThrough',
  'events_complete_through','cutoff','asOf','queryFingerprint']);

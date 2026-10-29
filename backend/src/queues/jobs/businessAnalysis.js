@@ -85,8 +85,13 @@ async function businessAnalysis(job) {
         .getStrategy(ownerId,focusGoal,source):null;
     const isDailyConversion=executionClaim.record.filter_conditions?.dailySchedule==='v1'&&
       focusGoal==='conversion'&&source==='all';
-    const availableSpecialties=isDailyConversion
+    const focusSkillId=executionClaim.record.filter_conditions?.skillId||null;
+    const discovered=isDailyConversion
       ?require('../../ai/growth/dailySpecialties').availableDailySpecialties(require('../../db/connection'),ownerId):[];
+    // Explicit content investigations also preload the same owner-scoped tool.
+    // No API fetch or paid call is triggered by this data read.
+    const availableSpecialties=[...new Set([...discovered,
+      ...(focusSkillId==='content-growth'||focusSkillId==='follower-quality'?[focusSkillId]:[])])];
     const growthPlan=require('../../ai/growth/planner').planGrowthInvestigation({
       goal:focusGoal,report:compact,history:memory,
       focusSkillId:executionClaim.record.filter_conditions?.skillId||null,
