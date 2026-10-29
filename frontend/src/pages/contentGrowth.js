@@ -1,3 +1,4 @@
+import './contentGrowth.css'
 import {getToken,notifyExpiredSession} from '../auth/authClient.js'
 import {viewState} from '../components/viewStates.js'
 const base=(import.meta.env.VITE_BACKEND_BASE_URL??'http://localhost:3001')+'/api/content-growth'
@@ -80,18 +81,32 @@ export function renderXPanel(x,esc,selected,sort){
   '<label>排序 <select data-x-sort>'+
   [['recent','最新发布'],['engagement','互动率最高'],['views','浏览量最高']].map(([key,label])=>
   '<option value="'+key+'" '+(sort===key?'selected':'')+'>'+label+'</option>').join('')+'</select></label></div>';
- html+='<div style="overflow-x:auto"><table class="a-table"><thead><tr>'+
-  '<th>发布时间</th><th>内容</th><th>公开浏览</th><th>回复 / 回复率</th><th>转发 / 转发率</th><th>点赞 / 点赞率</th><th>发布后24/48小时</th><th>采集时间</th>'+
-  '</tr></thead><tbody>'+
-  (sorted.map(p=>'<tr><td style="white-space:nowrap">'+esc((p.published_at||'').slice(0,10))+'</td>'+
-  '<td style="min-width:210px;max-width:360px"><a target="_blank" rel="noopener noreferrer" href="'+href(p)+'">'+short(p)+'</a></td>'+
-  '<td>'+fmt(p.impressions)+'</td>'+
-  '<td>'+fmt(p.replies)+'<div class="a-muted">'+actionRate(p,'replyRate',p.replies)+'</div></td>'+
-  '<td>'+fmt(p.reposts)+'<div class="a-muted">'+actionRate(p,'repostRate',p.reposts)+'</div></td>'+
-  '<td>'+fmt(p.likes)+'<div class="a-muted">'+actionRate(p,'likeRate',p.likes)+'</div></td>'+
-  '<td style="min-width:180px">'+ageWindow(p,'h24',24)+'<div class="a-muted">'+ageWindow(p,'h48',48)+'</div></td>'+
-  '<td style="white-space:nowrap">'+esc(stamp(p.observed_at))+'<div class="a-muted">twitterapi.io</div></td></tr>').join('')||
-  '<tr><td colspan="8">尚未采集到帖子。可在上方执行同步。</td></tr>')+'</tbody></table></div>'+
+ const metricCard=(label,value,percent)=>
+  '<div class="x-content-post-metric"><span class="x-content-post-metric-label">'+label+'</span>'+
+  '<strong>'+fmt(value)+'</strong>'+(percent==null?'':'<small>'+percent+'</small>')+'</div>';
+ const rendered=sorted.map(p=>
+  '<article class="x-content-post-row" role="listitem">'+
+   '<div class="x-content-post-body">'+
+    '<div class="x-content-post-date">'+esc((p.published_at||'').slice(0,10))+'</div>'+
+    '<a class="x-content-post-link" target="_blank" rel="noopener noreferrer" href="'+href(p)+'" title="打开 X 原帖">'+short(p)+'</a>'+
+   '</div>'+
+   '<div class="x-content-post-metrics" aria-label="帖子公开指标">'+
+    metricCard('公开浏览',p.impressions,null)+
+    metricCard('回复',p.replies,'回复率 '+actionRate(p,'replyRate',p.replies))+
+    metricCard('转发',p.reposts,'转发率 '+actionRate(p,'repostRate',p.reposts))+
+    metricCard('点赞',p.likes,'点赞率 '+actionRate(p,'likeRate',p.likes))+
+   '</div>'+
+   '<div class="x-content-post-footer">'+
+    '<div class="x-content-post-windows" aria-label="发布后时点快照">'+
+     '<span>'+ageWindow(p,'h24',24)+'</span>'+
+     '<span>'+ageWindow(p,'h48',48)+'</span>'+
+    '</div>'+
+    '<div class="x-content-post-captured">采集于 '+esc(stamp(p.observed_at))+' · twitterapi.io</div>'+
+   '</div>'+
+  '</article>').join('');
+ html+='<div class="x-content-post-list" role="list">'+
+  (rendered||'<p class="x-content-post-empty">尚未采集到帖子。可在上方执行同步。</p>')+
+  '</div>'+
   '<p data-x-notice role="status"></p><p class="a-muted">浏览量来自第三方 viewCount，不能直接等同 X 内部曝光统计。比率＝各项实际互动 / 已知浏览；浏览缺失或为0时显示「不可计算」。24h/48h仅使用发布后目标时间±6小时内的真实快照；首次采集前的历史无法补回。每日同步不保证每篇都能取得24/48小时快照。算法预测是针对读者的个性化行为概率，不是上述实际比率。<a href="?view=growth-agent-control">前往 AI Growth Agent</a> 查看专项分析。</p></section>';
  return html;
 }
