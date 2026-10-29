@@ -259,6 +259,27 @@ test('v4 retains SEO metrics across a third model round, without replaying old t
  assert.equal(env.archive.get(0).results.length,6);
  assert.equal(env.archive.get(1).results.length,6);
 });
+test('HTTP 524 keeps the paid round unknown and does not try another call',async()=>{
+ const ctx=context();
+ ctx.weeklyCoverage={version:'weekly-coverage-v1',modules:[{
+  id:'growth-overview',status:'insufficient',evidenceIds:[],facts:[]}]};
+ const env=setup([]);
+ let providerCalls=0,unknownRounds=0;
+ env.traceStore.unknown=()=>{unknownRounds++};
+ env.clientFactory=()=>({chat:async()=>{
+  providerCalls++;
+  throw Object.assign(Error('模型中转站 HTTP 524，费用未知'),
+   {code:'AI_UPSTREAM_524_UNKNOWN',status:524});
+ }});
+ await assert.rejects(runner().runTask({
+  context:ctx,prompt:'weekly gateway failure',contextVersion:'v4',
+  ownerId:'o',operationId:'v4-upstream-524',operationType:'analysis',
+  ...env,validate:()=>{}
+ }),/524/);
+ assert.equal(providerCalls,1);
+ assert.equal(unknownRounds,1);
+ assert.deepEqual(env.paid,['begin:0','end:0:unknown']);
+});
 test('weekly SSE collection can be disabled before any paid request',async()=>{
  const ctx=context();
  ctx.weeklyCoverage={version:'weekly-coverage-v1',modules:[{
