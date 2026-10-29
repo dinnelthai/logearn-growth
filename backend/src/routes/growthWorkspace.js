@@ -117,7 +117,7 @@ function createRouter({db=require('../db/connection')}={}){
   const previous=await records.getAnalysisRecord(req.params.id,owner);
   if(!previous||previous.filter_conditions?.weeklyReport!=='v1')
    return res.status(404).json({error:'原周报不存在或无访问权限'});
-  if(previous.cancel_requested||!['completed','failed','cancelled'].includes(previous.status)||
+  if(!['completed','failed','cancelled'].includes(previous.status)||
      previous.filter_conditions?.hiddenFromHistory===true||
      Number(previous.date_range_start)!==period.start||
      Number(previous.date_range_end)!==period.end)
