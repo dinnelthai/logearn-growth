@@ -750,7 +750,8 @@ async function claimFailedWeeklyOverflow(id,ownerId,token,leaseMs=120000){
    completed_at=NULL
  WHERE id=$1 AND owner_id=$2 AND status='failed' AND cancel_requested=false
    AND filter_conditions->>'weeklyReport'='v1'
-   AND error_message='补充查询过多，请缩小问题范围或提高调查能力'
+   AND error_message IN ('补充查询过多，请缩小问题范围或提高调查能力',
+     'AI Token硬预算不足，未发起下一轮模型请求；已付费证据保留在断点')
    AND EXISTS(SELECT 1 FROM ai_analysis_call_guard
      WHERE analysis_id=$1 AND owner_id=$2 AND status='received')
    AND NOT EXISTS(SELECT 1 FROM ai_analysis_call_guard
