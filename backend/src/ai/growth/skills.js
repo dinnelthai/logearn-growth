@@ -22,7 +22,7 @@ const skills=Object.freeze([
   instructions:'按币种独立统计，未记录的收入不能当作零'},
  {id:'seo-organic',version:'1',goal:'conversion',label:'SEO Search Console 搜索表现',
   tools:['get_seo_performance','get_channels','get_funnel'],signals:['new_users','activation_rate'],
-  instructions:'仅使用用户导入的 Search Console 查询/页面/日期原始行；无法证明整站完整覆盖，搜索端日期和站内业务日不同；点击、排名不等于注册、交易或因果转化'},
+  instructions:'优先使用 Google API 已最终确定的聚合快照，手动导入仅为有限证据；报告期可能与业务分析期不一致，不得据此计算 SEO 转化或声称因果关系；GSC 查询行不代表全站总量'},
  {id:'content-growth',version:'1',goal:'conversion',label:'内容增长与渠道表现',
   tools:['get_content_growth','get_channels','get_funnel'],signals:['new_users','activation_rate'],
   instructions:'人工登记内容数据仅作累积表现参考；必须额外查验独立访问和注册事实，不能归因假设当因果证据'},
