@@ -1,10 +1,11 @@
 import {getAnalysisDetail,getEvidence} from '../api/aiAnalysis.js';
+import {queueAnalysisLaunch} from '../analysisLaunchContext.js';
 
 const DAY=86400000;
 const date=ms=>Number.isFinite(Number(ms))?new Date(Number(ms)+7*3600000).toISOString().slice(0,10):'未知';
 const fmt=x=>typeof x==='number'&&Number.isFinite(x)?x.toLocaleString('zh-CN',{maximumFractionDigits:2}):'未知';
 const statuses={pending:'排队中',processing:'AI 正在分析',completed:'已完成',failed:'生成失败',cancelled:'已取消'};
-export function mountAIWeeklyReport(root,{api,safe}){
+export function mountAIWeeklyReport(root,{api,safe,navigate}){
  let disposed=false,seq=0,poll=null,selected=null,busy=false;
  const clear=()=>{if(poll){clearTimeout(poll);poll=null}};
  const links=ids=>(Array.isArray(ids)?ids:[]).map(id=>
@@ -18,6 +19,7 @@ export function mountAIWeeklyReport(root,{api,safe}){
   return '<article class="ai-weekly-report">'+
    '<header><span class="ai-eyebrow">AI OPERATIONS WEEKLY</span><h3>'+safe(record.title||'LogEarn AI 运营周报')+'</h3>'+
    '<p class="a-muted">完整业务周 '+safe(date(record.date_range_start))+' — '+safe(date(Number(record.date_range_end)-DAY))+' · UTC+7 · 已保存的模型分析</p></header>'+
+   (w.partial?'<p class="ai-weekly-partial" role="status">部分周报：模型的结构化输出不完整。以下仅整理通过证据校验的结论；请参阅数据缺口，不要把未知指标当作零。</p>':'')+
    '<section class="ai-weekly-section"><h4>执行摘要</h4><p>'+safe(w.executiveSummary)+'</p></section>'+
    '<section class="ai-weekly-section"><h4>核心指标与上周对比</h4>'+
    (w.metrics?.length?'<div class="ai-weekly-table"><table><thead><tr><th>指标</th><th>本周</th><th>上周</th><th>变化</th><th>证据</th></tr></thead><tbody>'+
@@ -79,8 +81,14 @@ export function mountAIWeeklyReport(root,{api,safe}){
       safe(date(x.date_range_start))+' — '+safe(date(Number(x.date_range_end)-DAY))+' · '+
       safe(statuses[x.status]||x.status)+'</option>').join('')+'</select></label>':
      '<p class="a-muted">尚无 AI 周报。生成后在这里查看完整正文和历史版本。</p>')+
+    (row?'<button type="button" class="a-button" data-weekly-inspect>查看原始 AI 调查记录、检查点与费用</button>':'')+
     '<div data-weekly-body aria-live="polite"></div><p data-weekly-note role="status"></p>';
    root.querySelector('[data-weekly-select]')?.addEventListener('change',e=>{selected=e.target.value;load()});
+   root.querySelector('[data-weekly-inspect]')?.addEventListener('click',()=>{
+    if(!row||typeof navigate!=='function')return;
+    queueAnalysisLaunch({kind:'analysis',analysisId:row.id});
+    navigate('ai-analysis');
+   });
    const consent=root.querySelector('[data-weekly-consent]');
    root.querySelector('[data-weekly-confirm]')?.addEventListener('click',()=>{consent.hidden=false;consent.querySelector('input')?.focus()});
    root.querySelector('[data-weekly-close]')?.addEventListener('click',()=>{consent.hidden=true;consent.reset()});
