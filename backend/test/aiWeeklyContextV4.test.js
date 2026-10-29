@@ -1,0 +1,93 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const {modelContext}=require('../src/ai/business/modelTransport');
+const {DEFINITIONS}=require('../src/ai/growth/weeklyCoverage');
+const period={start:1000000,end:1604800000,previousStart:-603800000,previousEnd:1000000,timezone:'Asia/Bangkok'};
+const metric=(id,value,prior=false)=>({id:id+(prior?'-previous':'-current'),
+ metricId:id,value,period:{start:prior?period.previousStart:period.start,
+ end:prior?period.previousEnd:period.end},
+ coverage:{status:'partial'}});
+function fixture(){
+ const current={new_users:18,active_users:71,returning_users:53};
+ const previous={new_users:40,active_users:82,returning_users:42};
+ const rows=Object.entries(current).flatMap(([id,value])=>[
+  metric(id,value),metric(id,previous[id],true)]);
+ const extra=DEFINITIONS.map((m,i)=>({
+  id:'module-'+m.id,metricId:m.metric,
+  value:m.id==='content-growth'?
+   {contentSignals:{views:18000,posts:12,likes:144,replies:29},
+    posts:[{text:'DO NOT SEND FULL X TWEET TEXT',userId:'private'}]}:
+   {metrics:{clicks:10+i,impressions:110+i,ctr:.12},
+    totals:{users:80+i,visits:300+i},rows:[{email:'private@example.test'}]},
+  coverage:{status:'partial',periodMatched:true},
+  period:{start:period.start,end:period.end}
+ }));
+ return {
+  business:{scope:{source:'all'},focusGoal:'activation',question:'增长与获客周报'},
+  period,snapshot:{asOf:'2026-10-29',historyComplete:false},
+  current:{totals:current},previous:{totals:previous},
+  evidence:[...rows,...extra],
+  weeklyCoverage:{version:'weekly-coverage-v1',
+   modules:DEFINITIONS.map((x,i)=>({id:x.id,status:'collected',
+    evidenceIds:[extra[i].id],facts:[]}))},
+  weeklySources:{seo:{status:'period-matched',periodMatched:true,
+   evidenceIds:['module-seo-organic']}},
+  capabilities:DEFINITIONS.map((x,i)=>({
+   id:x.tool,description:'通用的只读工具完整参数说明'.repeat(12),
+   inputSchema:{properties:{scope:{type:'object'},
+    start:{type:'integer'},end:{type:'integer'},
+    limit:{type:'integer'},filters:{type:'object'}}}
+  })),
+  growthPlan:{steps:DEFINITIONS.map(x=>({skillId:x.id,
+   instructions:'大量叙述不需要进入模型'.repeat(30)}))},
+  definitions:Object.fromEntries(Array.from({length:20},(_,i)=>['key_'+i,'指标定义文字'.repeat(50)])),
+  manualActions:[{text:'User private workspace action'}],
+  memory:['previous advice message that should not be sent'],
+  weeklyOperations:{goalsCount:4,executedActionCount:2}
+ };
+}
+test('v4 makes observed KPIs and major decline first; all 12 modules remain visible',()=>{
+ const view=modelContext(fixture(),{transportVersion:'v4'});
+ assert.equal(view.transportVersion,'aggregated-business-v4');
+ assert.equal(view.coreMetrics.find(m=>m.id==='new_users').changePct,-55);
+ assert.equal(view.priorityIssues[0].metricId,'new_users');
+ assert.equal(view.weeklyCoverage.length,12);
+ assert.equal(view.weeklyCoverage.find(x=>x.id==='seo-organic').status,'collected');
+ assert.ok(view.evidence.some(e=>e.id==='module-seo-organic'));
+ assert.ok(view.evidence.length>=12);
+ assert.equal(view.capabilities.length,5);
+ assert.ok(view.otherAvailableTools.length>0);
+ assert.ok(Buffer.byteLength(JSON.stringify(view),'utf8')<14000);
+});
+test('X contribution only transfers numeric performance and never sends post text or PII',()=>{
+ const view=modelContext(fixture(),{transportVersion:'v4'});
+ const out=JSON.stringify(view);
+ assert.equal(out.includes('DO NOT SEND FULL X TWEET TEXT'),false);
+ assert.equal(out.includes('private@example.test'),false);
+ assert.equal(out.includes('User private workspace action'),false);
+ assert.equal(out.includes('previous advice message'),false);
+ const content=view.weeklyCoverage.find(x=>x.id==='content-growth');
+ assert.ok(content.stats.some(x=>x.metric.includes('views')&&x.value===18000));
+});
+test('missing KPI observations are not hallucinated evidence citations',()=>{
+ const raw=fixture();
+ raw.current.totals.new_users=null;
+ raw.evidence=raw.evidence.filter(x=>x.metricId!=='new_users');
+ const view=modelContext(raw,{transportVersion:'v4'});
+ const row=view.coreMetrics.find(x=>x.id==='new_users');
+ assert.equal(row.current,null);
+ assert.equal(row.changePct,null);
+ assert.deepEqual(row.evidenceIds,[]);
+ assert.equal(view.priorityIssues.some(x=>x.metricId==='new_users'),false);
+});
+test('old v3 remains structurally distinct, v4 does not mutate archived source',()=>{
+ const raw=fixture();
+ const before=JSON.stringify(raw);
+ const v4=modelContext(raw,{transportVersion:'v4'});
+ const v3=modelContext(raw,{transportVersion:'v3'});
+ assert.equal(JSON.stringify(raw),before);
+ assert.equal(v3.transportVersion,'aggregated-business-v3');
+ assert.equal(v4.transportVersion,'aggregated-business-v4');
+ assert.equal(v3.coreMetrics,undefined);
+});
