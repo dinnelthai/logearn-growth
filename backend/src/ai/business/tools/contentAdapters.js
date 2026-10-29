@@ -26,10 +26,16 @@ function contentGrowth(body,ctx){
     sampledPosts:posts.length,measuredPosts:measured.length,
     measuredImpressions:exposures||null,
     measuredEngagementRate:exposures?Math.round(engagement/exposures*10000)/100:null,
+    followerHistory:tables.has('x_content_follower_daily')?
+     db.prepare('SELECT day,followers FROM x_content_follower_daily WHERE owner_id=? AND day>=? AND day<=? ORDER BY day DESC LIMIT 30').all(owner,
+      new Date(body.start+7*3600000).toISOString().slice(0,10),
+      new Date(body.end-1+7*3600000).toISOString().slice(0,10)).reverse():[],
     posts:posts.slice(0,10).map(p=>({id:p.post_id,publishedAt:p.published_at,
      text:p.body.slice(0,320),impressions:p.impressions,likes:p.likes,
      replies:p.replies,reposts:p.reposts,quotes:p.quotes})),
     coverage:'bounded-sample-cumulative-public-metrics',conversionAttribution:false};
+   xOfficial.followerChange=xOfficial.followerHistory.length>=2?
+    xOfficial.followerHistory.at(-1).followers-xOfficial.followerHistory[0].followers:null;
   }
  }
  return {available:items.length>0||xOfficial.available,summary:summarize(items),xOfficial,
