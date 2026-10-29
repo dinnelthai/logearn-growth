@@ -77,7 +77,7 @@ function pageName(safe){
 }
 
 export function renderSeoReport(report,h){
- const r=report,metrics=r.metrics||{},coverage=r.coverage||{},daily=r.daily||[],queries=(r.queries||[]).slice(0,30),pages=(r.pages||[]).slice(0,20);
+ const r=report,metrics=r.metrics||{},coverage=r.coverage||{},daily=r.daily||[],queries=(r.queries||[]).slice(0,30),pages=(r.pages||[]).slice(0,20),opportunities=Array.isArray(r.opportunities)?r.opportunities:[];
  const brandClicks=queries.filter(q=>queryGroup(q.query)==='brand').reduce((sum,q)=>sum+(Number(q.clicks)||0),0);
  const siteClicks=Number(metrics.clicks);
  const brandShare=siteClicks>0?number(brandClicks)+' / '+number(siteClicks)+'（已显示品牌词点击 / 站点总点击）':'暂无可用点击基数';
@@ -97,9 +97,9 @@ export function renderSeoReport(report,h){
  '<button type="button" data-seo-filter="review" aria-pressed="false">待归类</button></div>'+
  '<div class="ai-gsc-table"><table class="seo-keyword-table"><thead><tr><th>查询词</th><th>类别</th><th>点击</th><th>曝光</th><th>CTR</th><th>排名</th></tr></thead><tbody>'+
  (queries.length?queries.map(q=>'<tr data-seo-kind="'+queryGroup(q.query)+'"><td>'+h(q.query)+'</td><td><span class="seo-kind">'+labels[queryGroup(q.query)]+'</span></td><td>'+number(q.clicks)+'</td><td>'+number(q.impressions)+'</td><td>'+pct(q.ctr)+'</td><td>'+rank(q.position)+'</td></tr>').join(''):'<tr><td colspan="6">Google 未返回可显示的搜索查询行。</td></tr>')+
- '</tbody></table></div><p class="seo-muted">当前候选阈值发现 '+(r.opportunities||[]).length+' 个线索；样本量不足时，不能据此认为没有优化空间。</p></section>'+
+ '</tbody></table></div><p class="seo-muted">当前候选阈值发现 '+opportunities.length+' 个线索；样本量不足时，不能据此认为没有优化空间。</p></section>'+
  '<section class="seo-panel" aria-label="值得核查的 SEO 机会"><header><div><h3>值得核查的搜索机会</h3><p>以下仅是已同步样本中的候选线索，需要结合覆盖、排名及页面目标人工确认，不代表已带来转化。</p></div></header>'+
- ((r.opportunities||[]).length?'<ol class="seo-opportunities">'+(r.opportunities||[]).slice(0,8).map(o=>'<li><strong>'+h(o.query||o.page||o.title||o.kind||o.type||'未命名机会')+'</strong>'+
+ (opportunities.length?'<ol class="seo-opportunities">'+opportunities.slice(0,8).map(o=>'<li><strong>'+h(o.query||o.page||o.title||o.kind||o.type||'未命名机会')+'</strong>'+
  '<span>'+h(o.reason||o.description||o.label||'需核对搜索意图、查询和落地页数据')+'</span>'+
  '<small>曝光 '+number(o.impressions)+' · 点击 '+number(o.clicks)+' · 排名 '+rank(o.position)+'</small></li>').join('')+'</ol>':
  '<p class="seo-muted">当前没有符合候选规则的线索。可检查关键词表、数据覆盖与网站页面，不代表没有 SEO 机会。</p>')+'</section>'+
