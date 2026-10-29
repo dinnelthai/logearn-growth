@@ -73,12 +73,12 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
     safe(date(d.period.start))+' — '+safe(date(d.period.end-DAY))+' · UTC+7</p></div>'+
     (current?'<span class="ai-weekly-status">'+safe(row?'正在查看 · '+(statuses[row.status]||row.status):'本期 · '+(statuses[current.status]||current.status))+'</span>':
      '<button type="button" class="a-button a-primary" data-weekly-confirm>生成 AI 周报</button>')+'</div>'+
-    '<p>基于已观测的业务统计生成周报，包含问题、证据与下周行动。点击「生成 AI 周报」立即提交分析任务，可能产生 Token 费用；每个完整周只创建一份，不会自动执行建议或外部操作。</p>'+
+    '<p>分析上个完整自然周的真实业务数据，形成问题、证据与下周行动。单击生成将调用可能收费的模型；同一周不会重复创建任务。</p>'+
     (rows.length?'<label class="ai-weekly-picker">查看历史周报 <select data-weekly-select>'+
      rows.map(x=>'<option value="'+safe(x.id)+'" '+(x.id===selected?'selected':'')+'>'+
       safe(date(x.date_range_start))+' — '+safe(date(Number(x.date_range_end)-DAY))+' · '+
       safe(statuses[x.status]||x.status)+'</option>').join('')+'</select></label>':
-     '<p class="a-muted">尚无 AI 周报。生成后在这里查看完整正文和历史版本。</p>')+
+     '')+
     (row?'<button type="button" class="a-button" data-weekly-inspect>查看原始 AI 调查记录、检查点与费用</button>':'')+
     '<div data-weekly-body aria-live="polite"></div><p data-weekly-note role="status"></p>';
    root.querySelector('[data-weekly-select]')?.addEventListener('change',e=>{selected=e.target.value;load()});
