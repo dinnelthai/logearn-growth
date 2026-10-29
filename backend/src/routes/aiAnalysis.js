@@ -270,6 +270,38 @@ router.post('/:id/cancel',handle(async(req,res)=>{
   res.json({analysisId:updated.id,status:updated.status,cancelRequested:updated.cancel_requested,
     notice:'取消请求已记录；正在进行的模型请求可能仍会产生费用'});
 }));
+// Explicit operator action only. Reuse the original paid model response and
+// immutable context for a weekly overflow failure. Never call the provider
+// from this route; the Worker rechecks every fence before further paid rounds.
+router.post('/:id/resume-weekly-overflow',handle(async(req,res)=>{
+  const ownerId=req.user.user_id;
+  const record=await records.getAnalysisRecord(req.params.id,ownerId);
+  if(!record)return res.status(404).json({error:'分析不存在或无权限'});
+  if(record.status!=='failed'||record.cancel_requested||
+    record.filter_conditions?.weeklyReport!=='v1'||
+    record.error_message!=='补充查询过多，请缩小问题范围或提高调查能力')
+    return res.status(409).json({error:'仅允许人工继续因补查超额失败的周报'});
+  const guards=await records.listAnalysisPaidCalls(record.id,ownerId);
+  if(!guards.length||guards.some(item=>item.status!=='received'))
+    return res.status(409).json({error:'存在无法确认的模型费用或调用状态，禁止续跑'});
+  const traceStore=require('../ai/business/trace').createTraceStore(require('../db/connection'));
+  const rows=traceStore.list(ownerId,record.id);
+  const originalPrompt=traceStore.promptForRun(ownerId,record.id,'analysis');
+  const compact=record.context_payload?JSON.parse(record.context_payload):record.data_snapshot;
+  if(!originalPrompt||!compact?.business?.scope?.source||!Array.isArray(compact.evidence))
+    return res.status(409).json({error:'原始提示词或业务快照不完整，禁止续跑'});
+  const verdict=require('../ai/business/resumePlan').planInvestigationResume({
+    rows,guards,context:compact,systemPrompt:originalPrompt
+  });
+  if(!verdict.allowed)return res.status(409).json({
+    error:'已付费模型响应无法安全复用：'+verdict.reason,reason:verdict.reason});
+  const job=await addAIAnalysisJob('resume-investigation',
+    {analysisId:record.id,ownerId,manualFailedWeekly:true},
+    {jobId:'weekly-manual-resume-'+record.id+'-'+randomUUID(),attempts:1});
+  res.status(202).json({analysisId:record.id,jobId:job.id,status:'queued',
+    replayedCalls:verdict.replayedModelCalls,remainingTools:verdict.remainingTools,
+    notice:'原始模型响应将从已保存检查点复用；后续模型轮次可能产生新费用。'});
+}));
 router.post('/:id/retry',handle(async(req,res)=>{
   const ownerId=req.user.user_id;
   const existing=await records.getAnalysisRecord(req.params.id,ownerId);
