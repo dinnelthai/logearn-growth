@@ -43,13 +43,23 @@ describe('content growth reading experience',()=>{
  });
  it('shows independent reply, repost and like rates with missing snapshots',()=>{
   const html=renderXPanel(report,esc,'logearn_cn','recent');
-  expect(html).toContain('回复 / 回复率');
-  expect(html).toContain('转发 / 转发率');
-  expect(html).toContain('点赞 / 点赞率');
+  expect(html).toContain('回复率');
+  expect(html).toContain('转发率');
+  expect(html).toContain('点赞率');
   expect(html).toContain('24h：未记录');
   expect(html).toContain('48h：未记录');
   expect(html).toContain('不可计算');
   expect(html).toContain('twitterapi.io');
+ });
+ it('uses bounded post rows instead of the overflowing nowrap metrics table',()=>{
+  const html=renderXPanel(report,esc,'logearn_cn','recent');
+  expect(html).toContain('class="x-content-post-list"');
+  expect(html).toContain('class="x-content-post-row"');
+  expect(html).toContain('class="x-content-post-body"');
+  expect(html).toContain('class="x-content-post-metrics"');
+  expect(html).toContain('class="x-content-post-footer"');
+  expect(html).not.toContain('<table');
+  expect(html).toContain('采集于');
  });
  it('shows an actual 24h observation, never inferring 48h from current totals',()=>{
   const copy=structuredClone(report);
