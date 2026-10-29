@@ -46,7 +46,7 @@ describe('decision-first weekly view',()=>{
     metric:'activation_rate',reviewCondition:'下个完整周',
     evidenceIds:[]}]} }};
   const html=renderWeeklyDecisionReport({...options,data:report,record});
-  expect(html).toContain('class="ai-weekly-panel ai-weekly-priority-panel"');
+  expect(html).toContain('class="ai-weekly-section ai-weekly-panel ai-weekly-priority-panel"');
   expect(html).toContain('data-priority="p0"');
   expect(html).toContain('class="ai-weekly-problem-change"');
   expect(html).toContain('↓ 55%');
