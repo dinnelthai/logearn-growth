@@ -67,3 +67,10 @@ test('projection still drops private row-level fields and never converts unknown
 test('unsupported model context protocol is rejected',()=>{
  assert.throws(()=>modelContext(raw,{transportVersion:'v9'}),/版本/);
 });
+
+test('v2 also supports an entirely empty evidence catalog',()=>{
+ const projected=modelContext({...raw,evidence:[],capabilities:[]},{transportVersion:'v2'});
+ assert.deepEqual(projected.evidence,[]);
+ assert.equal(projected.evidenceMeta.total,0);
+ assert.equal(projected.transportVersion,'aggregated-business-v2');
+});
