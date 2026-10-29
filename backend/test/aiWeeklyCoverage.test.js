@@ -70,12 +70,12 @@ test('only an AI claim with recorded evidence promotes collected data to analyze
  const noClaims=finalizeWeeklyCoverage(out,{claims:[]});
  assert.equal(noClaims.modules.find(x=>x.id==='seo-organic').status,'collected');
  const claimed=finalizeWeeklyCoverage(out,{
-  claims:[{kind:'fact',text:'有可验证搜索点击',evidenceIds:['seo-verified']}],
+  claims:[{kind:'fact',text:'本期搜索点击14次',evidenceIds:['seo-verified']}],
   suggestions:[{action:'下周核查有效搜索页面',
    evidence:{evidenceIds:['seo-verified']}}]
  });
  assert.equal(claimed.modules.find(x=>x.id==='seo-organic').status,'analyzed');
- assert.equal(claimed.modules.find(x=>x.id==='seo-organic').insight,'有可验证搜索点击');
+ assert.equal(claimed.modules.find(x=>x.id==='seo-organic').insight,'本期搜索点击14次');
  assert.equal(claimed.modules.find(x=>x.id==='seo-organic').nextAction,'下周核查有效搜索页面');
  assert.equal(claimed.counts.analyzed,1);
 });
@@ -85,9 +85,44 @@ test('model investigations can fill an uninvestigated module without rerunning t
   result:{status:'ok',evidence:[{id:'kol-3',metricId:'kol_performance',
    value:{summary:{users:5}}}]}}];
  const result=finalizeWeeklyCoverage(baselineManifest,
-  {claims:[{text:'KOL归组观察存在',evidenceIds:['kol-3']}]},{additionalEvidence:later});
+  {claims:[{kind:'fact',text:'本期KOL归组用户5人',evidenceIds:['kol-3']}]},{additionalEvidence:later});
  assert.equal(result.modules.find(x=>x.id==='kol-impact').status,'analyzed');
  assert.deepEqual(result.modules.find(x=>x.id==='kol-impact').evidenceIds,['kol-3']);
+});
+test('a data-gap citation cannot promote channel and funnel modules to analyzed',()=>{
+ const base=initialCoverage(context(),{allowedTools:toolIds});
+ const later=[
+  {query:{tool:'get_channels'},result:{status:'ok',evidence:[
+   {id:'channels-1',metricId:'channels',value:{summary:{users:12}}}
+  ]}},
+  {query:{tool:'get_funnel'},result:{status:'ok',evidence:[
+   {id:'funnel-1',metricId:'funnel',value:{summary:{users:12,rate:.2}}}
+  ]}}
+ ];
+ const analysis={claims:[{kind:'fact',text:'渠道和漏斗模块已经采集，但是没有提供分步骤数据',
+  evidenceIds:['channels-1','funnel-1']}]};
+ const result=finalizeWeeklyCoverage(base,analysis,{additionalEvidence:later});
+ assert.equal(result.modules.find(x=>x.id==='channel-growth').status,'collected');
+ assert.equal(result.modules.find(x=>x.id==='activation-funnel').status,'collected');
+ assert.equal(result.counts.analyzed,0);
+});
+test('hypotheses, irrelevant numbers and citations without source match are not analysis',()=>{
+ const base=initialCoverage(context(),{allowedTools:toolIds});
+ const later=[{query:{tool:'get_channels'},result:{status:'ok',evidence:[
+  {id:'channels-3',metricId:'channels',value:{summary:{users:12}}}
+ ]}}];
+ for(const claims of [
+  [{kind:'hypothesis',text:'有12名用户可能来自SEO',evidenceIds:['channels-3']}],
+  [{kind:'fact',text:'本周总计有71人',evidenceIds:['channels-3']}],
+  [{kind:'fact',text:'渠道统计12人',evidenceIds:['different-source']}]
+ ]){
+  const result=finalizeWeeklyCoverage(base,{claims},{additionalEvidence:later});
+  assert.equal(result.modules.find(x=>x.id==='channel-growth').status,'collected');
+ }
+ const verified=finalizeWeeklyCoverage(base,
+  {claims:[{kind:'fact',text:'渠道统计12人',evidenceIds:['channels-3']}]},
+  {additionalEvidence:later});
+ assert.equal(verified.modules.find(x=>x.id==='channel-growth').status,'analyzed');
 });
 test('query quota exhaustion does not create zero observations or a model retry',async()=>{
  const ctx=context();let calls=0;
