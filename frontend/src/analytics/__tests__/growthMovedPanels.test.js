@@ -14,7 +14,7 @@ import {createSeoPage} from '../../pages/seoPage.js'
 import {createGrowthMonitorPage} from '../../pages/growthMonitorPage.js'
 
 function setup(create){
- const nodes={'[data-seo-refresh]':{onclick:null},'[data-monitor-refresh]':{onclick:null}}
+ const nodes={'[data-seo-refresh]':{onclick:null,addEventListener:vi.fn()},'[data-monitor-refresh]':{onclick:null,addEventListener:vi.fn()},'[data-open-workbench]':{onclick:null}}
  const host={
   innerHTML:'',
   querySelector(selector){return nodes[selector]||null},
