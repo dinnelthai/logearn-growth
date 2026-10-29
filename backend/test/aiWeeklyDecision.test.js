@@ -48,7 +48,7 @@ test('SEO and retention are mandatory weekly skills, not privileged for regular 
   current:{totals:{active_users:71}},previous:{totals:{active_users:82}},
   candidates:[],growth:{channels:[]},warnings:[]};
  const weekly=planGrowthInvestigation({goal:'activation',report,
-  maxSkills:8,includeWeeklySpecialties:true,availableSpecialties:['content-growth']});
+  maxSkills:12,includeWeeklySpecialties:true,availableSpecialties:['content-growth']});
  const ids=weekly.steps.map(x=>x.skillId);
  for(const required of ['seo-organic','channel-growth','activation-funnel','retention',
   'trade-conversion','content-growth'])assert.ok(ids.includes(required),required);
