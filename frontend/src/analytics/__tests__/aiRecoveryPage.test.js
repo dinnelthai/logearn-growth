@@ -347,3 +347,34 @@ test('a completed existing review shows stored results rather than dispatching a
   expect(api.getRetrospectives).toHaveBeenCalledTimes(2)
   t.page.dispose()
 })
+
+test('AI workspace prioritizes selected insights and actions before configuration and raw evidence',async()=>{
+ const t=setup();
+ await t.page.draw();
+ expect(t.host.innerHTML).toContain('ai-status-grid');
+ expect(t.host.innerHTML).toContain('ai-decision-workspace');
+ expect(t.host.innerHTML.indexOf('ai-decision-workspace')).toBeLessThan(t.host.innerHTML.indexOf('id="ai-new-analysis"'));
+ await t.button.onclick();
+ expect(t.panel.innerHTML).toContain('ai-evidence-index');
+ expect(t.panel.innerHTML.indexOf('ai-action-list')).toBeLessThan(t.panel.innerHTML.indexOf('ai-evidence-index'));
+ expect(t.panel.innerHTML).toContain('原始业务证据');
+ t.page.dispose();
+});
+
+test('top new-analysis action expands the real form instead of only moving to a closed anchor',async()=>{
+ const t=setup();
+ const focus=vi.fn(),scrollIntoView=vi.fn();
+ const form={open:false,scrollIntoView,querySelector:s=>s==='input[name="title"]'?{focus}:null};
+ const action={addEventListener:(_type,callback)=>{action.click=callback}};
+ const original=t.host.querySelector;
+ t.host.querySelector=selector=>selector==='[href="#ai-new-analysis"]'?action:
+   selector==='#ai-new-analysis'?form:original(selector);
+ await t.page.draw();
+ const preventDefault=vi.fn();
+ action.click({preventDefault});
+ expect(preventDefault).toHaveBeenCalledOnce();
+ expect(form.open).toBe(true);
+ expect(scrollIntoView).toHaveBeenCalled();
+ expect(focus).toHaveBeenCalled();
+ t.page.dispose();
+});
