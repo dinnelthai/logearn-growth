@@ -46,8 +46,12 @@ function createRouter({db=require('../db/connection')}={}){
  router.get('/ai-weekly-reports',h(async(req,res,owner)=>{
   const records=require('../db/aiRecords');
   const {weeklyPeriod}=require('../ai/growth/weeklyReport');
-  res.json({period:weeklyPeriod(),
-   reports:await records.listWeeklyReportRecords(owner,{limit:20}),paidGeneration:false});
+  const period=weeklyPeriod();
+  const [reports,archivedCurrentWeek]=await Promise.all([
+   records.listWeeklyReportRecords(owner,{limit:20}),
+   records.hasHiddenWeeklyReport(owner,period)
+  ]);
+  res.json({period,reports,archivedCurrentWeek,paidGeneration:false});
  }));
  router.post('/ai-weekly-reports',h(async(req,res,owner)=>{
   const {weeklyPeriod,weeklyKey,weeklyOperations}=require('../ai/growth/weeklyReport');
@@ -68,6 +72,8 @@ function createRouter({db=require('../db/connection')}={}){
   if(record.filter_conditions?.weeklyReport!=='v1'||
      Number(record.date_range_start)!==period.start||Number(record.date_range_end)!==period.end)
    return res.status(409).json({error:'周报请求标识与已保存任务不一致，禁止重复付费'});
+  if(record.filter_conditions?.hiddenFromHistory===true)
+   return res.status(409).json({error:'该周报已从列表移除，原任务和付费记录保留；不会自动重发同一周的模型调用'});
   if(!created)return res.json({analysisId:record.id,status:record.status,reused:true,
    notice:'已存在本周 AI 周报任务，未重复提交模型调用'});
   try{
