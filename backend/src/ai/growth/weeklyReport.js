@@ -153,6 +153,9 @@ function ensureWeeklyReport(analysis,{context=null}={}){
   const w=analysis.weeklyReport;
   w.metrics=[...derived,...w.metrics.filter(x=>
    !derived.some(d=>d.label===x.label||d.metricId===x.metricId))].slice(0,25);
+  if(derived.length)w.dataGaps=w.dataGaps.map(gap=>
+   gap.startsWith('周度 KPI 对照和渠道分项未能形成完整证据表')?
+    '模型未提供完整的渠道分项；核心业务指标由已保存的周度证据补齐，仍需核验覆盖与归因。':gap);
   const seo=context?.weeklySources?.seo;
   if(seo&&seo.status!=='period-matched'){
    const reason=seo.status==='reference-only'?
