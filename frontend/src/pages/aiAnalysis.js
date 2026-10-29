@@ -14,6 +14,10 @@ export function createAIAnalysis(ctx){
   const HISTORY_PAGE_SIZE=5;
   const defaults={start:day(Date.now()-7*DAY),end:day(Date.now()-DAY)};
   const label=s=>TASK_LABELS[s]||s;
+  const historyTime=v=>v==null?'时间待确认':new Date(Number(v)+OFFSET).toISOString().slice(0,16).replace('T',' ')+' UTC+7';
+  const historyWindow=r=>r.date_range_start==null||r.date_range_end==null?'':` · 分析期 ${day(Number(r.date_range_start))} ~ ${day(Number(r.date_range_end)-1)}`;
+  const historyCounts=r=>r.suggestion_count==null?'建议数量待确认':
+    `建议 ${r.suggestion_count} · 已采纳 ${r.accepted_count??'—'} · 已执行 ${r.executed_count??'—'} · 已复盘 ${r.retrospective_count??'—'}`;
   const json=v=>esc(JSON.stringify(v,null,2));
   function dispose(){generation++;detailRequest++;displayedDetailId=null;clearTimeout(timer);clearTimeout(reviewTimer);timer=null;reviewTimer=null;reviewPolling=false;}
   function message(text){notice=String(text??'');const target=$('#as-output')?.querySelector('[data-ai-message]');if(target){target.textContent=notice;target.hidden=!notice;}}
@@ -89,7 +93,15 @@ export function createAIAnalysis(ctx){
           <option value="failed" ${historyFilter==='failed'?'selected':''}>失败</option>
           <option value="completed" ${historyFilter==='completed'?'selected':''}>已完成</option>
           </select></label><button class="a-button" data-refresh>刷新</button></div>
-        ${list.records.length?`<div class="ai-history-list" role="list">${list.records.map(r=>`<div class="ai-history-row" data-ai-history-row data-analysis-id="${esc(r.id)}" data-ai-history-status="${esc(displayTaskStatus(r).kind)}" role="listitem"><button type="button" class="ai-history-title" data-analysis="${esc(r.id)}" aria-pressed="${selected===r.id}">${esc(r.title)}</button><span data-ai-history-badge class="ai-state ai-state-${esc(displayTaskStatus(r).kind)}">${esc(displayTaskStatus(r).text)}</span><span class="ai-history-meta">建议 ${esc(r.suggestion_count??'未知')} 条</span><button type="button" class="a-button ai-history-delete" data-delete-analysis="${esc(r.id)}" aria-label="删除 ${esc(r.title)}">删除</button></div>`).join('')}</div><p data-ai-history-empty hidden>当前筛选条件下没有历史分析。</p>`:'<p>尚无分析，点击开始后才会调用模型。</p>'}
+        ${list.records.length?`<div class="ai-history-list" role="list">${list.records.map(r=>`<div class="ai-history-row" data-ai-history-row data-analysis-id="${esc(r.id)}" data-ai-history-status="${esc(displayTaskStatus(r).kind)}" role="listitem">
+          <div class="ai-history-main">
+            <button type="button" class="ai-history-title" data-analysis="${esc(r.id)}" aria-pressed="${selected===r.id}">${esc(r.title)}</button>
+            <span class="ai-history-time">创建 ${esc(historyTime(r.created_at))}${esc(historyWindow(r))}</span>
+          </div>
+          <span class="ai-history-progress">${esc(historyCounts(r))}</span>
+          <span data-ai-history-badge class="ai-state ai-state-${esc(displayTaskStatus(r).kind)}">${esc(displayTaskStatus(r).text)}</span>
+          <button type="button" class="a-button ai-history-delete" data-delete-analysis="${esc(r.id)}" aria-label="删除 ${esc(r.title)}">删除</button>
+        </div>`).join('')}</div><p data-ai-history-empty hidden>当前筛选条件下没有历史分析。</p>`:'<p>尚无分析，点击开始后才会调用模型。</p>'}
           ${list.records.length?'<nav class="ai-history-pagination" data-ai-history-pagination aria-label="历史分析分页"><span data-ai-history-page-info aria-live="polite"></span><button class="a-button" type="button" data-ai-history-prev>上一页</button><button class="a-button" type="button" data-ai-history-next>下一页</button></nav>':''}</section>
         <section class="a-card ai-result" data-detail><p>选择一条分析查看证据和建议。</p></section>
         <div class="ai-review-layout">
