@@ -52,7 +52,8 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,links}){
    '<span>'+safe(metric.unit||'')+'</span></div>'+
   '<div class="ai-weekly-kpi-foot"><strong>'+(numeric(metric.changePct)?
     (metric.changePct<0?'↓ ':metric.changePct>0?'↑ ':''):'')+
-    safe(trend(metric.changePct))+'</strong>'+
+    safe(numeric(metric.changePct)&&metric.changePct!==0?
+     fmt(Math.abs(metric.changePct))+'%':trend(metric.changePct))+'</strong>'+
    '<span>较上周 · '+(numeric(metric.previous)?fmt(metric.previous):'未知')+'</span></div>'+
   '</div>';
  const risks=snapshotKpis.filter(x=>numeric(x.changePct)&&x.changePct<=-10)
