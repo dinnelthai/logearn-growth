@@ -44,7 +44,7 @@ export function createAIAnalysis(ctx){
       if(token!==generation)return;
       if(!list.records?.some(r=>r.id===selected))selected=list.records?.[0]?.id??null;
       host.innerHTML=`<div class="si-page ai-analysis-page">
-        <section class="ai-decision-hero"><div><span class="ai-eyebrow">GROWTH INTELLIGENCE</span><h1>增长决策工作台</h1><p>发现问题 · 核查证据 · 制定行动 · 持续复盘</p></div><a class="a-button a-primary" href="#ai-new-analysis">新建分析</a></section>
+        <section class="ai-decision-hero"><div><span class="ai-eyebrow">GROWTH INTELLIGENCE</span><h1>增长决策工作台</h1><p>发现问题 · 核查证据 · 制定行动 · 持续复盘</p></div><a class="a-button a-primary" href="#ai-new-analysis">＋ 新建分析</a></section>
         <p class="ai-workspace-notice" data-ai-message role="status" aria-live="polite" ${notice?'':'hidden'}>${esc(notice)}</p>
         <div class="ai-status-grid" aria-label="经营与任务状态">
           <article><span>最新分析</span><strong>${list.records?.length?esc(label(list.records[0].status)):'暂无数据'}</strong><small>${list.records?.length?esc(list.records[0].title):'发起分析后显示结果'}</small></article>
@@ -52,8 +52,20 @@ export function createAIAnalysis(ctx){
           <article><span>最新日报</span><strong>${agentBriefs.error?'状态未知':agentBriefs.briefs?.length?esc(agentBriefs.briefs[0].day):'暂无数据'}</strong><small>${agentBriefs.briefs?.length?esc(agentBriefs.briefs[0].status):'尚无已保存日报'}</small></article>
           <article><span>待处理事项</span><strong>${inbox.warnings?.length?'状态待核查':esc(inbox.counts?.total??'暂无数据')}</strong><small>审批、执行、复盘与失败调查</small></article>
         </div>
+        <div class="ai-decision-workspace">
+        <section class="a-card ai-history"><div class="ai-history-heading"><h2>历史分析</h2>
+          <label>状态<select data-ai-history-filter aria-label="筛选历史分析">
+          <option value="all" ${historyFilter==='all'?'selected':''}>全部</option>
+          <option value="processing" ${historyFilter==='processing'?'selected':''}>处理中</option>
+          <option value="attention" ${historyFilter==='attention'?'selected':''}>需人工处理</option>
+          <option value="failed" ${historyFilter==='failed'?'selected':''}>失败</option>
+          <option value="completed" ${historyFilter==='completed'?'selected':''}>已完成</option>
+          </select></label><button class="a-button" data-refresh>刷新</button></div>
+        ${list.records.length?`<div class="ai-history-list" role="list">${list.records.map(r=>`<div class="ai-history-row" data-ai-history-row data-analysis-id="${esc(r.id)}" data-ai-history-status="${esc(displayTaskStatus(r).kind)}" role="listitem"><button type="button" class="ai-history-title" data-analysis="${esc(r.id)}" aria-pressed="${selected===r.id}">${esc(r.title)}</button><span data-ai-history-badge class="ai-state ai-state-${esc(displayTaskStatus(r).kind)}">${esc(displayTaskStatus(r).text)}</span><span class="ai-history-meta">建议 ${esc(r.suggestion_count??'未知')} 条</span></div>`).join('')}</div><p data-ai-history-empty hidden>当前筛选条件下没有历史分析。</p>`:'<p>尚无分析，点击开始后才会调用模型。</p>'}</section>
+        <section class="a-card ai-result" data-detail><p>选择一条分析查看证据和建议。</p></section>
+        </div>
         <details class="a-card ai-new-analysis" id="ai-new-analysis"><summary>新建分析</summary><h1>AI 业务增长助手</h1><p>主动发起分析，按业务证据排优先级；记录行动后主动复盘。所有分析与复盘均使用同一 DeRouter 模型。</p>
-        <p>累计调用 ${esc(costs.total_calls)} 次 · Token ${esc(costs.total_tokens??0)} · 估算费用 $${esc(costs.total_cost??0)}（${esc(costs.unknown_cost_calls??0)} 次调用费率未配置，金额不代表免费）</p>
+        <p>累计调用 ${esc(costs.total_calls)} 次 · Token ${esc(costs.total_tokens??0)} · 估算费用 ${esc(costs.total_cost??0)}（${esc(costs.unknown_cost_calls??0)} 次调用费率未配置，金额不代表免费）</p>
         <form data-ai-form><label>分析标题<input name="title" required maxlength="200" value="业务增长分析"></label>
         <label>开始日期<input name="start" type="date" required value="${defaults.start}"></label>
         <label>结束日期（含当日）<input name="end" type="date" required value="${defaults.end}"></label>
@@ -66,22 +78,14 @@ export function createAIAnalysis(ctx){
         <button class="a-button" type="submit" ${busy?'disabled':''}>开始分析</button></form>
         <p>时间按 UTC+7，最多31天。当前支持来源范围；不会把活动或用户群当作已筛选。</p>
         <button class="a-button" type="button" data-health>检查运行状态</button><pre data-health-result></pre></details>
-        <section class="a-card ai-history"><div class="ai-history-heading"><h2>历史分析</h2>
-          <label>状态<select data-ai-history-filter aria-label="筛选历史分析">
-          <option value="all" ${historyFilter==='all'?'selected':''}>全部</option>
-          <option value="processing" ${historyFilter==='processing'?'selected':''}>处理中</option>
-          <option value="attention" ${historyFilter==='attention'?'selected':''}>需人工处理</option>
-          <option value="failed" ${historyFilter==='failed'?'selected':''}>失败</option>
-          <option value="completed" ${historyFilter==='completed'?'selected':''}>已完成</option>
-          </select></label><button class="a-button" data-refresh>刷新</button></div>
-        ${list.records.length?`<div class="ai-history-list" role="list">${list.records.map(r=>`<div class="ai-history-row" data-ai-history-row data-analysis-id="${esc(r.id)}" data-ai-history-status="${esc(displayTaskStatus(r).kind)}" role="listitem"><button type="button" class="ai-history-title" data-analysis="${esc(r.id)}" aria-pressed="${selected===r.id}">${esc(r.title)}</button><span data-ai-history-badge class="ai-state ai-state-${esc(displayTaskStatus(r).kind)}">${esc(displayTaskStatus(r).text)}</span><span class="ai-history-meta">建议 ${esc(r.suggestion_count??'未知')} 条</span></div>`).join('')}</div><p data-ai-history-empty hidden>当前筛选条件下没有历史分析。</p>`:'<p>尚无分析，点击开始后才会调用模型。</p>'}</section>
-        <section class="a-card ai-result" data-detail><p>选择一条分析查看证据和建议。</p></section>
+        <div class="ai-review-layout">
         <section class="a-card ai-review">
           <div class="ai-review-heading"><h2>待复盘行动</h2><span>执行 → 观察 → 人工复盘</span></div>
           <p>后端按三个完整业务日和数据水位确定复盘资格。查看状态不会产生模型费用；人工发起复盘可能产生费用。</p>
           ${renderAIReviewQueue(reviewQueue,{esc})}
         </section>
         <section class="a-card ai-review-history"><h2>复盘记录</h2>${reviews.retrospectives.map(r=>`<article><h3>${esc(r.analysis_title)}</h3><p>${esc(r.conclusion)}</p><p>置信度：${esc(r.confidence)} · ${r.has_causality?'有因果证据':'观测变化，未证明因果'}</p><p>经验：${esc(r.lessons_learned||'尚无结论')}</p></article>`).join('')||'<p>记录行动后，可主动发起复盘。</p>'}</section>
+        </div>
         <details class="a-card ai-advanced"><summary>高级设置与数据来源</summary>
         <p>自动日报评分目标与月度经营目标分别保存。月度目标、日报和研究治理在运行控制台管理。</p>
         <button class="a-button" type="button" data-agent-control>打开运行与目标控制台</button>
@@ -616,15 +620,19 @@ export function createAIAnalysis(ctx){
       ${r.status==='failed'&&!r.cancel_requested?'<button class="a-button" data-retry-analysis disabled title="正在核对调查检查点">检查后重试</button>':''}
       ${['pending','processing'].includes(r.status)&&!r.cancel_requested?'<button class="a-button" type="button" data-cancel-analysis>取消任务</button>':''}
       ${r.cancel_requested?'<p role="status">任务已取消，不会继续新的模型调用；先前发出的请求仍可能计费。</p>':''}
-      <p data-detail-summary>${esc(r.result?.summary||(r.status==='failed'?'分析未完成；请查看失败原因和检查点后再决定下一步。':r.status==='processing'?'分析正在进行。':r.status==='completed'?'已完成；暂无摘要。':'任务已排队；请确认 AI Worker 正在运行。'))}</p>
+      <p class="ai-detail-lead" data-detail-summary>${esc(r.result?.summary||(r.status==='failed'?'分析未完成；请查看失败原因和检查点后再决定下一步。':r.status==='processing'?'分析正在进行。':r.status==='completed'?'已完成；暂无摘要。':'任务已排队；请确认 AI Worker 正在运行。'))}</p>
       ${(r.result?.keyFindings||[]).length?`<section class="ai-findings" aria-label="关键发现"><h3>关键发现</h3><ul>${r.result.keyFindings.map(f=>`<li>${esc(f)}</li>`).join('')}</ul></section>`:''}
       ${r.result?.routing?`<p>调查方式：${esc(r.result.routing.reason)}</p>`:''}
-      ${(r.result?.evidenceIds||[]).map(eid=>`<button class="a-button" data-evidence="${esc(eid)}">查看证据 ${esc(eid.slice(0,8))}</button>`).join('')}<pre data-evidence-result></pre>
       <section class="ai-action-list" aria-label="人工决策与执行">
         <div class="ai-action-list-heading"><h3>行动建议</h3><span>${(r.suggestions||[]).length} 条</span></div>
         ${(r.suggestions||[]).length?(r.suggestions||[]).map(item=>renderAISuggestion(item,{esc,json,label,offset:OFFSET})).join(''):'<p class="a-muted">尚无可执行行动建议；不代表业务没有问题。</p>'}
       </section>
-      <details><summary>业务快照、目标优先级及模型调用记录</summary><pre>${json({snapshot:r.data_snapshot,calls:r.result?.calls})}</pre></details>`;
+      <details class="ai-evidence-index"><summary>原始业务证据 · ${(r.result?.evidenceIds||[]).length} 项</summary>
+        <p class="a-muted">选择证据编号查看原始指标及数据覆盖说明。</p>
+        <div class="ai-evidence-links">${(r.result?.evidenceIds||[]).map(eid=>`<button class="a-button" data-evidence="${esc(eid)}">证据 ${esc(eid.slice(0,8))}</button>`).join('')}</div>
+        <pre data-evidence-result></pre>
+      </details>
+      <details class="ai-data-appendix"><summary>业务快照、目标优先级及模型调用记录</summary><pre>${json({snapshot:r.data_snapshot,calls:r.result?.calls})}</pre></details>`;
       // Diagnostics are owner-scoped and intentionally do not expose model prompts.
       getJobCheckpoint(id).then(checkpoint=>{
         if(token!==generation||request!==detailRequest||selected!==id||!panel.isConnected)return;
