@@ -39,3 +39,13 @@ test('legacy projection remains opt-in and unchanged by the v4 branch',()=>{
  const next=forModel(base,{maxBytes:3500,projectionVersion:'v4'});
  assert.equal(next.transport,'aggregated-business-v4');
 });
+
+test('v4 explicitly reports duplicate investigations as not executed',()=>{
+ const result=forModel({status:'not-executed',evidence:[],
+  error:{type:'duplicate_investigation'}},{
+   maxBytes:3500,projectionVersion:'v4'
+  });
+ assert.equal(result.status,'not-executed');
+ assert.equal(result.reason,'duplicate_investigation');
+ assert.equal(result.evidence.length,0);
+});
