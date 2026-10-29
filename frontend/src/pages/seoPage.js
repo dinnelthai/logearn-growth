@@ -1,4 +1,6 @@
 import './aiAnalysis.css';
+import './seoReport.css';
+import {renderSeoReport,applySeoQueryFilter,safeSeoUrl} from './seoReportView.js';
 import {loadingState} from './loadingState.js';
 import {getSeoImports,importSeoSnapshot,previewSeoSnapshot,getGscConnection,saveGscSite,syncGscPerformance,getGscPerformance,getGscSitemaps,inspectGscUrl,beginGscOAuth,disconnectGscOAuth} from '../api/aiAnalysis.js';
 
@@ -35,7 +37,8 @@ export function createSeoPage(ctx){
    host.innerHTML=`<div class="si-page ai-analysis-page seo-workspace">
     <header class="ai-decision-hero"><div><span class="ai-eyebrow">CHANNEL INTELLIGENCE</span><h1>SEO 分析</h1><p>搜索曝光、关键词、页面与收录状态；同步本身不调用 AI。</p></div><button class="a-button" data-seo-refresh type="button">刷新</button></header>
     <p data-seo-message role="status" aria-live="polite">${esc(notice)}</p>
-        <section class="a-card ai-gsc-settings">
+        <details class="a-card ai-gsc-settings seo-settings" ${(!gscConnection.selectedSite||!gscSnapshot.available)?'open':''}>
+          <summary>数据源设置 <span>${gscConnection.selectedSite?'已连接 · '+esc(gscConnection.selectedSite):'需要配置'}</span></summary>
           <h2>Google Search Console · 网站与数据设置</h2>
           <p>只读 Search Console API。Google 授权凭据仅保存在服务器端，网页不会上传或显示密钥／Token。</p>
           <p role="status">
@@ -71,37 +74,15 @@ export function createSeoPage(ctx){
           </form>
           <p data-gsc-sync-status role="status" aria-live="polite">${esc(syncNotice)}</p>
           <p>同步采用已最终确定的 Google 搜索数据；不会发起 AI 调查，也不会修改网站、索引或 Sitemap 设置。</p>
-        </section>
+        </details>
         <section class="a-card ai-gsc-report">
-          <h2>Search Console · SEO 数据面板</h2>
+          <h2>自然搜索表现</h2>
           ${gscSnapshot.error?'<p role="status">历史同步数据暂不可用：'+esc(gscSnapshot.error)+'</p>':''}
-          ${gscSnapshot.available&&gscSnapshot.report?(()=>{
-            const r=gscSnapshot.report,metric=r.metrics||{},coverage=r.coverage||{};
-            return `<p>资源：${esc(r.siteUrl)} · 报告期 ${esc(r.startDate)} ~ ${esc(r.endDate)} · 上次同步 ${esc(r.syncedAt?new Date(r.syncedAt).toLocaleString('zh-CN'):'—')}</p>
-              <div class="ai-stats-grid">
-                <div class="ai-stat"><span>总点击</span><strong>${esc(formatCount(metric.clicks))}</strong></div>
-                <div class="ai-stat"><span>总曝光</span><strong>${esc(formatCount(metric.impressions))}</strong></div>
-                <div class="ai-stat"><span>站点 CTR</span><strong>${esc(formatPercent(metric.ctr))}</strong></div>
-                <div class="ai-stat"><span>平均排名</span><strong>${esc(formatPosition(metric.position))}</strong></div>
-              </div>
-              <p>数据覆盖：${esc(coverage.reportedDays)} / ${esc(coverage.expectedDays)} 个日期；
-                查询行 ${esc(coverage.queryRowsReturned)}；页面行 ${esc(coverage.pageRowsReturned)}。</p>
-              <h3>按日走势</h3>
-              <div class="ai-gsc-table"><table><thead><tr><th>日期</th><th>点击</th><th>曝光</th><th>CTR</th><th>排名</th></tr></thead>
-                <tbody>${(r.daily||[]).map(d=>`<tr><td>${esc(d.date)}</td><td>${esc(formatCount(d.clicks))}</td><td>${esc(formatCount(d.impressions))}</td><td>${esc(formatPercent(d.ctr))}</td><td>${esc(formatPosition(d.position))}</td></tr>`).join('')||'<tr><td colspan="5">暂无按日数据，不能判定为零流量</td></tr>'}</tbody></table></div>
-              <h3>热门关键词（前 30）</h3>
-              <div class="ai-gsc-table"><table><thead><tr><th>查询词</th><th>点击</th><th>曝光</th><th>CTR</th><th>排名</th></tr></thead>
-                <tbody>${(r.queries||[]).slice(0,30).map(q=>`<tr><td>${esc(q.query)}</td><td>${esc(formatCount(q.clicks))}</td><td>${esc(formatCount(q.impressions))}</td><td>${esc(formatPercent(q.ctr))}</td><td>${esc(formatPosition(q.position))}</td></tr>`).join('')||'<tr><td colspan="5">无可展示的查询词</td></tr>'}</tbody></table></div>
-              <h3>潜在 SEO 机会（候选，非预测收益）</h3>
-              ${(r.opportunities||[]).slice(0,12).map(q=>`<p>${esc(q.query)} · 曝光 ${esc(formatCount(q.impressions))} · CTR ${esc(formatPercent(q.ctr))} · 平均排名 ${esc(formatPosition(q.position))}</p>`).join('')||'<p>本次数据中没有达到候选阈值的查询词。</p>'}
-              <h3>热门页面（前 20）</h3>
-              <div class="ai-gsc-table"><table><thead><tr><th>页面</th><th>点击</th><th>曝光</th><th>CTR</th></tr></thead>
-                <tbody>${(r.pages||[]).slice(0,20).map(p=>`<tr><td>${esc(p.page)}</td><td>${esc(formatCount(p.clicks))}</td><td>${esc(formatCount(p.impressions))}</td><td>${esc(formatPercent(p.ctr))}</td></tr>`).join('')||'<tr><td colspan="4">无可展示的页面</td></tr>'}</tbody></table></div>
-              <p>${(r.warnings||[]).map(w=>esc(w)).join('；')}</p>`;
-          })():'<p>尚无已同步的 Google API 数据。选择站点后点击同步，才能展示可核查的关键词及趋势。</p>'}
-        </section>
-        <section class="a-card ai-gsc-diagnostics">
-          <h2>Sitemap 与 URL 收录检查</h2>
+          ${gscSnapshot.available&&gscSnapshot.report?renderSeoReport(gscSnapshot.report,esc):
+           '<p>暂无已同步的 Google Search Console 报告。请展开上方数据源设置连接并同步。</p>'}
+         </section>
+         <details class="a-card ai-gsc-diagnostics seo-settings">
+          <summary>Sitemap 与 URL 收录检查</summary>
           <p>只读查看 Search Console 中已经提交的 Sitemap 和某个 URL 的 Google 索引版本；不提交 Sitemap，不请求收录，也不更改网站。</p>
           <button class="a-button" data-gsc-sitemaps ${!gscConnection.selectedSite?'disabled':''}>查看已提交 Sitemap</button>
           <form data-gsc-inspect-form class="ai-gsc-controls">
@@ -110,8 +91,8 @@ export function createSeoPage(ctx){
             <button type="submit" class="a-button" ${!gscConnection.selectedSite?'disabled':''}>查看 Google 索引状态</button>
           </form>
           <div data-gsc-diagnostic-result role="status">尚未发起索引状态查询。</div>
-        </section>
-        <section class="a-card"><h2>SEO · 备用手动导入</h2>
+        </details>
+        <details class="a-card seo-settings"><summary>备用手动导入与历史证据</summary>
           <p>优先使用上方 Google API 同步。只有服务器尚不能读取该资源时，才使用以下离线 GSC JSON 作为有限证据。</p>
           ${seoData.error?'<p role="status">SEO 数据暂不可用：'+esc(seoData.error)+'</p>':''}
           <form data-seo-import-form>
@@ -123,11 +104,11 @@ export function createSeoPage(ctx){
           ${(seoData.imports||[]).slice(0,10).map(r=>`<p>${esc(r.site_url)} ·
              ${esc(r.start_date)} ~ ${esc(r.end_date)} · ${esc(r.row_count)} 行
              <button class="a-button" data-seo-preview="${esc(r.id)}">查看 SEO 证据</button></p>`).join('')||'<p>暂无 Search Console 数据，关键词搜索量与排名不可用。</p>'}
-        </section>
-
-    <section class="a-card" data-specialist-preview><p>选择 SEO 快照查看已保存的业务证据。</p></section>
+          <div class="seo-preview" data-specialist-preview><p>选择 SEO 快照查看已保存的业务证据。</p></div>
+        </details>
     </div>`;
    host.querySelector('[data-seo-refresh]').onclick=draw;
+   applySeoQueryFilter(host);
        const oauthConnect=host.querySelector('[data-gsc-oauth-connect]');
        if(oauthConnect)oauthConnect.onclick=async()=>{
          if(busy)return;
@@ -234,12 +215,12 @@ export function createSeoPage(ctx){
           if(token!==generation)return;
           const r=response.result||{};
           gscDiagnostics.innerHTML=`<h3>Google URL 索引信息</h3>
-             <p>页面：${esc(r.inspectionUrl||url)}</p>
+             <p>页面：${esc(safeSeoUrl(r.inspectionUrl||url).label)}</p>
              <p>索引覆盖：${esc(r.coverageState||'未知')} · 结果：${esc(r.verdict||'未知')}</p>
              <p>抓取状态：${esc(r.pageFetchState||'未知')} · 最近抓取：${esc(r.lastCrawlTime||'未知')}</p>
              <p>robots.txt：${esc(r.robotsTxtState||'未知')} · 索引允许：${esc(r.indexingState||'未知')}</p>
-             <p>Google 规范页面：${esc(r.googleCanonical||'未知')}</p>
-             <p>网站声明的规范页面：${esc(r.userCanonical||'未知')}</p>
+             <p>Google 规范页面：${esc(r.googleCanonical?safeSeoUrl(r.googleCanonical).label:'未知')}</p>
+             <p>网站声明的规范页面：${esc(r.userCanonical?safeSeoUrl(r.userCanonical).label:'未知')}</p>
              <p>${esc(r.warning||'仅查询 Google 索引中的已有状态')}</p>`;
         }catch(error){if(token===generation)gscDiagnostics.textContent='网址检查失败：'+error.message}
         finally{busy=false;if(button.isConnected)button.disabled=false}
@@ -251,7 +232,8 @@ export function createSeoPage(ctx){
         try{
           const result=await previewSeoSnapshot(button.dataset.seoPreview);
           if(token!==generation)return;
-          specialist.innerHTML='<h3>SEO 已导入观察数据</h3><pre>'+esc(JSON.stringify(result.report,null,2))+'</pre>';
+          const safeReport=JSON.stringify(result.report,(key,value)=>key==='page'&&typeof value==='string'?safeSeoUrl(value).label:value,2);
+          specialist.innerHTML='<h3>SEO 已导入观察数据（URL 参数值已遮蔽）</h3><pre>'+esc(safeReport)+'</pre>';
         }catch(error){if(token===generation)specialist.textContent=error.message}
         finally{if(button.isConnected)button.disabled=false}
       });

@@ -1,0 +1,48 @@
+.seo-workspace{display:grid;gap:16px}
+.seo-workspace .ai-gsc-report{display:grid;gap:14px}
+.seo-workspace .ai-gsc-report>h2{margin:0}
+.seo-workspace .seo-report-meta{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--a-muted,#64748b);font-size:12px}
+.seo-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.seo-kpi{display:flex;flex-direction:column;gap:5px;padding:16px;border:1px solid var(--a-border,#e2e8f0);border-radius:12px;background:var(--ui-surface-raised,transparent)}
+.seo-kpi span{font-size:12px;color:var(--a-muted,#64748b)}
+.seo-kpi strong{font-size:26px;line-height:1.2;color:var(--a-text,#1e293b);font-variant-numeric:tabular-nums}
+.seo-workspace .seo-muted{color:var(--a-muted,#64748b);font-size:12px;line-height:1.6;margin:0}
+.seo-panel{border-top:1px solid var(--a-border,#e2e8f0);padding-top:16px;min-width:0}
+.seo-panel header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.seo-panel header h3{margin:0 0 5px;font-size:16px}
+.seo-panel header p{margin:0;color:var(--a-muted,#64748b);font-size:12px;line-height:1.6}
+.seo-trend{width:100%;height:auto;min-height:120px;max-height:235px;display:block;overflow:visible}
+.seo-trend-legend{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--a-muted,#64748b);margin:0 0 8px}
+.seo-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-left:10px}
+.seo-dot-clicks{background:#3b82f6}.seo-dot-impressions{background:#77859f}
+.seo-line{fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.seo-line-clicks{stroke:#3b82f6}.seo-line-impressions{stroke:#77859f}
+.seo-axis{stroke:var(--a-border,#cbd5e1);stroke-width:1}
+.seo-chart-label{fill:var(--a-muted,#64748b);font-size:13px}
+.seo-raw-data{margin-top:14px;padding:10px 0;color:var(--a-muted,#64748b);font-size:12px}
+.seo-raw-data summary{cursor:pointer;font-weight:600}
+.seo-raw-data .ai-gsc-table{margin-top:10px}
+.seo-raw-data ul{padding-left:20px}
+.seo-segments{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}
+.seo-segments button{cursor:pointer;border:1px solid var(--a-border,#cbd5e1);border-radius:18px;padding:6px 12px;background:transparent;color:var(--a-text,#334155);font-size:12px}
+.seo-segments button[aria-pressed="true"]{background:var(--a-accent,#2563eb);border-color:var(--a-accent,#2563eb);color:#fff}
+.seo-keyword-table tr[hidden]{display:none!important}
+.seo-kind{font-size:11px;color:var(--a-muted,#64748b);white-space:nowrap}
+.seo-pages-table td:first-child{min-width:230px}
+.seo-pages-table td:first-child strong{display:block;font-size:12px;font-weight:600}
+.seo-pages-table td:first-child small{display:block;margin-top:3px;color:var(--a-muted,#64748b);font-size:11px;max-width:420px;overflow-wrap:anywhere;line-height:1.5}
+.seo-issues{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:8px 0 12px;padding:0;list-style:none}
+.seo-issues li{padding:12px;border:1px solid var(--a-border,#cbd5e1);border-radius:10px;background:var(--ui-surface-raised,transparent)}
+.seo-issues strong{display:block;margin-bottom:4px;font-size:12px}
+.seo-issues strong.seo-urgent{color:var(--color-red-600,#dc2626)}
+.seo-issues span{display:block;font-size:11px;line-height:1.6;color:var(--a-muted,#64748b)}
+.seo-settings{min-width:0}
+.seo-settings>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;font-weight:600}
+.seo-settings>summary::-webkit-details-marker{display:none}
+.seo-settings>summary:after{content:'⌄';font-size:16px;color:var(--a-muted,#64748b)}
+.seo-settings[open]>summary:after{content:'⌃'}
+.seo-settings>summary span{font-weight:400;color:var(--a-muted,#64748b);font-size:12px;margin-left:auto}
+.seo-settings[open]>summary{padding-bottom:14px;border-bottom:1px solid var(--a-border,#e2e8f0);margin-bottom:14px}
+.seo-settings h2{font-size:14px}
+.seo-settings .seo-preview pre{max-height:320px;overflow:auto;font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:900px){.seo-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.seo-kpi strong{font-size:22px}}
