@@ -35,12 +35,17 @@ function collectChannelObservations(ownerId,day,{db=require('../../db/connection
     .get(ownerId,a.id,day+'T00:00:00Z',new Date(Date.parse(day+'T00:00:00Z')+86400000).toISOString());
    const snapshot=tables.has('x_official_follower_daily')?
     db.prepare('SELECT followers FROM x_official_follower_daily WHERE owner_id=? AND account=? AND day=?').get(ownerId,a.id,day):null;
+   const dayStart=Date.parse(day+'T00:00:00Z')-7*3600000;
+   const observed=tables.has('x_official_post_snapshots')?
+    db.prepare('SELECT COUNT(*) observations,COUNT(DISTINCT post_id) distinctPosts FROM x_official_post_snapshots WHERE owner_id=? AND account=? AND observed_at>=? AND observed_at<?')
+     .get(ownerId,a.id,dayStart,dayStart+86400000):null;
    return {account:a.id,lastSynced:info?.last_synced??null,publishedSample:posts.count,
     sampledCumulativeViews:posts.count>0&&posts.missing===0?posts.views:null,
-    followersObservedToday:snapshot?.followers??null};
+    followersObservedToday:snapshot?.followers??null,
+    capturedObservationsToday:observed?.observations??null,capturedPostsToday:observed?.distinctPosts??null};
   });
   report.x_official={available:accounts.some(a=>a.publishedSample>0||a.followersObservedToday!=null),
-   source:'twitterapi.io',accounts,scope:'third-party-public-observations-not-verified-conversions'};
+   source:'twitterapi.io',accounts,scope:'third-party-cumulative-observations-not-daily-engagement-or-verified-conversions'};
   report.available||=report.x_official.available;
  }
  return report;
