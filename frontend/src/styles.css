@@ -1301,22 +1301,161 @@ html>body{padding:0}
 #la-studio .a-swatch:hover{transform:scale(1.15)}
 #la-studio .a-swatch.is-selected{border-color:var(--a-text);box-shadow:0 0 0 2px var(--a-panel)}
 
-/* ── Login overlay ─────────────────────────────────────────────────────────── */
-#la-login-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:light-dark(#f4f6f9,#0d1117);z-index:9999;font-family:Inter,system-ui,-apple-system,"PingFang SC",sans-serif}
-.la-login-card{width:100%;max-width:380px;background:light-dark(#fff,#1a212c);border:1px solid light-dark(#e3e8ef,#303c4c);border-radius:12px;padding:36px 32px;box-shadow:0 8px 32px light-dark(#1829461a,#00000040)}
-.la-login-brand{display:flex;align-items:center;gap:10px;margin-bottom:28px}
-.la-login-brand .a-wing{fill:light-dark(#247858,#81d6b0)}
-.la-login-brand .a-e{fill:light-dark(#247858,#81d6b0);font:900 29px/1 Arial,sans-serif}
-.la-login-title{font-size:20px;font-weight:700;letter-spacing:-.5px;color:light-dark(#202a3a,#e7edf7)}
-.la-login-title span{color:light-dark(#247858,#81d6b0)}
-.la-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
-.la-field label{font-size:12px;font-weight:500;color:light-dark(#69768a,#9aabc2)}
-.la-field input{padding:9px 11px;border:1px solid light-dark(#e3e8ef,#303c4c);border-radius:6px;font:13px/1.5 inherit;background:light-dark(#f4f6f9,#11151d);color:light-dark(#202a3a,#e7edf7);outline:none;transition:border-color .15s}
-.la-field input:focus{border-color:light-dark(#4264d0,#96b0ff)}
-.la-error{font-size:12px;color:light-dark(#c0392b,#ff7b7b);margin:0 0 12px;padding:8px 10px;border-radius:5px;background:light-dark(#fdf2f2,#2d1515)}
-.la-login-btn{width:100%;padding:10px;background:light-dark(#4264d0,#96b0ff);color:light-dark(#fff,#152344);border:none;border-radius:6px;font:600 13px/1.5 inherit;cursor:pointer;margin-top:4px;transition:opacity .15s}
-.la-login-btn:hover:not(:disabled){opacity:.88}
-.la-login-btn:disabled{opacity:.5;cursor:not-allowed}
+/* ── Login: focused desktop sign-in surface ─────────────────────────────── */
+#la-login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: 32px 20px;
+  box-sizing: border-box;
+  background:
+    radial-gradient(ellipse 680px 480px at 50% 42%,
+      light-dark(rgba(91,117,190,.07),rgba(101,125,191,.10)),transparent 74%),
+    light-dark(#f3f6fa,#0c111a);
+  font-family: Inter,system-ui,-apple-system,"PingFang SC",sans-serif;
+  color: light-dark(#202c3d,#eaf0f9);
+}
+#la-login-overlay .la-login-card {
+  box-sizing: border-box;
+  width: min(100%,420px);
+  margin: auto;
+  padding: 32px 34px 24px;
+  border: 1px solid light-dark(#e0e6ee,#313e50);
+  border-radius: 16px;
+  background: light-dark(#fff,#171f2b);
+  box-shadow: 0 18px 58px light-dark(#15284615,#00000052);
+}
+#la-login-overlay .la-login-header { margin-bottom: 28px; }
+#la-login-overlay .la-login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+}
+#la-login-overlay .la-login-header h1 {
+  margin: 29px 0 7px;
+  font-size: 23px;
+  line-height: 1.3;
+  font-weight: 680;
+  letter-spacing: -.035em;
+}
+#la-login-overlay .la-login-intro {
+  margin: 0;
+  color: light-dark(#657388,#99a7bb);
+  font-size: 13px;
+  line-height: 1.65;
+}
+#la-login-overlay .la-field {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 0 0 18px;
+}
+#la-login-overlay .la-field label {
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 600;
+  color: light-dark(#46566d,#bac6d8);
+}
+#la-login-overlay .la-field input {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  height: 44px;
+  padding: 0 13px;
+  border: 1px solid light-dark(#cbd5e2,#34445a);
+  border-radius: 9px;
+  outline: none;
+  background: light-dark(#f8fafc,#202c3d);
+  color: light-dark(#1e2b3d,#edf2fc);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  transition: border-color .15s ease,box-shadow .15s ease;
+}
+#la-login-overlay .la-field input::placeholder {
+  color: light-dark(#8b98a8,#8292a7);
+}
+#la-login-overlay .la-field input:focus {
+  border-color: light-dark(#5877d4,#91a8ff);
+  box-shadow: 0 0 0 3px light-dark(#5275dc20,#819dff25);
+}
+#la-login-overlay .la-password-control { position: relative; }
+#la-login-overlay .la-password-control input { padding-right: 64px; }
+#la-login-overlay .la-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 9px;
+  transform: translateY(-50%);
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: light-dark(#566b86,#adbcd0);
+  font: 600 12px/1.4 inherit;
+  cursor: pointer;
+}
+#la-login-overlay .la-password-toggle:hover {
+  color: light-dark(#304e97,#e2e9ff);
+  background: light-dark(#e5ebf6,#2c3a50);
+}
+#la-login-overlay .la-password-toggle:focus-visible,
+#la-login-overlay .la-login-btn:focus-visible {
+  outline: 2px solid light-dark(#5275dc,#a4b9ff);
+  outline-offset: 3px;
+}
+#la-login-overlay .la-error {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 1px solid light-dark(#f5caca,#663c44);
+  border-radius: 8px;
+  background: light-dark(#fff2f2,#342128);
+  color: light-dark(#af2e35,#ffaaaa);
+  font-size: 12px;
+  line-height: 1.55;
+}
+#la-login-overlay .la-error[hidden] { display: none; }
+#la-login-overlay .la-login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  margin: 6px 0 0;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 9px;
+  background: light-dark(#3f60c9,#91a6ec);
+  color: light-dark(#fff,#17233a);
+  font: 650 14px/1.5 inherit;
+  cursor: pointer;
+  transition: background .15s ease,transform .15s ease;
+}
+#la-login-overlay .la-login-btn:hover:not(:disabled) {
+  background: light-dark(#344fb0,#a5b8ff);
+}
+#la-login-overlay .la-login-btn:active:not(:disabled) { transform: translateY(1px); }
+#la-login-overlay .la-login-btn:disabled { opacity: .75; cursor: wait; }
+#la-login-overlay .la-login-footnote {
+  margin: 22px 0 0;
+  color: light-dark(#8a97a9,#8796a9);
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.4;
+}
+@media (max-height: 540px) {
+  #la-login-overlay { align-items: start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #la-login-overlay .la-login-btn,
+  #la-login-overlay .la-field input { transition: none; }
+}
 
 /* ── User menu button ──────────────────────────────────────────────────────── */
 .la-user-btn{width:30px;height:30px;border-radius:50%;border:0;background:light-dark(#4264d0,#96b0ff);color:light-dark(#fff,#152344);font:600 12px/30px inherit;cursor:pointer;flex-shrink:0;transition:opacity .15s}
