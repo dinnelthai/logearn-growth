@@ -25,13 +25,45 @@ function getManifest(data){
 }
 export function renderWeeklyCoverage(data,{safe,fmt,links}){
  const byId=new Map(getManifest(data).modules.map(row=>[row.id,row]));
+ const archived=data?.context_payload||data?.data_snapshot;
+ let ctx=archived;
+ if(typeof archived==='string'){
+  try{ctx=JSON.parse(archived)}catch{ctx=null}
+ }
+ const observedNumbers=source=>{
+  const direct=(source?.facts||[]).filter(f=>typeof f?.value==='number'&&Number.isFinite(f.value))
+   .map(f=>f.value);
+  const ids=new Set(source?.evidenceIds||[]);
+  for(const ev of (Array.isArray(ctx?.evidence)?ctx.evidence:[])){
+   if(ids.has(ev.id)&&typeof ev.value==='number'&&Number.isFinite(ev.value))
+    direct.push(ev.value);
+  }
+  return direct;
+ };
+ const hasNumber=(text,value)=>{
+  const str=String(value),pos=String(text||'').indexOf(str);
+  if(pos<0)return false;
+  const before=text[pos-1]||'',after=text[pos+str.length]||'';
+  return !/[0-9.]/.test(before)&&!/[0-9.]/.test(after);
+ };
+ const isGap=text=>/没有(?:提供|数据|足够)|未(?:提供|采集|同步|取得|能)|缺少|无法(?:判断|确认|核实)|数据不足|尚无/.test(text||'');
  const rows=MODULES.map(([id,label])=>{
   const source=byId.get(id);
-  return {id,label,status:LABELS[source?.status]?source.status:'not-investigated',
-   reason:source?.reason||'缺少该模块的调查结果',
+  const numbers=observedNumbers(source);
+  // A historical v1 manifest could mark a data-gap citation as analyzed.
+  // Reclassify only in the view; never rewrite the saved evidence or bill
+  // another model request to repair a display label.
+  const legacyOverstated=source?.status==='analyzed'&&
+   (isGap(source?.insight)||!numbers.some(n=>hasNumber(source?.insight,n)));
+  const status=legacyOverstated?(numbers.length?'collected':'insufficient'):
+   LABELS[source?.status]?source.status:'not-investigated';
+  return {id,label,status,
+   reason:legacyOverstated?
+    '历史报告仅有调查或数据缺口说明，缺少可核对的模块级数字结论':
+    source?.reason||'缺少该模块的调查结果',
    evidenceIds:Array.isArray(source?.evidenceIds)?source.evidenceIds.slice(0,3):[],
    facts:Array.isArray(source?.facts)?source.facts.slice(0,3):[],
-   insight:typeof source?.insight==='string'?source.insight.slice(0,200):'',
+   insight:!legacyOverstated&&typeof source?.insight==='string'?source.insight.slice(0,200):'',
    insightType:source?.insightType==='hypothesis'?'hypothesis':
     source?.insightType==='recommendation'?'recommendation':'fact',
    nextAction:typeof source?.nextAction==='string'?source.nextAction.slice(0,160):''};
