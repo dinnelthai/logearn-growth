@@ -54,6 +54,10 @@ async function businessAnalysis(job) {
   // rollout switch can turn it off without mutating archived v1/v2 jobs.
   const useContextV3=process.env.AI_MODEL_CONTEXT_V3_ENABLED!=='0'&&
     process.env.AI_MODEL_CONTEXT_V2_ENABLED!=='0';
+  // v4 applies only to newly created weekly reports. Archived rounds are
+  // pinned to their saved prompt/version and must never be silently rewritten.
+  const useWeeklyV4=isWeeklyReport&&useContextV3&&
+    process.env.AI_WEEKLY_CONTEXT_V4_ENABLED!=='0';
   let leaseError=null,renewing=false;
   const heartbeat=setInterval(async()=>{
     if(renewing)return;
@@ -175,7 +179,7 @@ async function businessAnalysis(job) {
       .createPromptRegistry(require('../../db/connection'))
       .resolve(ownerId,'analysis',prompt,{runId:analysisId});
     const result=await runTask({context:compact,prompt:isWeeklyReport?currentPrompt+'\n'+(useContextV3?weeklyReport.weeklyPromptV2:weeklyReport.weeklyPrompt):currentPrompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
-      contextVersion:useContextV3?'v3':'v1',
+      contextVersion:useWeeklyV4?'v4':useContextV3?'v3':'v1',
       ...(isWeeklyReport?{modelTimeoutMs:weeklyReport.weeklyModelTimeoutMs()}:{}),
       paidCalls:{
         begin:round=>executionClaim.record.filter_conditions?.proposalId
