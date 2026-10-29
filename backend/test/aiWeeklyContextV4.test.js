@@ -60,6 +60,18 @@ test('v4 makes observed KPIs and major decline first; all 12 modules remain visi
  assert.ok(view.otherAvailableTools.length>0);
  assert.ok(Buffer.byteLength(JSON.stringify(view),'utf8')<14000);
 });
+test('a decline in first analysis promotes channel, funnel and login investigations',()=>{
+ const view=modelContext(fixture(),{transportVersion:'v4'});
+ assert.equal(view.investigationFocus.metricId,'new_users');
+ assert.ok(view.investigationFocus.question.includes('首次分析人数下降'));
+ const ids=view.capabilities.map(x=>x.id);
+ assert.deepEqual(ids.slice(0,4),[
+  'query_metrics','get_channels','get_funnel','get_login_conversion'
+ ]);
+ assert.ok(view.investigationFocus.candidateTools.includes('get_channels'));
+ assert.ok(view.investigationFocus.candidateTools.includes('get_funnel'));
+ assert.ok(view.investigationFocus.candidateTools.includes('get_login_conversion'));
+});
 test('X contribution only transfers numeric performance and never sends post text or PII',()=>{
  const view=modelContext(fixture(),{transportVersion:'v4'});
  const out=JSON.stringify(view);
