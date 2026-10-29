@@ -170,6 +170,17 @@ async function listWeeklyReportRecords(ownerId,{limit=20}={}){
    ORDER BY date_range_end DESC,created_at DESC LIMIT $2`,[ownerId,safeLimit]);
  return result.rows;
 }
+// Find the latest hidden FAILED weekly run. It remains fully intact for
+// evidence and billing reconciliation; only the history view hides it.
+async function getArchivedFailedWeeklyReport(ownerId,{start,end}){
+ const result=await read(`SELECT id,request_key,created_at FROM ai_analysis_records
+  WHERE owner_id=$1 AND date_range_start=$2 AND date_range_end=$3
+    AND filter_conditions->>'weeklyReport'='v1'
+    AND filter_conditions->>'hiddenFromHistory'='true'
+    AND status='failed'
+  ORDER BY created_at DESC LIMIT 1`,[ownerId,start,end]);
+ return result.rows[0]||null;
+}
 // A hidden, owner-scoped weekly report must not reappear as a new task:
  // its original idempotency key and paid-call journal remain durable.
 async function hasHiddenWeeklyReport(ownerId,{start,end}){
@@ -806,6 +817,7 @@ module.exports = {
   updateAnalysisModel,
   listAnalysisRecords,
   listWeeklyReportRecords,
+  getArchivedFailedWeeklyReport,
   hasHiddenWeeklyReport,
   createWeeklyReportRecord,
   hideAnalysisRecord,
