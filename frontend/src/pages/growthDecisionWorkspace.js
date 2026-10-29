@@ -1,4 +1,5 @@
 import {getToken} from '../auth/authClient.js'
+import {mountAIWeeklyReport} from './aiWeeklyReportPanel.js'
 const BASE=import.meta.env.VITE_BACKEND_BASE_URL??'http://localhost:3001'
 const safe=v=>String(v??'未知').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]))
 async function api(path,method='GET',body,signal){
@@ -36,8 +37,9 @@ function problemMarkup(data){
 }
 
 export function mountGrowthDecisionWorkspace(root){
- let disposed=false,seq=0,controller=null
+ let disposed=false,seq=0,controller=null,disposeWeekly=null
  async function draw(){
+  disposeWeekly?.();disposeWeekly=null;
   controller?.abort();controller=new AbortController()
    const version=++seq
   root.innerHTML='<p class="a-muted">正在读取目标、问题与周期报告…</p>'
@@ -46,7 +48,7 @@ export function mountGrowthDecisionWorkspace(root){
    if(disposed||version!==seq)return
    const goals=d.goals||[],issues=d.problems||[],actions=d.actions||[],reports=d.reports||[]
    const business=issues.filter(x=>x.type==='business'),data=issues.filter(x=>x.type==='data-quality'),other=issues.filter(x=>!['business','data-quality'].includes(x.type))
-   root.innerHTML=`<section class="a-card a-details"><h2>月度目标和决策工作台</h2>
+   root.innerHTML=`<section class="a-card a-details" aria-label="AI 运营周报"><div data-ai-weekly-report>正在加载 AI 周报…</div></section><section class="a-card a-details"><h2>月度目标和决策工作台</h2>
    <p>仅查看已保存的事实、问题和人工执行状态；未绑定正式数据时进度显示未知。此页面不会自动付费、发布或修改用户权益。</p>
    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
     <div><strong>当前月</strong><p>${safe(new Date(d.month.start+25200000).toISOString().slice(0,7))}</p></div>
@@ -77,12 +79,14 @@ export function mountGrowthDecisionWorkspace(root){
    <section class="a-card a-details"><h2>人工行动与复盘</h2>
     ${actions.slice(0,30).map(a=>`<article><strong>${safe(a.description)}</strong><p>负责人：${safe(a.assignee)} · ${safe(a.status)} · 效果 ${safe(a.review?.outcome||'未成熟/未评价')}</p></article>`).join('')||'<p>暂无与问题相关联的行动。</p>'}
    </section>
-   <section class="a-card a-details"><h2>日、周、月报告</h2>
-    <p>基于相同的问题、目标版本与行动快照；只读生成草稿，不触发 AI 模型。</p>
-    ${['daily','weekly','monthly'].map(k=>`<button class="a-button" data-period="${k}">生成${{daily:'日报',weekly:'周报',monthly:'月报'}[k]}草稿</button>`).join(' ')}
-    ${reports.slice(0,20).map(r=>`<p>${safe(r.kind)} · ${safe(new Date(r.period_start+25200000).toISOString().slice(0,10))} · 修订 v${r.revision} · ${safe(r.status)} · 问题 ${r.snapshot?.problemIds?.length??'未知'} 项</p>`).join('')||'<p>尚无报告草稿。</p>'}
-   </section>`
+   <section class="a-card a-details"><details><summary>历史业务快照（规则草稿，不调用 AI 模型）</summary>
+    <p>用于保存当期目标、问题和行动 ID；不是 AI 周报，不代表 AI 生成成功。</p>
+    ${['daily','weekly','monthly'].map(k=>`<button class="a-button" data-period="${k}">保存${{daily:'日',weekly:'周',monthly:'月'}[k]}报快照</button>`).join(' ')}
+    ${reports.slice(0,20).map(r=>`<p>${safe(r.kind)} · ${safe(new Date(r.period_start+25200000).toISOString().slice(0,10))} · 修订 v${r.revision} · ${safe(r.status)} · 问题 ${r.snapshot?.problemIds?.length??'未知'} 项</p>`).join('')||'<p>尚无业务快照。</p>'}
+   </details></section>`
    bind(d)
+   const weeklyRoot=root.querySelector('[data-ai-weekly-report]');
+   if(weeklyRoot)disposeWeekly=mountAIWeeklyReport(weeklyRoot,{api,safe});
   }catch(error){if(!disposed&&version===seq)root.innerHTML=`<section class="a-card a-details"><h2>决策工作台未就绪</h2><p role="alert">${safe(error.message)}</p><button class="a-button" data-retry>重新读取</button></section>`;root.querySelector('[data-retry]')?.addEventListener('click',draw)}
  }
  function issueGroup(label,items){return `<h3>${safe(label)}（${items.length}）</h3>${items.slice(0,20).map(i=>`<article class="a-card a-details"><strong>${safe(i.subject)}</strong><p>${safe(i.description)}</p>
@@ -114,5 +118,5 @@ export function mountGrowthDecisionWorkspace(root){
     reveal(btn,()=>api('/evidence/'+encodeURIComponent(btn.dataset.evidence)),evidenceMarkup)))
  }
  draw()
- return ()=>{disposed=true;seq++;controller?.abort()}
+ return ()=>{disposed=true;seq++;controller?.abort();disposeWeekly?.()}
 }
