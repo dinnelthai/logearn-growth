@@ -30,7 +30,7 @@ test('PostgreSQL transaction locks and reserves before provider I/O',async()=>{
  assert.ok(statements.some(x=>x.sql.includes('pg_advisory_xact_lock')));
  assert.ok(statements.some(x=>x.sql.includes('lease_expires_at')));
  assert.ok(statements.some(x=>x.sql.includes('INSERT INTO ai_external_spend_reservations')));
- assert.ok(statements.some(x=>x.sql.includes("state='unknown'")));
+ assert.ok(statements.some(x=>x.sql.includes("'unknown'")&&x.sql.includes('INSERT INTO ai_external_spend_reservations')));
 });
 test('no policy, insufficient funds, duplicate call or stale task cannot reserve',async()=>{
  for(const options of [{enabled:false},{used:60000},{duplicate:true},{eligible:false}]){
