@@ -28,19 +28,23 @@ const validNumber=x=>typeof x==='number'&&Number.isFinite(x);
 const cleanText=(value,max=180)=>String(value??'').slice(0,max);
 function factsFromEvidence(evidence){
  const facts=[];
- const walk=(obj,prefix='',depth=0)=>{
-  if(depth>3||!obj||typeof obj!=='object'||Array.isArray(obj)||facts.length>=4)return;
+ const walk=(obj,evidenceId,prefix='',depth=0)=>{
+  if(depth>3||!obj||typeof obj!=='object'||Array.isArray(obj)||facts.length>=8)return;
   for(const [key,value] of Object.entries(obj)){
-   if(facts.length>=4)break;
+   if(facts.length>=8)break;
    if(validNumber(value)&&ALLOWED_NUMBERS.has(key))
-    facts.push({metric:prefix?prefix+'.'+key:key,value});
+    facts.push({metric:prefix?prefix+'.'+key:key,value,evidenceId});
    else if(depth<3&&value&&typeof value==='object'&&!Array.isArray(value)&&
     ['metrics','summary','totals','global','conversion','product_chain','first_value',
      'referral','window','trade','xOfficial','counts'].includes(key))
-    walk(value,prefix?prefix+'.'+key:key,depth+1);
+    walk(value,evidenceId,prefix?prefix+'.'+key:key,depth+1);
   }
  };
- for(const evidenceRow of evidence.slice(0,2))walk(evidenceRow.value);
+ for(const e of evidence.slice(0,6)){
+  if(facts.length>=8)break;
+  if(validNumber(e?.value))facts.push({metric:e.metricId||'value',value:e.value,evidenceId:e.id});
+  else walk(e?.value,e?.id);
+ }
  return facts;
 }
 function baselineEvidence(context){
@@ -71,7 +75,7 @@ function describeAvailable(result){
 function packModule(def,{status,reason,evidence=[],source='read-only',tool=def.tool}={}){
  return {id:def.id,label:def.label,status,reason:cleanText(reason||'',180),
   tool,source,evidenceIds:evidence.map(e=>e?.id).filter(id=>typeof id==='string').slice(0,4),
-  facts:factsFromEvidence(evidence).slice(0,4)};
+  facts:factsFromEvidence(evidence).slice(0,8)};
 }
 function initialCoverage(context,{allowedTools=[],availableSpecialties=[]}={}){
  const available=new Set(allowedTools),special=new Set(availableSpecialties);
@@ -167,26 +171,38 @@ function finalizeWeeklyCoverage(raw,analysis,{additionalEvidence=[]}={}){
  }
 
  if(!raw||raw.version!==VERSION||!Array.isArray(raw.modules))return null;
- const claimed=new Set((analysis?.claims||[]).flatMap(c=>c?.evidenceIds||[]));
  const analyzed=raw.modules.map(entry=>{
   const chosen=entry.status==='collected'?entry:(updates.get(entry.id)||entry);
   const row={id:chosen.id,label:chosen.label,tool:chosen.tool,
    status:chosen.status,reason:chosen.reason,source:chosen.source,
    evidenceIds:[...(chosen.evidenceIds||[])].slice(0,4),
-   facts:(chosen.facts||[]).filter(x=>typeof x.metric==='string'&&validNumber(x.value)).slice(0,4)};
-  const rankedClaims=(analysis?.claims||[]).filter(claim=>
-   Array.isArray(claim?.evidenceIds)&&
-   claim.evidenceIds.some(id=>row.evidenceIds.includes(id))&&
-   typeof claim.text==='string'&&claim.text.trim());
-  const matchedClaim=rankedClaims.find(x=>x.kind==='fact')||
-   rankedClaims.find(x=>x.kind==='hypothesis')||rankedClaims[0];
-  if(row.status==='collected'&&matchedClaim&&
-     matchedClaim.evidenceIds.some(id=>claimed.has(id))){
+   facts:(chosen.facts||[]).filter(x=>typeof x.metric==='string'&&validNumber(x.value)).slice(0,8)};
+  // A citation alone does not mean this module was analyzed. A
+  // "data not provided" statement citing a channel query is a data gap,
+  // not a verified channel finding. Require a real numeric observation,
+  // linked to this module's evidence, in a factual claim.
+  const claims=(analysis?.claims||[]).filter(claim=>
+   claim?.kind==='fact'&&typeof claim.text==='string'&&
+   Array.isArray(claim.evidenceIds)&&
+   claim.evidenceIds.some(id=>row.evidenceIds.includes(id)));
+  const looksLikeMissing=text=>/没有(?:提供|数据|足够)|未(?:提供|采集|同步|取得|能)|缺少|无法(?:判断|确认|核实)|数据不足|尚无/.test(text);
+  const quotesObservedNumber=(text,n)=>{
+   const value=String(n);
+   const at=text.indexOf(value);
+   if(at<0)return false;
+   const before=text[at-1]||'',after=text[at+value.length]||'';
+   return !/[0-9.]/.test(before)&&!/[0-9.]/.test(after);
+  };
+  const matchedClaim=row.status==='collected'?claims.find(claim=>
+   !looksLikeMissing(claim.text)&&row.facts.some(fact=>
+    (claim.evidenceIds.includes(fact.evidenceId)||
+      (!fact.evidenceId&&claim.evidenceIds.some(id=>row.evidenceIds.includes(id))))&&
+    quotesObservedNumber(claim.text,fact.value))):null;
+  if(matchedClaim){
    row.status='analyzed';
-   row.reason='AI 结论已引用该模块的可验证证据';
+   row.reason='已引用本模块可核对的数值事实与证据';
    row.insight=cleanText(matchedClaim.text,200);
-   row.insightType=matchedClaim.kind==='hypothesis'?'hypothesis':
-    matchedClaim.kind==='fact'?'fact':'recommendation';
+   row.insightType='fact';
    const action=(analysis?.suggestions||[]).find(s=>
     Array.isArray(s?.evidence?.evidenceIds)&&
     s.evidence.evidenceIds.some(id=>row.evidenceIds.includes(id))&&
