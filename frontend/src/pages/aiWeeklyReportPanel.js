@@ -1,4 +1,4 @@
-import {getAnalysisDetail,getEvidence,getJobCheckpoint,retryAnalysis} from '../api/aiAnalysis.js';
+import {getAnalysisDetail,getEvidence,getJobCheckpoint,retryAnalysis,continueWeeklyOverflow} from '../api/aiAnalysis.js';
 import {canOfferTaskRetry} from './aiTaskStatus.js';
 import {queueAnalysisLaunch} from '../analysisLaunchContext.js';
 
@@ -7,7 +7,7 @@ const date=ms=>Number.isFinite(Number(ms))?new Date(Number(ms)+7*3600000).toISOS
 const fmt=x=>typeof x==='number'&&Number.isFinite(x)?x.toLocaleString('zh-CN',{maximumFractionDigits:2}):'未知';
 const statuses={pending:'排队中',processing:'AI 正在分析',completed:'已完成',failed:'生成失败',cancelled:'已取消'};
 export function mountAIWeeklyReport(root,{api,safe,navigate}){
- let disposed=false,seq=0,poll=null,selected=null,busy=false;
+ let disposed=false,seq=0,poll=null,selected=null,busy=false,recoveryQueued=false;
  const clear=()=>{if(poll){clearTimeout(poll);poll=null}};
  const links=ids=>(Array.isArray(ids)?ids:[]).map(id=>
   '<button type="button" class="a-button" data-weekly-evidence="'+safe(id)+'" title="查看来源证据">证据 '+safe(String(id).slice(0,8))+'</button>').join(' ');
@@ -52,7 +52,9 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
     try{
      const checkpoint=await getJobCheckpoint(row.id);
      if(disposed||token!==seq||!status.isConnected)return;
-     if(canOfferTaskRetry({status:row.status,cancel_requested:false},checkpoint)){
+     if(recoveryQueued){
+      status.textContent='已提交断点续跑，正在等待 Worker 领取任务。原始模型响应不会重新付费。';
+     }else if(canOfferTaskRetry({status:row.status,cancel_requested:false},checkpoint)){
       status.innerHTML='<p>检查点没有模型调用记录。可以手动重试；后端还会核查共享付费账本，确认安全才会入队。</p>'+
        '<button type="button" class="a-button" data-weekly-retry>重新生成本周报</button>';
       status.querySelector('[data-weekly-retry]')?.addEventListener('click',async event=>{
@@ -73,8 +75,29 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
         }
        }finally{busy=false}
       });
+     }else if(row.error_message==='补充查询过多，请缩小问题范围或提高调查能力'&&
+      checkpoint.recordStatus==='failed'&&checkpoint.modelCalls>0&&
+      ['partial-tools','recorded'].includes(checkpoint.state)){
+      status.innerHTML='<p>已有模型响应已保存，不能从头重试。可以申请从原始检查点继续；后续新增模型轮次可能产生费用，服务端会重新核对原始响应和付费账本。</p>'+
+       '<button type="button" class="a-button" data-weekly-continue>继续周报（可能新增模型费用）</button>';
+      status.querySelector('[data-weekly-continue]')?.addEventListener('click',async event=>{
+       if(busy)return;
+       busy=true;
+       const button=event.currentTarget;button.disabled=true;button.textContent='正在验证断点…';
+       try{
+        const resumed=await continueWeeklyOverflow(row.id);
+        if(disposed)return;
+        recoveryQueued=true;selected=resumed.analysisId;
+        await load();
+       }catch(error){
+        if(!disposed&&button.isConnected){
+         button.disabled=false;button.textContent='继续周报（可能新增模型费用）';
+         status.querySelector('p').textContent='安全续跑未启动：'+error.message;
+        }
+       }finally{busy=false}
+      });
      }else{
-      status.textContent='本次任务有模型调用记录或检查点未确认，禁止直接重试，以免重复计费。请查看原始 AI 调查记录。';
+      status.textContent='已有模型调用记录或检查点未确认，不能从头重试。请查看原始调查记录并人工核查费用。';
      }
     }catch(error){
      if(!disposed&&token===seq&&status.isConnected)
@@ -106,6 +129,8 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
    if(!rows.some(x=>x.id===selected))selected=rows[0]?.id||null;
    const current=rows.find(x=>Number(x.date_range_start)===Number(d.period.start)&&Number(x.date_range_end)===Number(d.period.end));
    const row=rows.find(x=>x.id===selected);
+   if(row&&row.status!=='failed')recoveryQueued=false;
+   if(row&&row.error_message&&row.error_message!=='补充查询过多，请缩小问题范围或提高调查能力')recoveryQueued=false;
    root.innerHTML='<div class="ai-weekly-heading"><div><h3>AI 运营周报</h3><p class="a-muted">最近完整周：'+
     safe(date(d.period.start))+' — '+safe(date(d.period.end-DAY))+' · UTC+7</p></div>'+
     (current?'<span class="ai-weekly-status">'+safe(row?'正在查看 · '+(statuses[row.status]||row.status):'本期 · '+(statuses[current.status]||current.status))+'</span>':
@@ -143,7 +168,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
     }finally{busy=false}
    });
    if(row)await showReport(row,token);
-   if(!disposed&&token===seq&&rows.some(x=>['pending','processing'].includes(x.status))){
+   if(!disposed&&token===seq&&(recoveryQueued||rows.some(x=>['pending','processing'].includes(x.status)))){
     poll=setTimeout(load,6000);
    }
   }catch(error){if(!disposed&&token===seq)root.innerHTML='<p role="alert">AI 周报读取失败：'+safe(error.message)+'</p><button type="button" class="a-button" data-weekly-retry>重新读取</button>';
