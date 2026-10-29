@@ -1,5 +1,6 @@
 const {runTask,validateAnalysis} = require('../../ai/business/runner');
 const weeklyReport=require('../../ai/growth/weeklyReport');
+const weeklyCoverage=require('../../ai/growth/weeklyCoverage');
 const {definitions,rankEvidence,validateRange,validateScope} = require('../../ai/business/policy');
 const {fetchNorthStar,fetchGrowthInsights,fetchWeeklyCore} = require('./dataFetcher');
 const records = require('../../db/aiRecords');
@@ -25,6 +26,8 @@ async function persistValidatedResult({job,analysisId,ownerId,token,compact,resu
       growthSignals:compact.growthPlan?.triage?.signals||[],
       growthSkills:compact.growthPlan?.steps?.map(step=>({id:step.skillId,version:step.skillVersion}))||[],
       ...(compact.weeklySources?{weeklySources:compact.weeklySources}:{}),
+      ...(compact.weeklyCoverage?{weeklyCoverage:weeklyCoverage.finalizeWeeklyCoverage(
+       compact.weeklyCoverage,analysis,{additionalEvidence:result.evidence})}:{}),
       evidenceIds:compact.evidence.map(e=>e.id),goalVersion:compact.goal?.version||null,candidates:compact.candidates,routing:result.routing,calls:result.calls,additionalEvidence:result.evidence,cost:result.cost,analysisId,
       ...(compact.weeklyOperations&&analysis.weeklyReport?{weeklyReport:analysis.weeklyReport,weeklyOperations:compact.weeklyOperations,reportPeriod:compact.period}:{})};
     await records.assertAnalysisLease(analysisId,ownerId,token);
@@ -113,7 +116,7 @@ async function businessAnalysis(job) {
     }
     const growthPlan=require('../../ai/growth/planner').planGrowthInvestigation({
       goal:focusGoal,report:compact,history:memory,focusSkillId,
-      maxSkills:isWeeklyReport?Math.min(8,6+availableSpecialties.length):Math.min(6,3+availableSpecialties.length),availableSpecialties,
+      maxSkills:isWeeklyReport?12:Math.min(6,3+availableSpecialties.length),availableSpecialties,
       strategy:learnedStrategy,availableCapabilityIds,
       // Weekly reports cover channels beyond the primary activation goal.
       includeWeeklySpecialties:isWeeklyReport
@@ -125,52 +128,39 @@ async function businessAnalysis(job) {
       };
     const session=require('../../ai/business/foundation').defaultFoundation().prepare(compact,{ownerId,runId:analysisId,goalRef:job.data.goalRef});
     compact=session.context;
-    // Existing read-only tool registry creates archived, owner-scoped evidence.
-    // This guarantees observed content/follower data are available to the daily
-    // conversion prompt when the corresponding owner data exists.
-    const permittedTools=new Set(compact.capabilities.map(cap=>cap.id));
-    for(const skillId of availableSpecialties){
-      const tool=skillId==='content-growth'?'get_content_growth':'get_follower_quality';
-      // An optional prefetch is not permission to widen the signed task plan.
-      // Missing capabilities are data gaps, not fatal authorization errors.
-      if(!permittedTools.has(tool)){
-        compact.warnings=[...(compact.warnings||[]),tool+': not included in this task plan'];
-        continue;
-      }
-      const observed=await session.investigate({tool,input:{start,end,scope:{source:'all'}}});
-      if(observed.status==='ok'&&Array.isArray(observed.evidence)){
-        // Prioritize selected evidence before model-context byte-cap truncation.
-        // This does not bypass the regular statistical projection or tool quota.
+    // A single bounded, owner-scoped read-only manifest backs EVERY weekly
+    // section. Only a subset is queried; all other modules remain explicitly
+    // uninvestigated. This does not create model calls or loosen tool budgets.
+    if(isWeeklyReport){
+      const coverage=await weeklyCoverage.collectWeeklyCoverage({
+       context:compact,investigate:session.investigate,
+       allowedTools:compact.capabilities.map(x=>x.id),
+       availableSpecialties,maxQueries:8,shouldContinue:beforeStep
+      });
+      compact.weeklyCoverage=coverage;
+      const seo=coverage.modules.find(x=>x.id==='seo-organic');
+      const seoEvidence=compact.evidence.find(e=>e.id===seo?.evidenceIds?.[0]);
+      const v=seoEvidence?.value||{};
+      const matched=seoEvidence?.coverage?.periodMatched===true;
+      compact.weeklySources={seo:{
+       status:seo?.status==='not-connected'?'unavailable':
+        seo?.status==='collected'&&matched?'period-matched':
+        seoEvidence?.value?.available===false?'not-synced':
+        seoEvidence?'reference-only':'unavailable',
+       periodMatched:matched,
+       range:v.startDate&&v.endDate?{startDate:v.startDate,endDate:v.endDate}:null,
+       evidenceIds:seo?.evidenceIds||[]
+      },note:'GSC 日期按 PT，业务周按 Asia/Bangkok；不匹配时仅为参考趋势，不能计算业务周 SEO 环比或归因'};
+    }else{
+      // Keep existing optional prefetch behavior for non-weekly daily jobs.
+      const permittedTools=new Set(compact.capabilities.map(cap=>cap.id));
+      for(const skillId of availableSpecialties){
+       const tool=skillId==='content-growth'?'get_content_growth':'get_follower_quality';
+       if(!permittedTools.has(tool))continue;
+       const observed=await session.investigate({tool,input:{start,end,scope:{source:'all'}}});
+       if(observed.status==='ok'&&Array.isArray(observed.evidence))
         compact.evidence.unshift(...observed.evidence);
       }
-      else compact.warnings=[...(compact.warnings||[]),tool+': source unavailable'];
-    }
-    // Mandatory weekly SEO evidence is read-only and owner-scoped. A missing
-    // GSC synchronization is an explicit reporting gap, not a zero result.
-    // Add before the persisted context and model cap, so AI cannot omit SEO
-    // merely because its default investigation goal is activation.
-    if(isWeeklyReport){
-      let seoStatus='unavailable',matched=null,evidenceIds=[],range=null;
-      if(permittedTools.has('get_seo_performance')){
-        try{
-          const result=await session.investigate({tool:'get_seo_performance',
-           input:{start,end,scope:{source:'all'},limit:12}});
-          if(result.status==='ok'&&Array.isArray(result.evidence)&&result.evidence.length){
-            const evidence=result.evidence;
-            const v=evidence[0]?.value||{};
-            matched=evidence[0]?.coverage?.periodMatched===true;
-            range=v.startDate&&v.endDate?{startDate:v.startDate,endDate:v.endDate}:null;
-            seoStatus=v.available===false?'not-synced':
-              matched?'period-matched':'reference-only';
-            evidenceIds=evidence.map(e=>e.id).filter(Boolean).slice(0,4);
-            compact.evidence.unshift(...evidence);
-          }else seoStatus='unavailable';
-        }catch(error){seoStatus='unavailable';}
-      }
-      compact.weeklySources={
-        seo:{status:seoStatus,periodMatched:matched,range,evidenceIds},
-        note:'GSC 日期按 PT，业务周按 Asia/Bangkok；不匹配时仅为参考趋势，不能计算业务周 SEO 环比或归因'
-      };
     }
     const snapshot={snapshot_id:compact.snapshot.id,snapshot_cutoff:compact.snapshot.cutoff,as_of:compact.snapshot.asOf,
       history_complete:compact.snapshot.historyComplete,events_complete_through:compact.snapshot.eventsCompleteThrough};
