@@ -20,7 +20,8 @@ describe('content growth reading experience',()=>{
  it('shows existing X metrics with a useful conclusion and source caveat',()=>{
   const html=renderXPanel(report,esc,'logearn_cn','recent');
   expect(html).toContain('9,721');
-  expect(html).toContain('内容评价与运营建议');
+  expect(html).toContain('近期内容对比线索（非 AI 结论）');
+  expect(html).toContain('用 Growth Agent 分析内容（提交后才计费）');
   expect(html).toContain('互动率较高');
   expect(html).toContain('Higher engagement');
   expect(html).toContain('数据源已连接');
