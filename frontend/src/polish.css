@@ -544,3 +544,27 @@
 }
 #la-studio .ai-weekly-module-insight strong,
 #la-studio .ai-weekly-module-action strong {font-weight:750}
+
+/* A user-initiated weekly regeneration is separate from retry/resume and
+   must explicitly acknowledge fresh model cost. */
+#la-studio .ai-weekly-toolbar {
+ display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap;
+}
+#la-studio .ai-weekly-regenerate-trigger {
+ min-height:34px;font-size:12px;font-weight:650;
+ border-color:var(--weekly-accent,var(--a-border));
+}
+#la-studio .ai-weekly-regenerate-trigger:disabled {opacity:.48;cursor:not-allowed}
+#la-studio .ai-weekly-regenerate-confirm[hidden] {display:none}
+#la-studio .ai-weekly-regenerate-confirm {
+ margin:12px 0 16px;padding:16px 19px;
+ border:1px solid var(--weekly-divider,var(--a-border));
+ border-left:3px solid var(--weekly-accent,#93b3ed);
+ background:var(--weekly-raised,var(--a-panel));border-radius:10px;
+}
+#la-studio .ai-weekly-regenerate-confirm p {
+ margin:0 0 13px;font-size:13px;line-height:1.7;
+}
+#la-studio .ai-weekly-regenerate-confirm .ai-weekly-regenerate-buttons {
+ display:flex;justify-content:flex-end;align-items:center;gap:9px;
+}
