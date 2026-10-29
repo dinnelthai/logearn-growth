@@ -47,27 +47,40 @@ function createRouter({db=require('../db/connection')}={}){
   const records=require('../db/aiRecords');
   const {weeklyPeriod}=require('../ai/growth/weeklyReport');
   const period=weeklyPeriod();
-  const [reports,archivedCurrentWeek]=await Promise.all([
+  const [reports,archivedCurrentWeek,archivedFailed]=await Promise.all([
    records.listWeeklyReportRecords(owner,{limit:20}),
-   records.hasHiddenWeeklyReport(owner,period)
+   records.hasHiddenWeeklyReport(owner,period),
+   records.getArchivedFailedWeeklyReport(owner,period)
   ]);
-  res.json({period,reports,archivedCurrentWeek,paidGeneration:false});
+  const hasCurrent=reports.some(row=>Number(row.date_range_start)===period.start&&
+   Number(row.date_range_end)===period.end);
+  res.json({period,reports,archivedCurrentWeek,
+   canRegenerateArchivedFailed:!hasCurrent&&!!archivedFailed,paidGeneration:false});
  }));
  router.post('/ai-weekly-reports',h(async(req,res,owner)=>{
   const {weeklyPeriod,weeklyKey,weeklyOperations}=require('../ai/growth/weeklyReport');
   const records=require('../db/aiRecords');
   const period=weeklyPeriod();
-  const requestKey=weeklyKey(period);
   const prior=await records.listWeeklyReportRecords(owner,{limit:50});
   const existing=prior.find(row=>Number(row.date_range_start)===period.start&&Number(row.date_range_end)===period.end);
   if(existing)return res.json({analysisId:existing.id,status:existing.status,reused:true,notice:'本周已有周报任务，不会重复触发模型'});
+  const archivedFailed=await records.getArchivedFailedWeeklyReport(owner,period);
+  if(archivedFailed&&req.body?.regenerateArchivedFailed!==true)
+   return res.status(409).json({error:'本周失败周报已删除，请使用「重新生成 AI 周报」明确发起新的付费任务'});
+  if(!archivedFailed&&req.body?.regenerateArchivedFailed===true)
+   return res.status(409).json({error:'未发现本周已删除的失败周报，无法执行重新生成'});
+  // Deterministic key per archived failure: repeated clicks enqueue only once.
+  // Every attempt preserves the original task, evidence and paid-call ledger.
+  const requestKey=archivedFailed?
+   weeklyKey(period)+':regenerate-archived:'+archivedFailed.id:weeklyKey(period);
   const operations=weeklyOperations(store,owner,period);
   const userQuestion='请对本周 LogEarn 业务增长与运营工作输出可核对的完整 AI 运营周报：本周变化、核心漏斗、重要异常、渠道证据、人工运营工作量、下周优先事项和数据缺口。严禁无数据归因或编造业务指标。';
   const focusGoal='activation',scope={source:'all'},modelMode='auto',title='AI 运营周报 · '+new Date(period.start+25200000).toISOString().slice(0,10);
   const {record,created}=await records.createWeeklyReportRecord({
    ownerId:owner,requestKey,title,start:period.start,end:period.end,question:userQuestion,
    conditions:{businessScope:scope,focusGoal,modelMode,evidenceReportId:null,
-    goalRef:null,skillId:null,weeklyReport:'v1',weeklyOperations:operations}
+    goalRef:null,skillId:null,weeklyReport:'v1',weeklyOperations:operations,
+    ...(archivedFailed?{weeklyReissueOf:archivedFailed.id}: {})}
   });
   if(record.filter_conditions?.weeklyReport!=='v1'||
      Number(record.date_range_start)!==period.start||Number(record.date_range_end)!==period.end)
@@ -82,7 +95,9 @@ function createRouter({db=require('../db/connection')}={}){
     businessScope:scope,userQuestion,focusGoal,modelMode,skillId:null
    },{jobId:record.id,attempts:1});
    res.status(202).json({analysisId:record.id,jobId:job.id,status:record.status,queued:true,
-    notice:'AI 周报已提交到现有分析队列，模型调用可能产生费用。'});
+    notice:archivedFailed?
+     '已创建新的 AI 周报，旧失败任务与调用费用保留；本次模型调用可能再次收费。':
+     'AI 周报已提交到现有分析队列，模型调用可能产生费用。'});
   }catch(error){
    // The task is durable. Do not fabricate a successful queue dispatch.
    await records.updateAnalysisStatus(record.id,'failed',null,'队列提交失败：'+error.message);
