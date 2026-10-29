@@ -18,7 +18,17 @@ export function renderXPanel(x,esc,selected,sort){
  const m=account.metrics||{};
  const cooldown=account.lastAttempt!=null&&Date.now()-account.lastAttempt<3600000;
  const nextSync=cooldown?new Date(account.lastAttempt+3600000).toLocaleString('zh-CN',{timeZone:'Asia/Bangkok'}):null;
- const renderRate=p=>rate(p)==null?'未知':rate(p).toFixed(2)+'%';
+ const renderRate=p=>rate(p)==null?'不可计算':rate(p).toFixed(2)+'%';
+ const actionRate=(p,key,count)=>{
+  const value=p[key];
+  if(Number.isFinite(value))return value.toFixed(2)+'%';
+  return p.impressions>0&&Number.isFinite(count)?(count/p.impressions*100).toFixed(2)+'%':'不可计算';
+ };
+ const stamp=value=>Number.isFinite(value)?new Date(value).toLocaleString('zh-CN',{timeZone:'Asia/Bangkok'}):'未记录';
+ const ageWindow=(p,key,age)=>{
+  const snap=p.milestones?.[key];
+  return snap?age+'h附近：'+fmt(snap.impressions)+' 浏览（'+snap.ageHours+'h采集）':age+'h：未记录';
+ };
  const href=p=>'https://x.com/'+encodeURIComponent(account.id)+'/status/'+encodeURIComponent(p.post_id);
  const short=p=>esc((p.body||'').replace(/\s+/g,' ').slice(0,90)||'无文字内容');
  let html='<section class="a-card a-details" style="margin-bottom:14px">'+
@@ -56,20 +66,33 @@ export function renderXPanel(x,esc,selected,sort){
  }
  html+=m.followerChange==null?'<p class="a-muted">粉丝增长趋势暂不可计算：至少需要两天的历史快照。</p>':
   '<p class="a-muted">粉丝记录期变化：'+(m.followerChange>0?'+':'')+fmt(m.followerChange)+'；不能归因于某条帖子。</p>';
+ const baseline=account.benchmarks?.h24;
+ if(baseline?.status==='available')
+  html+='<p class="a-muted">发布后24小时附近的同账号样本浏览中位数：'+fmt(baseline.medianViews)+'（'+fmt(baseline.sampleSize)+'条，±6小时观测）。尚未按内容主题分组，不代表同类内容。</p>';
+ else
+  html+='<p class="a-muted">发布后24小时同龄对比：'+fmt(baseline?.sampleSize??0)+'条可用样本，需要至少4条才能形成账号基准；不会把今日累计值倒填到24小时。</p>';
  html+='</section>';
  const sorted=[...posts].sort((a,b)=>sort==='views'?(b.impressions??-1)-(a.impressions??-1):
   sort==='engagement'?(rate(b)??-1)-(rate(a)??-1):
   Date.parse(b.published_at)-Date.parse(a.published_at));
  html+='<section class="a-card a-details"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">'+
-  '<div><h2 style="margin-bottom:4px">帖子表现对比</h2><p class="a-muted">自动采集，无需手工登记；点击摘要查看原帖。</p></div>'+
+  '<div><h2 style="margin-bottom:4px">帖子表现与行为比率</h2><p class="a-muted">实际行为观察：公开浏览、回复、转发、点赞。不是 X 官方预测推荐分。</p></div>'+
   '<label>排序 <select data-x-sort>'+
   [['recent','最新发布'],['engagement','互动率最高'],['views','浏览量最高']].map(([key,label])=>
   '<option value="'+key+'" '+(sort===key?'selected':'')+'>'+label+'</option>').join('')+'</select></label></div>';
- html+='<div style="overflow-x:auto"><table class="a-table"><thead><tr><th>发布时间</th><th>内容摘要</th><th>浏览</th><th>互动（赞 / 回复 / 转发）</th><th>互动率</th></tr></thead><tbody>'+
-  (sorted.map(p=>'<tr><td style="white-space:nowrap">'+esc((p.published_at||'').slice(0,10))+'</td><td style="max-width:480px"><a target="_blank" rel="noopener noreferrer" href="'+href(p)+'">'+short(p)+'</a></td>'+
-  '<td>'+fmt(p.impressions)+'</td><td>'+[p.likes,p.replies,p.reposts].map(fmt).join(' / ')+'</td><td>'+renderRate(p)+'</td></tr>').join('')||
-  '<tr><td colspan="5">尚未采集到帖子。可在上方执行同步。</td></tr>')+'</tbody></table></div>'+
-  '<p data-x-notice role="status"></p><p class="a-muted">来源：twitterapi.io 只读公开数据。缺失不等于零；互动不等于产品注册或交易。<a href="?view=growth-agent-control">前往 AI Growth Agent</a> 可基于这些样本继续分析；此页面结论为本地规则比较，不是 AI 生成的报告。</p></section>';
+ html+='<div style="overflow-x:auto"><table class="a-table"><thead><tr>'+
+  '<th>发布时间</th><th>内容</th><th>公开浏览</th><th>回复 / 回复率</th><th>转发 / 转发率</th><th>点赞 / 点赞率</th><th>发布后24/48小时</th><th>采集时间</th>'+
+  '</tr></thead><tbody>'+
+  (sorted.map(p=>'<tr><td style="white-space:nowrap">'+esc((p.published_at||'').slice(0,10))+'</td>'+
+  '<td style="min-width:210px;max-width:360px"><a target="_blank" rel="noopener noreferrer" href="'+href(p)+'">'+short(p)+'</a></td>'+
+  '<td>'+fmt(p.impressions)+'</td>'+
+  '<td>'+fmt(p.replies)+'<div class="a-muted">'+actionRate(p,'replyRate',p.replies)+'</div></td>'+
+  '<td>'+fmt(p.reposts)+'<div class="a-muted">'+actionRate(p,'repostRate',p.reposts)+'</div></td>'+
+  '<td>'+fmt(p.likes)+'<div class="a-muted">'+actionRate(p,'likeRate',p.likes)+'</div></td>'+
+  '<td style="min-width:180px">'+ageWindow(p,'h24',24)+'<div class="a-muted">'+ageWindow(p,'h48',48)+'</div></td>'+
+  '<td style="white-space:nowrap">'+esc(stamp(p.observed_at))+'<div class="a-muted">twitterapi.io</div></td></tr>').join('')||
+  '<tr><td colspan="8">尚未采集到帖子。可在上方执行同步。</td></tr>')+'</tbody></table></div>'+
+  '<p data-x-notice role="status"></p><p class="a-muted">浏览量来自第三方 viewCount，不能直接等同 X 内部曝光统计。比率＝各项实际互动 / 已知浏览；浏览缺失或为0时显示「不可计算」。24h/48h仅使用发布后目标时间±6小时内的真实快照；首次采集前的历史无法补回。每日同步不保证每篇都能取得24/48小时快照。算法预测是针对读者的个性化行为概率，不是上述实际比率。<a href="?view=growth-agent-control">前往 AI Growth Agent</a> 查看专项分析。</p></section>';
  return html;
 }
 
