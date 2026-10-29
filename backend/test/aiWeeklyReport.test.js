@@ -44,6 +44,25 @@ test('workspace context is bounded to aggregate counts without descriptions',()=
  assert.equal(JSON.stringify(result).includes('user task'),false);
 });
 
+test('v2 weekly report derives highlights and next actions from one validated result',()=>{
+ const analysis={
+  summary:'已核对变化',
+  claims:[{kind:'fact',text:'有效分析人数增长',evidenceIds:['ev1']},
+   {kind:'hypothesis',text:'渠道变化可能影响转化',evidenceIds:['ev1']}],
+  suggestions:[{priority:'P1',action:'检查渠道漏斗',
+   validationMetrics:{primary:'active_users'},reviewConditions:['下一完整周'],
+   evidence:{evidenceIds:['ev1']}}],
+  weeklyReport:{executiveSummary:'本周已观察到有效分析增长，归因尚未确认',
+   metrics:[{label:'有效分析用户',current:120,previous:100,changePct:20,evidenceIds:['ev1']}],
+   channelFindings:[],dataGaps:['渠道归因未验证']}
+ };
+ const report=ensureWeeklyReport(analysis);
+ assert.equal(report.partial,undefined);
+ assert.equal(report.highlights.length,1);
+ assert.equal(report.issues.length,1);
+ assert.equal(report.nextWeek.length,1);
+ assert.deepEqual(report.nextWeek[0].evidenceIds,['ev1']);
+});
 test('a malformed additional report becomes a clearly partial saved AI result',()=>{
  const analysis={summary:'真实分析总结',claims:[{kind:'fact',text:'观察到变化',evidenceIds:['ev1']}],
  suggestions:[],weeklyReport:{executiveSummary:'uncited',metrics:[{label:'wrong',current:9,previous:4,changePct:50,evidenceIds:['fake']}],
