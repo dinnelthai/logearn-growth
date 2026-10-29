@@ -737,3 +737,46 @@
   #la-studio .ai-history-progress { grid-column: 1 / -1; grid-row: 2; }
 }
 
+
+/* Agent module investigation */
+#la-studio .ai-growth-modules { padding:26px 28px; min-width:0; }
+#la-studio .ai-module-heading, #la-studio .ai-module-section-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
+#la-studio .ai-module-heading h2, #la-studio .ai-module-section-heading h3 { margin:5px 0 0; line-height:1.3; }
+#la-studio .ai-module-heading p { margin:8px 0 0; color:var(--a-muted); line-height:1.6; }
+#la-studio .ai-module-eyebrow { color:#7f98b6; font-size:10px; font-weight:700; letter-spacing:.13em; }
+#la-studio .ai-module-readonly, #la-studio .ai-module-count { flex:none; border:1px solid #304359; border-radius:999px; padding:5px 10px; color:#9bb4cb; font-size:12px; }
+#la-studio .ai-module-coverage { display:flex; flex-wrap:wrap; gap:8px; margin:22px 0; }
+#la-studio .ai-module-state { display:inline-flex; align-items:center; gap:7px; padding:7px 10px; border:1px solid #283a50; border-radius:8px; background:rgba(19,35,51,.55); font-size:12px; }
+#la-studio .ai-module-state strong { font-weight:600; }
+#la-studio .ai-module-state small { color:var(--a-muted); font-size:11px; }
+#la-studio .ai-module-dot { width:6px; height:6px; border-radius:50%; background:#73859a; }
+#la-studio .ai-module-state[data-available="true"] .ai-module-dot { background:#62c7a6; box-shadow:0 0 0 3px rgba(98,199,166,.1); }
+#la-studio .ai-analysis-page .ai-module-form { display:grid; grid-template-columns:minmax(150px,.7fr) minmax(240px,2fr) auto; align-items:end; gap:12px; margin:0; }
+#la-studio .ai-module-form label { color:var(--a-muted); font-size:12px; font-weight:600; }
+#la-studio .ai-module-form input, #la-studio .ai-module-form select, #la-studio .ai-module-form button { min-height:43px; }
+#la-studio .ai-module-form button { white-space:nowrap; }
+#la-studio .ai-module-form button span { margin-left:8px; }
+#la-studio .ai-module-form-note { margin:9px 0 0; font-size:12px; color:var(--a-muted); }
+#la-studio .ai-growth-modules [data-growth-modules-message] { margin:12px 0 0; color:#9bcbbd; font-size:12px; }
+#la-studio .ai-growth-modules [data-growth-modules-message]:empty { display:none; }
+#la-studio .ai-module-results, #la-studio .ai-module-opportunities { margin-top:26px; padding-top:22px; border-top:1px solid #25354a; }
+#la-studio .ai-module-section-heading { align-items:end; margin-bottom:14px; }
+#la-studio .ai-module-section-heading p { margin:0; color:var(--a-muted); font-size:12px; }
+#la-studio .ai-module-detail { margin:8px 0; border:1px solid #273a50; border-radius:10px; background:rgba(13,23,37,.45); }
+#la-studio .ai-module-detail summary { cursor:pointer; display:flex; align-items:center; gap:12px; padding:13px 15px; list-style:none; }
+#la-studio .ai-module-detail summary::-webkit-details-marker { display:none; }
+#la-studio .ai-module-detail summary::before { content:'›'; color:#84a1ba; font-size:20px; line-height:1; transition:transform .15s; }
+#la-studio .ai-module-detail[open] summary::before { transform:rotate(90deg); }
+#la-studio .ai-module-detail-title { font-weight:650; font-size:13px; }
+#la-studio .ai-module-detail-meta { margin-left:auto; color:#89bcae; font-size:12px; }
+#la-studio .ai-module-detail-body { border-top:1px solid #25354a; padding:5px 15px 15px 38px; color:var(--a-muted); font-size:12px; line-height:1.75; }
+#la-studio .ai-module-detail-body p { margin:10px 0; }
+#la-studio .ai-module-empty { display:flex; flex-direction:column; gap:6px; padding:20px; border:1px dashed #304359; border-radius:10px; color:var(--a-muted); font-size:12px; }
+#la-studio .ai-module-empty strong { color:var(--a-text); font-size:13px; }
+#la-studio .ai-module-opportunity { margin:10px 0; padding:16px; }
+@media (max-width:760px) {
+ #la-studio .ai-growth-modules { padding:20px 16px; }
+ #la-studio .ai-analysis-page .ai-module-form { grid-template-columns:1fr; }
+ #la-studio .ai-module-section-heading { align-items:flex-start; flex-direction:column; gap:8px; }
+ #la-studio .ai-module-detail-body { padding-left:15px; }
+}

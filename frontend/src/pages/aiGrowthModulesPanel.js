@@ -15,6 +15,7 @@ export function mountAIGrowthModulesPanel(host,{esc}){
  const labelStatus=s=>({available:'可用',unavailable:'未配置 / 不可用',complete:'完成',
   partial:'部分完成',no_data:'已确认无数据',proposed:'待调查',investigating:'调查中',
   accepted:'已采纳',executing:'执行中',resolved:'已解决',deferred:'暂缓'}[s]||s||'未知');
+ const moduleLabel=id=>({'growth.seo':'SEO','growth.acquisition':'渠道获客','growth.activation':'激活转化','growth.retention':'留存与分群','growth.quality':'数据质量','growth.economics':'渠道经济','growth.referral':'推荐邀请','growth.login':'登录转化'}[id]||id);
  const labelDecision=s=>({implement:'优先考虑实施',investigate:'优先补充调查',
   defer:'暂缓',not_comparable:'暂不可比较'}[s]||'待比较');
  host.innerHTML='<div role="status">正在读取 Agent 模块与机会池…</div>';
@@ -22,28 +23,28 @@ export function mountAIGrowthModulesPanel(host,{esc}){
  const draw=()=>{
   if(!alive())return;
   host.innerHTML='<div class="a-card ai-growth-modules">'+
-   '<h2>模块调查与机会池</h2><p class="a-muted">只读聚合证据。未观测与零值分开；调查不会自动调用模型或发布内容。</p>'+
+   '<div class="ai-module-heading"><div><span class="ai-module-eyebrow">GROWTH MODULES</span><h2>模块调查与机会池</h2><p>只读聚合证据，帮助你发现值得进一步核查的增长机会。</p></div><span class="ai-module-readonly">只读调查</span></div>'+
    '<div class="ai-module-coverage" aria-label="可用业务模块">'+
-   modules.map(m=>'<span class="ai-module-state"><strong>'+esc(m.moduleId.replace('growth.',''))+
-    '</strong> · '+esc(labelStatus(m.status))+'</span>').join(' · ')+'</div>'+
-   '<form data-modules-form><label>调查目标 <select name="goal"><option value="activation">激活</option>'+
+   modules.map(m=>'<span class="ai-module-state" data-available="'+(m.status==='available')+'"><span class="ai-module-dot"></span><strong>'+esc(moduleLabel(m.moduleId))+
+    '</strong><small>'+esc(labelStatus(m.status))+'</small></span>').join('')+'</div>'+
+   '<form data-modules-form class="ai-module-form"><label>调查目标 <select name="goal"><option value="activation">激活</option>'+
    '<option value="retention">留存</option><option value="conversion">转化</option>'+
    '<option value="revenue">收入</option></select></label> '+
-   '<label>问题 <input name="question" maxlength="2000" required placeholder="例如：哪个环节可能限制有效分析用户增长？" style="min-width:280px"></label> '+
-   '<button type="submit" class="a-button">开始只读调查（最多6个模块）</button></form>'+
+   '<label>问题 <input name="question" maxlength="2000" required placeholder="例如：哪个环节可能限制有效分析用户增长？"></label> '+
+   '<button type="submit" class="a-button a-primary">开始只读调查 <span>→</span></button></form><p class="ai-module-form-note">最多调查 6 个模块，不会自动调用模型或发布内容。</p>'+
    '<p role="status" aria-live="polite" data-growth-modules-message></p>'+
-   (runResult?'<section><h3>调查过程和证据</h3><p>结果：'+esc(labelStatus(runResult.result.status))+
-    ' · 调用模块 '+runResult.result.steps.length+' · 模型付费调用 0</p>'+
-    runResult.result.steps.map((step,i)=>'<details><summary>'+esc(step.moduleId)+' · '+
-      esc(labelStatus(step.status))+' · 证据 '+(step.evidenceIds||[]).length+' 项</summary>'+
+   (runResult?'<section class="ai-module-results"><div class="ai-module-section-heading"><div><span class="ai-module-eyebrow">INVESTIGATION</span><h3>调查过程和证据</h3></div><p>结果：'+esc(labelStatus(runResult.result.status))+
+    ' · 调用模块 '+runResult.result.steps.length+' · 模型付费调用 0</p></div>'+
+    runResult.result.steps.map((step,i)=>'<details class="ai-module-detail"><summary><span class="ai-module-detail-title">'+esc(moduleLabel(step.moduleId))+'</span><span class="ai-module-detail-meta">'+
+      esc(labelStatus(step.status==='ok'?'complete':step.status))+' · 证据 '+(step.evidenceIds||[]).length+' 项</span></summary><div class="ai-module-detail-body">'+
       '<p>覆盖：'+esc(step.coverage?.status||'未知')+' · '+esc((step.warnings||[]).join('；')||'未提供')+'</p>'+
       '<p>证据 ID：'+esc((step.evidenceIds||[]).join(', ')||'无')+'</p>'+
       (step.evidenceIds?.length?'<button class="a-button" data-add-module-issue="'+i+
        '">记录为待核查机会</button>':'<p>缺少可引用证据，不创建业务机会。</p>')+
-      '</details>').join('')+
+      '</div></details>').join('')+
     (runResult.result.missing||[]).map(x=>'<p>缺口：'+esc(x.moduleId)+' · '+esc(x.reason)+'</p>').join('')+
     '</section>':'')+
-   '<section><h3>可追溯机会榜</h3>'+
+   '<section class="ai-module-opportunities"><div class="ai-module-section-heading"><div><span class="ai-module-eyebrow">OPPORTUNITIES</span><h3>可追溯机会榜</h3></div><span class="ai-module-count">'+opportunities.length+' 项</span></div>'+
    (opportunities.length?opportunities.map(o=>
       '<article class="a-card ai-module-opportunity">'+
       '<strong>'+esc(o.subject)+'</strong> · '+esc(labelStatus(o.status))+
@@ -61,7 +62,7 @@ export function mountAIGrowthModulesPanel(host,{esc}){
         '" data-next="deferred">暂缓</button>'+
       (o.status==='accepted'?'<button type="button" class="a-button" data-module-promote="'+esc(o.id)+'">转入运营待办</button>':'')+
       '<pre data-module-history-view="'+esc(o.id)+'" hidden></pre></article>').join(''):
-      '<p class="a-muted">暂无已确认的机会；不代表各渠道正常。</p>')+'</section></div>';
+      '<div class="ai-module-empty"><strong>暂无已确认的机会</strong><span>调查后可将需要进一步核查的证据记录在这里；不代表各渠道正常。</span></div>')+'</section></div>';
   host.querySelector('[data-modules-form]')?.addEventListener('submit',async event=>{
    event.preventDefault();
    const button=event.target.querySelector('button');button.disabled=true;
@@ -132,7 +133,8 @@ export function mountAIGrowthModulesPanel(host,{esc}){
    if(!alive())return;
    modules=m.modules||[];opportunities=o.items||[];draw();
   }catch(error){
-   if(alive())host.innerHTML='<section class="a-card"><h2>模块调查未就绪</h2>'+
+   if(!alive())return;
+   host.innerHTML='<section class="a-card"><h2>模块调查未就绪</h2>'+
     '<p role="alert">'+esc(error.message)+'</p><p>请确认机会池迁移已在授权环境执行；人工分析仍可独立使用。</p>'+
     '<button type="button" class="a-button" data-module-retry>重试</button></section>';
    host.querySelector('[data-module-retry]')?.addEventListener('click',load);
