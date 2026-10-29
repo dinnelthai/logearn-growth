@@ -36,7 +36,7 @@ function problemMarkup(data){
   ).join('')+'</ol>':'<p>暂无状态变更记录。</p>')+'</div>';
 }
 
-export function mountGrowthDecisionWorkspace(root){
+export function mountGrowthDecisionWorkspace(root,{navigate=null}={}){
  let disposed=false,seq=0,controller=null,disposeWeekly=null
  async function draw(){
   disposeWeekly?.();disposeWeekly=null;
@@ -86,7 +86,7 @@ export function mountGrowthDecisionWorkspace(root){
    </details></section>`
    bind(d)
    const weeklyRoot=root.querySelector('[data-ai-weekly-report]');
-   if(weeklyRoot)disposeWeekly=mountAIWeeklyReport(weeklyRoot,{api,safe});
+   if(weeklyRoot)disposeWeekly=mountAIWeeklyReport(weeklyRoot,{api,safe,navigate});
   }catch(error){if(!disposed&&version===seq)root.innerHTML=`<section class="a-card a-details"><h2>决策工作台未就绪</h2><p role="alert">${safe(error.message)}</p><button class="a-button" data-retry>重新读取</button></section>`;root.querySelector('[data-retry]')?.addEventListener('click',draw)}
  }
  function issueGroup(label,items){return `<h3>${safe(label)}（${items.length}）</h3>${items.slice(0,20).map(i=>`<article class="a-card a-details"><strong>${safe(i.subject)}</strong><p>${safe(i.description)}</p>
