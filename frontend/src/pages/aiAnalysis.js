@@ -100,7 +100,7 @@ export function createAIAnalysis(ctx){
         </section>
         <section class="a-card ai-review-history"><h2>复盘记录</h2>${reviews.retrospectives.map(r=>`<article><h3>${esc(r.analysis_title)}</h3><p>${esc(r.conclusion)}</p><p>置信度：${esc(r.confidence)} · ${r.has_causality?'有因果证据':'观测变化，未证明因果'}</p><p>经验：${esc(r.lessons_learned||'尚无结论')}</p></article>`).join('')||'<p>记录行动后，可主动发起复盘。</p>'}</section>
         </div>
-        </div>`;        </details></div>`;
+        </div>`;
       const analysisDialog=host.querySelector('#ai-new-analysis');
       host.querySelector('[data-open-analysis]')?.addEventListener('click',()=>analysisDialog.showModal());
       host.querySelector('[data-close-analysis]')?.addEventListener('click',()=>analysisDialog.close());
