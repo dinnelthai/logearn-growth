@@ -9,12 +9,12 @@ const period={start:Date.parse('2026-10-19T00:00:00+07:00'),
 const failed={id:'failed',status:'failed',date_range_start:period.start,
  date_range_end:period.end,error_message:'模型预算不足'};
 const completed={...failed,id:'completed',status:'completed',error_message:null};
-async function render(rows,archivedCurrentWeek=false){
+async function render(rows,archivedCurrentWeek=false,canRegenerateArchivedFailed=false){
  const root={innerHTML:'',querySelector:()=>null,querySelectorAll:()=>[]};
  const seen=[];
  const cleanup=mountAIWeeklyReport(root,{safe,api:async(path,method)=>{
   seen.push([path,method]);
-  return {period,reports:rows,archivedCurrentWeek};
+  return {period,reports:rows,archivedCurrentWeek,canRegenerateArchivedFailed};
  }});
  for(let i=0;i<12;i++)await Promise.resolve();
  const html=root.innerHTML;cleanup();
@@ -37,6 +37,13 @@ describe('AI weekly report delete availability',()=>{
   const {html}=await render([],true);
   expect(html).toContain('本周记录已移除');
   expect(html).not.toContain('data-weekly-confirm');
+  expect(html).not.toContain('data-weekly-delete');
+ });
+ it('restores the generate button after a failed weekly report was deleted',async()=>{
+  const {html}=await render([],true,true);
+  expect(html).toContain('data-weekly-confirm>重新生成 AI 周报');
+  expect(html).toContain('创建独立的付费模型任务');
+  expect(html).toContain('可能产生重复费用');
   expect(html).not.toContain('data-weekly-delete');
  });
  it('does not offer deletion while a report is still processing',async()=>{
