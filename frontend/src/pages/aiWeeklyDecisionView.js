@@ -64,7 +64,7 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,links}){
  const allRisks=[...risks,...modelRisks].slice(0,4);
  const seoMeta=result.weeklySources?.seo||persistedContext(data)?.weeklySources?.seo;
  const seoEvidence=(persistedContext(data)?.evidence||[]).find(e=>e.metricId==='seo_search');
- const seoNumbers=seoEvidence?.value?.totals||seoEvidence?.value||{};
+ const seoNumbers=seoEvidence?.value?.metrics||seoEvidence?.value?.totals||seoEvidence?.value||{};
  const matched=seoMeta?.periodMatched===true;
  const seoStatus=!seoMeta?'本次历史周报未采集 SEO 数据':
   seoMeta.status==='not-synced'?'Search Console 尚未同步匹配的数据':
@@ -118,7 +118,7 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,links}){
   '<small>'+(matched?'GSC 与请求日期标签匹配；仍不能直接归因至注册、交易。':
    'GSC 使用 PT 日期，业务周使用曼谷日期；缺少完全匹配快照时不得计算该周 SEO 增长。')+
   '</small>'+
-  (!seoMeta?'<div data-weekly-gsc-live class="ai-weekly-gsc-live" role="status">正在查看是否有已同步的 GSC 数据（只读，不调用模型）…</div>':'')+
+  (!seoMeta||['not-synced','unavailable'].includes(seoMeta.status)?'<div data-weekly-gsc-live class="ai-weekly-gsc-live" role="status">正在查看是否有已同步的 GSC 数据（只读，不调用模型）…</div>':'')+
   '</div>'+
   '<div class="ai-weekly-source-card"><div class="ai-weekly-source-label"><strong>渠道与获客</strong></div>'+
   list(observations.slice(0,4),x=>'<div class="ai-weekly-observation"><p>'+safe(x.text)+'</p>'+evidence(x.evidenceIds)+'</div>')+
