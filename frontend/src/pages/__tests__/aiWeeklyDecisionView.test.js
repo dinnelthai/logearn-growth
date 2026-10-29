@@ -48,7 +48,7 @@ describe('decision-first weekly view',()=>{
  it('shows GSC numbers only with an explicit saved source status',()=>{
   const data={...base,context_payload:{...base.context_payload,evidence:[
    ...base.context_payload.evidence,{id:'gsc',metricId:'seo_search',
-    value:{clicks:14,impressions:180},period}
+    value:{metrics:{clicks:14,impressions:180}},period}
   ]},result:{...base.result,weeklySources:{seo:{status:'period-matched',
    periodMatched:true,evidenceIds:['gsc']}}}};
   const html=renderWeeklyDecisionReport({...options,data,record});
