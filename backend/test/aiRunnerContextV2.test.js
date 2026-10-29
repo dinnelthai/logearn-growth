@@ -150,6 +150,7 @@ test('v3 completes a report beyond estimated task tokens without blind auto-retr
  assert.deepEqual(env.paid,['begin:0','end:0:received','begin:1',
   'end:1:received','begin:2','end:2:received']);
  assert.match(env.observed[0].messages[0].content,/token-efficiency-v3/);
+ assert.equal(env.observed[0].options.collectStream,false);
  assert.match(env.observed[0].messages[1].content,/aggregated-business-v3/);
  assert.ok(env.observed[2].messages.some(message=>
   message.content.includes('"priorToolEvidence"')));
@@ -220,6 +221,8 @@ test('v4 weekly analysis sends core statistics first and preserves paid checkpoi
  assert.equal(result.analysis.summary,'周报完成');
  assert.equal(env.observed.length,2);
  assert.match(env.observed[0].messages[0].content,/token-efficiency-v4/);
+ assert.equal(env.observed[0].options.collectStream,true);
+ assert.equal(env.observed[1].options.collectStream,true);
  const first=JSON.parse(env.observed[0].messages[1].content);
  assert.equal(first.transportVersion,'aggregated-business-v4');
  assert.equal(first.coreMetrics.find(m=>m.id==='new_users').current,18);
@@ -255,6 +258,19 @@ test('v4 retains SEO metrics across a third model round, without replaying old t
  assert.match(finalPrompt,/"clicks":/);
  assert.equal(env.archive.get(0).results.length,6);
  assert.equal(env.archive.get(1).results.length,6);
+});
+test('weekly SSE collection can be disabled before any paid request',async()=>{
+ const ctx=context();
+ ctx.weeklyCoverage={version:'weekly-coverage-v1',modules:[{
+  id:'seo-organic',status:'not-connected',evidenceIds:[]}]};
+ const env=setup([final]);
+ await runner({AI_WEEKLY_STREAM_RESPONSE_ENABLED:'0'}).runTask({
+  context:ctx,prompt:'weekly SSE rollback test',contextVersion:'v4',
+  ownerId:'o',operationId:'v4-sse-disabled',operationType:'analysis',
+  ...env,validate:()=>{}});
+ assert.equal(env.observed.length,1);
+ assert.equal(env.observed[0].options.collectStream,false);
+ assert.deepEqual(env.paid,['begin:0','end:0:received']);
 });
 test('legacy protocol remains v1 unless a new task opts in',async()=>{
  const env=setup([final]);
