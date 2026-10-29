@@ -258,6 +258,13 @@ function modelContext(raw,{transportVersion='v1'}={}){
   previous:statView(raw.previous||{}),
   growth:statView(raw.growth||{}),
   weekly:statView(raw.weekly||{}),
+  weeklySources:raw.weeklySources?{
+    seo:{status:safeText(raw.weeklySources.seo?.status||'unavailable',32),
+      periodMatched:raw.weeklySources.seo?.periodMatched===true,
+      evidenceIds:(raw.weeklySources.seo?.evidenceIds||[]).slice(0,4).filter(id=>typeof id==='string'),
+      range:raw.weeklySources.seo?.range||null},
+    note:'GSC 来源可能使用 PT 日期，与曼谷业务周不同时只能参考趋势'
+  }:null,
   weeklyOperations:raw.weeklyOperations&&typeof raw.weeklyOperations==='object'?{
    source:'saved-workspace-aggregate',
    observedAt:Number.isSafeInteger(raw.weeklyOperations.observedAt)?raw.weeklyOperations.observedAt:null,
