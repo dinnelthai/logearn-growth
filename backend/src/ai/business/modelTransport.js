@@ -218,6 +218,15 @@ function modelContext(raw){
   previous:statView(raw.previous||{}),
   growth:statView(raw.growth||{}),
   weekly:statView(raw.weekly||{}),
+  weeklyOperations:raw.weeklyOperations&&typeof raw.weeklyOperations==='object'?{
+   source:'saved-workspace-aggregate',
+   observedAt:Number.isSafeInteger(raw.weeklyOperations.observedAt)?raw.weeklyOperations.observedAt:null,
+   ...Object.fromEntries(['goalsCount','newProblemCount','unresolvedCount','dataQualityCount',
+    'newActionCount','executedActionCount','reviewedActionCount','pendingActionCount']
+    .map(key=>[key,Number.isSafeInteger(raw.weeklyOperations[key])&&raw.weeklyOperations[key]>=0?
+      raw.weeklyOperations[key]:null])),
+   limitations:'仅已保存的工作台聚合记录，无法证明全部运营动作或全站转化；未解决/待办为生成时状态'
+  }:null,
   candidates:candidates.slice(0,12).map(x=>statView(x)),
   candidatesMeta:{total:candidates.length,shown:Math.min(candidates.length,12)},
   evidence:evidence.slice(0,40).map(modelEvidence),
