@@ -354,6 +354,20 @@ function fitWeeklyModelContext(context,raw){
  project(18,false);
  if(size()>limit)project(18,true);
  if(size()>limit){
+  // Provenance remains in archived evidence. Keep each module's observed
+  // numbers, evidence ID, weekly period and coverage, but fold repeated
+  // watermarks/version strings instead of dropping whole modules first.
+  context.evidence=context.evidence.map(e=>Object.fromEntries(Object.entries({
+   id:e.id,metricId:e.metricId,unit:e.unit,value:e.value,
+   numerator:e.numerator,denominator:e.denominator,sampleSize:e.sampleSize,
+   period:e.period,shared:e.shared,
+   coverage:e.coverage?{status:e.coverage.status,
+    periodMatched:e.coverage.periodMatched}:undefined,
+   warnings:e.warnings?.slice(0,1).map(w=>safeText(w,85))
+  }).filter(([_,v])=>v!==undefined&&v!==null)));
+  context.omissions.weeklyProvenance='重复版本号及水位明细留存在证据档案；本次模型仅使用已展示的日期、覆盖和数值，未知不能按0处理';
+ }
+ if(size()>limit){
   context.current={totals:context.current.totals||{},
    coverage:context.current.coverage||{status:'unknown'}};
   context.previous={totals:context.previous.totals||{},
