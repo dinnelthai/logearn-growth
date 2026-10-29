@@ -10,7 +10,8 @@ const MODULES=Object.freeze([
  {moduleId:'growth.retention',version:'1.0.0',description:'成熟留存、分群和既有北极星指标',capabilities:['get_retention','get_segments','query_metrics']},
  {moduleId:'growth.quality',version:'1.0.0',description:'数据质量与来源水位；不保证跨源一致',capabilities:['check_data_quality']},
  {moduleId:'growth.economics',version:'1.0.0',description:'合作账本成本与已记录收入；交易量不是收入',capabilities:['get_channel_economics']},
- {moduleId:'growth.referral',version:'1.0.0',description:'推荐邀请：尚无受审只读 Agent 适配能力',capabilities:[]}
+ {moduleId:'growth.referral',version:'1.0.0',description:'复用现有推荐绑定与邀请转化；绑定不等于注册',capabilities:['get_referral','get_invite_conversion']},
+ {moduleId:'growth.login',version:'1.0.0',description:'复用现有登录转化与终态覆盖',capabilities:['get_login_conversion']}
 ]);
 const byModule=new Map(MODULES.map(m=>[m.moduleId,m]));
 const globalOnly=new Set(['check_data_quality','get_channel_economics','get_seo_performance',
@@ -20,7 +21,7 @@ const validFields=new Set(['scope','start','end','metrics','dimensions','filters
  'hours','initial','returning','limit','cursor','siteUrl']);
 const permittedFields=id=>new Set(['scope','start','end','filters','limit','cursor',
  ...(id==='get_funnel'?['steps','hours']:id==='get_retention'?['initial','returning']:
- id==='query_metrics'?['metrics','dimensions']:id==='get_seo_performance'?['siteUrl']:[])]);
+ id==='query_metrics'?['metrics','dimensions']:id==='get_seo_performance'?['siteUrl']:['get_login_conversion','get_invite_conversion'].includes(id)?['hours']:[])]);
 const fail=(message,status=400)=>{throw Object.assign(Error(message),{status});};
 const plain=o=>o!==null&&typeof o==='object'&&!Array.isArray(o)&&
  (Object.getPrototypeOf(o)===Object.prototype||Object.getPrototypeOf(o)===null);
@@ -81,6 +82,8 @@ function listBusinessModules(registry,context){
  const live=new Map(registry.listCapabilities(context).map(c=>[c.id,c]));
  return MODULES.map(m=>{
   const capabilities=m.capabilities.filter(id=>live.has(id)&&
+   (!context.scope?.activityId||live.get(id).supportedScopes?.includes('activityId'))&&
+   (!context.scope?.cohortId||live.get(id).supportedScopes?.includes('cohortId'))&&
    (!context.taskAllowedTools||context.taskAllowedTools.includes(id))&&
    (!context.scope?.source||context.scope.source==='all'||!globalOnly.has(id)))
    .map(id=>{const c=live.get(id);return {

@@ -30,6 +30,12 @@ const skills=Object.freeze([
  {id:'follower-quality',version:'1',goal:'conversion',label:'X粉丝质量与潜在受众',
   tools:['get_follower_quality','get_channels'],signals:['new_users'],
   instructions:'粉丝类别基于有限的简介和帖子关键词；只汇总类别，不输出个人档案，不推断真实购买意向'},
+ {id:'referral-and-invite',version:'1',goal:'conversion',label:'推荐关系与邀请转化',
+  tools:['get_referral','get_invite_conversion','get_channels'],signals:['new_users','activation_rate'],
+  instructions:'对比已验证绑定与邀请链接转化；绑定不等于新客，必须标注注册关系可用性、成熟度和未关联比例'},
+ {id:'login-conversion',version:'1',goal:'activation',label:'登录转化覆盖',
+  tools:['get_login_conversion','get_funnel'],signals:['activation_rate'],
+  instructions:'使用现有登录转化服务，区分已关联终态、待完成、事件缺失；不得把未观测当作未登录'},
  {id:'kol-impact',version:'1',goal:'conversion',label:'KOL 归组用户与交易行为',
   tools:['get_kol_performance','get_channels','get_funnel','get_channel_economics'],signals:['new_users','activation_rate'],
   instructions:'使用既有 CRM KOL 成员归组与真实交易观察；成员可重叠，交易量不是收入；用户标签相关性不等于 KOL 导致的增量'}

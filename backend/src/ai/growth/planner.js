@@ -3,7 +3,7 @@ const {listSkills,getSkill}=require('./skills');
 const {listToolIds}=require('../business/tools/registry');
 const {summarizeExperience}=require('./experienceFeedback');
 // Tool availability is computed per trusted task; no module-load snapshot.
-const goalMap={activation:['growth-overview','activation-funnel'],retention:['growth-overview','retention'],conversion:['growth-overview','channel-growth','trade-conversion'],revenue:['growth-overview','revenue']};
+const goalMap={activation:['growth-overview','activation-funnel'],retention:['growth-overview','retention'],conversion:['growth-overview','channel-growth','trade-conversion','referral-and-invite','login-conversion'],revenue:['growth-overview','revenue']};
 function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[],focusSkillId=null,strategy=null,availableSpecialties=[],availableCapabilityIds=null}={}){
  if(!Object.hasOwn(goalMap,goal))throw Object.assign(Error('未知增长目标'),{status:400});
  if(!Number.isInteger(maxSkills)||maxSkills<1||maxSkills>6)throw Error('技能数量限制无效');
@@ -13,7 +13,9 @@ function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[
   'seo-organic':['activation','conversion'],
   'kol-impact':['conversion','revenue'],
   'content-growth':['conversion'],
-  'follower-quality':['conversion']
+  'follower-quality':['conversion'],
+  'referral-and-invite':['conversion'],
+  'login-conversion':['activation','conversion']
  };
  if(focusSkillId!=null&&(!Object.hasOwn(specialized,focusSkillId)||
     !specialized[focusSkillId].includes(goal)))

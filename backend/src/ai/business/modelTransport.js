@@ -32,7 +32,11 @@ const numeric=new Set([
  'exposures','clicked','exposed_users','clicked_users','unmatched_clicks','missing_visit_clicks',
  'visitor_users','clicks','details','successes','day',
  'confidence_interval_low','confidence_interval_high','min','max',
- 'week','weekStart','weekEnd','targetValue','effectivenessScore','evidenceCount'
+ 'week','weekStart','weekEnd','targetValue','effectivenessScore','evidenceCount',
+ 'registered','bound','inviters','analysis','strategy','used','trade','continued','nearby',
+ 'stored','next_generation','next_used','new_nearby','reinviters','participation_rate',
+ 'continuation_rate','output','observed_output','confirmed_new_registration_rate',
+ 'binding_rate','record_total','flows','success','failed','cancelled','conflict'
 ]);
 const flags=new Set(['available','historyComplete','history_complete','complete',
  'truncated','mature','known','coverageVerified','platformSync','conversionAttribution',
@@ -43,7 +47,7 @@ const categories=new Set(['source','device','version','app_version','user_stage'
  'type','kind','priority','direction','platform','channel','date','timezone',
  'association','family','definitionVersion','ruleVersion','user_pool',
  'scope','qualityStatus','category','name','period','state','browser',
- 'coverage','quality',
+ 'coverage','quality','scene',
  'os','event_name','group','metricName','currency','trafficSource',
  'list_type','page_name']);
 const notes=new Set(['definition','warnings','warning','reason','error','interpretation',
@@ -57,6 +61,7 @@ const groups=new Set(['totals','days','growth','change','dimensions','channels',
  'funnels','paths','pages','summary','sample','byCurrency','trends','rates','counts',
  'metrics','series','distribution','sources','bySource','period','filters',
  'sourceVersions','watermarks','goal','current','previous','weekly','northStar',
+ 'referral','conversion','global','window','retention',
  'candidate','candidates','result','data','snapshots','snapshot']);
 const ids=new Set(['snapshot_id','snapshotId','as_of','eventsCompleteThrough',
  'events_complete_through','cutoff','asOf','queryFingerprint']);

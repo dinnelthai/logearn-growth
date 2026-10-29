@@ -12,6 +12,68 @@ function createRouter({db,registry}){
  router.get('/capabilities',handle(async(req,res)=>res.json({tools:registry.listCapabilities(context(req))})));
  // Minimal management status: NEVER echo service URL, credentials, project IDs,
  // or assume live connectivity just because server configuration exists.
+ // All module operations use the existing registry and owner-scoped evidence.
+ // No direct SQL access, third-party calls, or model inference is permitted.
+ const opportunities=require('../ai/growth/opportunityStore').createOpportunityStore(db,{
+  verifyEvidence:(ownerId,id,scope)=>{
+   try{return !!evidence.get(id,{ownerId,scope})}catch{return false}
+  }
+ });
+ const moduleContext=req=>{
+  const period=req.body?.period;
+  if(!period||period.timezone!=='Asia/Bangkok')
+   throw Object.assign(Error('模块调查期间必须是 Asia/Bangkok'),{status:400});
+  require('../analytics/businessPriorities').validateRange(period.start,period.end);
+  const scope=req.body?.scope||{source:'all'};
+  if(!scope||typeof scope!=='object'||Array.isArray(scope)||
+     typeof (scope.source??'all')!=='string'||!String(scope.source??'all').trim()||
+     Object.keys(scope).some(k=>!['source'].includes(k)))
+    throw Object.assign(Error('模块调查仅支持来源范围；固定人群需走已有授权入口'),{status:400});
+  return {ownerId:String(req.user.user_id),period,scope:{source:scope.source||'all'},
+   runId:'modules:'+String(req.user.user_id)+':'+Math.floor(Date.now()/120000)};
+ };
+ router.get('/business-modules',handle(async(req,res)=>{
+  const base=context(req);
+  res.json({version:'growth-business-modules-v1',modules:registry.listBusinessModules(base),
+   noExternalWrites:true,paidCalls:0});
+ }));
+ router.post('/business-modules/plan',handle(async(req,res)=>{
+  const plan=require('../ai/growth/modulePlanner').makePlan(registry,moduleContext(req),{
+   mode:req.body.mode||'full',goal:req.body.goal||'activation',
+   question:req.body.question||'',moduleIds:req.body.moduleIds??null,
+   maxCalls:req.body.maxCalls??6});
+  res.json(plan);
+ }));
+ router.post('/business-modules/investigate',handle(async(req,res)=>{
+  const base=moduleContext(req),planner=require('../ai/growth/modulePlanner');
+  const plan=planner.makePlan(registry,base,{
+   mode:req.body.mode||'full',goal:req.body.goal||'activation',
+   question:req.body.question||'',moduleIds:req.body.moduleIds??null,
+   maxCalls:req.body.maxCalls??6});
+  const result=await planner.runPlan(registry,base,plan);
+  res.json({plan,result,modelCalls:0,externalWrites:0});
+ }));
+ router.get('/opportunities',handle(async(req,res)=>{
+  const ownerId=String(req.user.user_id);
+  const opts={status:req.query.status||null,limit:req.query.limit?Number(req.query.limit):50};
+  res.json({version:'growth-opportunities-v1',...opportunities.ranked(ownerId,opts)});
+ }));
+ router.get('/opportunities/:id',handle(async(req,res)=>{
+  const ownerId=String(req.user.user_id);
+  const item=opportunities.get(ownerId,req.params.id);
+  res.status(item?200:404).json(item||{error:'机会不存在或无权限'});
+ }));
+ router.get('/opportunities/:id/history',handle(async(req,res)=>{
+  res.json({history:opportunities.history(String(req.user.user_id),req.params.id)});
+ }));
+ router.post('/opportunities',handle(async(req,res)=>{
+  const item=opportunities.upsert(String(req.user.user_id),req.body||{});
+  res.status(item.created?201:200).json(item);
+ }));
+ router.post('/opportunities/:id/status',handle(async(req,res)=>{
+  const item=opportunities.decide(String(req.user.user_id),req.params.id,req.body||{});
+  res.json(item);
+ }));
  router.get('/connectors',handle(async(req,res)=>{
   const {configuration,bindingFor}=require('../ai/business/tools/openseoConnector');
   const ownerId=String(req.user.user_id);

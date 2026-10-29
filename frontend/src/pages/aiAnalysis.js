@@ -1,4 +1,5 @@
 import './aiAnalysis.css';
+import {mountAIGrowthModulesPanel} from './aiGrowthModulesPanel.js';
 import {loadingState} from './loadingState.js';
 import {TASK_LABELS,displayTaskStatus,canOfferTaskResume,canOfferTaskRetry,shouldPollTask} from './aiTaskStatus.js';
 import {renderAISuggestion} from './aiSuggestionView.js';
@@ -10,7 +11,7 @@ const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
 export function createAIAnalysis(ctx){
   const {$,esc}=ctx;
-  let generation=0,detailRequest=0,displayedDetailId=null,timer=null,reviewTimer=null,selected=null,busy=false,reviewPolling=false,historyFilter='all',historyPage=0,notice='';
+  let generation=0,detailRequest=0,displayedDetailId=null,timer=null,reviewTimer=null,selected=null,busy=false,reviewPolling=false,historyFilter='all',historyPage=0,notice='',disposeGrowthModules=null;
   const HISTORY_PAGE_SIZE=5;
   const defaults={start:day(Date.now()-7*DAY),end:day(Date.now()-DAY)};
   const label=s=>TASK_LABELS[s]||s;
@@ -19,7 +20,7 @@ export function createAIAnalysis(ctx){
   const historyCounts=r=>r.suggestion_count==null?'建议数量待确认':
     `建议 ${r.suggestion_count} · 已采纳 ${r.accepted_count??'—'} · 已执行 ${r.executed_count??'—'} · 已复盘 ${r.retrospective_count??'—'}`;
   const json=v=>esc(JSON.stringify(v,null,2));
-  function dispose(){generation++;detailRequest++;displayedDetailId=null;clearTimeout(timer);clearTimeout(reviewTimer);timer=null;reviewTimer=null;reviewPolling=false;}
+  function dispose(){generation++;detailRequest++;displayedDetailId=null;clearTimeout(timer);clearTimeout(reviewTimer);timer=null;reviewTimer=null;reviewPolling=false;disposeGrowthModules?.();disposeGrowthModules=null;}
   function message(text){notice=String(text??'');const target=$('#as-output')?.querySelector('[data-ai-message]');if(target){target.textContent=notice;target.hidden=!notice;}}
   function applyHistoryFilter(){
     const host=$('#as-output');
@@ -48,6 +49,7 @@ export function createAIAnalysis(ctx){
   }
   async function draw(){
     ctx.clear?.();
+    disposeGrowthModules?.();disposeGrowthModules=null;
     const token=++generation;detailRequest++;displayedDetailId=null;clearTimeout(timer);clearTimeout(reviewTimer);reviewTimer=null;reviewPolling=false;
     const host=$('#as-output');host.innerHTML=loadingState('正在加载主动业务分析…');
     try{
@@ -73,7 +75,7 @@ export function createAIAnalysis(ctx){
         <label>结束日期（含当日）<input name="end" type="date" required value="${defaults.end}"></label>
         <label>来源<input name="source" value="all" maxlength="200" placeholder="all 或业务来源值"></label>
         <label>业务目标<select name="goal"><option value="activation">提升激活</option><option value="retention">提升留存</option><option value="conversion">提升转化</option><option value="revenue">收入策略</option></select></label>
-        <label>专项增长技能<select name="skillId"><option value="">通用增长分析</option><option value="seo-organic">SEO · Search Console（激活/转化）</option><option value="kol-impact">KOL · 合作归组（转化/收入）</option></select></label>
+        <label>专项增长技能<select name="skillId"><option value="">通用增长分析</option><option value="seo-organic">SEO · Search Console（激活/转化）</option><option value="kol-impact">KOL · 合作归组（转化/收入）</option><option value="referral-and-invite">推荐 · 邀请绑定与转化</option><option value="login-conversion">登录 · 转化与事件覆盖</option></select></label>
         <p>专项技能只允许全来源分析；SEO 不会把搜索点击假设成交易转化，KOL 不会把 CRM 归组等同于合作增量。</p>
         <label>分析方式<select name="modelMode"><option value="auto">自动调查（单模型）</option><option value="complex">深度调查（同一模型）</option></select></label>
         <label>业务背景与问题<textarea name="question" maxlength="5000" placeholder="当前目标、资源约束、近期活动、产品改动，以及你想解决的问题"></textarea></label>
@@ -85,6 +87,7 @@ export function createAIAnalysis(ctx){
           <p id="ai-delete-description">这条记录将从历史分析中移除，关联的证据、建议和费用记录会保留。</p>
           <div class="ai-delete-actions"><button type="button" class="a-button" data-delete-cancel>取消</button><button type="button" class="a-button ai-delete-confirm" data-delete-confirm>删除</button></div>
         </dialog>
+        <section data-ai-growth-modules aria-label="增长模块调查与机会池"></section>
         <section class="a-card ai-history"><div class="ai-history-heading"><h2>历史分析</h2>
           <label>状态<select data-ai-history-filter aria-label="筛选历史分析">
           <option value="all" ${historyFilter==='all'?'selected':''}>全部</option>
@@ -124,6 +127,8 @@ export function createAIAnalysis(ctx){
           </div>
         </section>
         </div>`;
+      const moduleHost=host.querySelector('[data-ai-growth-modules]');
+      if(moduleHost)disposeGrowthModules=mountAIGrowthModulesPanel(moduleHost,{esc});
       const analysisDialog=host.querySelector('#ai-new-analysis');
       host.querySelector('[data-open-analysis]')?.addEventListener('click',()=>analysisDialog.showModal());
       host.querySelector('[data-close-analysis]')?.addEventListener('click',()=>analysisDialog.close());

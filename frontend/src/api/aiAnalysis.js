@@ -116,3 +116,17 @@ export const refreshAutonomyBrief=(goals=['activation','retention','conversion',
  '/api/ai-analysis/growth-agent/refresh',{
  method:'POST',body:JSON.stringify({goals,source})
 });
+
+
+// Versioned Growth modules and Agent-owned opportunities; no paid model calls.
+export const getBusinessModules=()=>aiFetch('/api/growth-agent/business-modules');
+export const previewBusinessModulePlan=body=>aiFetch('/api/growth-agent/business-modules/plan',
+ {method:'POST',body:JSON.stringify(body)});
+export const runBusinessModuleInvestigation=body=>aiFetch('/api/growth-agent/business-modules/investigate',
+ {method:'POST',body:JSON.stringify(body)});
+export const getOpportunities=()=>aiFetch('/api/growth-agent/opportunities');
+export const getOpportunityHistory=id=>aiFetch('/api/growth-agent/opportunities/'+encodeURIComponent(id)+'/history');
+export const saveOpportunity=body=>aiFetch('/api/growth-agent/opportunities',
+ {method:'POST',body:JSON.stringify(body)});
+export const decideOpportunity=(id,body)=>aiFetch('/api/growth-agent/opportunities/'+encodeURIComponent(id)+'/status',
+ {method:'POST',body:JSON.stringify(body)});

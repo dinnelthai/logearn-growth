@@ -19,7 +19,10 @@ const definitions={
  get_seo_performance:{metric:'seo_search',adapter:'seo-performance',scopes:['source'],description:'只读读取已同步的 Search Console 最终聚合快照或有限手动导入；日期可能不匹配、查询覆盖不完整'},
  get_kol_performance:{metric:'kol_performance',adapter:'kol-performance',scopes:['source'],description:'复用已有 KOL CRM 归组和真实观察行为；不等于因果归因'},
  get_content_growth:{metric:'content_growth',adapter:'content-growth',scopes:['source'],description:'只读人工登记内容累计表现，无平台自动同步或注册交易归因'},
- get_follower_quality:{metric:'follower_quality',adapter:'follower-quality',scopes:['source'],description:'只读粉丝采集分类汇总，无个人资料外传，数据覆盖可能不足'}
+ get_follower_quality:{metric:'follower_quality',adapter:'follower-quality',scopes:['source'],description:'只读粉丝采集分类汇总，无个人资料外传，数据覆盖可能不足'},
+ get_referral:{metric:'referral',adapter:'referral',scopes:['source'],description:'已有推荐绑定关系与成熟观察；推荐绑定不等于新增获客'},
+ get_login_conversion:{metric:'login_conversion',adapter:'login-conversion',scopes:['source'],description:'已有登录转化聚合，待确认与异常单列'},
+ get_invite_conversion:{metric:'invite_conversion',adapter:'invite-conversion',scopes:['source'],description:'已有邀请链接转化与注册关系事实；不推断因果'}
 };
 const fields=['scope','start','end','metrics','dimensions','filters','steps','hours','initial','returning','limit','cursor','siteUrl'];
 const inputSchema={type:'object',additionalProperties:false,properties:Object.fromEntries(fields.map(k=>[k,{type:['start','end','hours','limit'].includes(k)?'integer':['metrics','dimensions','steps'].includes(k)?'array':['scope','filters'].includes(k)?'object':'string'}]))};
@@ -45,7 +48,37 @@ function productChainSummary(payload){
   coverage:payload.coverage,definition:payload.definition,
   warnings:['产品链路仅提供总体统计；维度和用户级明细未发送给模型']};
 }
-const allowedFields=id=>['scope','start','end','filters','limit','cursor',...(id==='get_funnel'?['steps','hours']:id==='get_retention'?['initial','returning']:id==='query_metrics'?['metrics','dimensions']:id==='get_seo_performance'?['siteUrl']:[])];
+function referralSummary(payload){
+ const pick=(o,keys)=>Object.fromEntries(keys.filter(k=>o?.[k]!==undefined).map(k=>[k,o[k]]));
+ return {
+  referral:{
+   summary:pick(payload.summary,['users','inviters','analysis','strategy','used','trade','continued',
+    'nearby','stored','next_generation','next_used']),
+   global:pick(payload.global,['registered','inviters','bound','reinviters','next_generation',
+    'participation_rate','continuation_rate','output']),
+   window:pick(payload.window,['days','users','next_generation','new_nearby','pending',
+    'observed_output','confirmed_new_registration_rate','coverage'])},
+  coverage:{status:'partial',reason:'推荐绑定不证明新客归因；用户级关系和排名明细不发送给模型'},
+  warnings:['推荐绑定不等于新注册；历史首次/绑定顺序可能缺失；交易量不是收入']
+ };
+}
+function conversionSummary(payload){
+ const pick=(o,keys)=>Object.fromEntries(keys.filter(k=>o?.[k]!==undefined).map(k=>[k,o[k]]));
+ const compactStages=(payload.steps||payload.stages?.rows||[]).slice(0,12)
+  .map(s=>pick(s,['key','label','available','flows','users','started','success','failed',
+   'cancelled','pending','unknown','conflict','success_rate','median_ms','p90_ms']));
+ return {conversion:{scene:payload.scene,available:payload.available??payload.stages?.available??null,
+   users:payload.users??null,pending:payload.pending??null,
+   binding_rate:payload.binding_rate??null,record_total:payload.record_total??null,
+   stages:compactStages,
+   retention:(payload.retention||[]).slice(0,4).map(r=>pick(r,['day','eligible','returned','pending','rate'])),
+   registration:pick(payload.registration,['available','status','reason']),
+   association:pick(payload.association,['available','status','reason'])},
+  coverage:{status:payload.history_complete?'verified':'partial',
+   reason:'仅已观测的转化事件；无法由未观测推导未使用'},
+  warnings:['登录或邀请的未成熟/无关联事件不当作失败；事实、估算与来源分开']};
+}
+const allowedFields=id=>['scope','start','end','filters','limit','cursor',...(id==='get_funnel'?['steps','hours']:id==='get_retention'?['initial','returning']:id==='query_metrics'?['metrics','dimensions']:id==='get_seo_performance'?['siteUrl']:['get_login_conversion','get_invite_conversion'].includes(id)?['hours']:[])];
 function createToolRegistry(deps){
  const budgets=new Map(),maxQueries=deps.maxQueries??20,maxConcurrent=deps.maxConcurrent??2,maxResultBytes=deps.maxResultBytes??200000,timeoutMs=deps.timeoutMs??35000;
  function listLegacyCapabilities(context){owner(context);const period=context.period,hasPeriod=Number.isSafeInteger(period?.start)&&Number.isSafeInteger(period?.end);return Object.entries(definitions).map(([id,t])=>({id,version:'1',description:t.description,supportedScopes:t.scopes||['source','activityId','cohortId'],inputSchema:{...inputSchema,properties:Object.fromEntries(allowedFields(id).map(k=>[k,hasPeriod&&['start','end'].includes(k)?{...inputSchema.properties[k],minimum:period.start-(period.end-period.start),maximum:period.end}:inputSchema.properties[k]]))},example:{start:period?.start,end:period?.end},permission:'authenticated owner and scope',limits:{maxDays:31,maxQueries,maxConcurrent,maxResultBytes,timeoutMs,maxCandidates:80000,physicalScanBytes:'not measured'}}));}
@@ -84,6 +117,10 @@ function createToolRegistry(deps){
     body.steps=input.steps||['token','chip'];if(!Array.isArray(body.steps)||body.steps.length<2||body.steps.length>8||body.steps.some(s=>!allowed.includes(s)))fail('漏斗步骤无效；仅允许 2–8 项：'+allowed.join(', '));
     body.hours=input.hours??24;if(!Number.isSafeInteger(body.hours)||body.hours<1||body.hours>168)fail('转化窗口无效');body.association='user';
    }
+   if(['get_login_conversion','get_invite_conversion'].includes(id)){
+    body.hours=input.hours??24;
+    if(![1,24,72].includes(body.hours))fail('登录/邀请窗口只支持1、24、72小时');
+   }
    if(id==='get_retention')for(const k of ['initial','returning']){body[k]=input[k]||'chip';if(!['chip','drill','ai','trade','visit'].includes(body[k]))fail('留存事件无效');}
    if(id==='get_paths')body.details=false;
    if(id==='get_activity'&&!scope.activityId)fail('活动工具需要activityId');
@@ -107,7 +144,9 @@ function createToolRegistry(deps){
    // lists needed for internal analytics. Only archive a statistics-only
    // projection in the Agent evidence store and return that projection to the
    // model. In particular, don't trust short "rows" or nested arrays.
-   const payload=id==='get_product_chain'?productChainSummary(rawPayload):rawPayload;
+   const payload=id==='get_product_chain'?productChainSummary(rawPayload):
+    id==='get_referral'?referralSummary(rawPayload):
+    ['get_login_conversion','get_invite_conversion'].includes(id)?conversionSummary(rawPayload):rawPayload;
    const safe=statView(payload);
    if(Buffer.byteLength(JSON.stringify(safe))>maxResultBytes)
      fail('统计摘要超出大小预算，请缩小查询范围',422);
