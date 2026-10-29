@@ -737,6 +737,26 @@ async function claimDailySafeRetry(id,ownerId){
    RETURNING *`,[id,ownerId]);
  return result.rows[0]||null;
 }
+// Manual continuation of a failed WEEKLY report whose first paid response was
+// saved, but whose over-sized tool request was rejected before execution.
+// An atomic lease prevents duplicate Workers from continuing the same task.
+async function claimFailedWeeklyOverflow(id,ownerId,token,leaseMs=120000){
+ const now=Date.now();
+ if(typeof token!=='string'||!token||!Number.isSafeInteger(leaseMs)||leaseMs<10000)
+  throw Error('周报断点租约参数无效');
+ const result=await write(`UPDATE ai_analysis_records
+ SET status='processing',execution_token=$3,lease_expires_at=$4,error_message=NULL,
+   completed_at=NULL
+ WHERE id=$1 AND owner_id=$2 AND status='failed' AND cancel_requested=false
+   AND filter_conditions->>'weeklyReport'='v1'
+   AND error_message='补充查询过多，请缩小问题范围或提高调查能力'
+   AND EXISTS(SELECT 1 FROM ai_analysis_call_guard
+     WHERE analysis_id=$1 AND owner_id=$2 AND status='received')
+   AND NOT EXISTS(SELECT 1 FROM ai_analysis_call_guard
+     WHERE analysis_id=$1 AND owner_id=$2 AND status<>'received')
+ RETURNING *`,[id,ownerId,token,now+leaseMs]);
+ return result.rows[0]||null;
+}
 async function claimAnalysisRetry(id, ownerId) {
   const result=await write(`UPDATE ai_analysis_records SET status='pending',error_message=NULL,started_at=NULL,completed_at=NULL
     WHERE id=$1 AND owner_id=$2 AND status='failed' AND cancel_requested=false RETURNING *`,[id,ownerId]);
@@ -765,7 +785,7 @@ async function getRetrospective(id, ownerId) {
 }
 
 module.exports = {
-  completeAnalysis, claimAnalysisRetry, claimDailySafeRetry, claimAnalysisExecution, renewAnalysisLease, assertAnalysisLease, failClaimedAnalysis, hasAnalysisPaidCalls, beginAnalysisPaidCall, finishAnalysisPaidCall, listAnalysisPaidCalls, claimExpiredFinalization, requestAnalysisCancellation, listExpiredAnalysisLeases, updateAnalysisSnapshot, getAnalysisMemory, getRetrospective,
+  completeAnalysis, claimAnalysisRetry, claimFailedWeeklyOverflow, claimDailySafeRetry, claimAnalysisExecution, renewAnalysisLease, assertAnalysisLease, failClaimedAnalysis, hasAnalysisPaidCalls, beginAnalysisPaidCall, finishAnalysisPaidCall, listAnalysisPaidCalls, claimExpiredFinalization, requestAnalysisCancellation, listExpiredAnalysisLeases, updateAnalysisSnapshot, getAnalysisMemory, getRetrospective,
   // 分析记录
   createAnalysisRecord,
   updateAnalysisStatus,
