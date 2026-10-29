@@ -533,3 +533,14 @@
 @media (max-width:1180px) {
  #la-studio .ai-weekly-module-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+#la-studio .ai-weekly-module .ai-weekly-module-insight {
+ padding:9px 10px;border-left:2px solid var(--weekly-accent,#93b3ed);
+ background:var(--weekly-raised,transparent);border-radius:4px;
+ color:var(--a-text);font-size:12px;line-height:1.75;
+}
+#la-studio .ai-weekly-module .ai-weekly-module-action {
+ color:var(--a-text);font-size:12px;line-height:1.7;
+}
+#la-studio .ai-weekly-module-insight strong,
+#la-studio .ai-weekly-module-action strong {font-weight:750}
