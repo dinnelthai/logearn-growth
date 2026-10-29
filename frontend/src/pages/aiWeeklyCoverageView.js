@@ -32,6 +32,8 @@ export function renderWeeklyCoverage(data,{safe,fmt,links}){
    evidenceIds:Array.isArray(source?.evidenceIds)?source.evidenceIds.slice(0,3):[],
    facts:Array.isArray(source?.facts)?source.facts.slice(0,3):[],
    insight:typeof source?.insight==='string'?source.insight.slice(0,200):'',
+   insightType:source?.insightType==='hypothesis'?'hypothesis':
+    source?.insightType==='recommendation'?'recommendation':'fact',
    nextAction:typeof source?.nextAction==='string'?source.nextAction.slice(0,160):''};
  });
  const confirmed=rows.filter(r=>r.status==='analyzed').length;
@@ -49,8 +51,10 @@ export function renderWeeklyCoverage(data,{safe,fmt,links}){
     '<div class="ai-weekly-module-top"><strong>'+safe(row.label)+'</strong>'+
      '<span class="ai-weekly-module-status">'+safe(LABELS[row.status])+'</span></div>'+
     '<p>'+safe(row.reason)+'</p>'+
-    (row.insight?'<p class="ai-weekly-module-insight"><strong>关键判断：</strong>'+
-      safe(row.insight)+'</p>':'')+
+    (row.insight?'<p class="ai-weekly-module-insight"><strong>'+
+      (row.insightType==='hypothesis'?'待验证假设：':
+       row.insightType==='recommendation'?'AI 建议：':'证据结论：')+
+      '</strong>'+safe(row.insight)+'</p>':'')+
     (row.nextAction?'<p class="ai-weekly-module-action"><strong>下步动作：</strong>'+
       safe(row.nextAction)+'</p>':'')+
     (row.facts.length?'<div class="ai-weekly-module-facts">'+
