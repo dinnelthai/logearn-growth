@@ -285,14 +285,15 @@ function modelContext(raw,{transportVersion='v1'}={}){
    value:Number.isFinite(raw.goal.value)?raw.goal.value:null,
    deadline:raw.goal.deadline||null,priority:raw.goal.priority||null,
    version:raw.goal.version||null}:null,
-  capabilities:capabilities.slice(0,18).map(x=>({
+  capabilities:capabilities.slice(0,raw.weeklyCoverage?.version==='weekly-coverage-v1'?28:18).map(x=>({
    id:x.id,description:safeText(x.description||'',150),
    inputSchema:x.inputSchema,
    supportedScopes:x.supportedScopes
   })),
   growthPlan:Array.isArray(raw.growthPlan?.steps)?
-   {steps:raw.growthPlan.steps.slice(0,8).map(step=>({
-    id:safeText(step.id||'',120),
+   {steps:raw.growthPlan.steps.slice(0,raw.weeklyCoverage?.version==='weekly-coverage-v1'?12:8).map(step=>({
+    id:safeText(raw.weeklyCoverage?.version==='weekly-coverage-v1'?
+     (step.skillId||step.id||''):(step.id||''),120),
     tools:Array.isArray(step.tools)?step.tools.slice(0,8)
       .map(tool=>safeText(tool,100)):[],
     reason:safeText(step.reason||'',160)
