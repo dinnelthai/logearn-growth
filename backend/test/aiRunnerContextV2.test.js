@@ -252,12 +252,14 @@ test('v4 retains SEO metrics across a third model round, without replaying old t
   contextVersion:'v4',ownerId:'o',operationId:'v4-multiple',
   operationType:'analysis',...env,validate:()=>{}});
  assert.equal(env.observed.length,3);
- assert.equal(env.tools.length,12);
+ assert.equal(env.tools.length,6);
  const finalPrompt=JSON.stringify(env.observed[2].messages);
  assert.match(finalPrompt,/priorToolEvidence/);
  assert.match(finalPrompt,/"clicks":/);
  assert.equal(env.archive.get(0).results.length,6);
  assert.equal(env.archive.get(1).results.length,6);
+ assert.ok(env.archive.get(1).results.every(x=>
+  x.result?.error?.type==='duplicate_investigation'));
 });
 test('HTTP 524 keeps the paid round unknown and does not try another call',async()=>{
  const ctx=context();
