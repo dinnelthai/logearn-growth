@@ -42,3 +42,25 @@ test('user-supplied content and malformed dates remain safe and factual',()=>{
   expect(html).toContain('尚未确认')
   expect(html).not.toContain('data-ready-review')
 })
+
+test('empty review state remains compact and links to saved action suggestions',()=>{
+  const html=show({entries:[]})
+  expect(html).toContain('class="ai-review-empty"')
+  expect(html).toContain('暂无待复盘行动')
+  expect(html).toContain('href="#ai-report"')
+  expect(html).not.toContain('data-ready-review')
+})
+
+test('review rows place readiness and owner-confirmed action together without nested cards',()=>{
+  const html=show({entries:[
+    {suggestionId:'ready-2',analysisId:'analysis-2',title:'核查首访分析路径',status:'ready'},
+    {suggestionId:'waiting-2',analysisId:'analysis-3',title:'等待观察',status:'waiting',
+      earliestReviewAt:Date.parse('2026-11-05T00:00:00Z')}
+  ]})
+  expect(html).toContain('ai-review-queue-body')
+  expect(html).toContain('ai-review-queue-actions')
+  expect(html).toContain('发起复盘 · 可能产生费用')
+  expect(html).toContain('data-analysis="analysis-2"')
+  expect(html.match(/data-ready-review=/g)).toHaveLength(1)
+  expect(html).not.toContain('class="a-card')
+})
