@@ -222,9 +222,14 @@ async function resumeIncompleteAnalysis(job){
   const record=await records.getAnalysisRecord(analysisId,ownerId);
   if(!record)throw Error('分析记录不存在或无权限');
   if(record.status==='completed')return record.result;
-  if(record.status!=='processing'||record.cancel_requested||
-     !record.lease_expires_at||Number(record.lease_expires_at)>=Date.now())
-    throw Error('只能恢复未取消且已过期的调查');
+  const manualFailedWeekly=job.data.manualFailedWeekly===true;
+  const matchingFailedWeekly=manualFailedWeekly&&record.status==='failed'&&
+    !record.cancel_requested&&record.filter_conditions?.weeklyReport==='v1'&&
+    record.error_message==='补充查询过多，请缩小问题范围或提高调查能力';
+  if(!matchingFailedWeekly&&
+    (manualFailedWeekly||record.status!=='processing'||record.cancel_requested||
+     !record.lease_expires_at||Number(record.lease_expires_at)>=Date.now()))
+    throw Error('只能恢复未取消且已过期的调查或人工确认的失败周报');
   // JSONB can reorder object keys; fingerprint against the exact model input.
   const compact=record.context_payload ? JSON.parse(record.context_payload) : record.data_snapshot;
   if(!compact?.business?.scope?.source||!Array.isArray(compact.evidence))throw Error('缺少固定的原始业务快照');
@@ -241,8 +246,10 @@ async function resumeIncompleteAnalysis(job){
   const foundation=require('../../ai/business/foundation').defaultFoundation();
   const session=foundation.resume(compact,{ownerId,runId:analysisId});
   const token=require('node:crypto').randomUUID();
-  const claimed=await records.claimExpiredFinalization(analysisId,ownerId,token);
-  if(!claimed)throw Error('调查恢复租约已被其他 Worker 领取');
+  const claimed=matchingFailedWeekly
+    ?await records.claimFailedWeeklyOverflow(analysisId,ownerId,token)
+    :await records.claimExpiredFinalization(analysisId,ownerId,token);
+  if(!claimed)throw Error('调查恢复租约已被其他 Worker 领取，或付费状态不符合续跑要求');
   let leaseError=null,renewing=false;
   const heartbeat=setInterval(async()=>{
     if(renewing)return;renewing=true;
@@ -277,7 +284,10 @@ async function resumeIncompleteAnalysis(job){
             ?require('../../ai/growth/autonomyBudget').beginAutonomyPaidCall({analysisId,ownerId,token,round})
             :records.beginAnalysisPaidCall(analysisId,ownerId,token,round),
         finish:(round,status)=>records.finishAnalysisPaidCall(analysisId,ownerId,token,round,status)
-      },validate:value=>{validateAnalysis(value);session.validate(value);}});
+      },validate:value=>{
+        validateAnalysis(value);session.validate(value);
+        if(record.filter_conditions?.weeklyReport==='v1')weeklyReport.ensureWeeklyReport(value);
+      }});
     await beforeStep();
     return await persistValidatedResult({job,analysisId,ownerId,token,compact,result});
   }catch(error){
