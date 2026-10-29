@@ -74,3 +74,15 @@ test('v2 also supports an entirely empty evidence catalog',()=>{
  assert.equal(projected.evidenceMeta.total,0);
  assert.equal(projected.transportVersion,'aggregated-business-v2');
 });
+
+test('v3 trims empty evidence metadata without weakening numeric facts or attribution',()=>{
+ const before=modelContext(raw,{transportVersion:'v2'});
+ const after=modelContext(raw,{transportVersion:'v3'});
+ assert.equal(after.transportVersion,'aggregated-business-v3');
+ assert.equal(after.evidence[0].value,120);
+ assert.equal(after.current.totals.active_users,120);
+ assert.deepEqual(after.evidence.map(x=>x.id),before.evidence.map(x=>x.id));
+ assert.deepEqual(after.capabilities.map(x=>x.id),before.capabilities.map(x=>x.id));
+ assert.ok(Buffer.byteLength(JSON.stringify(after),'utf8')<=
+  Buffer.byteLength(JSON.stringify(before),'utf8'));
+});
