@@ -37,9 +37,27 @@ describe('content growth reading experience',()=>{
  });
  it('ranks known engagement above raw views and preserves unknown metrics',()=>{
   const html=renderXPanel(report,esc,'logearn_cn','engagement');
-  expect(html.indexOf('Higher engagement',html.indexOf('帖子表现对比'))).toBeLessThan(html.indexOf('Higher views',html.indexOf('帖子表现对比')));
+  expect(html.indexOf('Higher engagement',html.indexOf('帖子表现与行为比率'))).toBeLessThan(html.indexOf('Higher views',html.indexOf('帖子表现对比')));
   expect(html).toContain('Unknown views');
   expect(html).toContain('未知');
+ });
+ it('shows independent reply, repost and like rates with missing snapshots',()=>{
+  const html=renderXPanel(report,esc,'logearn_cn','recent');
+  expect(html).toContain('回复 / 回复率');
+  expect(html).toContain('转发 / 转发率');
+  expect(html).toContain('点赞 / 点赞率');
+  expect(html).toContain('24h：未记录');
+  expect(html).toContain('48h：未记录');
+  expect(html).toContain('不可计算');
+  expect(html).toContain('twitterapi.io');
+ });
+ it('shows an actual 24h observation, never inferring 48h from current totals',()=>{
+  const copy=structuredClone(report);
+  copy.accounts[0].posts[0].milestones={h24:{
+   ageHours:25.5,impressions:1000,observedAt:Date.parse('2026-10-18T11:30:00Z')},h48:null};
+  const html=renderXPanel(copy,esc,'logearn_cn','recent');
+  expect(html).toContain('24h附近：1,000 浏览（25.5h采集）');
+  expect(html).toContain('48h：未记录');
  });
  it('escapes untrusted post text',()=>{
   const copy=structuredClone(report);

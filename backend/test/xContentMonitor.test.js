@@ -8,7 +8,8 @@ function fixture(options={}){
  const db=new DatabaseSync(':memory:');
  db.exec('CREATE TABLE x_official_account_sync(owner_id TEXT NOT NULL,account TEXT NOT NULL,user_id TEXT,display_name TEXT,followers INTEGER,auto_sync INTEGER NOT NULL DEFAULT 0,last_synced INTEGER,last_attempt INTEGER,sync_error TEXT,PRIMARY KEY(owner_id,account));'+
   'CREATE TABLE x_official_posts(owner_id TEXT NOT NULL,account TEXT NOT NULL,post_id TEXT NOT NULL,published_at TEXT NOT NULL,body TEXT NOT NULL,impressions INTEGER,likes INTEGER,replies INTEGER,reposts INTEGER,quotes INTEGER,observed_at INTEGER NOT NULL,PRIMARY KEY(owner_id,account,post_id));'+
-  'CREATE TABLE x_official_follower_daily(owner_id TEXT NOT NULL,account TEXT NOT NULL,day TEXT NOT NULL,followers INTEGER NOT NULL,observed_at INTEGER NOT NULL,PRIMARY KEY(owner_id,account,day))');
+  'CREATE TABLE x_official_follower_daily(owner_id TEXT NOT NULL,account TEXT NOT NULL,day TEXT NOT NULL,followers INTEGER NOT NULL,observed_at INTEGER NOT NULL,PRIMARY KEY(owner_id,account,day));'+
+  'CREATE TABLE x_official_post_snapshots(owner_id TEXT NOT NULL,account TEXT NOT NULL,post_id TEXT NOT NULL,observed_at INTEGER NOT NULL,impressions INTEGER,likes INTEGER,replies INTEGER,reposts INTEGER,source TEXT NOT NULL,PRIMARY KEY(owner_id,account,post_id,observed_at))');
  const time={now:Date.parse('2026-10-28T12:00:00Z')},calls=[],spent=[];
  let followers=101;
  const provider={
@@ -62,6 +63,14 @@ test('shared provider data, per-account and owner isolation, missing metrics are
  assert.equal(cn.metrics.samplePosts,2);
  assert.equal(cn.metrics.measuredPosts,1);
  assert.equal(cn.metrics.engagementRate,10);
+ assert.equal(cn.posts.find(p=>p.post_id==='111').replyRate,2);
+ assert.equal(cn.posts.find(p=>p.post_id==='111').repostRate,3);
+ assert.equal(cn.posts.find(p=>p.post_id==='111').likeRate,5);
+ assert.equal(cn.posts.find(p=>p.post_id==='111').milestones.h24.ageHours,26);
+ assert.equal(cn.posts.find(p=>p.post_id==='111').milestones.h48,null);
+ assert.equal(cn.posts.find(p=>p.post_id==='112').impressions,null);
+ assert.equal(cn.posts.find(p=>p.post_id==='112').likeRate,null);
+ assert.equal(f.db.prepare('SELECT COUNT(*) n FROM x_official_post_snapshots WHERE owner_id=? AND account=?').get('a','logearn_cn').n,2);
  assert.equal(cn.posts.find(p=>p.post_id==='112').impressions,null);
  assert.equal(global.posts.length,0);
  assert.equal(f.monitor.overview('b').accounts[0].posts.length,0);
@@ -73,6 +82,12 @@ test('shared provider data, per-account and owner isolation, missing metrics are
  f.time.now+=86400000;
  await f.monitor.sync('a','logearn_cn');
  assert.equal(f.monitor.overview('a').accounts[0].metrics.followerChange,2);
+ const after=f.monitor.overview('a').accounts[0].posts.find(p=>p.post_id==='111');
+ assert.equal(after.snapshotCount,2);
+ assert.equal(after.milestones.h24.ageHours,26);
+ assert.equal(after.milestones.h48.ageHours,50);
+ assert.equal(after.milestones.h48.impressions,100);
+ assert.equal(f.db.prepare('SELECT COUNT(*) n FROM x_official_post_snapshots WHERE owner_id=? AND account=?').get('a','logearn_cn').n,4);
 });
 test('daily sync is opt-in per account, errors are recorded, no additional OAuth',async()=>{
  const f=fixture();
@@ -90,6 +105,7 @@ test('daily sync is opt-in per account, errors are recorded, no additional OAuth
  const failed=fixture({wrongProfile:true});
  await assert.rejects(failed.monitor.sync('a','logearn_cn'),/不匹配/);
  assert.equal(failed.monitor.overview('a').accounts[0].lastSynced,null);
+ assert.equal(failed.db.prepare('SELECT COUNT(*) n FROM x_official_post_snapshots').get().n,0);
  assert.match(failed.monitor.overview('a').accounts[0].error,/不匹配/);
 });
 test('same account can have independent observation rows for different operators',async()=>{
