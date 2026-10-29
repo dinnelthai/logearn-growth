@@ -158,7 +158,7 @@ async function businessAnalysis(job) {
           if(result.status==='ok'&&Array.isArray(result.evidence)&&result.evidence.length){
             const evidence=result.evidence;
             const v=evidence[0]?.value||{};
-            matched=v.coverage?.periodMatched===true;
+            matched=evidence[0]?.coverage?.periodMatched===true;
             range=v.startDate&&v.endDate?{startDate:v.startDate,endDate:v.endDate}:null;
             seoStatus=v.available===false?'not-synced':
               matched?'period-matched':'reference-only';
