@@ -1,7 +1,7 @@
-import {getAnalysisDetail,getEvidence,getJobCheckpoint,retryAnalysis,continueWeeklyOverflow,deleteAnalysis} from '../api/aiAnalysis.js';
+import {getAnalysisDetail,getEvidence,getJobCheckpoint,retryAnalysis,continueWeeklyOverflow,deleteAnalysis,getGscPerformance} from '../api/aiAnalysis.js';
 import {canOfferTaskRetry} from './aiTaskStatus.js';
 import {queueAnalysisLaunch} from '../analysisLaunchContext.js';
-import {renderWeeklyDecisionReport} from './aiWeeklyDecisionView.js';
+import {renderWeeklyDecisionReport,readOnlyGscMarkup} from './aiWeeklyDecisionView.js';
 
 const DAY=86400000;
 const date=ms=>Number.isFinite(Number(ms))?new Date(Number(ms)+7*3600000).toISOString().slice(0,10):'未知';
@@ -142,6 +142,20 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
    const detail=await getAnalysisDetail(row.id);
    if(disposed||token!==seq)return;
    target.innerHTML=reportBody(detail,row);
+   const gscSupplement=target.querySelector('[data-weekly-gsc-live]');
+   if(gscSupplement){
+    const startDate=date(row.date_range_start),endDate=date(Number(row.date_range_end)-DAY);
+    // Historical reports can display an EXACT saved GSC snapshot without
+    // retroactively claiming that the original AI model analyzed those data.
+    getGscPerformance({startDate,endDate}).then(snapshot=>{
+     if(!disposed&&token===seq&&gscSupplement.isConnected)
+      gscSupplement.innerHTML=readOnlyGscMarkup(snapshot,{safe,fmt,startDate,endDate});
+    }).catch(error=>{
+     if(!disposed&&token===seq&&gscSupplement.isConnected)
+      gscSupplement.textContent='GSC 数据暂不可读取：'+error.message+'。请前往 SEO 分析查看同步状态。';
+    });
+   }
+
    target.querySelectorAll('[data-weekly-navigate]').forEach(button=>
     button.addEventListener('click',()=>{if(typeof navigate==='function')navigate(button.dataset.weeklyNavigate)}));
    target.querySelectorAll('[data-weekly-evidence]').forEach(button=>button.addEventListener('click',async()=>{
