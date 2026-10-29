@@ -550,23 +550,28 @@ CREATE TABLE IF NOT EXISTS agent_prompt_rollouts (
  version INTEGER NOT NULL DEFAULT 1,
  PRIMARY KEY(owner_id,role));
 
--- Read-only X channel monitoring, keyed by operator (not the manual content table).
-CREATE TABLE IF NOT EXISTS x_content_accounts (
- owner_id TEXT PRIMARY KEY,username TEXT NOT NULL,user_id TEXT,
+-- Shared official X identities come from follower-audit; these tables only store
+-- per-account content metrics and opt-in sync state. Legacy x_content_* data
+-- is intentionally left untouched on existing installs.
+CREATE TABLE IF NOT EXISTS x_official_account_sync(
+ owner_id TEXT NOT NULL,account TEXT NOT NULL,user_id TEXT,
  display_name TEXT,followers INTEGER,auto_sync INTEGER NOT NULL DEFAULT 0,
- last_synced INTEGER,last_attempt INTEGER,sync_error TEXT
+ last_synced INTEGER,last_attempt INTEGER,sync_error TEXT,
+ PRIMARY KEY(owner_id,account)
 );
-CREATE TABLE IF NOT EXISTS x_content_posts (
- owner_id TEXT NOT NULL,post_id TEXT NOT NULL,published_at TEXT NOT NULL,
- body TEXT NOT NULL,impressions INTEGER,likes INTEGER,replies INTEGER,
- reposts INTEGER,quotes INTEGER,bookmarks INTEGER,observed_at INTEGER NOT NULL,
- PRIMARY KEY(owner_id,post_id)
+CREATE TABLE IF NOT EXISTS x_official_posts(
+ owner_id TEXT NOT NULL,account TEXT NOT NULL,post_id TEXT NOT NULL,
+ published_at TEXT NOT NULL,body TEXT NOT NULL,
+ impressions INTEGER,likes INTEGER,replies INTEGER,reposts INTEGER,
+ quotes INTEGER,observed_at INTEGER NOT NULL,
+ PRIMARY KEY(owner_id,account,post_id)
 );
-CREATE INDEX IF NOT EXISTS x_content_posts_time ON x_content_posts(owner_id,published_at DESC);
-CREATE TABLE IF NOT EXISTS x_content_follower_daily (
- owner_id TEXT NOT NULL,day TEXT NOT NULL,followers INTEGER NOT NULL,
- observed_at INTEGER NOT NULL,PRIMARY KEY(owner_id,day)
+CREATE INDEX IF NOT EXISTS x_official_posts_time ON x_official_posts(owner_id,account,published_at DESC);
+CREATE TABLE IF NOT EXISTS x_official_follower_daily(
+ owner_id TEXT NOT NULL,account TEXT NOT NULL,day TEXT NOT NULL,
+ followers INTEGER NOT NULL,observed_at INTEGER NOT NULL,
+ PRIMARY KEY(owner_id,account,day)
 );
--- Retire the superseded account authorization and delete local OAuth secrets.
+-- OAuth is not used: this service is strictly read-only.
 DROP TABLE IF EXISTS x_oauth_states;
 DROP TABLE IF EXISTS x_oauth_connections;
