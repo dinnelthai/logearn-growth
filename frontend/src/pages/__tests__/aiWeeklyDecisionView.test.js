@@ -39,6 +39,22 @@ describe('decision-first weekly view',()=>{
   expect(html).toContain('data-weekly-evidence="new_users-current"');
   expect(html.indexOf('审计与原始证据')).toBeGreaterThan(html.indexOf('下周行动清单'));
  });
+ it('makes P0 risk, trend arrows and next-week action visually distinct',()=>{
+  const report={...base,result:{...base.result,weeklyReport:{
+   ...base.result.weeklyReport,
+   nextWeek:[{priority:'P0',action:'核查首次分析漏斗',
+    metric:'activation_rate',reviewCondition:'下个完整周',
+    evidenceIds:[]}]} }};
+  const html=renderWeeklyDecisionReport({...options,data:report,record});
+  expect(html).toContain('class="ai-weekly-panel ai-weekly-priority-panel"');
+  expect(html).toContain('data-priority="p0"');
+  expect(html).toContain('class="ai-weekly-problem-change"');
+  expect(html).toContain('↓ 55%');
+  expect(html).not.toContain('↓ -55%');
+  expect(html).toContain('class="ai-weekly-kpi" data-trend="down"');
+  expect(html).toContain('class="ai-weekly-action" data-priority="p0"');
+  expect(html).toContain('data-coverage="unknown"');
+ });
  it('does not invent historical SEO results without saved GSC evidence',()=>{
   const html=renderWeeklyDecisionReport({...options,data:base,record});
   expect(html).toContain('本次历史周报未采集 SEO 数据');
