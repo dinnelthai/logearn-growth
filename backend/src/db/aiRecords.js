@@ -162,7 +162,7 @@ async function createWeeklyReportRecord({ownerId,requestKey,title,start,end,ques
 async function listWeeklyReportRecords(ownerId,{limit=20}={}){
  const safeLimit=Number.isSafeInteger(limit)?Math.max(1,Math.min(50,limit)):20;
  const result=await read(`SELECT id,title,status,created_at,completed_at,error_message,
-   date_range_start,date_range_end,result,cost_usd,model_name
+   date_range_start,date_range_end,cost_usd,model_name
    FROM ai_analysis_records
    WHERE owner_id=$1 AND filter_conditions->>'weeklyReport'='v1'
    ORDER BY date_range_end DESC,created_at DESC LIMIT $2`,[ownerId,safeLimit]);
