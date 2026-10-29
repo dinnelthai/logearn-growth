@@ -3,6 +3,12 @@
 // Its context contains only owner-scoped aggregate counts; no user/event rows or action text.
 const {lastCompleted}=require('./workspace/period');
 
+function weeklyModelTimeoutMs(){
+ const value=Number(process.env.AI_WEEKLY_MODEL_TIMEOUT_MS||300000);
+ if(!Number.isSafeInteger(value)||value<30000||value>540000)
+  throw Error('AI_WEEKLY_MODEL_TIMEOUT_MS 必须为 30000 至 540000 毫秒');
+ return value;
+}
 function weeklyPeriod(now=Date.now()){return lastCompleted('weekly',now);}
 function weeklyKey(period){return 'weekly-ai-v1:'+period.start+':'+period.end;}
 function weeklyOperations(store,owner,period){
@@ -106,4 +112,4 @@ function ensureWeeklyReport(analysis){
   return analysis.weeklyReport;
  }
 }
-module.exports={weeklyPeriod,weeklyKey,weeklyOperations,weeklyPrompt,validateWeeklyReport,ensureWeeklyReport};
+module.exports={weeklyPeriod,weeklyKey,weeklyOperations,weeklyPrompt,validateWeeklyReport,ensureWeeklyReport,weeklyModelTimeoutMs};
