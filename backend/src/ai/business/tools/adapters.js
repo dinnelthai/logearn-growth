@@ -45,17 +45,33 @@ async function activities(body,snapshot,audience,context){
 async function seoPerformance(body,context){
  const {createSeoStore,summarizeSeo}=require('../../growth/seoStore');
  const {createGscService,summarizeGsc}=require('../../growth/gscService');
- // GSC date labels are PT; day boundaries requested by the main Growth
- // analysis are UTC+7. Preserve the original window and explicit mismatch.
+ // Business periods are Bangkok-local; GSC dates are Pacific Time.
+ // Prefer an exact snapshot. Otherwise a recent aggregate remains useful
+ // as context, but must never be presented as period-matched evidence.
  const startDate=new Date(body.start+7*3600000).toISOString().slice(0,10);
  const endDate=new Date(body.end-1+7*3600000).toISOString().slice(0,10);
- const connected=await createGscService().latest(context.ownerId,{
-  siteUrl:body.siteUrl||null,startDate,endDate
- });
+ const service=createGscService();
+ const exact=await service.latest(context.ownerId,{siteUrl:body.siteUrl||null,startDate,endDate});
+ const latest=exact||await service.latest(context.ownerId,{siteUrl:body.siteUrl||null});
+ const age=latest?Date.parse(endDate+'T00:00:00Z')-Date.parse(latest.end_date+'T00:00:00Z'):Infinity;
+ const connected=latest&&age>=0&&age<=31*86400000?latest:null;
  if(connected){
   const result=summarizeGsc(connected);
-  return {...result,warnings:[...result.warnings,
-   '所选 GSC 查询日期取自曼谷业务日期标签，两者并非同一时区时间窗']};
+  const matched=!!exact;
+  const maskPage=value=>{
+   try{
+    const url=new URL(value);
+    if(url.protocol!=='https:'&&url.protocol!=='http:')return '[URL invalid]';
+    const keys=[...new Set([...url.searchParams.keys()])];
+    return url.origin+url.pathname+(keys.length?'?'+keys.map(key=>encodeURIComponent(key)+'=[redacted]').join('&'):'');
+   }catch{return '[URL invalid]'}
+  };
+  return {...result,pages:result.pages.map(row=>({...row,page:maskPage(row.page)})),
+   coverage:{...result.coverage,requestedBangkokDateLabels:{startDate,endDate},
+    periodMatched:matched},
+   warnings:[...result.warnings,
+    'GSC 数据日期采用 PT，增长业务日期采用 Asia/Bangkok，不能直接逐日归因',
+    ...(!matched?['使用最近 GSC 快照 '+result.startDate+' 至 '+result.endDate+'，与请求期间不完全一致；仅作为背景趋势，不得计算期间 SEO 转化或环比']:[])]};
  }
  // Historical manual imports remain an explicit, limited fallback.
  const record=await createSeoStore().latestCovering(context.ownerId,{
