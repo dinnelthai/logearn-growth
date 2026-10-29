@@ -232,6 +232,30 @@ test('v4 weekly analysis sends core statistics first and preserves paid checkpoi
  assert.deepEqual(env.paid,['begin:0','end:0:received','begin:1','end:1:received']);
  assert.equal(env.archive.get(0).results.length,6);
 });
+test('v4 retains SEO metrics across a third model round, without replaying old tools',async()=>{
+ const ctx=context();
+ ctx.weeklyCoverage={version:'weekly-coverage-v1',modules:[{
+  id:'seo-organic',status:'collected',evidenceIds:[],facts:[]}]};
+ const env=setup([investigations,investigations,final]);
+ env.investigate=async query=>{
+  env.tools.push(query);
+  return {status:'ok',evidence:[{
+   id:'seo-'+env.tools.length,metricId:'seo_search',
+   value:{metrics:{clicks:100+env.tools.length,impressions:800}},
+   period:{start:100,end:200},coverage:{status:'partial',periodMatched:true}
+  }]};
+ };
+ await runner().runTask({context:ctx,prompt:'weekly model test',
+  contextVersion:'v4',ownerId:'o',operationId:'v4-multiple',
+  operationType:'analysis',...env,validate:()=>{}});
+ assert.equal(env.observed.length,3);
+ assert.equal(env.tools.length,12);
+ const finalPrompt=JSON.stringify(env.observed[2].messages);
+ assert.match(finalPrompt,/priorToolEvidence/);
+ assert.match(finalPrompt,/"clicks":/);
+ assert.equal(env.archive.get(0).results.length,6);
+ assert.equal(env.archive.get(1).results.length,6);
+});
 test('legacy protocol remains v1 unless a new task opts in',async()=>{
  const env=setup([final]);
  await runner().runTask({context:context(),prompt:'legacy test',
