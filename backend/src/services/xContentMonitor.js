@@ -15,6 +15,7 @@ function createXContentMonitor({db=defaultDb,clock=Date.now,
  reserve=(run,credits)=>require('./xAcquisition').service().reserve(run,credits),
  settle=(id,credits)=>require('./xAcquisition').service().settle(id,credits)}={}){
  const configured=()=>Boolean(env.TWITTERAPI_IO_API_KEY?.trim());
+ const snapshotsReady=()=>Boolean(db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='x_official_post_snapshots'").get());
  function status(owner,account){
   return db.prepare('SELECT * FROM x_official_account_sync WHERE owner_id=? AND account=?').get(String(owner),account);
  }
@@ -23,8 +24,8 @@ function createXContentMonitor({db=defaultDb,clock=Date.now,
   const accounts=ACCOUNTS.map(a=>{
    const info=status(id,a.id);
    const posts=db.prepare('SELECT post_id,published_at,body,impressions,likes,replies,reposts,quotes,observed_at FROM x_official_posts WHERE owner_id=? AND account=? ORDER BY published_at DESC LIMIT 20').all(id,a.id);
-   const rawHistory=db.prepare('SELECT post_id,observed_at,impressions,likes,replies,reposts FROM x_official_post_snapshots WHERE owner_id=? AND account=? AND observed_at>=? ORDER BY observed_at DESC LIMIT 1800')
-    .all(id,a.id,clock()-90*DAY);
+   const rawHistory=snapshotsReady()?db.prepare('SELECT post_id,observed_at,impressions,likes,replies,reposts FROM x_official_post_snapshots WHERE owner_id=? AND account=? AND observed_at>=? ORDER BY observed_at DESC LIMIT 1800')
+    .all(id,a.id,clock()-90*DAY):[];
    const byPost=new Map();
    for(const row of rawHistory){
     if(!byPost.has(row.post_id))byPost.set(row.post_id,[]);
@@ -65,6 +66,7 @@ function createXContentMonitor({db=defaultDb,clock=Date.now,
  async function sync(owner,account){
   assertAccount(account);
   if(!configured())fail('账号数据源未配置：TWITTERAPI_IO_API_KEY',503);
+  if(!snapshotsReady())fail('X 快照表未初始化，请更新并重启后端',503);
   const id=String(owner),now=clock(),run=randomUUID();
   db.prepare('INSERT OR IGNORE INTO x_official_account_sync(owner_id,account) VALUES(?,?)').run(id,account);
   const claim=db.prepare('UPDATE x_official_account_sync SET last_attempt=?,sync_error=NULL WHERE owner_id=? AND account=? AND (last_attempt IS NULL OR last_attempt<?) RETURNING account')
