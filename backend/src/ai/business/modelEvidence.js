@@ -9,8 +9,12 @@ function forModelV4(result,{maxBytes=3500}={}){
  if(!Number.isSafeInteger(maxBytes)||maxBytes<1024||maxBytes>64000)
   throw Error('模型证据字节预算无效');
  const rows=Array.isArray(result?.evidence)?result.evidence:[];
- const status=['ok','unavailable','error'].includes(result?.status)?
+ const status=['ok','unavailable','error','not-executed'].includes(result?.status)?
   result.status:'unavailable';
+ const knownReasons=new Set(['duplicate_investigation',
+  'investigation_budget_exceeded','permission_denied',
+  'query_budget_exceeded','result_too_large','invalid_parameters']);
+ const reason=knownReasons.has(result?.error?.type)?result.error.type:null;
  const number=v=>typeof v==='number'&&Number.isFinite(v);
  const extract=value=>{
   if(value==null||number(value))return value;
@@ -43,6 +47,7 @@ function forModelV4(result,{maxBytes=3500}={}){
  });
  const base={status,evidence:[],omittedEvidence:rows.length,
   transport:'aggregated-business-v4',
+  ...(reason?{reason}:{}),
   warnings:['保留逐条聚合数值与证据ID；未传输的维度未知而非0，完整证据保留在只读档案']};
  const fits=()=>Buffer.byteLength(JSON.stringify(base),'utf8')<=maxBytes;
  // Always prioritize several distinct metrics over many similarly shaped
