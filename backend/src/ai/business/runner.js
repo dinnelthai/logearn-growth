@@ -65,7 +65,7 @@ function compactV3History(messages){
   let plan,reply;
   try{plan=JSON.parse(messages[i].content);reply=JSON.parse(messages[i+1].content)}
   catch{continue}
-  if(!Array.isArray(plan.investigations)||!Array.isArray(reply.additionalEvidence))
+  if(!(Array.isArray(plan.investigations)||Number.isSafeInteger(plan.completedToolRequests))||!Array.isArray(reply.additionalEvidence))
    continue;
   toolExchanges.push({planIndex:i,resultIndex:i+1,plan,reply});
   i++;
@@ -79,7 +79,9 @@ function compactV3History(messages){
   for(const item of reply.additionalEvidence){
    const rows=Array.isArray(item.result?.evidence)?item.result.evidence:[];
    const kept=rows.slice(0,3).map(e=>({
-    id:e.id,metricId:e.metricId,unit:e.unit,value:e.value,
+    id:e.id,metricId:e.metricId,unit:e.unit,
+    value:e.value&&typeof e.value==='object'?
+      {totals:e.value.totals??null,summary:e.value.summary??null,dimensionsOmitted:true}:e.value,
     numerator:e.numerator,denominator:e.denominator,sampleSize:e.sampleSize,
     coverage:e.coverage?.status||'unknown',
     warnings:(e.warnings||[]).slice(0,1)
@@ -89,8 +91,8 @@ function compactV3History(messages){
     status:item.result?.status||'unavailable',evidence:kept,
     omittedEvidence:Math.max(0,rows.length-kept.length)});
   }
-  const assistant={completedToolRequests:plan.investigations.length,
-   omittedRequests:plan.omittedInvestigations||0};
+  const assistant={completedToolRequests:plan.investigations?.length??plan.completedToolRequests,
+   omittedRequests:plan.omittedInvestigations||plan.omittedRequests||0};
   const result={priorToolEvidence:summaries,
    omittedEvidence:omitted,
    note:'完整统计与归因维度在只读证据档案。未展示的值为未知，不是0；不得凭此摘要推断因果。'};
