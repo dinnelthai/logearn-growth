@@ -27,7 +27,7 @@ export function renderAISuggestion(s,{esc,json,label,offset=7*3600000}){
     <dl class="ai-suggestion-reasoning">
       <div><dt>为什么优先处理</dt><dd>${esc(s.priority_reason||'暂无明确排序依据')}</dd></div>
       <div><dt>需要验证的假设</dt><dd>${esc(s.hypothesis||'尚未提供可验证的假设')}</dd></div>
-      <div><dt>当前不确定性</dt><dd>${esc(uncertainties.length?uncertainties.join('；'):'尚未列明不确定性；不能据此认定无风险')}</dd></div>
+      <div><dt>当前不确定性</dt><dd>${esc(uncertainties.length?uncertainties.map(v=>String(v).replace(/[。；\s]+$/u,'')).join('；'):'尚未列明不确定性；不能据此认定无风险')}</dd></div>
     </dl>
     <details class="ai-suggestion-evidence">
       <summary>查看数据证据、适用范围与验证标准</summary>
