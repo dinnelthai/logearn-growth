@@ -375,6 +375,22 @@ CREATE TABLE IF NOT EXISTS ai_growth_gsc_snapshots (
 CREATE INDEX IF NOT EXISTS idx_ai_gsc_snapshots_owner_site_period
   ON ai_growth_gsc_snapshots(owner_id,site_url,start_date,end_date,fetched_at DESC);
 
+-- Each logged-in operator authorizes their own Google account. Only encrypted refresh
+-- tokens are persisted; access tokens remain transient in the server process.
+CREATE TABLE IF NOT EXISTS ai_growth_gsc_oauth_connections (
+ owner_id TEXT PRIMARY KEY,
+ refresh_token_enc TEXT NOT NULL,
+ updated_at BIGINT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS ai_growth_gsc_oauth_states (
+ state_hash TEXT PRIMARY KEY,
+ owner_id TEXT NOT NULL,
+ code_verifier TEXT NOT NULL,
+ expires_at BIGINT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ai_gsc_oauth_states_expiry
+ ON ai_growth_gsc_oauth_states(expires_at);
+
 -- P1 specialist operating automation (all processors are opt-in).
 CREATE TABLE IF NOT EXISTS ai_growth_gsc_sync_jobs (
  id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, site_url TEXT NOT NULL,

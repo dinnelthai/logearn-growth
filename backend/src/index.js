@@ -51,6 +51,9 @@ app.get('/health', (req, res) => res.json({ ok: true, ts: Date.now() }))
 // Prometheus metrics endpoint (public, for monitoring tools)
 app.get('/metrics', require('./monitoring/prometheus').handler)
 
+// Google authorization code arrives without the LogEarn bearer header.
+// Ownership is resolved only after consuming one-time server-side state.
+app.use('/api/gsc', require('./routes/gscOAuthCallback'))
 // Auth routes (login is public, rest require auth internally)
 app.use('/api/auth', authRouter)
 

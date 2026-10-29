@@ -84,6 +84,8 @@ export const previewKolPerformance=(start,end)=>aiFetch('/api/ai-analysis/growth
 });
 
 export const getGscConnection=()=>aiFetch('/api/ai-analysis/growth-seo/gsc/connection');
+export const beginGscOAuth=()=>aiFetch('/api/ai-analysis/growth-seo/gsc/oauth/start',{method:'POST',body:'{}'});
+export const disconnectGscOAuth=()=>aiFetch('/api/ai-analysis/growth-seo/gsc/oauth/disconnect',{method:'POST',body:'{}'});
 export const saveGscSite=siteUrl=>aiFetch('/api/ai-analysis/growth-seo/gsc/settings',{
  method:'PUT',body:JSON.stringify({siteUrl})
 });

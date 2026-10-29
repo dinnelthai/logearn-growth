@@ -45,7 +45,7 @@ function summarizeGsc(record){
    'GSC 数据日期按太平洋时间（PT），与 LogEarn 曼谷业务日不同',
    'GSC 点击与排名不证明注册、筹码分析、成交或 SEO 行动的因果效果']};
 }
-function buildGoogleSnapshot(siteUrl,window,responses){
+function buildGoogleSnapshot(siteUrl,window,responses,mode='service-account'){
  const daily=normalizeGoogleRows(responses.daily,'date',31)
   .filter(r=>r.date>=window.startDate&&r.date<=window.endDate)
   .sort((a,b)=>a.date.localeCompare(b.date));
@@ -70,7 +70,8 @@ function buildGoogleSnapshot(siteUrl,window,responses){
     .filter(d=>!seen.has(d)),
    queryRowsReturned:queries.length,pageRowsReturned:pages.length,
    queryTruncatedPossible:queries.length===500,pageTruncatedPossible:pages.length===100,
-   googleApiVerifiedForServiceIdentity:true,
+   googleApiVerifiedForServiceIdentity:mode==='service-account',
+   googleAuthorizationMode:mode,
    searchQueryCoverage:'top-results-only',propertyTotalSource:'finalized daily property-level aggregates',
    dateTimezone:'America/Los_Angeles',
    sourceWarning:'Google API 日期无行可能意味着零流量或数据尚未覆盖，不能单凭缺行判断'
@@ -83,7 +84,7 @@ function createGscService({db=pool,client=defaultClient,clock=Date.now}={}){
   return r.rows[0]||null;
  }
  async function connection(ownerId){
-  const status=client.status(ownerId);
+  const status=await client.status(ownerId);
   if(!status.configured)return {...status,sites:[],selectedSite:null,
    reason:!status.ownerAuthorized?'服务器尚未为此用户配置 Search Console 资源授权':'服务器尚未配置可用 Google API 凭证'};
   const sites=await client.sites(ownerId);
@@ -144,7 +145,8 @@ function createGscService({db=pool,client=defaultClient,clock=Date.now}={}){
     client.searchAnalytics(ownerId,{...req,dimensions:['query'],rowLimit:500}),
     client.searchAnalytics(ownerId,{...req,dimensions:['page'],rowLimit:100})
    ]);
-   const normalized=buildGoogleSnapshot(siteUrl,{startDate,endDate},{daily,queries,pages});
+   const authMode=(await client.status(ownerId)).mode;
+   const normalized=buildGoogleSnapshot(siteUrl,{startDate,endDate},{daily,queries,pages},authMode);
    const id=randomUUID(),now=clock();
    await conn.query(`INSERT INTO ai_growth_gsc_snapshots
      (id,owner_id,site_url,start_date,end_date,source,data_state,
