@@ -151,6 +151,7 @@ async function businessAnalysis(job) {
       .createPromptRegistry(require('../../db/connection'))
       .resolve(ownerId,'analysis',prompt,{runId:analysisId});
     const result=await runTask({context:compact,prompt:isWeeklyReport?currentPrompt+'\n'+weeklyReport.weeklyPrompt:currentPrompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
+      ...(isWeeklyReport?{modelTimeoutMs:weeklyReport.weeklyModelTimeoutMs()}:{}),
       paidCalls:{
         begin:round=>executionClaim.record.filter_conditions?.proposalId
           ?require('../../ai/growth/budget').beginBudgetedPaidCall({
@@ -275,6 +276,7 @@ async function resumeIncompleteAnalysis(job){
       operationType:'analysis',mode:record.filter_conditions?.modelMode||'auto',
       resumeRows:rows,systemPromptOverride:originalPrompt,
       investigate,traceStore:session.traceStore,beforeStep,
+      ...(record.filter_conditions?.weeklyReport==='v1'?{modelTimeoutMs:weeklyReport.weeklyModelTimeoutMs()}:{}),
       paidCalls:{
         begin:round=>record.filter_conditions?.proposalId
           ?require('../../ai/growth/budget').beginBudgetedPaidCall({
