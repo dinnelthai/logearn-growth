@@ -79,3 +79,68 @@ Official Google API reference:
 - https://developers.google.com/webmaster-tools/v1/searchanalytics/query
 - https://developers.google.com/webmaster-tools/v1/sitemaps/list
 - https://developers.google.com/webmaster-tools/v1/urlInspection.index/inspect
+
+
+## New: Google-account OAuth connection (2026-10-29)
+
+The existing server-side service-account and GSC_OWNER_SITES_JSON methods remain supported. The SEO UI can now connect a **user-owned Google account** directly. This does not replace LogEarn authentication. Google OAuth delegates read-only Search Console access for the authenticated Growth operator.
+
+### Google Cloud setup
+
+1. Enable Google Search Console API in the intended Google Cloud project.
+2. Configure Google Auth Platform consent screen and appropriate test users or publishing audience.
+3. Create an OAuth Client of type Web application. Add exactly http://localhost:3001/api/gsc/oauth/callback locally; use the actual HTTPS backend URL in production.
+4. Set these **backend-only** environment variables:
+
+~~~dotenv
+GOOGLE_CLIENT_ID=YOUR_WEB_OAUTH_CLIENT_ID
+GOOGLE_CLIENT_SECRET=YOUR_WEB_OAUTH_CLIENT_SECRET
+GOOGLE_REDIRECT_URI=http://localhost:3001/api/gsc/oauth/callback
+GSC_FRONTEND_ORIGIN=http://localhost:5173
+GSC_OAUTH_ENCRYPTION_KEY=64_HEX_CHARACTERS_GENERATED_WITH_OPENSSL
+~~~
+
+Generate the key with: openssl rand -hex 32. The frontend origin must not have a trailing slash. Production URLs must use HTTPS. Keep the encryption key stable between deployments; changing it makes stored tokens unreadable until users reconnect. Do not commit credentials or put them in VITE_ variables.
+
+Run the approved additive PostgreSQL migration against the verified AI database:
+
+~~~sh
+cd backend
+AI_MIGRATION_APPROVED=1 npm run migrate:ai
+~~~
+
+The migration script additionally requires AI_DATABASE_URL and AI_DATABASE_EXPECTED_NAME; it verifies the target database name.
+
+### Operator flow
+
+1. Open 渠道与 SEO → SEO 分析, and click 连接 Google Search Console.
+2. Google displays account selection and a consent screen for the Search Console webmasters.readonly scope.
+3. A single-use, 10-minute PKCE state binds the callback to the logged-in Growth user; a web browser never sees the refresh token or app secret.
+4. AES-256-GCM encrypted refresh tokens live in ai_growth_gsc_oauth_connections, scoped by owner_id. Access tokens are refreshed server-side and cached only for the same connection version.
+5. The selected Google account's sites.list results populate the site dropdown; save the site and synchronize existing Search Analytics data.
+6. Disconnecting removes the locally stored OAuth connection, the selected site, and queued jobs. Historical SEO snapshots are retained. Google third-party app access can separately be revoked in the Google account.
+
+The public GET /api/gsc/oauth/callback does not accept a bearer token: it derives the owner only from an atomically consumed state hash. The callback sends a fixed-origin postMessage to the opener, and the frontend verifies that message's origin. A closed popup can also trigger a backend connection-state refresh.
+
+### Daily scheduled sync
+
+The existing GSC scheduler now discovers owners with OAuth connections automatically, in addition to optional AI_GSC_OWNER_IDS. It still only syncs **selected properties**, **finalized Google data**, and **never calls the paid LLM**. Explicit deployment is required:
+
+~~~dotenv
+AI_GSC_SYNC_ENABLED=1
+AI_GSC_BACKFILL_DAYS=14
+AI_GSC_SYNC_CRON=20 11 * * *
+~~~
+
+~~~sh
+cd backend
+npm run worker:gsc-daily
+~~~
+
+The UI does not claim that the Worker runs simply because credentials are connected. Verify real scheduled snapshots and logs. The existing operator-controlled manual sync remains available.
+
+### Release verification
+
+Google OAuth refresh tokens for external apps in Testing status may expire after seven days; complete appropriate publishing/verification for durable operation. The authorizing Google account must have Search Console access.
+
+Check with a real Google test account: consent, granted sites, forbidden sites, a finalized 28-day report compared against Google Search Console UI, refresh after backend restart, repeated callback rejection, disconnect, and a separate daily Worker process. Local offline tests alone do not validate Google Cloud configuration.
