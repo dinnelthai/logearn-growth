@@ -106,6 +106,7 @@ export function createGrowthMonitorPage(ctx){
 
    </div>`;
    host.querySelector('[data-monitor-refresh]').onclick=draw;
+   host.querySelectorAll('[data-analysis]').forEach(button=>button.onclick=()=>ctx.navigate?.('ai-analysis'));
       const monitorToggle=host.querySelector('[data-monitor-toggle]');
       if(monitorToggle)monitorToggle.onclick=async()=>{
         if(busy)return;busy=true;monitorToggle.disabled=true;
