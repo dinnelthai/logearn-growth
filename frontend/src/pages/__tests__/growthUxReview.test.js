@@ -37,7 +37,6 @@ describe('Growth UI review regressions',()=>{
    {id:'p3',type:'business',subject:'转化变化',status:'monitoring',priority:3,description:'来源变化',next_step:'核对'},
    {id:'p4',type:'business',subject:'已解决的问题',status:'resolved',priority:2,description:'历史记录',next_step:'观察'}
   ];
-  const originalFetch=globalThis.fetch,originalStorage=globalThis.localStorage;
   const root={innerHTML:'',querySelector:()=>null,querySelectorAll:()=>[]};
   vi.stubGlobal('localStorage',{getItem:()=>null});
   vi.stubGlobal('fetch',vi.fn(async()=>({ok:true,json:async()=>({
@@ -55,13 +54,11 @@ describe('Growth UI review regressions',()=>{
    expect(root.innerHTML).toContain('<details class="ga-ws-accordion"><summary>手工新增问题');
    expect(root.innerHTML).toContain('data-investigate="p1"');
    expect(root.innerHTML).toContain('data-history="p1"');
-   expect((root.innerHTML.match(/<section\\b/g)||[]).length)
-    .toBe((root.innerHTML.match(/<\\/section>/g)||[]).length);
+   expect((root.innerHTML.match(/<section\b/g)||[]).length)
+    .toBe((root.innerHTML.match(/<\/section>/g)||[]).length);
    dispose();
   }finally{
    vi.unstubAllGlobals();
-   if(originalFetch)globalThis.fetch=originalFetch;
-   if(originalStorage)globalThis.localStorage=originalStorage;
   }
  });
 });
