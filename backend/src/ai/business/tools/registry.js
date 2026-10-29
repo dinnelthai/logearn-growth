@@ -7,7 +7,7 @@ const {createCapabilityCatalog}=require('./capabilityCatalog');
 const fail=(message,status=400)=>{throw Object.assign(Error(message),{status})};
 const definitions={
  query_metrics:{metric:'active_users',adapter:'metrics',scopes:['source'],description:'现有北极星、增长、周核心指标'},
- get_funnel:{metric:'funnel',adapter:'funnel',description:'顺序漏斗，区分成熟、待成熟、缺失关联'},
+ get_funnel:{metric:'funnel',adapter:'funnel',description:'顺序漏斗；仅支持 token、chip、drill、ai、trade、logged_in_visit、login、visit 步骤；来源过滤使用 scope.source 而不是 filters.source；区分成熟、待成熟与缺失关联'},
  get_paths:{metric:'paths',adapter:'paths',description:'行为路径与观测限制'},
  get_product_chain:{metric:'product_chain',adapter:'value-diagnostics',description:'详情、分析成功与数据库真实交易链'},
  get_retention:{metric:'retention',adapter:'retention',description:'成熟留存队列，未成熟保持未知'},
@@ -61,7 +61,7 @@ function createToolRegistry(deps){
   const ctx={...context,scope},start=input.start??context.period.start,end=input.end??context.period.end;
   validateRange(start,end);if(start<context.period.start-(context.period.end-context.period.start)||end>context.period.end)fail('查询时间超出授权范围',403);
   const period={start,end,timezone:'Asia/Bangkok'},body={start,end,source:scope.source};
-  if(input.filters&&Object.keys(input.filters).length)fail('过滤器仅支持scope中的来源与固定名单，不支持SQL或自定义表达式');
+  if(input.filters&&Object.keys(input.filters).length)fail('不支持 filters 自定义筛选；来源请用 scope.source，例如 {"scope":{"source":"direct"}}；固定人群请用 scope.activityId 或 scope.cohortId');
   if(input.dimensions!=null&&(!Array.isArray(input.dimensions)||input.dimensions.some(d=>!['source','device','version'].includes(d))))fail('未知分组维度');
   if(input.metrics!=null&&(!Array.isArray(input.metrics)||!input.metrics.length||input.metrics.length>10))fail('指标列表无效');
   for(const m of input.metrics||[])describeMetric(m);
@@ -81,7 +81,7 @@ function createToolRegistry(deps){
   try{
    if(id==='get_funnel'){
     const allowed=['token','chip','drill','ai','trade','logged_in_visit','login','visit'];
-    body.steps=input.steps||['token','chip'];if(!Array.isArray(body.steps)||body.steps.length<2||body.steps.length>8||body.steps.some(s=>!allowed.includes(s)))fail('漏斗步骤不支持');
+    body.steps=input.steps||['token','chip'];if(!Array.isArray(body.steps)||body.steps.length<2||body.steps.length>8||body.steps.some(s=>!allowed.includes(s)))fail('漏斗步骤无效；仅允许 2–8 项：'+allowed.join(', '));
     body.hours=input.hours??24;if(!Number.isSafeInteger(body.hours)||body.hours<1||body.hours>168)fail('转化窗口无效');body.association='user';
    }
    if(id==='get_retention')for(const k of ['initial','returning']){body[k]=input[k]||'chip';if(!['chip','drill','ai','trade','visit'].includes(body[k]))fail('留存事件无效');}
@@ -128,8 +128,12 @@ function createToolRegistry(deps){
  }
  const catalog=createCapabilityCatalog({legacyIds:Object.keys(definitions),extensions:deps.extensions||[],assertOwner:owner,
   evidenceStore:deps.evidenceStore,makeExternalEvidence:require('./externalEvidence').makeExternalEvidence});
- return {listCapabilities:context=>catalog.list(context,listLegacyCapabilities),
+ const registry={listCapabilities:context=>catalog.list(context,listLegacyCapabilities),
   executeTool:(id,input,context)=>catalog.execute(id,input,context,executeLegacyTool),describeMetric};
+ const moduleCatalog=require('./businessModuleCatalog');
+ return {...registry,
+  listBusinessModules:context=>moduleCatalog.listBusinessModules(registry,context),
+  executeBusinessModule:(request,context)=>moduleCatalog.executeBusinessModule(registry,request,context)};
 }
 function defaultRegistry(){
  const db=require('../../../db/connection'),remote=require('../../../data/hologres');
