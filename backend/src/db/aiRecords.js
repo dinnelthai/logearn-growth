@@ -109,7 +109,11 @@ async function updateAnalysisModel(id, modelProvider, modelName, promptVersion, 
  */
 async function listAnalysisRecords(ownerId, { limit = 20, offset = 0, status = null } = {}) {
   let sql = `
-    SELECT * FROM ai_analysis_summary
+    SELECT ai_analysis_summary.*,
+      (SELECT COUNT(*) FROM ai_suggestions s
+       WHERE s.analysis_id = ai_analysis_summary.id AND s.owner_id = $1
+         AND s.user_status IN ('adopted','executing','executed')) AS accepted_count
+    FROM ai_analysis_summary
     WHERE owner_id = $1
       AND NOT EXISTS (SELECT 1 FROM ai_analysis_records a WHERE a.id = ai_analysis_summary.id AND a.owner_id = $1 AND a.filter_conditions->>'hiddenFromHistory' = 'true')
   `;
