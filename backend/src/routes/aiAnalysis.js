@@ -95,6 +95,16 @@ router.post('/growth-agent/refresh',handle(async(req,res)=>{
   });
   res.json({...result,paidModelCallsStarted:0,externalActions:0});
 }));
+// Authenticated bootstrap for the user's own Search Console OAuth grant.
+// Google callback is public, but owner identity is bound to one-time server state.
+router.post('/growth-seo/gsc/oauth/start',handle(async(req,res)=>{
+ const result=await require('../ai/growth/gscOAuth').oauth.start(req.user.user_id);
+ res.set('Cache-Control','no-store').json(result);
+}));
+router.post('/growth-seo/gsc/oauth/disconnect',handle(async(req,res)=>{
+ const result=await require('../ai/growth/gscOAuth').oauth.disconnect(req.user.user_id);
+ res.json({...result,paidCalls:0});
+}));
 // Connected Search Console settings: server-side API credentials only, no
 // credentials are accepted from or returned to the browser.
 router.get('/growth-seo/gsc/connection',handle(async(req,res)=>{
