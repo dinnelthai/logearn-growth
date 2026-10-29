@@ -5,7 +5,7 @@ import {TASK_LABELS,displayTaskStatus,canOfferTaskResume,canOfferTaskRetry,shoul
 import {renderAISuggestion} from './aiSuggestionView.js';
 import {renderAIReviewQueue} from './aiReviewQueueView.js';
 import {viewState} from '../components/viewStates.js';
-import {createBusinessAnalysis,getAnalysisList,deleteAnalysis,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox} from '../api/aiAnalysis.js';
+import {createBusinessAnalysis,getAnalysisList,deleteAnalysis,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,importAnalysisOpportunities} from '../api/aiAnalysis.js';
 const DAY=86400000,OFFSET=7*3600000;
 const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
@@ -215,12 +215,24 @@ export function createAIAnalysis(ctx){
         <div class="ai-action-list-heading"><h3>行动建议</h3><span>${(r.suggestions||[]).length} 条</span></div>
         ${(r.suggestions||[]).length?(r.suggestions||[]).map(item=>renderAISuggestion(item,{esc,json,label,offset:OFFSET})).join(''):'<p class="a-muted">尚无可执行行动建议；不代表业务没有问题。</p>'}
       </section>
+      ${r.status==='completed'&&(r.suggestions||[]).length?'<button type="button" class="a-button" data-import-to-opportunities>将本次证据建议归入机会池（不调用模型）</button>':''}
       <details class="ai-evidence-index"><summary>原始业务证据 · ${(r.result?.evidenceIds||[]).length} 项</summary>
         <p class="a-muted">选择证据编号查看原始指标及数据覆盖说明。</p>
         <div class="ai-evidence-links">${(r.result?.evidenceIds||[]).map(eid=>`<button class="a-button" data-evidence="${esc(eid)}">证据 ${esc(eid.slice(0,8))}</button>`).join('')}</div>
         <pre data-evidence-result></pre>
       </details>
       <details class="ai-data-appendix"><summary>业务快照、目标优先级及模型调用记录</summary><pre>${json({snapshot:r.data_snapshot,calls:r.result?.calls})}</pre></details>`;
+      panel.querySelector('[data-import-to-opportunities]')?.addEventListener('click',async event=>{
+        const button=event.currentTarget;button.disabled=true;
+        try{
+          const outcome=await importAnalysisOpportunities(id);
+          if(token===generation&&request===detailRequest&&selected===id){
+            message('已归档 '+outcome.inserted.length+' 项建议，跳过 '+outcome.skipped.length+' 项证据不足的建议。');
+            await draw();
+          }
+        }catch(error){if(token===generation)message('机会归档失败：'+error.message)}
+        finally{if(button.isConnected)button.disabled=false;}
+      });
       // Diagnostics are owner-scoped and intentionally do not expose model prompts.
       getJobCheckpoint(id).then(checkpoint=>{
         if(token!==generation||request!==detailRequest||selected!==id||!panel.isConnected)return;

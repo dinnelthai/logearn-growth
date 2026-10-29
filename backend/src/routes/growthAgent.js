@@ -70,6 +70,60 @@ function createRouter({db,registry}){
   const item=opportunities.upsert(String(req.user.user_id),req.body||{});
   res.status(item.created?201:200).json(item);
  }));
+ router.post('/opportunities/import-analysis/:id',handle(async(req,res)=>{
+  const ownerId=String(req.user.user_id);
+  const records=require('../db/aiRecords');
+  const analysis=await records.getAnalysisRecord(req.params.id,ownerId);
+  if(!analysis)return res.status(404).json({error:'分析不存在或无权限'});
+  if(analysis.status!=='completed')return res.status(409).json({error:'仅允许归档已完成且有证据的分析'});
+  const rows=(await records.listSuggestionsByAnalysis(req.params.id,ownerId)).slice(0,20);
+  const parse=value=>{if(typeof value!=='string')return value;try{return JSON.parse(value)}catch{return null}};
+  const source=parse(analysis.business_scope)?.source||'all';
+  const scope={source};
+  const period={start:Number(analysis.date_range_start),end:Number(analysis.date_range_end),
+   timezone:'Asia/Bangkok'};
+  require('../analytics/businessPriorities').validateRange(period.start,period.end);
+  const modules={get_seo_performance:'growth.seo',get_channels:'growth.acquisition',
+   get_funnel:'growth.activation',get_paths:'growth.activation',
+   get_product_chain:'growth.activation',get_retention:'growth.retention',
+   get_segments:'growth.retention',query_metrics:'growth.retention',
+   get_referral:'growth.referral',get_invite_conversion:'growth.referral',
+   get_login_conversion:'growth.login',check_data_quality:'growth.quality',
+   get_channel_economics:'growth.economics'};
+  const inserted=[],updated=[],skipped=[];
+  for(const suggestion of rows){
+   const report=parse(suggestion.data_evidence);
+   const ids=Array.isArray(report?.evidenceIds)?[...new Set(report.evidenceIds)].slice(0,25):[];
+   if(!ids.length||ids.some(x=>typeof x!=='string')){
+    skipped.push({suggestionId:suggestion.id,reason:'missing_evidence_ids'});continue;
+   }
+   const records=[];
+   let unauthorized=false;
+   for(const id of ids){
+    try{records.push(evidence.get(id,{ownerId,scope}))}
+    catch(e){if(e.status===403||e.status===404){unauthorized=true;break}throw e}
+   }
+   if(unauthorized){skipped.push({suggestionId:suggestion.id,reason:'evidence_unavailable_or_unauthorized'});continue}
+   const issue=String(suggestion.business_problem||'').trim(),action=String(suggestion.action||'').trim();
+   if(!issue||!action){skipped.push({suggestionId:suggestion.id,reason:'missing_problem_or_action'});continue}
+   const moduleId=records.map(e=>modules[e.query?.tool]||
+    ({seo_search:'growth.seo',channels:'growth.acquisition',funnel:'growth.activation',
+      retention:'growth.retention',referral:'growth.referral',invite_conversion:'growth.referral',
+      login_conversion:'growth.login',quality:'growth.quality'}[e.metricId])).find(Boolean)||'growth.quality';
+   const item=opportunities.upsert(ownerId,{
+    moduleId,moduleVersion:registry.listBusinessModules({ownerId,scope,period})
+     .find(m=>m.moduleId===moduleId)?.version||null,
+    origin:{analysisId:req.params.id,suggestionId:suggestion.id},
+    subject:issue.slice(0,256),issue:issue.slice(0,1200),
+    action:action.slice(0,1000),hypothesis:String(suggestion.hypothesis||'原因待验证').slice(0,1000),
+    evidenceIds:ids,confidence:'unknown',impact:{affectedUsers:null},effort:{hours:null},
+    goalId:null,goalVersion:null,metricId:null,definitionVersion:null,scope,period
+   });
+   (item.created?inserted:updated).push({id:item.id,suggestionId:suggestion.id});
+  }
+  res.json({analysisId:req.params.id,inserted,updated,skipped,modelCalls:0,
+   caveat:'归档只是证据关联；未声称新建议的效果、投入或因果已被证实'});
+ }));
  router.post('/opportunities/:id/promote',handle(async(req,res)=>{
   // Human-accepted opportunity -> existing workspace problem and proposed
   // action. This does not execute business changes or publish anything.

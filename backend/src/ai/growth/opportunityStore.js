@@ -42,6 +42,11 @@ function createOpportunityStore(db,{initialize=false,clock=Date.now,verifyEviden
  function normalize(input,o){
   if(!plain(input))fail('机会格式无效');
   const moduleId=name(input.moduleId,100),subject=name(input.subject,256);
+  const moduleVersion=input.moduleVersion==null?null:name(input.moduleVersion,40);
+  const origin=input.origin==null?null:input.origin;
+  if(origin&&(!plain(origin)||Object.keys(origin).some(k=>!['analysisId','suggestionId'].includes(k))||
+    typeof origin.analysisId!=='string'||origin.analysisId.length>128||
+    typeof origin.suggestionId!=='string'||origin.suggestionId.length>128))fail('来源分析标识无效');
   if(!/^growth\.[a-z][a-z0-9_-]*$/.test(moduleId))fail('模块名无效');
   const issue=name(input.issue,1200),action=name(input.action,1000);
   const scope=scopeOf(input.scope||{source:'all'});
@@ -69,7 +74,7 @@ function createOpportunityStore(db,{initialize=false,clock=Date.now,verifyEviden
   const metricId=input.metricId==null?null:name(input.metricId,80);
   const definitionVersion=input.definitionVersion==null?null:name(input.definitionVersion,80);
   const hypothesis=typeof input.hypothesis==='string'?input.hypothesis.slice(0,1000):'原因待验证';
-  return {moduleId,subject,issue,action,scope,goalId,goalVersion,evidenceIds,
+  return {moduleId,moduleVersion,origin,subject,issue,action,scope,goalId,goalVersion,evidenceIds,
    confidence:input.confidence,impact:{affectedUsers:impact.affectedUsers??null},
    effort:{hours:effort.hours??null},period,metricId,definitionVersion,hypothesis};
  }
@@ -80,7 +85,7 @@ function createOpportunityStore(db,{initialize=false,clock=Date.now,verifyEviden
  function upsert(o,input){
   owner(o);const item=normalize(input,o);
   const fp=digest([item.moduleId,item.subject,item.scope,item.metricId,item.goalId,item.goalVersion]);
-  const evidenceHash=digest([item.evidenceIds,item.period,item.definitionVersion,item.issue,item.impact,item.effort,item.hypothesis,item.confidence,item.action]);
+  const evidenceHash=digest([item.evidenceIds,item.period,item.definitionVersion,item.moduleVersion,item.origin,item.issue,item.impact,item.effort,item.hypothesis,item.confidence,item.action]);
   return transaction(()=>{
    const old=db.prepare('SELECT * FROM gw_agent_opportunities WHERE owner_id=? AND fingerprint=?').get(o,fp);
    if(old?.evidence_hash===evidenceHash)return {...unpack(old),reused:true,changed:false};
@@ -92,7 +97,8 @@ function createOpportunityStore(db,{initialize=false,clock=Date.now,verifyEviden
     .run(o,id,fp,'proposed',version,item.subject,item.moduleId,item.goalVersion,
      JSON.stringify(item.scope),evidenceHash,JSON.stringify(body),at,at);
    log(o,id,version,old?'evidence-updated':'created',
-    {evidenceIds:item.evidenceIds,period:item.period,goalVersion:item.goalVersion},at);
+    {evidenceIds:item.evidenceIds,period:item.period,goalVersion:item.goalVersion,
+     moduleVersion:item.moduleVersion,origin:item.origin,definitionVersion:item.definitionVersion},at);
    return {...get(o,id),created:!old,changed:true};
   })
  }

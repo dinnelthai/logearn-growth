@@ -133,3 +133,5 @@ export const decideOpportunity=(id,body)=>aiFetch('/api/growth-agent/opportuniti
 
 export const promoteOpportunity=(id,body)=>aiFetch('/api/growth-agent/opportunities/'+encodeURIComponent(id)+'/promote',
  {method:'POST',body:JSON.stringify(body)});
+
+export const importAnalysisOpportunities=id=>aiFetch('/api/growth-agent/opportunities/import-analysis/'+encodeURIComponent(id),{method:'POST',body:'{}'});
