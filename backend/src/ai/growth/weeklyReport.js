@@ -48,6 +48,38 @@ const weeklyPrompt=`
 }
 每一个真实数值必须有对应可核对证据ID；没有数据则使用 null、空数组及 dataGaps，不得套用虚构数字。 changePct 表示相对变化百分数（如10变12写20），分母为0或上周未知时使用 null。上述各项中的 evidenceIds 必须同时出现在经过校验的 claims.evidenceIds 中；如果没有对应证据，应改写为数据缺口，不列为确定性事实。
 `;
+// v2 asks for only the weekly-specific parts. Highlights, issues and action
+// items are derived from the already-validated canonical claims/suggestions.
+// This avoids paying the model to write the same ideas twice.
+const weeklyPromptV2=`
+本任务是 LogEarn 完整自然周（Asia/Bangkok 周一至周日）的 AI 运营周报。比较当前周与同口径上一周，优先依据证据判断趋势、数据质量和下周动作。未观测不是0；SEO曝光/点击不是注册或交易；不得把相关性当因果。
+输出必须保留基础契约的 summary、keyFindings、suggestions、claims；其中 claims 的 evidenceIds 与 values 引用必须准确，suggestions 只写可验证的高优先级行动，不得重复堆叠。不要把同一段发现再写成另一套长篇周报正文。
+额外只输出周报特有的 weeklyReport 字段：
+{"executiveSummary":"不超过180字的关键判断",
+"metrics":[{"label":"业务指标","current":null,"previous":null,"changePct":null,"evidenceIds":["证据ID"]}],
+"channelFindings":[{"text":"来自已观测渠道证据的差异，未覆盖的明确说明","evidenceIds":["证据ID"]}],
+"dataGaps":["数据覆盖、归因、口径与有效期的明确限制"]}
+本周亮点将从事实型 claims 自动生成；风险从假设型 claims 自动生成；下周行动从 suggestions 自动生成，不要重复输出 highlights、issues、nextWeek。必须保留每项真实数值对应证据 ID；无验证数据用 null，不编造周环比；changePct 为相对百分数（10→12 为20，前周0或未知时为null）。运营执行统计只表示已保存记录，不等于全部工作量。
+`;
+function hydrateWeeklyReport(analysis){
+ const w=analysis?.weeklyReport;
+ if(!w||typeof w!=='object'||Array.isArray(w))return;
+ const known=new Set((analysis.claims||[]).flatMap(claim=>claim.evidenceIds||[]));
+ const refs=list=>Array.isArray(list)?list.filter(id=>typeof id==='string'&&known.has(id)).slice(0,12):[];
+ if(!Array.isArray(w.highlights))
+  w.highlights=(analysis.claims||[]).filter(x=>x.kind==='fact'&&typeof x.text==='string')
+   .filter(x=>refs(x.evidenceIds).length).slice(0,8)
+   .map(x=>({text:x.text,evidenceIds:refs(x.evidenceIds)}));
+ if(!Array.isArray(w.issues))
+  w.issues=(analysis.claims||[]).filter(x=>x.kind==='hypothesis'&&typeof x.text==='string')
+   .slice(0,8).map(x=>({text:'待验证：'+x.text,evidenceIds:refs(x.evidenceIds)}));
+ if(!Array.isArray(w.nextWeek))
+  w.nextWeek=(analysis.suggestions||[]).slice(0,8).map(s=>({
+   priority:s.priority,action:s.action,metric:s.validationMetrics?.primary||'待定义',
+   reviewCondition:(s.reviewConditions||[]).join('；')||'需人工确认观察期',
+   evidenceIds:refs(s.evidence?.evidenceIds)
+  }));
+}
 function validateWeeklyReport(analysis){
  const r=analysis?.weeklyReport;
  const required=['metrics','highlights','issues','channelFindings','nextWeek','dataGaps'];
@@ -88,6 +120,7 @@ function validateWeeklyReport(analysis){
 // schema, preserve the paid, evidence-validated result as a clearly partial report.
 // Never retry automatically or reuse unverifiable numbers and citations.
 function ensureWeeklyReport(analysis){
+ hydrateWeeklyReport(analysis);
  try{validateWeeklyReport(analysis);return analysis.weeklyReport}
  catch(error){
   const cited=new Set((analysis.claims||[]).flatMap(c=>c.evidenceIds||[]));
@@ -112,4 +145,4 @@ function ensureWeeklyReport(analysis){
   return analysis.weeklyReport;
  }
 }
-module.exports={weeklyPeriod,weeklyKey,weeklyOperations,weeklyPrompt,validateWeeklyReport,ensureWeeklyReport,weeklyModelTimeoutMs};
+module.exports={weeklyPeriod,weeklyKey,weeklyOperations,weeklyPrompt,weeklyPromptV2,validateWeeklyReport,ensureWeeklyReport,weeklyModelTimeoutMs};
