@@ -197,7 +197,7 @@ async function businessAnalysis(job) {
             :records.beginAnalysisPaidCall(analysisId,ownerId,token,round),
         finish:(round,status)=>records.finishAnalysisPaidCall(analysisId,ownerId,token,round,status)
       },
-      validate:value=>{validateAnalysis(value);session.validate(value);if(isWeeklyReport)weeklyReport.ensureWeeklyReport(value);}});
+      validate:value=>{validateAnalysis(value);session.validate(value);if(isWeeklyReport)weeklyReport.ensureWeeklyReport(value,{context:compact});}});
     await beforeStep();
     return await persistValidatedResult({job,analysisId,ownerId,token,compact,result});
   }catch(error){await records.failClaimedAnalysis(analysisId,ownerId,token,error.message);throw error;}
@@ -327,7 +327,7 @@ async function resumeIncompleteAnalysis(job){
         finish:(round,status)=>records.finishAnalysisPaidCall(analysisId,ownerId,token,round,status)
       },validate:value=>{
         validateAnalysis(value);session.validate(value);
-        if(record.filter_conditions?.weeklyReport==='v1')weeklyReport.ensureWeeklyReport(value);
+        if(record.filter_conditions?.weeklyReport==='v1')weeklyReport.ensureWeeklyReport(value,{context:compact});
       }});
     await beforeStep();
     return await persistValidatedResult({job,analysisId,ownerId,token,compact,result});
