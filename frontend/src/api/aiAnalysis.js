@@ -20,6 +20,7 @@ export const getCostStats=()=>aiFetch('/api/ai-analysis/cost-stats');
 export const getAvailableModels=()=>aiFetch('/api/ai/models');
 
 export const retryAnalysis=id=>aiFetch('/api/ai-analysis/'+encodeURIComponent(id)+'/retry',{method:'POST',body:'{}'});
+export const continueWeeklyOverflow=id=>aiFetch('/api/ai-analysis/'+encodeURIComponent(id)+'/resume-weekly-overflow',{method:'POST',body:'{}'});
 
 export const getAgentHealth=()=>aiFetch('/api/growth-agent/health');
 export const getEvidence=id=>aiFetch('/api/growth-agent/evidence/'+encodeURIComponent(id));
