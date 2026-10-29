@@ -418,7 +418,9 @@ function fitWeeklyModelContext(context,raw){
  }
 }
 function modelContext(raw,{transportVersion='v1'}={}){
- if(!['v1','v2','v3'].includes(transportVersion))throw Error('不支持的模型上下文版本');
+ if(!['v1','v2','v3','v4'].includes(transportVersion))throw Error('不支持的模型上下文版本');
+ if(transportVersion==='v4')return require('./weeklyContextV4').buildWeeklyContextV4(
+  raw,{modelEvidence,compactCapabilities,safeText});
  const scope=raw.business?.scope||{};
  const evidence=Array.isArray(raw.evidence)?raw.evidence:[];
  const candidates=Array.isArray(raw.candidates)?raw.candidates:[];
