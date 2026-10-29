@@ -150,8 +150,8 @@ async function businessAnalysis(job) {
     const currentPrompt=require('../../ai/optimization/promptRegistry')
       .createPromptRegistry(require('../../db/connection'))
       .resolve(ownerId,'analysis',prompt,{runId:analysisId});
-    const result=await runTask({context:compact,prompt:isWeeklyReport?currentPrompt+'\n'+weeklyReport.weeklyPrompt:currentPrompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
-      ...(isWeeklyReport?{modelTimeoutMs:weeklyReport.weeklyModelTimeoutMs()}:{}),
+    const result=await runTask({context:compact,prompt:isWeeklyReport?currentPrompt+'\n'+weeklyReport.weeklyPromptV2:currentPrompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
+      ...(isWeeklyReport?{modelTimeoutMs:weeklyReport.weeklyModelTimeoutMs(),contextVersion:'v2'}:{}),
       paidCalls:{
         begin:round=>executionClaim.record.filter_conditions?.proposalId
           ?require('../../ai/growth/budget').beginBudgetedPaidCall({
