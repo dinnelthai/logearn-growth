@@ -97,6 +97,32 @@ test('v2 strict token preflight blocks calls before both provider and paid ledge
  assert.equal(env.observed.length,0);
  assert.equal(env.paid.length,0);
 });
+test('v2 resume reuses archived paid response and protocol without replaying its charge',async()=>{
+ const original=runner();
+ const prompt='weekly original prompt';
+ const pinnedPrompt=original.buildSystemPrompt(prompt,'v2');
+ const hash=crypto.createHash('sha256').update(pinnedPrompt).digest('hex');
+ const report=context();
+ const contextHash=crypto.createHash('sha256').update(JSON.stringify(report)).digest('hex');
+ const archivedQueries=Array.from({length:6},(_,i)=>query(i));
+ const resumeRows=[{round:0,status:'received',trace_id:'original-trace',
+  prompts:{analysis:hash},result:{model:'mock',provider:'mock',
+   contextHash,responseContent:JSON.stringify({investigations:archivedQueries}),
+   tokens:2600,cost:0.02,costKnown:true,fromCache:false,
+   investigations:archivedQueries.map((q,i)=>({query:q,
+    result:{status:'ok',evidence:[{id:'saved-'+i,metricId:'active_users',value:100+i}]}}))}}];
+ const env=setup([final]);
+ const result=await runner().runTask({context:report,prompt,
+  ownerId:'o',operationId:'archived-weekly',operationType:'analysis',
+  resumeRows,systemPromptOverride:pinnedPrompt,
+  ...env,validate:()=>{}});
+ assert.equal(result.analysis.summary,'周报完成');
+ assert.equal(env.observed.length,1);
+ assert.match(env.observed[0].messages[0].content,/token-efficiency-v2/);
+ assert.match(env.observed[0].messages[1].content,/aggregated-business-v2/);
+ assert.equal(env.tools.length,0);
+ assert.deepEqual(env.paid,['begin:1','end:1:received']);
+});
 test('legacy protocol remains v1 unless a new task opts in',async()=>{
  const env=setup([final]);
  await runner().runTask({context:context(),prompt:'legacy test',
