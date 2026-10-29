@@ -352,8 +352,9 @@ test('AI workspace prioritizes selected insights and actions before configuratio
  const t=setup();
  await t.page.draw();
  expect(t.host.innerHTML).toContain('ai-status-grid');
- expect(t.host.innerHTML).toContain('ai-decision-workspace');
- expect(t.host.innerHTML.indexOf('ai-decision-workspace')).toBeLessThan(t.host.innerHTML.indexOf('id="ai-new-analysis"'));
+ expect(t.host.innerHTML).toContain('ai-history');
+ expect(t.host.innerHTML.indexOf('ai-history')).toBeLessThan(t.host.innerHTML.indexOf('ai-result'));
+ expect(t.host.innerHTML.indexOf('ai-result')).toBeLessThan(t.host.innerHTML.indexOf('id="ai-new-analysis"'));
  await t.button.onclick();
  expect(t.panel.innerHTML).toContain('ai-evidence-index');
  expect(t.panel.innerHTML.indexOf('ai-action-list')).toBeLessThan(t.panel.innerHTML.indexOf('ai-evidence-index'));
@@ -376,5 +377,52 @@ test('top new-analysis action expands the real form instead of only moving to a 
  expect(form.open).toBe(true);
  expect(scrollIntoView).toHaveBeenCalled();
  expect(focus).toHaveBeenCalled();
+ t.page.dispose();
+});
+
+test('history is paginated above the report, five items per page with filter reset',async()=>{
+ const t=setup();
+ const rows=Array.from({length:12},(_,i)=>({
+   dataset:{aiHistoryStatus:i===0?'processing':'completed',analysisId:i===0?'a':String(i)},
+   hidden:false,
+   querySelector:()=>null
+ }));
+ const prev={disabled:false},next={disabled:false},info={textContent:''},pager={hidden:false};
+ const selector={value:'all',addEventListener(_type,cb){this.change=cb}};
+ const oldQuery=t.host.querySelector.bind(t.host);
+ const oldAll=t.host.querySelectorAll.bind(t.host);
+ t.host.querySelector=s=>({
+   '[data-ai-history-filter]':selector,
+   '[data-ai-history-prev]':prev,
+   '[data-ai-history-next]':next,
+   '[data-ai-history-page-info]':info,
+   '[data-ai-history-pagination]':pager
+ })[s]||oldQuery(s);
+ t.host.querySelectorAll=s=>s==='[data-ai-history-row]'?rows:oldAll(s);
+ api.getAnalysisList.mockResolvedValue({records:rows.map((row,i)=>({
+   id:row.dataset.analysisId,title:'分析 '+i,status:i===0?'processing':'completed',
+   suggestion_count:0
+ }))});
+ await t.page.draw();
+ expect(t.host.innerHTML).toContain('data-ai-history-pagination');
+ expect(t.host.innerHTML).not.toContain('ai-decision-workspace');
+ expect(info.textContent).toContain('第 1 / 3 页');
+ expect(rows.filter(r=>!r.hidden)).toHaveLength(5);
+ expect(prev.disabled).toBe(true);
+ next.onclick();
+ expect(info.textContent).toContain('第 2 / 3 页');
+ expect(rows.slice(5,10).every(r=>!r.hidden)).toBe(true);
+ next.onclick();
+ expect(info.textContent).toContain('第 3 / 3 页');
+ expect(rows.filter(r=>!r.hidden)).toHaveLength(2);
+ expect(next.disabled).toBe(true);
+ selector.value='failed';
+ selector.change();
+ expect(pager.hidden).toBe(true);
+ expect(rows.every(r=>r.hidden)).toBe(true);
+ selector.value='all';
+ selector.change();
+ expect(info.textContent).toContain('第 1 / 3 页');
+ expect(rows.slice(0,5).every(r=>!r.hidden)).toBe(true);
  t.page.dispose();
 });
