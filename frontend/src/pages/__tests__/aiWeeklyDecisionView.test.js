@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {renderWeeklyDecisionReport,trustedMetrics} from '../aiWeeklyDecisionView.js';
+import {renderWeeklyDecisionReport,trustedMetrics,readOnlyGscMarkup} from '../aiWeeklyDecisionView.js';
 
 const period={
  start:Date.parse('2026-10-19T00:00:00+07:00'),
@@ -56,6 +56,19 @@ describe('decision-first weekly view',()=>{
   expect(html).toContain('搜索点击');
   expect(html).toContain('搜索曝光');
   expect(html).toContain('180');
+ });
+ it('adds a saved exact-date GSC snapshot without claiming historic AI attribution',()=>{
+  const report={available:true,report:{startDate:'2026-10-19',endDate:'2026-10-25',
+   metrics:{clicks:14,impressions:180,ctr:0.077777,position:9.2}}};
+  const html=readOnlyGscMarkup(report,{safe:options.safe,fmt:options.fmt,
+   startDate:'2026-10-19',endDate:'2026-10-25'});
+  expect(html).toContain('14');
+  expect(html).toContain('180');
+  expect(html).toContain('未参与这份历史 AI 周报');
+  const mismatch=readOnlyGscMarkup(report,{safe:options.safe,fmt:options.fmt,
+   startDate:'2026-10-12',endDate:'2026-10-18'});
+  expect(mismatch).not.toContain('180');
+  expect(mismatch).toContain('没有已同步');
  });
  it('validates values against the archived business weeks',()=>{
   const rows=trustedMetrics(base);
