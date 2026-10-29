@@ -108,12 +108,13 @@ test('create-analysis API validates scopes and passes authenticated ownership wi
     assert.equal(invalid.status,400);assert.equal(queued.length,1);
   }finally{await new Promise(r=>server.close(r))}
 });
-test('prompt version hashes the actual system message and usage above budget cannot complete',()=>env(async()=>{
+test('prompt version hashes the actual system message and usage above budget can complete',()=>env(async()=>{
  const {runTask}=runner();let actual,persisted;
  await runTask({context:{},prompt:'base prompt',ownerId:'alice',operationId:'r',traceStore:{savePrompt:(_role,content)=>{persisted=content},begin:()=>{},finish:()=>{}},clientFactory:()=>({chat:async messages=>{actual=messages[0].content;return {content:JSON.stringify(good),usage:{totalTokens:5}}}})});
  assert.equal(persisted,actual);
  process.env.AI_TASK_MAX_TOKENS='10000';
- await assert.rejects(()=>runTask({context:{},prompt:'x',clientFactory:()=>({chat:async()=>({content:JSON.stringify(good),usage:{totalTokens:10001}})})}),/预算/);
+ const result=await runTask({context:{},prompt:'x',clientFactory:()=>({chat:async()=>({content:JSON.stringify(good),usage:{totalTokens:10001}})})});
+ assert.equal(result.analysis.summary,good.summary);
 }));
 test('reading AI routes does not initialize the paid job queue',()=>{
  const mocks={};Object.defineProperty(mocks,'../queues/queues',{enumerable:true,get(){throw Error('queue must stay lazy')}});

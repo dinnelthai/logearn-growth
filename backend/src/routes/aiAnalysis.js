@@ -287,6 +287,13 @@ router.get('/list',handle(async(req,res)=>{
   const opts=paging(req),rows=await records.listAnalysisRecords(req.user.user_id,opts);
   res.json({records:rows,count:rows.length,...opts});
 }));
+router.delete('/:id',handle(async(req,res)=>{
+  const record=await records.getAnalysisRecord(req.params.id,req.user.user_id);
+  if(!record)return res.status(404).json({error:'分析不存在'});
+  const removed=await records.hideAnalysisRecord(req.params.id,req.user.user_id);
+  if(!removed)return res.status(409).json({error:'运行中的分析不能删除，请先停止分析'});
+  res.json({analysisId:removed.id,removed:true});
+}));
 router.get('/cost-stats',handle(async(req,res)=>{
   const {startTime,endTime}=req.query;
   for(const value of [startTime,endTime])if(value!=null&&(!Number.isSafeInteger(Number(value))||Number(value)<0))return res.status(400).json({error:'成本统计时间无效'});
@@ -519,10 +526,13 @@ router.get('/jobs/:jobId/checkpoint',handle(async(req,res)=>{
   const calls=require('../ai/business/trace').createTraceStore(require('../db/connection')).list(req.user.user_id,record.id);
   const summary=require('../ai/business/checkpointState').inspectCheckpoint(calls);
   const leaseExpired=record.status==='processing' && (!record.lease_expires_at || Number(record.lease_expires_at)<=Date.now());
+  const active=record.status==='processing'&&!leaseExpired&&!record.cancel_requested;
+  const inProgress=active&&((summary.reason==='unresolved-paid-call'&&calls.at(-1)?.status==='started')||summary.state==='partial-tools');
   res.json({analysisId:record.id,recordStatus:record.status,
     leaseExpired,leaseExpiresAt:record.lease_expires_at||null,
-    requiresHumanReview:leaseExpired||summary.state==='blocked'||summary.state==='partial-tools',
-    ...summary});
+    ...summary,
+    ...(inProgress?{state:'in-progress',reason:'work-in-progress'}:{}),
+    requiresHumanReview:leaseExpired||(!inProgress&&(summary.state==='blocked'||summary.state==='partial-tools'))});
 }));
 router.get('/jobs/:jobId/status',handle(async(req,res)=>{
   const status=await getJobStatus('aiAnalysis',req.params.jobId);

@@ -4,7 +4,7 @@ import {TASK_LABELS,displayTaskStatus,canOfferTaskResume,canOfferTaskRetry,shoul
 import {renderAISuggestion} from './aiSuggestionView.js';
 import {renderAIReviewQueue} from './aiReviewQueueView.js';
 import {viewState} from '../components/viewStates.js';
-import {createBusinessAnalysis,getAnalysisList,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,getGrowthMonitorControl,setGrowthMonitorControl,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead,getGrowthInvestigationTimeline,getSeoImports,importSeoSnapshot,previewSeoSnapshot,previewKolPerformance,getGscConnection,saveGscSite,syncGscPerformance,getGscPerformance,getGscSitemaps,inspectGscUrl,getAutonomyStatus,getAutonomyTargets,saveAutonomyTarget,getAutonomyBriefs,getAutonomyLearning,refreshAutonomyBrief} from '../api/aiAnalysis.js';
+import {createBusinessAnalysis,getAnalysisList,deleteAnalysis,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,getGrowthAlerts,getGrowthMonitorControl,setGrowthMonitorControl,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead,getGrowthInvestigationTimeline,getSeoImports,importSeoSnapshot,previewSeoSnapshot,previewKolPerformance,getGscConnection,saveGscSite,syncGscPerformance,getGscPerformance,getGscSitemaps,inspectGscUrl,getAutonomyStatus,getAutonomyTargets,saveAutonomyTarget,getAutonomyBriefs,getAutonomyLearning,refreshAutonomyBrief} from '../api/aiAnalysis.js';
 const DAY=86400000,OFFSET=7*3600000;
 const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
@@ -56,7 +56,7 @@ export function createAIAnalysis(ctx){
       if(token!==generation)return;
       if(!list.records?.some(r=>r.id===selected))selected=list.records?.[0]?.id??null;
       host.innerHTML=`<div class="si-page ai-analysis-page">
-        <section class="ai-decision-hero"><div><span class="ai-eyebrow">GROWTH INTELLIGENCE</span><h1>增长决策工作台</h1><p>发现问题 · 核查证据 · 制定行动 · 持续复盘</p></div><a class="a-button a-primary" href="#ai-new-analysis">＋ 新建分析</a></section>
+        <section class="ai-decision-hero"><div><span class="ai-eyebrow">GROWTH INTELLIGENCE</span><h1>增长决策工作台</h1><p>发现问题 · 核查证据 · 制定行动 · 持续复盘</p></div><button type="button" class="a-button a-primary" data-open-analysis>＋ 新建分析</button></section>
         <p class="ai-workspace-notice" data-ai-message role="status" aria-live="polite" ${notice?'':'hidden'}>${esc(notice)}</p>
         <div class="ai-status-grid" aria-label="经营与任务状态">
           <article><span>最新分析</span><strong>${list.records?.length?esc(label(list.records[0].status)):'暂无数据'}</strong><small>${list.records?.length?esc(list.records[0].title):'发起分析后显示结果'}</small></article>
@@ -64,19 +64,8 @@ export function createAIAnalysis(ctx){
           <article><span>最新日报</span><strong>${agentBriefs.error?'状态未知':agentBriefs.briefs?.length?esc(agentBriefs.briefs[0].day):'暂无数据'}</strong><small>${agentBriefs.briefs?.length?esc(agentBriefs.briefs[0].status):'尚无已保存日报'}</small></article>
           <article><span>待处理事项</span><strong>${inbox.warnings?.length?'状态待核查':esc(inbox.counts?.total??'暂无数据')}</strong><small>审批、执行、复盘与失败调查</small></article>
         </div>
-        <section class="a-card ai-history"><div class="ai-history-heading"><h2>历史分析</h2>
-          <label>状态<select data-ai-history-filter aria-label="筛选历史分析">
-          <option value="all" ${historyFilter==='all'?'selected':''}>全部</option>
-          <option value="processing" ${historyFilter==='processing'?'selected':''}>处理中</option>
-          <option value="attention" ${historyFilter==='attention'?'selected':''}>需人工处理</option>
-          <option value="failed" ${historyFilter==='failed'?'selected':''}>失败</option>
-          <option value="completed" ${historyFilter==='completed'?'selected':''}>已完成</option>
-          </select></label><button class="a-button" data-refresh>刷新</button></div>
-        ${list.records.length?`<div class="ai-history-list" role="list">${list.records.map(r=>`<div class="ai-history-row" data-ai-history-row data-analysis-id="${esc(r.id)}" data-ai-history-status="${esc(displayTaskStatus(r).kind)}" role="listitem"><button type="button" class="ai-history-title" data-analysis="${esc(r.id)}" aria-pressed="${selected===r.id}">${esc(r.title)}</button><span data-ai-history-badge class="ai-state ai-state-${esc(displayTaskStatus(r).kind)}">${esc(displayTaskStatus(r).text)}</span><span class="ai-history-meta">建议 ${esc(r.suggestion_count??'未知')} 条</span></div>`).join('')}</div><p data-ai-history-empty hidden>当前筛选条件下没有历史分析。</p>`:'<p>尚无分析，点击开始后才会调用模型。</p>'}
-          ${list.records.length?'<nav class="ai-history-pagination" data-ai-history-pagination aria-label="历史分析分页"><span data-ai-history-page-info aria-live="polite"></span><button class="a-button" type="button" data-ai-history-prev>上一页</button><button class="a-button" type="button" data-ai-history-next>下一页</button></nav>':''}</section>
-        <section class="a-card ai-result" data-detail><p>选择一条分析查看证据和建议。</p></section>
-        <details class="a-card ai-new-analysis" id="ai-new-analysis"><summary>新建分析</summary><h1>AI 业务增长助手</h1><p>主动发起分析，按业务证据排优先级；记录行动后主动复盘。所有分析与复盘均使用同一 DeRouter 模型。</p>
-        <p>累计调用 ${esc(costs.total_calls)} 次 · Token ${esc(costs.total_tokens??0)} · 估算费用 ${esc(costs.total_cost??0)}（${esc(costs.unknown_cost_calls??0)} 次调用费率未配置，金额不代表免费）</p>
+        <dialog class="a-card ai-new-analysis" id="ai-new-analysis" aria-labelledby="ai-new-title"><div class="ai-modal-heading"><h2 id="ai-new-title">新建分析</h2><button class="a-button" type="button" data-close-analysis aria-label="关闭新建分析">关闭</button></div><p>主动发起分析，按业务证据排优先级；记录行动后主动复盘。所有分析与复盘均使用同一 DeRouter 模型。</p>
+        <p>累计调用 ${esc(costs.total_calls)} 次 · Token ${esc(costs.total_tokens??0)} · 估算费用 $${esc(costs.total_cost??0)}（${esc(costs.unknown_cost_calls??0)} 次调用费率未配置，金额不代表免费）</p>
         <form data-ai-form><label>分析标题<input name="title" required maxlength="200" value="业务增长分析"></label>
         <label>开始日期<input name="start" type="date" required value="${defaults.start}"></label>
         <label>结束日期（含当日）<input name="end" type="date" required value="${defaults.end}"></label>
@@ -88,7 +77,23 @@ export function createAIAnalysis(ctx){
         <label>业务背景与问题<textarea name="question" maxlength="5000" placeholder="当前目标、资源约束、近期活动、产品改动，以及你想解决的问题"></textarea></label>
         <button class="a-button" type="submit" ${busy?'disabled':''}>开始分析</button></form>
         <p>时间按 UTC+7，最多31天。当前支持来源范围；不会把活动或用户群当作已筛选。</p>
-        <button class="a-button" type="button" data-health>检查运行状态</button><pre data-health-result></pre></details>
+        <button class="a-button" type="button" data-health>检查运行状态</button><pre data-health-result></pre></dialog>
+        <dialog class="a-card ai-delete-dialog" aria-labelledby="ai-delete-title" aria-describedby="ai-delete-description">
+          <h2 id="ai-delete-title">删除历史分析？</h2>
+          <p id="ai-delete-description">这条记录将从历史分析中移除，关联的证据、建议和费用记录会保留。</p>
+          <div class="ai-delete-actions"><button type="button" class="a-button" data-delete-cancel>取消</button><button type="button" class="a-button ai-delete-confirm" data-delete-confirm>删除</button></div>
+        </dialog>
+        <section class="a-card ai-history"><div class="ai-history-heading"><h2>历史分析</h2>
+          <label>状态<select data-ai-history-filter aria-label="筛选历史分析">
+          <option value="all" ${historyFilter==='all'?'selected':''}>全部</option>
+          <option value="processing" ${historyFilter==='processing'?'selected':''}>处理中</option>
+          <option value="attention" ${historyFilter==='attention'?'selected':''}>需人工处理</option>
+          <option value="failed" ${historyFilter==='failed'?'selected':''}>失败</option>
+          <option value="completed" ${historyFilter==='completed'?'selected':''}>已完成</option>
+          </select></label><button class="a-button" data-refresh>刷新</button></div>
+        ${list.records.length?`<div class="ai-history-list" role="list">${list.records.map(r=>`<div class="ai-history-row" data-ai-history-row data-analysis-id="${esc(r.id)}" data-ai-history-status="${esc(displayTaskStatus(r).kind)}" role="listitem"><button type="button" class="ai-history-title" data-analysis="${esc(r.id)}" aria-pressed="${selected===r.id}">${esc(r.title)}</button><span data-ai-history-badge class="ai-state ai-state-${esc(displayTaskStatus(r).kind)}">${esc(displayTaskStatus(r).text)}</span><span class="ai-history-meta">建议 ${esc(r.suggestion_count??'未知')} 条</span><button type="button" class="a-button ai-history-delete" data-delete-analysis="${esc(r.id)}" aria-label="删除 ${esc(r.title)}">删除</button></div>`).join('')}</div><p data-ai-history-empty hidden>当前筛选条件下没有历史分析。</p>`:'<p>尚无分析，点击开始后才会调用模型。</p>'}
+          ${list.records.length?'<nav class="ai-history-pagination" data-ai-history-pagination aria-label="历史分析分页"><span data-ai-history-page-info aria-live="polite"></span><button class="a-button" type="button" data-ai-history-prev>上一页</button><button class="a-button" type="button" data-ai-history-next>下一页</button></nav>':''}</section>
+        <section class="a-card ai-result" data-detail><p>选择一条分析查看证据和建议。</p></section>
         <div class="ai-review-layout">
         <section class="a-card ai-review">
           <div class="ai-review-heading"><h2>待复盘行动</h2><span>执行 → 观察 → 人工复盘</span></div>
@@ -333,7 +338,9 @@ export function createAIAnalysis(ctx){
         </section>
         <section class="a-card" data-specialist-preview><p>选择一个 SEO 快照或读取 KOL 观察结果查看证据。</p></section>
         </details></div>`;
-      host.querySelector('a[href="#ai-new-analysis"]')?.addEventListener('click',event=>{event.preventDefault();const panel=host.querySelector('#ai-new-analysis');if(panel){panel.open=true;panel.scrollIntoView({behavior:'smooth',block:'start'})}});
+      const analysisDialog=host.querySelector('#ai-new-analysis');
+      host.querySelector('[data-open-analysis]')?.addEventListener('click',()=>analysisDialog.showModal());
+      host.querySelector('[data-close-analysis]')?.addEventListener('click',()=>analysisDialog.close());
       host.querySelector('[data-agent-control]')?.addEventListener('click',()=>ctx.navigate?.('growth-agent-control'));
       host.querySelector('[data-health]').onclick=async()=>{try{const state=await getAgentHealth();if(token===generation)host.querySelector('[data-health-result]').textContent=JSON.stringify(state,null,2);}catch(error){if(token===generation)message(error.message);}};
       host.querySelector('[data-refresh]').onclick=()=>draw();
@@ -597,6 +604,31 @@ export function createAIAnalysis(ctx){
         details.querySelector?.('input[name="title"]')?.focus?.({preventScroll:true});
       });
       host.querySelectorAll('[data-analysis]').forEach(b=>b.onclick=()=>open(b.dataset.analysis));
+      const deleteDialog=host.querySelector('.ai-delete-dialog');
+      const deleteConfirm=host.querySelector('[data-delete-confirm]');
+      let deleteTarget=null;
+      host.querySelectorAll('[data-delete-analysis]').forEach(button=>button.onclick=()=>{
+        deleteTarget=button.dataset.deleteAnalysis;
+        deleteDialog.showModal();
+        host.querySelector('[data-delete-cancel]').focus();
+      });
+      host.querySelector('[data-delete-cancel]').onclick=()=>deleteDialog.close();
+      deleteConfirm.onclick=async()=>{
+        const id=deleteTarget;
+        if(!id||deleteConfirm.disabled)return;
+        deleteConfirm.disabled=true;
+        try {
+          await deleteAnalysis(id);
+          if(token===generation){
+            const scrollY=window.scrollY;
+            deleteDialog.close();
+            if(selected===id)selected=null;
+            message('已从历史分析中删除');await draw();
+            window.scrollTo({top:scrollY,behavior:'instant'});
+          }
+        } catch(error){if(token===generation){deleteDialog.close();message('删除失败：'+error.message);}}
+        finally{if(deleteConfirm.isConnected)deleteConfirm.disabled=false;}
+      };
       const historySelect=host.querySelector('[data-ai-history-filter]');
       if(historySelect){
         historySelect.addEventListener('change',()=>{
@@ -663,6 +695,7 @@ export function createAIAnalysis(ctx){
         const target=panel.querySelector('[data-checkpoint-result]');
         if(!target)return;
         const reasons={
+          'work-in-progress':'模型调用或调查工具正在执行，请稍候',
           'unresolved-paid-call':'模型调用状态未确认，必须人工核查，不能直接重试',
           'tool-execution-incomplete':'调查工具执行不完整，尚不允许自动续跑',
           'requires-validation-before-resume':'调查记录已保存，但尚未完成恢复验证',

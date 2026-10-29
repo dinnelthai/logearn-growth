@@ -48,6 +48,10 @@
 #la-studio .ai-status-grid article { background:var(--a-panel); border:1px solid var(--a-border); border-radius:10px; padding:16px; display:grid; gap:8px; min-width:0; }
 #la-studio .ai-status-grid span,#la-studio .ai-status-grid small { color:var(--a-muted); font-size:12px; }
 #la-studio .ai-status-grid strong { font-size:18px; overflow-wrap:anywhere; }
+#la-studio .ai-new-analysis { width:min(760px,calc(100vw - 32px)); max-height:calc(100vh - 32px); overflow:auto; box-sizing:border-box; color:var(--a-text); background:var(--a-panel); }
+#la-studio .ai-new-analysis::backdrop { background:rgba(3,8,16,.75); }
+#la-studio .ai-modal-heading { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+#la-studio .ai-modal-heading h2 { margin:0; }
 #la-studio .ai-analysis-page summary { cursor:pointer; font-weight:650; padding:4px 0; }
 #la-studio .ai-analysis-page form[data-ai-form] { grid-template-columns:repeat(2,minmax(0,1fr)); }
 #la-studio .ai-analysis-page form[data-ai-form] :is(p,textarea,button) { max-width:100%; }
@@ -79,7 +83,7 @@
 #la-studio [role="alert"] { color:#ffaaa9; }
 #la-studio .ai-history-list { display:grid; gap:8px; margin-top:16px; }
 #la-studio .ai-history-row {
-  display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center;
+  display:grid; grid-template-columns:minmax(0,1fr) auto auto auto; align-items:center;
   gap:12px; padding:11px 12px; border:1px solid var(--a-border);
   border-radius:8px; background:#111a27;
 }
@@ -98,7 +102,7 @@
 }
 @media (max-width:600px){
   #la-studio .ai-history-row { grid-template-columns:minmax(0,1fr) auto; }
-  #la-studio .ai-history-meta { grid-column:1/-1; }
+  #la-studio .ai-history-meta { grid-column:auto; }
   #la-studio #as-filter-toggle { font-size:12px; padding:7px 10px; }
 }
 @media (prefers-reduced-motion:reduce){
@@ -542,3 +546,22 @@ html:has(#la-studio) > body { padding:0 !important; background:#0b0f17 !importan
   white-space: nowrap;
   border-color: var(--ui-border-interactive);
 }
+
+/* Center the analysis dialog independently of card and grid layout rules. */
+#la-studio .si-page > dialog.ai-new-analysis {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  max-width: calc(100vw - 32px);
+}
+
+#la-studio .si-page > dialog.ai-delete-dialog {
+  position:fixed; inset:0; margin:auto; width:min(440px,calc(100vw - 32px));
+  max-width:calc(100vw - 32px); color:var(--a-text); background:var(--a-panel);
+}
+#la-studio .ai-delete-dialog::backdrop { background:rgba(3,8,16,.75); }
+#la-studio .ai-delete-dialog h2 { font-size:18px; margin:0 0 12px; }
+#la-studio .ai-delete-dialog p { color:var(--a-muted); line-height:1.6; }
+#la-studio .ai-delete-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:24px; }
+#la-studio .ai-delete-confirm { background:#8b3038; border-color:#8b3038; color:#fff; }
+#la-studio .ai-delete-confirm:disabled { opacity:.6; }

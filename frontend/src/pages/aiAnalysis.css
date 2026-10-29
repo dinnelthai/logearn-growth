@@ -740,3 +740,4 @@
   #la-studio .ai-history-row { grid-template-columns: minmax(0,1fr) auto; }
   #la-studio .ai-history-meta { grid-column: 1 / -1; }
 }
+#la-studio .ai-history-delete { padding:4px 8px; font-size:11px; }

@@ -4,9 +4,10 @@ const recordsPath=require.resolve('../src/db/aiRecords');
 const queuePath=require.resolve('../src/queues/queues');
 const tracePath=require.resolve('../src/ai/business/trace');
 const connectionPath=require.resolve('../src/db/connection');
+let recordStatus='failed';
 const calls=[{round:0,status:'received',prompts:{analysis:'hash'},result:{responseContent:JSON.stringify({investigations:[{tool:'get_paths'}]}),investigations:[]}}];
 require.cache[recordsPath]={id:recordsPath,filename:recordsPath,loaded:true,exports:{
- async getAnalysisRecord(id,owner){return id==='a1'&&owner==='alice'?{id:'a1',status:'failed'}:null}
+ async getAnalysisRecord(id,owner){return id==='a1'&&owner==='alice'?{id:'a1',status:recordStatus,lease_expires_at:Date.now()+60000}:null}
 }};
 require.cache[queuePath]={id:queuePath,filename:queuePath,loaded:true,exports:{getJobStatus:async()=>({exists:false})}};
 require.cache[connectionPath]={id:connectionPath,filename:connectionPath,loaded:true,exports:{}};
@@ -26,4 +27,17 @@ test('checkpoint diagnostics are owner-gated and never reveal raw responses',asy
   const denied=await fetch(url,{headers:{'x-owner':'bob'}});
   assert.equal(denied.status,404);
  }finally{await new Promise(resolve=>server.close(resolve))}
+});
+
+test('active work is not mistaken for an interrupted paid call',async()=>{
+ const app=express();app.use((req,_res,next)=>{req.user={user_id:'alice'};next()});app.use('/api/ai-analysis',router);
+ const server=app.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));
+ try {
+  recordStatus='processing';calls.splice(0,calls.length,{round:0,status:'started'});
+  const url='http://127.0.0.1:'+server.address().port+'/api/ai-analysis/jobs/a1/checkpoint';
+  let body=await (await fetch(url)).json();
+  assert.equal(body.state,'in-progress');assert.equal(body.requiresHumanReview,false);
+  calls[0].status='unknown';body=await (await fetch(url)).json();
+  assert.equal(body.state,'blocked');assert.equal(body.requiresHumanReview,true);
+ } finally {recordStatus='failed';await new Promise(resolve=>server.close(resolve));}
 });

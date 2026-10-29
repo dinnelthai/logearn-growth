@@ -111,6 +111,7 @@ async function listAnalysisRecords(ownerId, { limit = 20, offset = 0, status = n
   let sql = `
     SELECT * FROM ai_analysis_summary
     WHERE owner_id = $1
+      AND NOT EXISTS (SELECT 1 FROM ai_analysis_records a WHERE a.id = ai_analysis_summary.id AND a.owner_id = $1 AND a.filter_conditions->>'hiddenFromHistory' = 'true')
   `;
   const params = [ownerId];
   let paramIndex = 2;
@@ -125,6 +126,15 @@ async function listAnalysisRecords(ownerId, { limit = 20, offset = 0, status = n
 
   const result = await read(sql, params);
   return result.rows;
+}
+
+// Remove a terminal analysis from the history list while preserving its audit trail.
+async function hideAnalysisRecord(id, ownerId) {
+  const result = await write(`UPDATE ai_analysis_records
+    SET filter_conditions = COALESCE(filter_conditions, '{}'::jsonb) || '{"hiddenFromHistory":true}'::jsonb
+    WHERE id=$1 AND owner_id=$2 AND status IN ('completed','failed','cancelled')
+    RETURNING id`, [id, ownerId]);
+  return result.rows[0] || null;
 }
 
 /**
@@ -730,6 +740,7 @@ module.exports = {
   updateAnalysisStatus,
   updateAnalysisModel,
   listAnalysisRecords,
+  hideAnalysisRecord,
   getAnalysisRecord,
 
   // 建议

@@ -56,7 +56,7 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
   if (![maxCalls,maxBytes,maxTokens].every(n=>Number.isFinite(n)&&n>0)) throw Error('任务预算配置必须为正数');
   let lastError;
   for (let round=0;round<maxCalls;round++) {
-    if (Date.now()>deadline || calls.reduce((n,c)=>n+c.tokens,0)>=maxTokens || Buffer.byteLength(JSON.stringify(messages))>maxBytes)
+    if (Date.now()>deadline || Buffer.byteLength(JSON.stringify(messages))>maxBytes)
       throw Error('分析预算已达上限，必要调查尚未完成；请调整预算后重试，未保存为成功结果');
     const saved=resumeRows[round]||null;
     const model=saved?.result?.model||getConfig().defaultModel;
@@ -78,7 +78,7 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
       // Transport bytes and task tokens use different units.
       const estimatedInputTokens=estimateChatTokens(messages);
       if(estimatedInputTokens+outputBudget>remainingTokens)
-        throw Error(`Token预算不足：输入保守估算 ${estimatedInputTokens}、输出预留 ${outputBudget}、任务剩余 ${remainingTokens} Token。请缩小分析范围或减少上下文；本轮未发起付费调用（估算值不是实际计费数）。`);
+        console.warn(`Token预算不足：输入保守估算 ${estimatedInputTokens}、输出预留 ${outputBudget}、任务剩余 ${remainingTokens} Token；继续调用，实际费用可能超出预算（估算值不是实际计费数）。`);
       await beforeStep('model',round);
       // Shared PostgreSQL gate must be written before the SQLite marker or
       // provider call; a SQLite error leaves the shared fence in 'started'.
@@ -108,7 +108,8 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
       traceStore?.finish(traceContext,round,{...calls.at(-1),responseContent:response.content,contextHash});
       await paidCalls?.finish?.(round,'received');
     }
-    if(Date.now()>deadline || calls.reduce((n,c)=>n+c.tokens,0)>maxTokens)throw Error('分析预算已达上限，未保存为成功结果');
+    if(Date.now()>deadline)throw Error('分析时间预算已达上限，未保存为成功结果');
+    if(calls.reduce((n,c)=>n+c.tokens,0)>maxTokens)console.warn(`实际Token用量已超过任务预算 ${maxTokens}，继续分析。`);
     let value;
     try { value=parseJSON(response.content); }
     catch(error) { lastError=error; routing={tier:'complex',reason:'模型输出无法解析，由当前模型重试'}; const correction='输出无法解析，请完成原任务并返回完整合法 JSON。'; if(saved){if(saved.result?.followup?.kind!=='parse-error'||saved.result.followup.content!==correction)throw Error('解析纠正消息断点不一致');}

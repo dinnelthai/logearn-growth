@@ -10,6 +10,7 @@ async function aiFetch(path,options={}){
 }
 export const createBusinessAnalysis=params=>aiFetch('/api/ai-analysis/analyze',{method:'POST',body:JSON.stringify(params)});
 export const getAnalysisList=(options={})=>aiFetch('/api/ai-analysis/list?'+new URLSearchParams({limit:'20',...options}));
+export const deleteAnalysis=id=>aiFetch('/api/ai-analysis/'+encodeURIComponent(id),{method:'DELETE'});
 export const getAnalysisDetail=id=>aiFetch('/api/ai-analysis/'+encodeURIComponent(id));
 export const getJobStatus=id=>aiFetch('/api/ai-analysis/jobs/'+encodeURIComponent(id)+'/status');
 export const updateSuggestionStatus=(id,updates)=>aiFetch('/api/ai-analysis/suggestions/'+encodeURIComponent(id)+'/status',{method:'PUT',body:JSON.stringify(updates)});

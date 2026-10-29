@@ -43,37 +43,29 @@ test('50k task accepts bounded Chinese input without a paid retry',async()=>{
   assert.ok(result.calls[0].modelInputBytes>50000);
  });
 });
-test('budget exhaustion fails closed before any paid reservation',async()=>{
+test('preflight over budget warns and continues despite actual overage',async()=>{
  await withEnv({AI_TASK_MAX_TOKENS:50000,AI_TASK_MAX_OUTPUT_TOKENS:4096},async()=>{
-  let paidGate=0,provider=0;
-  await assert.rejects(runTask(request('增长'.repeat(18000),{
-   paidCalls:{begin:async()=>{paidGate++}},
-   clientFactory:()=>({chat:async()=>{provider++;throw Error('unexpected remote call')}})
-  })),error=>{
-   assert.match(error.message,/Token预算不足/);
-   assert.match(error.message,/输入保守估算/);
-   assert.match(error.message,/输出预留 4096/);
-   assert.match(error.message,/任务剩余 50000/);
-   assert.match(error.message,/本轮未发起付费调用/);
-   return true;
-  });
-  assert.equal(paidGate,0);assert.equal(provider,0);
+  let calls=0; const warnings=[]; const original=console.warn; console.warn=x=>warnings.push(x);
+  try {
+   const result=await runTask(request('增长'.repeat(18000),{
+    clientFactory:()=>({chat:async()=>{calls++;return {content:JSON.stringify(completion),usage:{totalTokens:51000}}}})
+   }));
+   assert.equal(calls,1);assert.equal(result.analysis.summary,'ok');
+   assert.ok(warnings.some(x=>/Token预算不足/.test(x)));
+   assert.ok(warnings.some(x=>/实际Token用量/.test(x)));
+  } finally {console.warn=original}
  });
 });
-test('follow-up preflight subtracts actual prior tokens before next paid round',async()=>{
+test('follow-up continues after actual usage exceeds budget',async()=>{
  await withEnv({AI_TASK_MAX_TOKENS:10000,AI_TASK_MAX_OUTPUT_TOKENS:4096},async()=>{
-  let calls=0,reservations=0;
-  const resultPromise=runTask(request('增长分析'.repeat(450),{
-   paidCalls:{begin:async()=>{reservations++}},
-   clientFactory:()=>({modelInfo:{provider:'mock'},chat:async()=>{
-    calls++;
-    return {content:JSON.stringify({investigations:[{kind:'north'}]}),
-     usage:{totalTokens:8900,outputTokens:400},provider:'mock',cost:0.01};
-   }}),
-   investigate:async()=>({status:'ok',evidence:[]})
-  }));
-  await assert.rejects(resultPromise,/Token预算不足/);
-  assert.equal(calls,1);assert.equal(reservations,1);
+  let calls=0; const original=console.warn; console.warn=()=>{};
+  try {
+   const result=await runTask(request('增长分析'.repeat(450),{
+    clientFactory:()=>({chat:async()=>({content:JSON.stringify(++calls===1?{investigations:[{kind:'north'}]}:completion),usage:{totalTokens:11000}})}),
+    investigate:async()=>({status:'ok',evidence:[]})
+   }));
+   assert.equal(calls,2);assert.equal(result.analysis.summary,'ok');
+  } finally {console.warn=original}
  });
 });
 test('invalid message data fails closed',()=>{
