@@ -7,8 +7,23 @@ const date=ms=>Number.isFinite(Number(ms))?new Date(Number(ms)+7*3600000).toISOS
 const fmt=x=>typeof x==='number'&&Number.isFinite(x)?x.toLocaleString('zh-CN',{maximumFractionDigits:2}):'未知';
 const statuses={pending:'排队中',processing:'AI 正在分析',completed:'已完成',failed:'生成失败',cancelled:'已取消'};
 export function mountAIWeeklyReport(root,{api,safe,navigate}){
- let disposed=false,seq=0,poll=null,selected=null,busy=false,recoveryQueued=false,notice='';
+ let disposed=false,seq=0,poll=null,selected=null,busy=false,recoveryQueued=false,notice='',lastSnapshot=null;
  const clear=()=>{if(poll){clearTimeout(poll);poll=null}};
+ const schedule=(rows,token)=>{
+  if(!disposed&&token===seq&&(recoveryQueued||
+   rows.some(x=>['pending','processing'].includes(x.status))))
+   poll=setTimeout(()=>load({silent:true}),6000);
+ };
+ // Hold the section's previous height while an actual status transition is
+ // rendered and its detailed report is being fetched. This prevents the
+ // document from collapsing under the user's current scroll position.
+ const protectHeight=()=>{
+  if(!root.style||typeof root.getBoundingClientRect!=='function')return ()=>{};
+  const previous=root.style.minHeight;
+  const height=root.getBoundingClientRect().height;
+  if(height>0)root.style.minHeight=Math.ceil(height)+'px';
+  return ()=>{root.style.minHeight=previous};
+ };
  const links=ids=>(Array.isArray(ids)?ids:[]).map(id=>
   '<button type="button" class="a-button" data-weekly-evidence="'+safe(id)+'" title="查看来源证据">证据 '+safe(String(id).slice(0,8))+'</button>').join(' ');
  const section=(title,items,render)=>
@@ -175,9 +190,13 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
    }));
   }catch(error){if(!disposed&&token===seq)target.textContent='周报详情暂不可用：'+error.message}
  }
- async function load(){
+ async function load({silent=false}={}){
   clear();const token=++seq;
-  root.innerHTML='<p class="a-muted">正在读取 AI 周报任务与历史…</p>';
+  // The loading placeholder is used only for the initial mount. Replacing a
+  // long page with one short line on every poll makes the browser scroll up.
+  if(lastSnapshot===null&&!silent)
+   root.innerHTML='<p class="a-muted">正在读取 AI 周报任务与历史…</p>';
+  let releaseHeight=null;
   try{
    const d=await api('/ai-weekly-reports');
    if(disposed||token!==seq)return;
@@ -186,6 +205,19 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
    const current=rows.find(x=>Number(x.date_range_start)===Number(d.period.start)&&Number(x.date_range_end)===Number(d.period.end));
    const row=rows.find(x=>x.id===selected);
    const regenerateArchived=!current&&d.canRegenerateArchivedFailed===true;
+   const nextSnapshot=JSON.stringify({
+    period:d.period,archivedCurrentWeek:d.archivedCurrentWeek,
+    canRegenerateArchivedFailed:d.canRegenerateArchivedFailed,selected,
+    rows:rows.map(x=>({id:x.id,status:x.status,title:x.title,
+     error_message:x.error_message,completed_at:x.completed_at,
+     cost_usd:x.cost_usd,model_name:x.model_name}))
+   });
+   if(silent&&lastSnapshot===nextSnapshot){
+    schedule(rows,token);
+    return; // No reflow, no lost focus, no scroll movement.
+   }
+   if(lastSnapshot!==null)releaseHeight=protectHeight();
+   lastSnapshot=nextSnapshot;
    if(row&&row.status!=='failed')recoveryQueued=false;
    if(row&&row.error_message&&row.error_message!=='补充查询过多，请缩小问题范围或提高调查能力')recoveryQueued=false;
    root.innerHTML='<div class="ai-weekly-heading"><div><h3>AI 运营周报</h3><p class="a-muted">最近完整周：'+
@@ -265,11 +297,19 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
     }finally{busy=false}
    });
    if(row)await showReport(row,token,d.period);
-   if(!disposed&&token===seq&&(recoveryQueued||rows.some(x=>['pending','processing'].includes(x.status)))){
-    poll=setTimeout(load,6000);
+   schedule(rows,token);
+  }catch(error){
+   if(!disposed&&token===seq){
+    if(silent&&lastSnapshot!==null){
+     const note=root.querySelector('[data-weekly-note]');
+     if(note)note.textContent='周报状态刷新暂时失败：'+error.message;
+     poll=setTimeout(()=>load({silent:true}),6000);
+    }else{
+     root.innerHTML='<p role="alert">AI 周报读取失败：'+safe(error.message)+'</p><button type="button" class="a-button" data-weekly-retry>重新读取</button>';
+     root.querySelector('[data-weekly-retry]')?.addEventListener('click',()=>load());
+    }
    }
-  }catch(error){if(!disposed&&token===seq)root.innerHTML='<p role="alert">AI 周报读取失败：'+safe(error.message)+'</p><button type="button" class="a-button" data-weekly-retry>重新读取</button>';
-   root.querySelector('[data-weekly-retry]')?.addEventListener('click',load)}
+  }finally{releaseHeight?.()}
  }
  load();
  return ()=>{disposed=true;seq++;clear()};
