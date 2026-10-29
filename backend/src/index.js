@@ -54,6 +54,8 @@ app.get('/metrics', require('./monitoring/prometheus').handler)
 // Google authorization code arrives without the LogEarn bearer header.
 // Ownership is resolved only after consuming one-time server-side state.
 app.use('/api/gsc', require('./routes/gscOAuthCallback'))
+// Public X callback resolves owner exclusively from one-time OAuth state.
+app.use('/api/x', require('./routes/xOAuthCallback'))
 // Auth routes (login is public, rest require auth internally)
 app.use('/api/auth', authRouter)
 

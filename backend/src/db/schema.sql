@@ -549,3 +549,17 @@ CREATE TABLE IF NOT EXISTS agent_prompt_rollouts (
  percent INTEGER NOT NULL DEFAULT 0 CHECK(percent IN (0,5,10,25,50,100)),
  version INTEGER NOT NULL DEFAULT 1,
  PRIMARY KEY(owner_id,role));
+
+-- X OAuth 2.0 account link for content growth (separate from manual content).
+CREATE TABLE IF NOT EXISTS x_oauth_states (
+ state_hash TEXT PRIMARY KEY, owner_id TEXT NOT NULL,
+ code_verifier TEXT NOT NULL, expires_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS x_oauth_states_owner ON x_oauth_states(owner_id);
+CREATE TABLE IF NOT EXISTS x_oauth_connections (
+ owner_id TEXT PRIMARY KEY, x_user_id TEXT NOT NULL,
+ username TEXT NOT NULL, display_name TEXT NOT NULL,
+ profile_image_url TEXT NOT NULL, access_token_enc TEXT NOT NULL,
+ refresh_token_enc TEXT NOT NULL, expires_at INTEGER NOT NULL,
+ connected_at INTEGER NOT NULL
+);
