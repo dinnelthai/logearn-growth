@@ -46,3 +46,19 @@
 .seo-settings h2{font-size:14px}
 .seo-settings .seo-preview pre{max-height:320px;overflow:auto;font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere}
 @media(max-width:900px){.seo-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.seo-kpi strong{font-size:22px}}
+
+
+/* Search charts have independent vertical scales; don't visually compare their heights. */
+.seo-trend-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.seo-trend-panel { min-width: 0; padding: 14px; background: var(--ui-surface-raised,var(--a-bg)); border: 1px solid var(--a-border); border-radius: 10px; }
+.seo-trend-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.seo-trend-heading strong { font-size: 14px; }
+.seo-trend-heading span { color: var(--a-muted); font-size: 12px; }
+.seo-opportunities { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.seo-opportunities li { padding: 14px; border: 1px solid var(--a-border); background: var(--ui-surface-raised,var(--a-bg)); border-radius: 10px; }
+.seo-opportunities strong,.seo-opportunities span,.seo-opportunities small { display: block; }
+.seo-opportunities strong { font-size: 14px; overflow-wrap: anywhere; }
+.seo-opportunities span { margin-top: 6px; font-size: 13px; line-height: 1.6; }
+.seo-opportunities small { color: var(--a-muted); margin-top: 8px; font-size: 12px; }
+.seo-page-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+@media (max-width: 1050px) { .seo-trend-grid { grid-template-columns: minmax(0,1fr); } }
