@@ -37,7 +37,7 @@ describe('content growth reading experience',()=>{
  });
  it('ranks known engagement above raw views and preserves unknown metrics',()=>{
   const html=renderXPanel(report,esc,'logearn_cn','engagement');
-  expect(html.indexOf('Higher engagement',html.indexOf('帖子表现与行为比率'))).toBeLessThan(html.indexOf('Higher views',html.indexOf('帖子表现对比')));
+  expect(html.indexOf('Higher engagement',html.indexOf('帖子表现与行为比率'))).toBeLessThan(html.indexOf('Higher views',html.indexOf('帖子表现与行为比率')));
   expect(html).toContain('Unknown views');
   expect(html).toContain('未知');
  });

@@ -2,17 +2,17 @@
 
 ## 不增加授权与采集平台
 
-官方账号来自 \`backend/src/analytics/officialXAccounts.js\`（与「官方账号关注者」复用）：
-\`@logearn_cn\` 与 \`@logearn_global\`。既有 \`twitterAccounts.js\` 采集器使用
-\`TWITTERAPI_IO_API_KEY\` 的 twitterapi.io 第三方公开数据接口，复用 X Acquisition 的预算保护。
+官方账号来自 `backend/src/analytics/officialXAccounts.js`（与「官方账号关注者」复用）：
+`@logearn_cn` 与 `@logearn_global`。既有 `twitterAccounts.js` 采集器使用
+`TWITTERAPI_IO_API_KEY` 的 twitterapi.io 第三方公开数据接口，复用 X Acquisition 的预算保护。
 不需要新的 X OAuth、X Developer Console 应用或发帖权限。
 
 ## 指标、公式与不可用状态
 
 每次只读同步最多读取最近 20 条原创帖子（排除回复和转发）并记录：
 
-- \`viewCount\` → \`impressions\` 存储字段，**UI 显示「公开浏览」**，不承诺等于官方后台曝光。
-- \`replyCount\` → 回复、\`retweetCount\` → 转发、\`likeCount\` → 点赞。
+- `viewCount` → `impressions` 存储字段，**UI 显示「公开浏览」**，不承诺等于官方后台曝光。
+- `replyCount` → 回复、`retweetCount` → 转发、`likeCount` → 点赞。
 - 回复率 / 转发率 / 点赞率 = 该行为的公开累计数 / 同次观测的公开浏览 × 100%；不是 X 排名分。
 - 任何必要指标缺失，或浏览量为 0，均显示「不可计算」，不可用不写成 0。
 - 引用/分享、推文展开、主页访问、链接点击、关注、停留及负反馈暂不伪造，须先验证真实数据源和权限。
@@ -23,8 +23,8 @@ X 开源的 For You 排名使用每个**读者**对不同行为的预测概率�
 
 ## 观测快照及 24h / 48h 比较
 
-\`x_official_posts\` 仍存最新累计结果；每次成功同步追加
-\`x_official_post_snapshots(owner_id, account, post_id, observed_at, impressions, likes, replies, reposts, source)\`。
+`x_official_posts` 仍存最新累计结果；每次成功同步追加
+`x_official_post_snapshots(owner_id, account, post_id, observed_at, impressions, likes, replies, reposts, source)`。
 仅保存采集时间真实发生过的数据，按账号+用户隔离；保留最近 90 天。
 旧数据不倒填历史快照。
 
@@ -39,11 +39,11 @@ X 开源的 For You 排名使用每个**读者**对不同行为的预测概率�
 
 ## 部署/验收
 
-拉取 \`master\`，**重启后端**以执行 \`backend/src/db/schema.sql\` 建表。
+拉取 `master`，**重启后端**以执行 `backend/src/db/schema.sql` 建表。
 若快照表不存在，旧页面仍可读历史最新值，新同步会在请求第三方付费接口**之前**失败并提示重启。
 更新前端后「内容渠道增长」会显示行为率、阶段记录缺失状态和采集时间。
 
-测试文件：\`backend/test/xContentMetrics.test.js\`、
-\`backend/test/xContentMonitor.test.js\`、
-\`frontend/src/analytics/__tests__/contentGrowthView.test.js\`。
+测试文件：`backend/test/xContentMetrics.test.js`、
+`backend/test/xContentMonitor.test.js`、
+`frontend/src/analytics/__tests__/contentGrowthView.test.js`。
 未接入真实发布权限，且没有人工模拟官方推荐分。
