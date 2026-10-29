@@ -218,7 +218,7 @@ export function createAIAnalysis(ctx){
         }catch(error){if(token===generation)message(error.message);}
         finally{busy=false;if(button.isConnected)button.disabled=false;const current=$('#as-output')?.querySelector('[data-ai-form] button');if(current)current.disabled=false;}
       };
-      if(selected)await open(selected);
+      if(selected){await open(selected);if(launch?.kind==='analysis')host.querySelector('#ai-report')?.scrollIntoView({block:'start'});}
     }catch(error){if(token===generation)host.innerHTML=`<section class="a-card"><p>${esc(error.message)}</p><button class="a-button" data-retry>重新加载</button></section>`;host.querySelector('[data-retry]')?.addEventListener('click',draw);}
   }
   async function open(id){
