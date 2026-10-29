@@ -117,7 +117,7 @@ export function mountGrowthDecisionWorkspace(root,{navigate=null}={}){
   root.querySelectorAll('[data-investigate]').forEach(btn=>btn.addEventListener('click',async()=>{btn.disabled=true;try{const v=await api('/problems/'+encodeURIComponent(btn.dataset.investigate)+'/investigations','POST',{});say('已创建待执行调查 '+v.id+'。未启动付费模型。')}catch(error){say(error.message)}finally{btn.disabled=false}}))
 
   const reveal=async(btn,fetcher,renderer)=>{
-   const target=btn.parentElement?.querySelector('[data-gws-detail]');
+   const target=btn.closest('article')?.querySelector('[data-gws-detail]');
    if(!target)return;
    if(!target.hidden){target.hidden=true;btn.setAttribute('aria-expanded','false');return}
    btn.disabled=true;target.hidden=false;target.textContent='正在读取证据…';
