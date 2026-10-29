@@ -165,7 +165,6 @@ async function listWeeklyReportRecords(ownerId,{limit=20}={}){
    date_range_start,date_range_end,result,cost_usd,model_name
    FROM ai_analysis_records
    WHERE owner_id=$1 AND filter_conditions->>'weeklyReport'='v1'
-     AND COALESCE(filter_conditions->>'hiddenFromHistory','false')<>'true'
    ORDER BY date_range_end DESC,created_at DESC LIMIT $2`,[ownerId,safeLimit]);
  return result.rows;
 }
