@@ -30,7 +30,7 @@ function validateReview(a) {
     || typeof a.conclusion!=='string' || !Array.isArray(a.confoundingFactors)) throw Error('复盘结果结构不完整');
   return a;
 }
-async function runTask({context,prompt,ownerId,operationId,operationType,mode='auto',investigate,validate=validateAnalysis,clientFactory=createClient,traceStore,beforeStep=async()=>{},paidCalls=null,resumeRows=[],systemPromptOverride=null}) {
+async function runTask({context,prompt,ownerId,operationId,operationType,mode='auto',investigate,validate=validateAnalysis,clientFactory=createClient,traceStore,beforeStep=async()=>{},paidCalls=null,resumeRows=[],systemPromptOverride=null,modelTimeoutMs=null}) {
   let routing=routeTask(context,mode);
   if(systemPromptOverride!=null&&(!Array.isArray(resumeRows)||!resumeRows.length||
     typeof systemPromptOverride!=='string'||systemPromptOverride.length>60000))
@@ -86,7 +86,7 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
       traceStore?.begin(traceContext,round);
       const client=clientFactory({model});
       try{
-        response=await client.chat(messages,{userId:ownerId,operationId,operationType,runId,traceId,round,promptVersions,temperature:0.3,maxTokens:outputBudget});
+        response=await client.chat(messages,{userId:ownerId,operationId,operationType,runId,traceId,round,promptVersions,temperature:0.3,maxTokens:outputBudget,...(modelTimeoutMs==null?{}:{timeoutMs:modelTimeoutMs})});
       }catch(error){
         traceStore?.unknown(traceContext,round);
         await paidCalls?.finish?.(round,'unknown');
