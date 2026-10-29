@@ -75,6 +75,21 @@ async function tick({now=Date.now(),dryRun=false,runOwner=tickAutonomousOwner,cl
      results.push({ownerId,status:'workspace',newProblems:evidence.newProblems,reportId:evidence.reportId,paidCalls:0});
     }catch(error){results.push({ownerId,status:'error',reason:'workspace: '+error.message})}
    }
+   if(process.env.AI_GROWTH_MODULE_SCAN_ENABLED==='1'&&!leaseLost&&!exceededBudget){
+    try{
+     // Existing scheduler lease and per-owner order; never starts model jobs.
+     const localDb=require('../../db/connection');
+     const registry=require('../../ai/business/tools/registry').defaultRegistry();
+     const scan=await require('../../ai/growth/moduleOpportunityScan').scanModuleOpportunities({
+      db:localDb,ownerId,registry,now,goal:'activation',maxCalls:4
+     });
+     results.push({ownerId,status:'module-opportunity-scan',
+      newOpportunities:scan.created.length,updatedOpportunities:scan.updated.length,
+      modulesInspected:scan.modulesInspected,paidCalls:0});
+    }catch(error){
+     results.push({ownerId,status:'error',reason:'module-opportunity-scan: '+error.message});
+    }
+   }
    if(process.env.AI_RESEARCH_DISCOVERY_ENABLED==='1'&&!leaseLost){
     try{
      const db=require('../../db/connection');

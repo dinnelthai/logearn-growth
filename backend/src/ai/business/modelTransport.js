@@ -34,7 +34,11 @@ const numeric=new Set([
  'confidence_interval_low','confidence_interval_high','min','max',
  'week','weekStart','weekEnd','targetValue','effectivenessScore','evidenceCount',
  'observedAt','followers','followerChange','measuredPosts','engagementRate',
- 'replyRate','repostRate','likeRate','h24Views','h48Views'
+ 'replyRate','repostRate','likeRate','h24Views','h48Views',
+ 'registered','bound','inviters','analysis','strategy','used','trade','continued','nearby',
+ 'stored','next_generation','next_used','new_nearby','reinviters','participation_rate',
+ 'continuation_rate','output','observed_output','confirmed_new_registration_rate',
+ 'binding_rate','record_total','flows','success','failed','cancelled','conflict'
 ]);
 const flags=new Set(['available','historyComplete','history_complete','complete',
  'truncated','mature','known','coverageVerified','platformSync','conversionAttribution',
@@ -45,7 +49,7 @@ const categories=new Set(['source','device','version','app_version','user_stage'
  'type','kind','priority','direction','platform','channel','date','timezone',
  'association','family','definitionVersion','ruleVersion','user_pool',
  'scope','qualityStatus','category','name','period','state','browser',
- 'coverage','quality',
+ 'coverage','quality','scene',
  'os','event_name','group','metricName','currency','trafficSource',
  'list_type','page_name']);
 const notes=new Set(['definition','warnings','warning','reason','error','interpretation',
@@ -60,6 +64,7 @@ const groups=new Set(['totals','days','growth','change','dimensions','channels',
  'metrics','series','distribution','sources','bySource','period','filters',
  'sourceVersions','watermarks','goal','current','previous','weekly','northStar',
  'contentSignals',
+ 'referral','conversion','global','window','retention',
  'candidate','candidates','result','data','snapshots','snapshot']);
 const ids=new Set(['snapshot_id','snapshotId','as_of','eventsCompleteThrough',
  'events_complete_through','cutoff','asOf','queryFingerprint']);
@@ -119,8 +124,37 @@ function statView(value,{depth=0,maxRows=MAX_GROUPS}={}){
  return result;
 }
 const numericFact=value=>typeof value==='number'&&Number.isFinite(value)?value:null;
+
+function externalModelEvidence(row){
+ const raw=row.value&&typeof row.value==='object'?row.value:{};
+ const entries=Array.isArray(raw.rankings)?raw.rankings:[];
+ const rankings=entries.slice(0,12).map(x=>({
+  keyword:safeText(x?.keyword||'',100),
+  rank:Number.isSafeInteger(x?.rank)&&x.rank>0?x.rank:null,
+  device:['desktop','mobile'].includes(x?.device)?x.device:null,
+  status:['ranked','not_found','not_checked'].includes(x?.status)?x.status:'unknown',
+  checkedAt:safeText(x?.checkedAt||'',80)
+ }));
+ return {id:row.id,metricId:'external_rank_snapshot',unit:'rank',
+  external:{provider:safeText(row.external.provider,60),
+   capabilityId:safeText(row.external.capabilityId,90),
+   version:safeText(row.external.version,30),
+   sourceType:safeText(row.external.sourceType,50),
+   acquiredAt:safeText(row.external.acquiredAt,80),
+   checkedAt:safeText(row.external.checkedAt||'',80),
+   costStatus:safeText(row.external.costStatus||'unknown',40),
+   truncated:row.external.truncated===true||entries.length>12},
+  value:{status:safeText(raw.status||'unknown',40),
+   checkedAt:safeText(raw.checkedAt||'',80),rankings,
+   omittedRankings:Math.max(0,entries.length-rankings.length)},
+  period:statView(row.period||{}),
+  coverage:{status:safeText(row.coverage?.status||'unknown',40)},
+  warnings:(row.warnings||[]).slice(0,6).map(s=>safeText(s))};
+}
+
 function modelEvidence(row){
  if(!row||typeof row!=='object')return {value:null,warnings:['缺少证据结构']};
+ if(row.external)return externalModelEvidence(row);
  return {
   id:typeof row.id==='string'?row.id:null,
   metricId:typeof row.metricId==='string'?row.metricId:null,

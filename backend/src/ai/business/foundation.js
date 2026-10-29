@@ -25,7 +25,9 @@ function createFoundation(db,registry){
    analysis.claims=validateClaims(analysis.claims,base,evidenceStore);
    for(const s of analysis.suggestions){if(!Array.isArray(s.evidence?.evidenceIds)||!s.evidence.evidenceIds.length)throw Error('建议必须引用证据ID');for(const id of s.evidence.evidenceIds)evidenceStore.get(id,base);}
   }
-  async function investigate(query){const {tool,input}=query;if(typeof tool!=='string')throw Error('请从能力目录选择调查工具');return registry.executeTool(tool,input||{},base);}
+  // Only server-selected tools may execute, not merely appear in the model prompt.
+  const authorized={...base,taskAllowedTools:context.capabilities.map(cap=>cap.id)};
+  async function investigate(query){const {tool,input}=query;if(typeof tool!=='string')throw Error('请从能力目录选择调查工具');return registry.executeTool(tool,input||{},authorized);}
   return {context,validate,investigate,traceStore};
  }
  // Uses the exact already-persisted context, without fetching a new report or
@@ -42,9 +44,15 @@ function createFoundation(db,registry){
     for(const id of s.evidence.evidenceIds)evidenceStore.get(id,base);
    }
   }
+  // A resumed call cannot gain tools absent from its persisted task catalog.
+  // Also intersect with the LIVE catalog, so revocations survive process restarts.
+  const savedIds=new Set((Array.isArray(context.capabilities)?context.capabilities:
+   registry.listCapabilities(base)).map(tool=>tool.id));
+  const liveIds=new Set(registry.listCapabilities(base).map(tool=>tool.id));
+  const authorized={...base,taskAllowedTools:[...savedIds].filter(id=>liveIds.has(id))};
   const investigate=query=>{
    if(typeof query?.tool!=='string')throw Error('仅允许恢复已声明的只读调查工具');
-   return registry.executeTool(query.tool,query.input||{},base);
+   return registry.executeTool(query.tool,query.input||{},authorized);
   };
   return {context,validate,investigate,traceStore};
  }

@@ -27,7 +27,7 @@ test('single model repairs JSON with history and complete investigation evidence
   const result=await runTask({context:{memory:[{rejection_reason:'缺少资源'}]},prompt:'分析',ownerId:'alice',operationId:'a',operationType:'analysis',
     investigate:async()=>({active_users:12}),clientFactory:({model})=>({chat:async messages=>{seen.push({model,messages:JSON.stringify(messages)});return {content:typeof answers[i]==='string'?answers[i++]:JSON.stringify(answers[i++]),usage:{totalTokens:5},cost:0.01,provider:model==='local-model'?'domestic':'anthropic'}}})});
   assert.deepEqual(seen.map(c=>c.model),['claude-sonnet-4-6','claude-sonnet-4-6','claude-sonnet-4-6']);
-  assert.match(seen[2].messages,/缺少资源/);assert.match(seen[2].messages,/active_users/);assert.equal(result.calls.length,3);assert.equal(result.cost,0.03);
+  assert.doesNotMatch(seen[2].messages,/缺少资源/);assert.match(seen[2].messages,/additionalEvidence/);assert.match(seen[2].messages,/unavailable/);assert.equal(result.calls.length,3);assert.equal(result.cost,0.03);
 }));
 test('budgets never turn unfinished investigation into a successful empty report',()=>env(async()=>{
   process.env.AI_TASK_MAX_CALLS='1';const {runTask}=runner();
@@ -79,7 +79,7 @@ test('LLM client logs real token usage once with owner and operation; cache rema
   class Tracker{async checkDailyLimit(...args){limits.push(args)}async track(value){tracked.push(value)}}
   class Provider{constructor(){this.client={baseURL:'https://domestic.invalid/v1'}}async chat(){return {content:'{}',usage:{inputTokens:100,outputTokens:20,totalTokens:120}}}}
   const Client=load('ai/llm/client.js',{
-    './config':{getConfig:()=>({defaultModel:'routine',openai:{baseURL:'https://derouter.invalid/v1',apiKey:'test'},maxDailyCost:5,enableMetrics:false}),getModelInfo:()=>({provider:'openai',costPer1kInput:0.01,costPer1kOutput:0.02}),LLM_PROVIDERS:{DOMESTIC:'domestic',OPENAI:'openai',ANTHROPIC:'anthropic'}},
+    './config':{getConfig:()=>({defaultModel:'routine',openai:{baseURL:'https://derouter.invalid/v1',apiKey:'test'},maxDailyCost:5,enableMetrics:false}),getModelInfo:()=>({provider:'openai',costPer1kInput:0.01,costPer1kOutput:0.02,pricingKnown:true}),LLM_PROVIDERS:{DOMESTIC:'domestic',OPENAI:'openai',ANTHROPIC:'anthropic'}},
     './providers/openai':Provider,'./providers/anthropic':Provider,'./costTracker':Tracker,
     '../../cache':{rateLimit:{checkLimit:async()=>({allowed:true})},llmCache:{get:async(_p,_m,opts)=>{options.push(opts);return null},set:async()=>{}}},
     '../../utils/logger':{info:()=>{},error:()=>{}},'../../websocket':{}

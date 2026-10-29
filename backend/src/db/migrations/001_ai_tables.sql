@@ -568,3 +568,43 @@ CREATE TABLE IF NOT EXISTS ai_growth_monitor_settings (
  last_scan_status TEXT,
  last_scan_summary JSONB
 );
+
+
+-- External provider billing is NOT the model token budget. All amounts are
+-- integral micro-USD. Disable by default until provider terms and settlement
+-- have been reviewed for the pinned deployment.
+CREATE TABLE IF NOT EXISTS ai_external_spend_policy (
+ owner_id TEXT NOT NULL,
+ workspace_id TEXT NOT NULL,
+ connection_id TEXT NOT NULL,
+ capability_id TEXT NOT NULL,
+ enabled BOOLEAN NOT NULL DEFAULT FALSE,
+ currency TEXT NOT NULL DEFAULT 'USD' CHECK(currency='USD'),
+ day_timezone TEXT NOT NULL DEFAULT 'Asia/Bangkok'
+   CHECK(day_timezone='Asia/Bangkok'),
+ daily_limit_microusd BIGINT NOT NULL DEFAULT 0 CHECK(daily_limit_microusd>=0),
+ per_call_reserve_microusd BIGINT NOT NULL DEFAULT 0 CHECK(per_call_reserve_microusd>=0),
+ updated_at BIGINT NOT NULL,
+ PRIMARY KEY(owner_id,workspace_id,connection_id,capability_id)
+);
+CREATE TABLE IF NOT EXISTS ai_external_spend_reservations (
+ id TEXT PRIMARY KEY,
+ owner_id TEXT NOT NULL,
+ workspace_id TEXT NOT NULL,
+ connection_id TEXT NOT NULL,
+ capability_id TEXT NOT NULL,
+ task_id TEXT NOT NULL,
+ call_key TEXT NOT NULL,
+ bangkok_day TEXT NOT NULL,
+ currency TEXT NOT NULL DEFAULT 'USD' CHECK(currency='USD'),
+ state TEXT NOT NULL CHECK(state IN ('unknown','settled')),
+ reserved_microusd BIGINT NOT NULL CHECK(reserved_microusd>0),
+ actual_microusd BIGINT CHECK(actual_microusd>=0),
+ provider_receipt TEXT,
+ created_at BIGINT NOT NULL,
+ settled_at BIGINT,
+ UNIQUE(owner_id,workspace_id,connection_id,capability_id,task_id,call_key)
+);
+CREATE INDEX IF NOT EXISTS idx_external_spend_ledger_day
+ ON ai_external_spend_reservations(
+ owner_id,workspace_id,connection_id,capability_id,bangkok_day);

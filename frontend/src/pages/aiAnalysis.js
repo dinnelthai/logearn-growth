@@ -1,16 +1,17 @@
 import './aiAnalysis.css';
+import {mountAIGrowthModulesPanel} from './aiGrowthModulesPanel.js';
 import {loadingState} from './loadingState.js';
 import {TASK_LABELS,displayTaskStatus,canOfferTaskResume,canOfferTaskRetry,shouldPollTask} from './aiTaskStatus.js';
 import {renderAISuggestion} from './aiSuggestionView.js';
 import {renderAIReviewQueue} from './aiReviewQueueView.js';
 import {viewState} from '../components/viewStates.js';
-import {createBusinessAnalysis,getAnalysisList,deleteAnalysis,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox} from '../api/aiAnalysis.js';
+import {createBusinessAnalysis,getAnalysisList,deleteAnalysis,getAnalysisDetail,getJobStatus,updateSuggestionStatus,createRetrospective,getRetrospectives,getCostStats,retryAnalysis,getAgentHealth,getEvidence,getJobCheckpoint,cancelAnalysis,resumeAnalysis,getGrowthReviewQueue,getGrowthInbox,importAnalysisOpportunities} from '../api/aiAnalysis.js';
 const DAY=86400000,OFFSET=7*3600000;
 const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
 export function createAIAnalysis(ctx){
   const {$,esc}=ctx;
-  let contentPresetConsumed=false,generation=0,detailRequest=0,displayedDetailId=null,timer=null,reviewTimer=null,selected=null,busy=false,reviewPolling=false,historyFilter='all',historyPage=0,notice='';
+  let contentPresetConsumed=false,generation=0,detailRequest=0,displayedDetailId=null,timer=null,reviewTimer=null,selected=null,busy=false,reviewPolling=false,historyFilter='all',historyPage=0,notice='',disposeGrowthModules=null;
   const HISTORY_PAGE_SIZE=5;
   const defaults={start:day(Date.now()-7*DAY),end:day(Date.now()-DAY)};
   const label=s=>TASK_LABELS[s]||s;
@@ -19,7 +20,7 @@ export function createAIAnalysis(ctx){
   const historyCounts=r=>r.suggestion_count==null?'建议数量待确认':
     `建议 ${r.suggestion_count} · 已采纳 ${r.accepted_count??'—'} · 已执行 ${r.executed_count??'—'} · 已复盘 ${r.retrospective_count??'—'}`;
   const json=v=>esc(JSON.stringify(v,null,2));
-  function dispose(){generation++;detailRequest++;displayedDetailId=null;clearTimeout(timer);clearTimeout(reviewTimer);timer=null;reviewTimer=null;reviewPolling=false;}
+  function dispose(){generation++;detailRequest++;displayedDetailId=null;clearTimeout(timer);clearTimeout(reviewTimer);timer=null;reviewTimer=null;reviewPolling=false;disposeGrowthModules?.();disposeGrowthModules=null;}
   function message(text){notice=String(text??'');const target=$('#as-output')?.querySelector('[data-ai-message]');if(target){target.textContent=notice;target.hidden=!notice;}}
   function applyHistoryFilter(){
     const host=$('#as-output');
@@ -48,6 +49,7 @@ export function createAIAnalysis(ctx){
   }
   async function draw(){
     ctx.clear?.();
+    disposeGrowthModules?.();disposeGrowthModules=null;
     const token=++generation;detailRequest++;displayedDetailId=null;clearTimeout(timer);clearTimeout(reviewTimer);reviewTimer=null;reviewPolling=false;
     const host=$('#as-output');host.innerHTML=loadingState('正在加载主动业务分析…');
     try{
@@ -73,7 +75,7 @@ export function createAIAnalysis(ctx){
         <label>结束日期（含当日）<input name="end" type="date" required value="${defaults.end}"></label>
         <label>来源<input name="source" value="all" maxlength="200" placeholder="all 或业务来源值"></label>
         <label>业务目标<select name="goal"><option value="activation">提升激活</option><option value="retention">提升留存</option><option value="conversion">提升转化</option><option value="revenue">收入策略</option></select></label>
-        <label>专项增长技能<select name="skillId"><option value="">通用增长分析</option><option value="seo-organic">SEO · Search Console（激活/转化）</option><option value="kol-impact">KOL · 合作归组（转化/收入）</option><option value="content-growth">X 内容增长 · 只读统计与运营评价（转化）</option></select></label>
+        <label>专项增长技能<select name="skillId"><option value="">通用增长分析</option><option value="seo-organic">SEO · Search Console（激活/转化）</option><option value="kol-impact">KOL · 合作归组（转化/收入）</option><option value="content-growth">X 内容增长 · 只读统计与运营评价（转化）</option><option value="referral-and-invite">推荐 · 邀请绑定与转化</option><option value="login-conversion">登录 · 转化与事件覆盖</option></select></label>
         <p>专项技能只允许全来源分析；X 内容专项读取最近30天的公开内容观察与有限样本，不把互动量当作X推荐分或产品获客。模型调用只在点击「开始分析」后发生。</p>
         <label>分析方式<select name="modelMode"><option value="auto">自动调查（单模型）</option><option value="complex">深度调查（同一模型）</option></select></label>
         <label>业务背景与问题<textarea name="question" maxlength="5000" placeholder="当前目标、资源约束、近期活动、产品改动，以及你想解决的问题"></textarea></label>
@@ -85,6 +87,7 @@ export function createAIAnalysis(ctx){
           <p id="ai-delete-description">这条记录将从历史分析中移除，关联的证据、建议和费用记录会保留。</p>
           <div class="ai-delete-actions"><button type="button" class="a-button" data-delete-cancel>取消</button><button type="button" class="a-button ai-delete-confirm" data-delete-confirm>删除</button></div>
         </dialog>
+        <section data-ai-growth-modules aria-label="增长模块调查与机会池"></section>
         <section class="a-card ai-history"><div class="ai-history-heading"><h2>历史分析</h2>
           <label>状态<select data-ai-history-filter aria-label="筛选历史分析">
           <option value="all" ${historyFilter==='all'?'selected':''}>全部</option>
@@ -124,16 +127,18 @@ export function createAIAnalysis(ctx){
           </div>
         </section>
         </div>`;
+      const moduleHost=host.querySelector('[data-ai-growth-modules]');
+      if(moduleHost)disposeGrowthModules=mountAIGrowthModulesPanel(moduleHost,{esc});
       const analysisDialog=host.querySelector('#ai-new-analysis');
       const analysisForm=host.querySelector('[data-ai-form]');
-      const selectedSkill=analysisForm.elements.skillId;
-      selectedSkill.onchange=()=>{
+      const selectedSkill=analysisForm.elements?.skillId;
+      if(selectedSkill)selectedSkill.onchange=()=>{
         if(selectedSkill.value==='content-growth'){
           analysisForm.elements.goal.value='conversion';
           analysisForm.elements.source.value='all';
         }
       };
-      if(new URLSearchParams(window.location.search).get('skill')==='content-growth'&&!contentPresetConsumed){
+      if(selectedSkill&&new URLSearchParams(window.location.search).get('skill')==='content-growth'&&!contentPresetConsumed){
         contentPresetConsumed=true;
         selectedSkill.value='content-growth';
         analysisForm.elements.goal.value='conversion';
@@ -227,12 +232,24 @@ export function createAIAnalysis(ctx){
         <div class="ai-action-list-heading"><h3>行动建议</h3><span>${(r.suggestions||[]).length} 条</span></div>
         ${(r.suggestions||[]).length?(r.suggestions||[]).map(item=>renderAISuggestion(item,{esc,json,label,offset:OFFSET})).join(''):'<p class="a-muted">尚无可执行行动建议；不代表业务没有问题。</p>'}
       </section>
+      ${r.status==='completed'&&(r.suggestions||[]).length?'<button type="button" class="a-button" data-import-to-opportunities>将本次证据建议归入机会池（不调用模型）</button>':''}
       <details class="ai-evidence-index"><summary>原始业务证据 · ${(r.result?.evidenceIds||[]).length} 项</summary>
         <p class="a-muted">选择证据编号查看原始指标及数据覆盖说明。</p>
         <div class="ai-evidence-links">${(r.result?.evidenceIds||[]).map(eid=>`<button class="a-button" data-evidence="${esc(eid)}">证据 ${esc(eid.slice(0,8))}</button>`).join('')}</div>
         <pre data-evidence-result></pre>
       </details>
       <details class="ai-data-appendix"><summary>业务快照、目标优先级及模型调用记录</summary><pre>${json({snapshot:r.data_snapshot,calls:r.result?.calls})}</pre></details>`;
+      panel.querySelector('[data-import-to-opportunities]')?.addEventListener('click',async event=>{
+        const button=event.currentTarget;button.disabled=true;
+        try{
+          const outcome=await importAnalysisOpportunities(id);
+          if(token===generation&&request===detailRequest&&selected===id){
+            message('已归档 '+outcome.inserted.length+' 项建议，跳过 '+outcome.skipped.length+' 项证据不足的建议。');
+            await draw();
+          }
+        }catch(error){if(token===generation)message('机会归档失败：'+error.message)}
+        finally{if(button.isConnected)button.disabled=false;}
+      });
       // Diagnostics are owner-scoped and intentionally do not expose model prompts.
       getJobCheckpoint(id).then(checkpoint=>{
         if(token!==generation||request!==detailRequest||selected!==id||!panel.isConnected)return;

@@ -3,10 +3,11 @@ const {resolveScope,owner}=require('../scope'),{describeMetric,listMetrics}=requ
 const {makeEvidence,fingerprint}=require('../evidence');
 const {validateRange}=require('../../../analytics/businessPriorities');
 const {statView}=require('../modelTransport');
+const {createCapabilityCatalog}=require('./capabilityCatalog');
 const fail=(message,status=400)=>{throw Object.assign(Error(message),{status})};
 const definitions={
  query_metrics:{metric:'active_users',adapter:'metrics',scopes:['source'],description:'现有北极星、增长、周核心指标'},
- get_funnel:{metric:'funnel',adapter:'funnel',description:'顺序漏斗，区分成熟、待成熟、缺失关联'},
+ get_funnel:{metric:'funnel',adapter:'funnel',description:'顺序漏斗；仅支持 token、chip、drill、ai、trade、logged_in_visit、login、visit 步骤；来源过滤使用 scope.source 而不是 filters.source；区分成熟、待成熟与缺失关联'},
  get_paths:{metric:'paths',adapter:'paths',description:'行为路径与观测限制'},
  get_product_chain:{metric:'product_chain',adapter:'value-diagnostics',description:'详情、分析成功与数据库真实交易链'},
  get_retention:{metric:'retention',adapter:'retention',description:'成熟留存队列，未成熟保持未知'},
@@ -18,7 +19,10 @@ const definitions={
  get_seo_performance:{metric:'seo_search',adapter:'seo-performance',scopes:['source'],description:'只读读取已同步的 Search Console 最终聚合快照或有限手动导入；日期可能不匹配、查询覆盖不完整'},
  get_kol_performance:{metric:'kol_performance',adapter:'kol-performance',scopes:['source'],description:'复用已有 KOL CRM 归组和真实观察行为；不等于因果归因'},
  get_content_growth:{metric:'content_growth',adapter:'content-growth',scopes:['source'],description:'只读已采集的LogEarn双账号X内容：近30天有界公开浏览、回复/转发/点赞率、快照和覆盖；人工登记独立，非推荐分及转化归因'},
- get_follower_quality:{metric:'follower_quality',adapter:'follower-quality',scopes:['source'],description:'只读粉丝采集分类汇总，无个人资料外传，数据覆盖可能不足'}
+ get_follower_quality:{metric:'follower_quality',adapter:'follower-quality',scopes:['source'],description:'只读粉丝采集分类汇总，无个人资料外传，数据覆盖可能不足'},
+ get_referral:{metric:'referral',adapter:'referral',scopes:['source'],description:'已有推荐绑定关系与成熟观察；推荐绑定不等于新增获客'},
+ get_login_conversion:{metric:'login_conversion',adapter:'login-conversion',scopes:['source'],description:'已有登录转化聚合，待确认与异常单列'},
+ get_invite_conversion:{metric:'invite_conversion',adapter:'invite-conversion',scopes:['source'],description:'已有邀请链接转化与注册关系事实；不推断因果'}
 };
 const fields=['scope','start','end','metrics','dimensions','filters','steps','hours','initial','returning','limit','cursor','siteUrl'];
 const inputSchema={type:'object',additionalProperties:false,properties:Object.fromEntries(fields.map(k=>[k,{type:['start','end','hours','limit'].includes(k)?'integer':['metrics','dimensions','steps'].includes(k)?'array':['scope','filters'].includes(k)?'object':'string'}]))};
@@ -44,11 +48,41 @@ function productChainSummary(payload){
   coverage:payload.coverage,definition:payload.definition,
   warnings:['产品链路仅提供总体统计；维度和用户级明细未发送给模型']};
 }
-const allowedFields=id=>['scope','start','end','filters','limit','cursor',...(id==='get_funnel'?['steps','hours']:id==='get_retention'?['initial','returning']:id==='query_metrics'?['metrics','dimensions']:id==='get_seo_performance'?['siteUrl']:[])];
+function referralSummary(payload){
+ const pick=(o,keys)=>Object.fromEntries(keys.filter(k=>o?.[k]!==undefined).map(k=>[k,o[k]]));
+ return {
+  referral:{
+   summary:pick(payload.summary,['users','inviters','analysis','strategy','used','trade','continued',
+    'nearby','stored','next_generation','next_used']),
+   global:pick(payload.global,['registered','inviters','bound','reinviters','next_generation',
+    'participation_rate','continuation_rate','output']),
+   window:pick(payload.window,['days','users','next_generation','new_nearby','pending',
+    'observed_output','confirmed_new_registration_rate','coverage'])},
+  coverage:{status:'partial',reason:'推荐绑定不证明新客归因；用户级关系和排名明细不发送给模型'},
+  warnings:['推荐绑定不等于新注册；历史首次/绑定顺序可能缺失；交易量不是收入']
+ };
+}
+function conversionSummary(payload){
+ const pick=(o,keys)=>Object.fromEntries(keys.filter(k=>o?.[k]!==undefined).map(k=>[k,o[k]]));
+ const compactStages=(payload.steps||payload.stages?.rows||[]).slice(0,12)
+  .map(s=>pick(s,['key','label','available','flows','users','started','success','failed',
+   'cancelled','pending','unknown','conflict','success_rate','median_ms','p90_ms']));
+ return {conversion:{scene:payload.scene,available:payload.available??payload.stages?.available??null,
+   users:payload.users??null,pending:payload.pending??null,
+   binding_rate:payload.binding_rate??null,record_total:payload.record_total??null,
+   stages:compactStages,
+   retention:(payload.retention||[]).slice(0,4).map(r=>pick(r,['day','eligible','returned','pending','rate'])),
+   registration:pick(payload.registration,['available','status','reason']),
+   association:pick(payload.association,['available','status','reason'])},
+  coverage:{status:payload.history_complete?'verified':'partial',
+   reason:'仅已观测的转化事件；无法由未观测推导未使用'},
+  warnings:['登录或邀请的未成熟/无关联事件不当作失败；事实、估算与来源分开']};
+}
+const allowedFields=id=>['scope','start','end','filters','limit','cursor',...(id==='get_funnel'?['steps','hours']:id==='get_retention'?['initial','returning']:id==='query_metrics'?['metrics','dimensions']:id==='get_seo_performance'?['siteUrl']:['get_login_conversion','get_invite_conversion'].includes(id)?['hours']:[])];
 function createToolRegistry(deps){
  const budgets=new Map(),maxQueries=deps.maxQueries??20,maxConcurrent=deps.maxConcurrent??2,maxResultBytes=deps.maxResultBytes??200000,timeoutMs=deps.timeoutMs??35000;
- function listCapabilities(context){owner(context);const period=context.period,hasPeriod=Number.isSafeInteger(period?.start)&&Number.isSafeInteger(period?.end);return Object.entries(definitions).map(([id,t])=>({id,version:'1',description:t.description,supportedScopes:t.scopes||['source','activityId','cohortId'],inputSchema:{...inputSchema,properties:Object.fromEntries(allowedFields(id).map(k=>[k,hasPeriod&&['start','end'].includes(k)?{...inputSchema.properties[k],minimum:period.start-(period.end-period.start),maximum:period.end}:inputSchema.properties[k]]))},example:{start:period?.start,end:period?.end},permission:'authenticated owner and scope',limits:{maxDays:31,maxQueries,maxConcurrent,maxResultBytes,timeoutMs,maxCandidates:80000,physicalScanBytes:'not measured'}}));}
- async function executeTool(id,input={},context){
+ function listLegacyCapabilities(context){owner(context);const period=context.period,hasPeriod=Number.isSafeInteger(period?.start)&&Number.isSafeInteger(period?.end);return Object.entries(definitions).map(([id,t])=>({id,version:'1',description:t.description,supportedScopes:t.scopes||['source','activityId','cohortId'],inputSchema:{...inputSchema,properties:Object.fromEntries(allowedFields(id).map(k=>[k,hasPeriod&&['start','end'].includes(k)?{...inputSchema.properties[k],minimum:period.start-(period.end-period.start),maximum:period.end}:inputSchema.properties[k]]))},example:{start:period?.start,end:period?.end},permission:'authenticated owner and scope',limits:{maxDays:31,maxQueries,maxConcurrent,maxResultBytes,timeoutMs,maxCandidates:80000,physicalScanBytes:'not measured'}}));}
+ async function executeLegacyTool(id,input={},context){
   owner(context);if(!Object.hasOwn(definitions,id))fail('未知调查工具');
   if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(k=>!fields.includes(k)))fail('工具输入字段无效');
   const tool=definitions[id];
@@ -60,7 +94,7 @@ function createToolRegistry(deps){
   const ctx={...context,scope},start=input.start??context.period.start,end=input.end??context.period.end;
   validateRange(start,end);if(start<context.period.start-(context.period.end-context.period.start)||end>context.period.end)fail('查询时间超出授权范围',403);
   const period={start,end,timezone:'Asia/Bangkok'},body={start,end,source:scope.source};
-  if(input.filters&&Object.keys(input.filters).length)fail('过滤器仅支持scope中的来源与固定名单，不支持SQL或自定义表达式');
+  if(input.filters&&Object.keys(input.filters).length)fail('不支持 filters 自定义筛选；来源请用 scope.source，例如 {"scope":{"source":"direct"}}；固定人群请用 scope.activityId 或 scope.cohortId');
   if(input.dimensions!=null&&(!Array.isArray(input.dimensions)||input.dimensions.some(d=>!['source','device','version'].includes(d))))fail('未知分组维度');
   if(input.metrics!=null&&(!Array.isArray(input.metrics)||!input.metrics.length||input.metrics.length>10))fail('指标列表无效');
   for(const m of input.metrics||[])describeMetric(m);
@@ -80,8 +114,12 @@ function createToolRegistry(deps){
   try{
    if(id==='get_funnel'){
     const allowed=['token','chip','drill','ai','trade','logged_in_visit','login','visit'];
-    body.steps=input.steps||['token','chip'];if(!Array.isArray(body.steps)||body.steps.length<2||body.steps.length>8||body.steps.some(s=>!allowed.includes(s)))fail('漏斗步骤不支持');
+    body.steps=input.steps||['token','chip'];if(!Array.isArray(body.steps)||body.steps.length<2||body.steps.length>8||body.steps.some(s=>!allowed.includes(s)))fail('漏斗步骤无效；仅允许 2–8 项：'+allowed.join(', '));
     body.hours=input.hours??24;if(!Number.isSafeInteger(body.hours)||body.hours<1||body.hours>168)fail('转化窗口无效');body.association='user';
+   }
+   if(['get_login_conversion','get_invite_conversion'].includes(id)){
+    body.hours=input.hours??24;
+    if(![1,24,72].includes(body.hours))fail('登录/邀请窗口只支持1、24、72小时');
    }
    if(id==='get_retention')for(const k of ['initial','returning']){body[k]=input[k]||'chip';if(!['chip','drill','ai','trade','visit'].includes(body[k]))fail('留存事件无效');}
    if(id==='get_paths')body.details=false;
@@ -106,7 +144,9 @@ function createToolRegistry(deps){
    // lists needed for internal analytics. Only archive a statistics-only
    // projection in the Agent evidence store and return that projection to the
    // model. In particular, don't trust short "rows" or nested arrays.
-   const payload=id==='get_product_chain'?productChainSummary(rawPayload):rawPayload;
+   const payload=id==='get_product_chain'?productChainSummary(rawPayload):
+    id==='get_referral'?referralSummary(rawPayload):
+    ['get_login_conversion','get_invite_conversion'].includes(id)?conversionSummary(rawPayload):rawPayload;
    const safe=statView(payload);
    if(Buffer.byteLength(JSON.stringify(safe))>maxResultBytes)
      fail('统计摘要超出大小预算，请缩小查询范围',422);
@@ -125,11 +165,19 @@ function createToolRegistry(deps){
   const view=rows?{...e,value:{...e.value,rows:rows.slice(offset,offset+limit)},page:{offset,limit,total:rows.length}}:e;
   return {status:'ok',evidence:[view],cursor:next,warnings:e.warnings};
  }
- return {listCapabilities,describeMetric,executeTool};
+ const catalog=createCapabilityCatalog({legacyIds:Object.keys(definitions),extensions:deps.extensions||[],assertOwner:owner,
+  evidenceStore:deps.evidenceStore,makeExternalEvidence:require('./externalEvidence').makeExternalEvidence});
+ const registry={listCapabilities:context=>catalog.list(context,listLegacyCapabilities),
+  executeTool:(id,input,context)=>catalog.execute(id,input,context,executeLegacyTool),describeMetric};
+ const moduleCatalog=require('./businessModuleCatalog');
+ return {...registry,
+  listBusinessModules:context=>moduleCatalog.listBusinessModules(registry,context),
+  executeBusinessModule:(request,context)=>moduleCatalog.executeBusinessModule(registry,request,context)};
 }
 function defaultRegistry(){
  const db=require('../../../db/connection'),remote=require('../../../data/hologres');
  const {createEvidenceStore}=require('../evidence'),{sqliteLookups}=require('../scope');
- return createToolRegistry({evidenceStore:createEvidenceStore(db),lookups:sqliteLookups(db),snapshot:()=>remote.status(),runAnalysis:require('./adapters').runAnalysis,metrics:require('./adapters').metrics,economics:require('./adapters').economics,activities:require('./adapters').activities,seoPerformance:require('./adapters').seoPerformance,kolPerformance:require('./adapters').kolPerformance,contentGrowth:require('./contentAdapters').contentGrowth,followerQuality:require('./contentAdapters').followerQuality});
+ return createToolRegistry({evidenceStore:createEvidenceStore(db),lookups:sqliteLookups(db),snapshot:()=>remote.status(),runAnalysis:require('./adapters').runAnalysis,metrics:require('./adapters').metrics,economics:require('./adapters').economics,activities:require('./adapters').activities,seoPerformance:require('./adapters').seoPerformance,kolPerformance:require('./adapters').kolPerformance,contentGrowth:require('./contentAdapters').contentGrowth,followerQuality:require('./contentAdapters').followerQuality,
+  extensions:require('./openseoConnector').getExtensions()});
 }
 module.exports={createToolRegistry,defaultRegistry,listMetrics,listToolIds:()=>Object.keys(definitions)};

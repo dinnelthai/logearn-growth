@@ -1,0 +1,11 @@
+# Phase 5 — shared external spend ledger (preparation; paid connector remains disabled)
+
+The pinned upstream OpenSEO `research_keywords` tool accepts up to five seeds, defaults to 150 results and charges *approximate credits per seed*, with an additional fallback charge. Upstream snapshot `every-app/open-seo@99d9a49c8cb742d54eddd64d09efbc5302f6db89` does not expose a reliable per-request USD maximum, idempotency key, or billed cost in `structuredContent.results`. **Do not assume DataForSEO supplier invoices equal estimated OpenSEO credits or guarantee that this local ledger is a supplier hard cap.** No actual supplier call has been made.
+
+## Accounting and migration
+Additive tables `ai_external_spend_policy` and `ai_external_spend_reservations` in the existing explicit AI PostgreSQL migration `001_ai_tables.sql`; run only with existing `AI_MIGRATION_APPROVED=1` and explicit expected AI database check. All policy rows default disabled, limits 0. No production policy was written. Each owner/workspace/connection/capability/day is serialized by PostgreSQL advisory transaction lock; all reservations require an active owner-scoped task lease, and duplicate task+call keys are rejected. The state is committed as `unknown` before provider I/O and counts against budget until deliberate invoice reconciliation; a provider timeout/crash cannot be automatically reissued or marked as $0. Day = Asia/Bangkok, currency = USD, integral micro-USD.
+
+`externalSpend.js` exports `reserveExternalSpend` and explicit `settleFromInvoice`. The code deliberately does **not** enable `research_keywords`: the current gateway blocks `cost:'paid'`, and there is no trustworthy per-request supplier hard cap, billing receipt or tested reconciliation handshake yet. The remaining work in Phase 5 is a separately reviewed paid connector + operator-approved guarded opening after a real deployed-protocol and billing review.
+
+## Tests / rollback
+`node --test test/externalSpend.test.js` (mock PostgreSQL; no real database). Syntax validated, real transaction concurrency and migration integration **not run**. Roll back the migration by leaving tables unused; do not DROP them automatically, as that would destroy financial evidence. No external calls and no data edits in deployed DB.

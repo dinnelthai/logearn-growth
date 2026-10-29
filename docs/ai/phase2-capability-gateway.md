@@ -1,0 +1,10 @@
+# Phase 2 — task and connection execution gateway
+
+Changes apply to **seo only**. A prepared Growth task now executes with the same server-selected capability IDs shown to the model; a restored task gets the intersection of its saved catalog and the current authorized catalog. The running registry checks the task permission again on each call. Legacy direct API calls obtain a fresh authorized list on the server; supplied `taskAllowedTools`, `ownerId`, connection URL and project IDs in a request body are ignored or rejected by schema.
+
+New connectors must provide a trusted `connection(context)` returning `{ id, ownerId, projectId, enabled:true }`, which must match the authenticated owner. `enabled`, `authorize` and connection state are checked at catalog display, invocation, and before releasing a result. The binding is only passed to the connector executor, never to the catalog response. Plugin input schema remains strict; requests are bounded to 8192 bytes, projected results to 16000 bytes; executions time out after 10s and have per-process concurrency max 2 per owner/capability. These are not cross-process spend limits. Paid or unknown-price and write capabilities remain closed.
+
+## Tests / rollback
+New tests: `test/capabilityGateway.test.js`. Run `node --test test/capabilityCatalog.test.js test/capabilityGateway.test.js test/growthSpecialistTools.test.js test/aiBusiness.test.js`, plus GSC suite. These files were inspected and JavaScript syntax-checked; full repository tests still require a checkout with Node dependencies. No schema migration; reverting this commit restores the earlier gateway. External OpenSEO credentials and production connectivity **not configured or tested**.
+
+Limits: a saved legacy context without an explicit persisted catalog falls back to the current authorized legacy catalog; the existing record/worker lease system remains responsible for task ownership. Do not enable an external connector until Phase 3 has evidence persistence and bounded model projection.

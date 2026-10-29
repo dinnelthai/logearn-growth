@@ -2,9 +2,9 @@
 const {listSkills,getSkill}=require('./skills');
 const {listToolIds}=require('../business/tools/registry');
 const {summarizeExperience}=require('./experienceFeedback');
-const supportedTools=new Set(listToolIds());
-const goalMap={activation:['growth-overview','activation-funnel'],retention:['growth-overview','retention'],conversion:['growth-overview','channel-growth','trade-conversion'],revenue:['growth-overview','revenue']};
-function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[],focusSkillId=null,strategy=null,availableSpecialties=[]}={}){
+// Tool availability is computed per trusted task; no module-load snapshot.
+const goalMap={activation:['growth-overview','activation-funnel'],retention:['growth-overview','retention'],conversion:['growth-overview','channel-growth','trade-conversion','referral-and-invite','login-conversion'],revenue:['growth-overview','revenue']};
+function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[],focusSkillId=null,strategy=null,availableSpecialties=[],availableCapabilityIds=null}={}){
  if(!Object.hasOwn(goalMap,goal))throw Object.assign(Error('未知增长目标'),{status:400});
  if(!Number.isInteger(maxSkills)||maxSkills<1||maxSkills>6)throw Error('技能数量限制无效');
  if(!report||typeof report!=='object'||!report.business?.scope||!report.period)
@@ -13,13 +13,19 @@ function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[
   'seo-organic':['activation','conversion'],
   'kol-impact':['conversion','revenue'],
   'content-growth':['conversion'],
-  'follower-quality':['conversion']
+  'follower-quality':['conversion'],
+  'referral-and-invite':['conversion'],
+  'login-conversion':['activation','conversion']
  };
  if(focusSkillId!=null&&(!Object.hasOwn(specialized,focusSkillId)||
     !specialized[focusSkillId].includes(goal)))
    throw Object.assign(Error('指定的专项技能与分析目标不兼容'),{status:400});
  if(focusSkillId&&report.business.scope.source!=='all')
    throw Object.assign(Error('专项技能需要全来源分析；不能把站外数据假称为所选渠道的筛选结果'),{status:400});
+ if(availableCapabilityIds!==null&&(!Array.isArray(availableCapabilityIds)||
+    availableCapabilityIds.length>40||availableCapabilityIds.some(x=>typeof x!=='string')))
+  throw Error('能力集合必须由可信任务入口提供');
+ const supportedTools=new Set(availableCapabilityIds||listToolIds());
  const hints=strategy?.policy?.focusMetrics||[];
  if(!Array.isArray(hints)||hints.length>3||hints.some(x=>!['active_users','new_users','returning_users','activation_rate','d7','weekly_core'].includes(x)))
   throw Object.assign(Error('学习策略包含未授权的调查指标'),{status:409});

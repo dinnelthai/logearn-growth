@@ -27,7 +27,24 @@ function validateClaims(claims,context,store){
  return claims.map(c=>{
   if(!c.id||!['fact','hypothesis','recommendation'].includes(c.kind)||typeof c.text!=='string'||!c.text.trim()||!Array.isArray(c.evidenceIds)||!c.evidenceIds.length)fail('结论缺少证据或类型');
   const evidence=new Map(c.evidenceIds.map(id=>[id,store.get(id,context)]));
-  for(const reference of c.values||[]){const e=evidence.get(reference.evidenceId);if(!e||!Object.is(e.value,reference.value))fail('结论引用数值与证据不符');}
+  for(const reference of c.values||[]){
+   const e=evidence.get(reference.evidenceId);
+   const path=reference.path||'value';
+   // Only cite values the model was actually allowed to see; never traverse
+   // unprojected event/member records or arbitrary array indices.
+   if(!/^value(?:\.[a-zA-Z][a-zA-Z0-9_]{0,63}){0,5}$/.test(path))
+    fail('结论 '+String(c.id).slice(0,40)+' 引用了不支持的证据字段路径');
+   const projected=require('./modelTransport').modelEvidence(e);
+   let actual=projected;
+   for(const segment of path.split('.')){
+    if(!actual||typeof actual!=='object'||Array.isArray(actual)||
+     !Object.hasOwn(actual,segment)){actual=undefined;break;}
+    actual=actual[segment];
+   }
+   if(typeof actual!=='number'||!Number.isFinite(actual)||!Object.is(actual,reference.value))
+    fail('结论 '+String(c.id).slice(0,40)+' 的证据 '+String(reference.evidenceId).slice(0,40)+
+     ' 字段 '+path+' 数值不匹配；请以已投影证据的数值和字段路径为准，不能猜测或代入缺失值');
+  }
   return {...c,uncertainties:c.uncertainties||[],semanticStatus:'needs_evaluation',referenceStatus:'verified'};
  });
 }

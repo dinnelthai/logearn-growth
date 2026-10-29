@@ -62,7 +62,7 @@ function scorePost(post, now=Date.now()) {
     reasons.push({kind:'noise',evidence:hardNoise[0],label:'疑似垃圾广告或诈骗内容'})
   } else if(softNoise){
     // 如果有教学/评测/使用证据，轻度扣分；否则重度扣分
-    if(teaching||review||usage){
+    if((teaching||review||usage)&&!/(our (?:tool|platform|product)|now offers)/i.test(text)){
       score-=10
       reasons.push({kind:'promo',evidence:softNoise[0],label:'包含推广元素但有实质内容'})
     } else {
@@ -83,7 +83,7 @@ function scorePost(post, now=Date.now()) {
   }
 
   // 上限约束
-  if(!domain||!intent||!tool||text.length>1200)score=Math.min(60,score)
+  if(!domain||!intent||!tool||text.length>1200)score=Math.min((teaching||review)?60:59,score)
   if(hardNoise)score=Math.min(10,score)
 
   // 分类：新增 'kol' 类别用于识别内容创作者
