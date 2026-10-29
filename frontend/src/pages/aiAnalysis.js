@@ -10,7 +10,8 @@ const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
 export function createAIAnalysis(ctx){
   const {$,esc}=ctx;
-  let generation=0,detailRequest=0,displayedDetailId=null,timer=null,reviewTimer=null,selected=null,busy=false,reviewPolling=false,historyFilter='all',notice='';
+  let generation=0,detailRequest=0,displayedDetailId=null,timer=null,reviewTimer=null,selected=null,busy=false,reviewPolling=false,historyFilter='all',historyPage=0,notice='';
+  const HISTORY_PAGE_SIZE=5;
   const defaults={start:day(Date.now()-7*DAY),end:day(Date.now()-DAY)};
   const gscDates={start:new Date(Date.now()-30*DAY).toISOString().slice(0,10),
     end:new Date(Date.now()-3*DAY).toISOString().slice(0,10)};
@@ -24,16 +25,27 @@ export function createAIAnalysis(ctx){
   function applyHistoryFilter(){
     const host=$('#as-output');
     if(!host)return;
-    let shown=0;
-    [...host.querySelectorAll('[data-ai-history-row]')].forEach(row=>{
+    const rows=[...host.querySelectorAll('[data-ai-history-row]')];
+    const matches=rows.filter(row=>{
       const kind=row.dataset.aiHistoryStatus;
-      const matches=historyFilter==='all'||(historyFilter==='processing'
+      return historyFilter==='all'||(historyFilter==='processing'
         ?['processing','pending'].includes(kind):historyFilter===kind);
-      row.hidden=!matches;
-      if(matches)shown++;
     });
+    const pages=Math.max(1,Math.ceil(matches.length/HISTORY_PAGE_SIZE));
+    historyPage=Math.min(historyPage,pages-1);
+    rows.forEach(row=>row.hidden=true);
+    matches.slice(historyPage*HISTORY_PAGE_SIZE,(historyPage+1)*HISTORY_PAGE_SIZE)
+      .forEach(row=>row.hidden=false);
     const empty=host.querySelector('[data-ai-history-empty]');
-    if(empty)empty.hidden=shown!==0;
+    if(empty)empty.hidden=matches.length!==0;
+    const pager=host.querySelector('[data-ai-history-pagination]');
+    if(pager)pager.hidden=matches.length===0;
+    const count=host.querySelector('[data-ai-history-page-info]');
+    if(count)count.textContent=`第 ${historyPage+1} / ${pages} 页 · 共 ${matches.length} 条`;
+    const prev=host.querySelector('[data-ai-history-prev]');
+    const next=host.querySelector('[data-ai-history-next]');
+    if(prev)prev.disabled=historyPage===0;
+    if(next)next.disabled=historyPage>=pages-1;
   }
   async function draw(){
     ctx.clear?.();
@@ -52,7 +64,6 @@ export function createAIAnalysis(ctx){
           <article><span>最新日报</span><strong>${agentBriefs.error?'状态未知':agentBriefs.briefs?.length?esc(agentBriefs.briefs[0].day):'暂无数据'}</strong><small>${agentBriefs.briefs?.length?esc(agentBriefs.briefs[0].status):'尚无已保存日报'}</small></article>
           <article><span>待处理事项</span><strong>${inbox.warnings?.length?'状态待核查':esc(inbox.counts?.total??'暂无数据')}</strong><small>审批、执行、复盘与失败调查</small></article>
         </div>
-        <div class="ai-decision-workspace">
         <section class="a-card ai-history"><div class="ai-history-heading"><h2>历史分析</h2>
           <label>状态<select data-ai-history-filter aria-label="筛选历史分析">
           <option value="all" ${historyFilter==='all'?'selected':''}>全部</option>
@@ -61,9 +72,9 @@ export function createAIAnalysis(ctx){
           <option value="failed" ${historyFilter==='failed'?'selected':''}>失败</option>
           <option value="completed" ${historyFilter==='completed'?'selected':''}>已完成</option>
           </select></label><button class="a-button" data-refresh>刷新</button></div>
-        ${list.records.length?`<div class="ai-history-list" role="list">${list.records.map(r=>`<div class="ai-history-row" data-ai-history-row data-analysis-id="${esc(r.id)}" data-ai-history-status="${esc(displayTaskStatus(r).kind)}" role="listitem"><button type="button" class="ai-history-title" data-analysis="${esc(r.id)}" aria-pressed="${selected===r.id}">${esc(r.title)}</button><span data-ai-history-badge class="ai-state ai-state-${esc(displayTaskStatus(r).kind)}">${esc(displayTaskStatus(r).text)}</span><span class="ai-history-meta">建议 ${esc(r.suggestion_count??'未知')} 条</span></div>`).join('')}</div><p data-ai-history-empty hidden>当前筛选条件下没有历史分析。</p>`:'<p>尚无分析，点击开始后才会调用模型。</p>'}</section>
+        ${list.records.length?`<div class="ai-history-list" role="list">${list.records.map(r=>`<div class="ai-history-row" data-ai-history-row data-analysis-id="${esc(r.id)}" data-ai-history-status="${esc(displayTaskStatus(r).kind)}" role="listitem"><button type="button" class="ai-history-title" data-analysis="${esc(r.id)}" aria-pressed="${selected===r.id}">${esc(r.title)}</button><span data-ai-history-badge class="ai-state ai-state-${esc(displayTaskStatus(r).kind)}">${esc(displayTaskStatus(r).text)}</span><span class="ai-history-meta">建议 ${esc(r.suggestion_count??'未知')} 条</span></div>`).join('')}</div><p data-ai-history-empty hidden>当前筛选条件下没有历史分析。</p>`:'<p>尚无分析，点击开始后才会调用模型。</p>'}
+          ${list.records.length?'<nav class="ai-history-pagination" data-ai-history-pagination aria-label="历史分析分页"><span data-ai-history-page-info aria-live="polite"></span><button class="a-button" type="button" data-ai-history-prev>上一页</button><button class="a-button" type="button" data-ai-history-next>下一页</button></nav>':''}</section>
         <section class="a-card ai-result" data-detail><p>选择一条分析查看证据和建议。</p></section>
-        </div>
         <details class="a-card ai-new-analysis" id="ai-new-analysis"><summary>新建分析</summary><h1>AI 业务增长助手</h1><p>主动发起分析，按业务证据排优先级；记录行动后主动复盘。所有分析与复盘均使用同一 DeRouter 模型。</p>
         <p>累计调用 ${esc(costs.total_calls)} 次 · Token ${esc(costs.total_tokens??0)} · 估算费用 ${esc(costs.total_cost??0)}（${esc(costs.unknown_cost_calls??0)} 次调用费率未配置，金额不代表免费）</p>
         <form data-ai-form><label>分析标题<input name="title" required maxlength="200" value="业务增长分析"></label>
@@ -590,10 +601,15 @@ export function createAIAnalysis(ctx){
       if(historySelect){
         historySelect.addEventListener('change',()=>{
           historyFilter=historySelect.value;
+          historyPage=0;
           applyHistoryFilter();
         });
         applyHistoryFilter();
       }
+      const previousPage=host.querySelector('[data-ai-history-prev]');
+      const nextPage=host.querySelector('[data-ai-history-next]');
+      if(previousPage)previousPage.onclick=()=>{if(historyPage>0){historyPage--;applyHistoryFilter()}};
+      if(nextPage)nextPage.onclick=()=>{historyPage++;applyHistoryFilter()};
       host.querySelector('[data-ai-form]').onsubmit=async e=>{
         e.preventDefault();if(busy)return;busy=true;const button=e.target.querySelector('button');button.disabled=true;
         const form=new FormData(e.target),requestKey=crypto.randomUUID();
@@ -602,7 +618,7 @@ export function createAIAnalysis(ctx){
           const result=await createBusinessAnalysis({requestKey,title:form.get('title'),dateRangeStart:timestamp(defaults.start),dateRangeEnd:timestamp(defaults.end)+DAY,
             businessScope:{source:form.get('source').trim()||'all'},focusGoal:form.get('goal'),userQuestion:form.get('question'),modelMode:form.get('modelMode'),skillId:form.get('skillId')||null});
           if(token!==generation)return;
-          selected=result.analysisId;await draw();
+          selected=result.analysisId;historyPage=0;await draw();
         }catch(error){if(token===generation)message(error.message);}
         finally{busy=false;if(button.isConnected)button.disabled=false;const current=$('#as-output')?.querySelector('[data-ai-form] button');if(current)current.disabled=false;}
       };
