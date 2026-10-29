@@ -123,6 +123,18 @@ test('v2 resume reuses archived paid response and protocol without replaying its
  assert.equal(env.tools.length,0);
  assert.deepEqual(env.paid,['begin:1','end:1:received']);
 });
+test('v2 blocks a second paid round when previous usage exhausts the remaining budget',async()=>{
+ const env=setup([investigations,final]);
+ await assert.rejects(runner({AI_TASK_MAX_TOKENS:'6000'}).runTask({
+  context:context(),prompt:'weekly model test',contextVersion:'v2',
+  ownerId:'o',operationId:'o-budget',operationType:'analysis',
+  ...env,validate:()=>{}
+ }),/Token硬预算不足/);
+ assert.equal(env.observed.length,1);
+ assert.equal(env.tools.length,6);
+ assert.deepEqual(env.paid,['begin:0','end:0:received']);
+ assert.equal(env.archive.get(0).results.length,6);
+});
 test('legacy protocol remains v1 unless a new task opts in',async()=>{
  const env=setup([final]);
  await runner().runTask({context:context(),prompt:'legacy test',
