@@ -16,6 +16,8 @@ function renderXPanel(x,esc,selected,sort){
  const byViews=[...measured].sort((a,b)=>b.impressions-a.impressions);
  const recent=posts.filter(p=>Date.parse(p.published_at)>=Date.now()-30*86400000);
  const m=account.metrics||{};
+ const cooldown=account.lastAttempt!=null&&Date.now()-account.lastAttempt<3600000;
+ const nextSync=cooldown?new Date(account.lastAttempt+3600000).toLocaleString('zh-CN',{timeZone:'Asia/Bangkok'}):null;
  const renderRate=p=>rate(p)==null?'未知':rate(p).toFixed(2)+'%';
  const href=p=>'https://x.com/'+encodeURIComponent(account.id)+'/status/'+encodeURIComponent(p.post_id);
  const short=p=>esc((p.body||'').replace(/\s+/g,' ').slice(0,90)||'无文字内容');
@@ -30,7 +32,8 @@ function renderXPanel(x,esc,selected,sort){
   ' · '+(x.configured?'数据源已连接':'数据源未配置')+'</p>'+
   '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><label style="display:flex;align-items:center;gap:6px">'+
   '<input type="checkbox" data-x-auto '+(account.autoSync?'checked':'')+(!x.configured?' disabled':'')+'>每日自动同步</label>'+
-  '<button type="button" class="a-button" data-x-sync '+(!x.configured?'disabled':'')+'>同步最新数据</button></div></div>';
+  '<button type="button" class="a-button" data-x-sync '+(!x.configured||cooldown?'disabled':'')+'>'+(cooldown?'同步冷却中':'同步最新数据')+'</button></div></div>';
+ if(cooldown)html+='<p class="a-muted">为控制采集费用与频率，该账号约在 '+esc(nextSync)+' 后可再次手动同步。</p>';
  if(account.error)html+='<p role="alert">上次采集失败：'+esc(account.error)+'</p>';
  if(!x.configured)html+='<p role="status">请先配置已有 X 关注者采集使用的数据源。</p>';
  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:12px">'+
@@ -66,7 +69,7 @@ function renderXPanel(x,esc,selected,sort){
   (sorted.map(p=>'<tr><td style="white-space:nowrap">'+esc((p.published_at||'').slice(0,10))+'</td><td style="max-width:480px"><a target="_blank" rel="noopener noreferrer" href="'+href(p)+'">'+short(p)+'</a></td>'+
   '<td>'+fmt(p.impressions)+'</td><td>'+[p.likes,p.replies,p.reposts].map(fmt).join(' / ')+'</td><td>'+renderRate(p)+'</td></tr>').join('')||
   '<tr><td colspan="5">尚未采集到帖子。可在上方执行同步。</td></tr>')+'</tbody></table></div>'+
-  '<p data-x-notice role="status"></p><p class="a-muted">来源：twitterapi.io 只读公开数据。缺失不等于零；互动不等于产品注册或交易。AI Growth Agent 可读取这些样本开展内容增长专项分析。</p></section>';
+  '<p data-x-notice role="status"></p><p class="a-muted">来源：twitterapi.io 只读公开数据。缺失不等于零；互动不等于产品注册或交易。<a href="?view=growth-agent-control">前往 AI Growth Agent</a> 可基于这些样本继续分析；此页面结论为本地规则比较，不是 AI 生成的报告。</p></section>';
  return html;
 }
 
