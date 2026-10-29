@@ -89,7 +89,21 @@ async function collectWeeklyCoverage({context,investigate,allowedTools,
  const byId=new Map(DEFINITIONS.map(def=>[def.id,def]));
  let used=0;
  // High-signal modules first; the remainder honestly stays not-investigated.
- for(const row of manifest.modules){
+ const scheduled=[
+  ...manifest.modules.filter(x=>!['content-growth','follower-quality'].includes(x.id)),
+  ...manifest.modules.filter(x=>['content-growth','follower-quality'].includes(x.id))
+ ];
+ // Specialists are elevated when owner-owned X data exists, without
+ // increasing the fixed query cap.
+ if(availableSpecialties.length){
+  const special=scheduled.filter(x=>availableSpecialties.includes(x.id));
+  const first=scheduled.findIndex(x=>x.id==='revenue');
+  scheduled.splice(first,0,...special);
+ }
+ const seen=new Set();
+ for(const row of scheduled){
+  if(seen.has(row.id))continue;
+  seen.add(row.id);
   if(row.status!=='not-investigated'||used>=maxQueries)continue;
   const def=byId.get(row.id);
   await shouldContinue();
@@ -122,14 +136,32 @@ async function collectWeeklyCoverage({context,investigate,allowedTools,
  }
  return {version:VERSION,modules:manifest.modules,queries:used};
 }
-function finalizeWeeklyCoverage(raw,analysis){
+function finalizeWeeklyCoverage(raw,analysis,{additionalEvidence=[]}={}){
+ // Incorporate later AI-requested tool results without executing them again.
+ // The tool journal remains the source of truth for whether a request ran.
+ const updates=new Map();
+ for(const entry of Array.isArray(additionalEvidence)?additionalEvidence:[]){
+  const tool=entry?.query?.tool;
+  if(typeof tool!=='string'||entry.result?.status==='not-executed')continue;
+  const def=DEFINITIONS.find(x=>x.tool===tool);
+  if(!def)continue;
+  const evidence=Array.isArray(entry.result?.evidence)?entry.result.evidence:[];
+  const status=describeAvailable(entry.result);
+  const original=updates.get(def.id);
+  if(original?.status==='collected'&&status!=='collected')continue;
+  updates.set(def.id,packModule(def,{status,evidence,
+   reason:status==='collected'?'AI 已调用对应模块，获得只读统计证据':
+    'AI 已调查，但当前来源没有足够的可核对指标'}));
+ }
+
  if(!raw||raw.version!==VERSION||!Array.isArray(raw.modules))return null;
  const claimed=new Set((analysis?.claims||[]).flatMap(c=>c?.evidenceIds||[]));
  const analyzed=raw.modules.map(entry=>{
-  const row={id:entry.id,label:entry.label,tool:entry.tool,
-   status:entry.status,reason:entry.reason,source:entry.source,
-   evidenceIds:[...(entry.evidenceIds||[])].slice(0,4),
-   facts:(entry.facts||[]).filter(x=>typeof x.metric==='string'&&validNumber(x.value)).slice(0,4)};
+  const chosen=entry.status==='collected'?entry:(updates.get(entry.id)||entry);
+  const row={id:chosen.id,label:chosen.label,tool:chosen.tool,
+   status:chosen.status,reason:chosen.reason,source:chosen.source,
+   evidenceIds:[...(chosen.evidenceIds||[])].slice(0,4),
+   facts:(chosen.facts||[]).filter(x=>typeof x.metric==='string'&&validNumber(x.value)).slice(0,4)};
   if(row.status==='collected'&&row.evidenceIds.some(id=>claimed.has(id))){
    row.status='analyzed';row.reason='AI 结论已引用该模块的可验证证据';
   }
