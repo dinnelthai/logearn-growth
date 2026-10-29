@@ -230,7 +230,7 @@ function shareEvidenceProvenance(context){
  if(Object.keys(shared).length)context.sharedEvidence=shared;
 }
 function modelContext(raw,{transportVersion='v1'}={}){
- if(!['v1','v2'].includes(transportVersion))throw Error('不支持的模型上下文版本');
+ if(!['v1','v2','v3'].includes(transportVersion))throw Error('不支持的模型上下文版本');
  const scope=raw.business?.scope||{};
  const evidence=Array.isArray(raw.evidence)?raw.evidence:[];
  const candidates=Array.isArray(raw.candidates)?raw.candidates:[];
@@ -294,20 +294,35 @@ function modelContext(raw,{transportVersion='v1'}={}){
    note:'原始用户/事件明细及操作记录仅保存在业务库；模型仅接收聚合统计与可追溯证据ID，未知值不是零'
   }
  };
- if(transportVersion==='v2'){
-  context.transportVersion='aggregated-business-v2';
+ if(transportVersion==='v2'||transportVersion==='v3'){
+  context.transportVersion='aggregated-business-'+transportVersion;
   // Do not discard metric values, provenance or authorized tools. Compress
   // repeated safe metadata, never raw business rows or mutable credentials.
   context.capabilities=compactCapabilities(context.capabilities);
   shareEvidenceProvenance(context);
   context.omissions.sharedEvidenceSemantics='证据项 shared 引用 sharedEvidence 同名字段；缺省且未引用表示来源未提供，不得按零或已验证处理';
+  if(transportVersion==='v3'){
+   // Transport-only optimization: prune null/empty provenance containers.
+   // Explicit metric values (including unknown nulls) and all provenance
+   // supplied by the source remain intact, with shared references preserved.
+   const prune=o=>{
+    if(Array.isArray(o))return o.map(prune);
+    if(o==null||typeof o!=='object')return o;
+    return Object.fromEntries(Object.entries(o).filter(([key,value])=>
+     key==='value'||(value!==null&&value!==''&&
+       !(typeof value==='object'&&!Array.isArray(value)&&!Object.keys(value).length)))
+     .map(([key,value])=>[key,prune(value)]));
+   };
+   context.evidence=context.evidence.map(prune);
+   context.omissions.emptyEvidenceMetadata='省略空元数据不表示观察为零；未提供的值一律未知';
+  }
  }
  // Strict transport byte cap for the first model message, independent of
  // the multilingual token preflight. Do not hide unknown data as zeros.
  const fits=()=>Buffer.byteLength(JSON.stringify(context),'utf8')<=22000;
  if(!fits()){
   context.evidence=context.evidence.slice(0,18);
-  if(transportVersion==='v2')shareEvidenceProvenance(context);
+  if(transportVersion!=='v1')shareEvidenceProvenance(context);
   context.evidenceMeta.shown=context.evidence.length;
   context.candidates=context.candidates.slice(0,6);
   context.candidatesMeta.shown=context.candidates.length;
@@ -328,7 +343,7 @@ function modelContext(raw,{transportVersion='v1'}={}){
    coverage:e.coverage,watermarks:e.watermarks,
    warnings:['统计维度已缩略，原始证据保存在业务系统']}));
   context.evidenceMeta.shown=context.evidence.length;
-  context.capabilities=context.capabilities.map(x=>transportVersion==='v2'?
+  context.capabilities=context.capabilities.map(x=>transportVersion!=='v1'?
    {id:x.id,description:x.description,input:x.input,required:x.required,
     supportedScopes:x.supportedScopes}:
    {id:x.id,description:x.description,inputSchema:x.inputSchema});
