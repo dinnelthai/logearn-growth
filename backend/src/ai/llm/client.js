@@ -94,6 +94,9 @@ class LLMClient {
         temperature: options.temperature ?? 0.7,
         maxTokens: options.maxTokens,
         stream: options.stream ?? false,
+        // Internal SSE collection is one regular paid completion, not a
+        // client-visible stream. The default chat path is unchanged.
+        collectStream: options.collectStream===true,
         tools: options.tools,
         toolChoice: options.toolChoice,
         responseFormat: options.responseFormat,
