@@ -289,9 +289,11 @@ function fitWeeklyModelContext(context,raw){
   ...(x.reason?{reason:safeText(x.reason,60)}:{})
  }));
  context.definitions=Object.fromEntries(Object.entries(context.definitions||{})
-  .sort(([a],[b])=>
-   ['active_users','new_users','returning_users'].indexOf(a)-
-   ['active_users','new_users','returning_users'].indexOf(b))
+  .sort(([a],[b])=>{
+   const order=['active_users','new_users','returning_users'];
+   const rank=id=>order.includes(id)?order.indexOf(id):order.length;
+   return rank(a)-rank(b);
+  })
   .slice(0,8).map(([k,v])=>[k,safeText(v,110)]));
  context.candidates=[];context.candidatesMeta.shown=0;
  context.growth={change:context.growth.change||{},
@@ -306,9 +308,22 @@ function fitWeeklyModelContext(context,raw){
  const wanted=new Set((raw.weeklyCoverage?.modules||[]).flatMap(x=>
   (x.evidenceIds||[]).slice(0,2)));
  const kpi=['active_users','new_users','returning_users'];
+ // At most two period-identified observations per KPI. Otherwise a
+ // long series of active_users points can crowd SEO and other modules out.
+ const kpiRows=[];
+ for(const metric of kpi){
+  for(const [start,end] of [[raw.period?.start,raw.period?.end],
+    [raw.period?.previousStart,raw.period?.previousEnd]]){
+   if(!Number.isFinite(start)||!Number.isFinite(end))continue;
+   const found=original.find(x=>x.metricId===metric&&
+    x.period?.start===start&&x.period?.end===end);
+   if(found)kpiRows.push(found);
+  }
+ }
  const order=[
+  ...kpiRows,
+  ...original.filter(x=>wanted.has(x.id)||x.metricId==='seo_search'),
   ...original.filter(x=>kpi.includes(x.metricId)),
-  ...original.filter(x=>wanted.has(x.id)),
   ...original
  ];
  const seen=new Set();
