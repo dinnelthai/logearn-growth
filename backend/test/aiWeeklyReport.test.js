@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {weeklyPeriod,weeklyKey,weeklyOperations,validateWeeklyReport}=require('../src/ai/growth/weeklyReport');
+const {weeklyPeriod,weeklyKey,weeklyOperations,validateWeeklyReport,ensureWeeklyReport}=require('../src/ai/growth/weeklyReport');
 
 test('weekly report uses last complete Monday-Sunday Bangkok week',()=>{
  const period=weeklyPeriod(Date.parse('2026-10-29T09:00:00+07:00'));
@@ -42,4 +42,15 @@ test('workspace context is bounded to aggregate counts without descriptions',()=
  assert.equal(result.goalsCount,1);
  assert.equal(JSON.stringify(result).includes('sensitive'),false);
  assert.equal(JSON.stringify(result).includes('user task'),false);
+});
+
+test('a malformed additional report becomes a clearly partial saved AI result',()=>{
+ const analysis={summary:'真实分析总结',claims:[{kind:'fact',text:'观察到变化',evidenceIds:['ev1']}],
+ suggestions:[],weeklyReport:{executiveSummary:'uncited',metrics:[{label:'wrong',current:9,previous:4,changePct:50,evidenceIds:['fake']}],
+ highlights:[],issues:[],channelFindings:[],nextWeek:[],dataGaps:[]}};
+ const report=ensureWeeklyReport(analysis);
+ assert.equal(report.partial,true);
+ assert.equal(report.metrics.length,0);
+ assert.deepEqual(report.highlights[0].evidenceIds,['ev1']);
+ assert.ok(report.dataGaps.length>0);
 });
