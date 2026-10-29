@@ -96,6 +96,25 @@ test('12-module weekly v3 fits 22KB with 17 tools while retaining core KPI and G
  assert.ok(view.omissions.weeklyModelInput.availableEvidence>view.evidence.length);
  assert.equal(JSON.stringify(view).includes('private@example.test'),false);
 });
+test('one cited observation from each collected module is selected before surplus facts',()=>{
+ const raw=fixture(17);
+ const additions=raw.weeklyCoverage.modules.filter(x=>
+  !['growth-overview','seo-organic'].includes(x.id)).map((x,i)=>{
+   const id='covered-'+x.id;
+   x.status='collected';x.evidenceIds=[id];
+   return sample('module_stat',id,{metrics:{users:20+i,clicks:11+i}});
+  });
+ raw.evidence.unshift(...additions);
+ const projected=modelContext(raw,{transportVersion:'v3'});
+ assert.ok(Buffer.byteLength(JSON.stringify(projected),'utf8')<=BUDGET);
+ const selected=new Set(projected.evidence.map(x=>x.id));
+ assert.ok(selected.has('gsc-source-evidence'));
+ assert.ok(selected.has('current-active'));
+ assert.ok(selected.has('prior-new'));
+ for(const item of additions)
+  assert.ok(selected.has(item.id),'module must not be evicted by surplus metrics: '+item.id);
+ assert.equal(projected.weeklyCoverage.length,12);
+});
 test('weekly compaction adjusts for larger tool catalogs rather than dropping module status',()=>{
  const view=modelContext(fixture(28),{transportVersion:'v3'});
  assert.ok(Buffer.byteLength(JSON.stringify(view),'utf8')<=BUDGET);
