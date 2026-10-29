@@ -258,6 +258,8 @@ function modelContext(raw,{transportVersion='v1'}={}){
   previous:statView(raw.previous||{}),
   growth:statView(raw.growth||{}),
   weekly:statView(raw.weekly||{}),
+  weeklyCoverage:raw.weeklyCoverage?.version==='weekly-coverage-v1'?
+   require('../growth/weeklyCoverage').modelCoverage(raw.weeklyCoverage):null,
   weeklySources:raw.weeklySources?{
     seo:{status:safeText(raw.weeklySources.seo?.status||'unavailable',32),
       periodMatched:raw.weeklySources.seo?.periodMatched===true,
