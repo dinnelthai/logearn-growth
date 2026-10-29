@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const {createToolRegistry,listToolIds}=require('../src/ai/business/tools/registry');
 const {createCapabilityCatalog}=require('../src/ai/business/tools/capabilityCatalog');
 const start=Date.parse('2026-10-18T00:00:00Z'),end=Date.parse('2026-10-20T00:00:00Z');
-const context={ownerId:'alice',runId:'run-a',scope:{source:'all'},period:{start,end},taskAllowedTools:['test.snapshot']};
+const context={ownerId:'alice',runId:'run-a',scope:{source:'all'},period:{start,end,timezone:'Asia/Bangkok'},taskAllowedTools:['test.snapshot']};
 const schema=properties=>({type:'object',additionalProperties:false,properties});
 const extension=(overrides={})=>({
  id:'test.snapshot',version:'1.0.0',description:'Approved local test-only snapshot',
