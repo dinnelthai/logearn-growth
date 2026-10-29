@@ -51,6 +51,7 @@ class OpenAIProvider {
       params.response_format = options.responseFormat;
     }
 
+    const startedAt=Date.now();
     try {
       // A longer deadline is allowed for an explicitly-scoped weekly report
       // only. It is not a retry: transport timeouts leave billing unknown.
@@ -91,7 +92,10 @@ class OpenAIProvider {
           {code:'AI_UPSTREAM_TIMEOUT_UNKNOWN',cause:error});
       }
       if(error?.status===524){
-        logger.error('LLM relay returned HTTP 524 (Cloudflare upstream timeout); billing unknown');
+        const cfRay=error?.headers?.['cf-ray']||error?.headers?.get?.('cf-ray')||null;
+        logger.error('LLM relay returned HTTP 524 (Cloudflare upstream timeout); billing unknown',{
+          model:options.model,elapsedMs:Date.now()-startedAt,cfRay
+        });
         throw Object.assign(new Error(
           '模型中转站 HTTP 524：上游响应超时，模型是否已执行及费用均未确认；请先核对中转站账单，不要直接重复付费请求'),
           {code:'AI_UPSTREAM_524_UNKNOWN',status:524,cause:error});
