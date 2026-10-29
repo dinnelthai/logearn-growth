@@ -62,7 +62,34 @@ test('valid high Google ranking and long page URLs are not rejected by arbitrary
 
 test('invalid metrics name the Google dimension and row without leaking query text',()=>{
  const source=fixture();
- source.queries.rows[1].position=0;
+ source.queries.rows[1].position=-1;
  assert.throws(()=>buildGoogleSnapshot('sc-domain:logearn.com',
   {startDate,endDate},source),/query 第 2 行 position 无效/);
+});
+
+test('invalid position reports a safe diagnostic without exposing arbitrary values',()=>{
+ const source=fixture();
+ source.daily.rows[0].position=-1;
+ assert.throws(()=>buildGoogleSnapshot('sc-domain:logearn.com',{startDate,endDate},source),
+  /date 第 1 行 position 无效（数值：-1）/);
+ source.daily.rows[0].position=undefined;
+ assert.throws(()=>buildGoogleSnapshot('sc-domain:logearn.com',{startDate,endDate},source),
+  /position 无效（缺失）/);
+ source.daily.rows[0].position='sensitive';
+ assert.throws(()=>buildGoogleSnapshot('sc-domain:logearn.com',{startDate,endDate},source),
+  error=>error.message.includes('position 无效（类型：string）')&&!error.message.includes('sensitive'));
+});
+
+test('zero position is unavailable and does not bias aggregate ranking',()=>{
+ const source=fixture();
+ source.daily.rows[0].position=0;
+ source.queries.rows[0].position=0;
+ const raw=buildGoogleSnapshot('sc-domain:logearn.com',{startDate,endDate},source);
+ assert.equal(raw.daily[0].position,null);
+ assert.equal(raw.queries[0].position,null);
+ assert.equal(raw.property_totals.position,null);
+ assert.ok(raw.coverage.positionUnavailableRows>0);
+ source.daily.rows[0]=row(startDate,0,0,0);
+ const zero=buildGoogleSnapshot('sc-domain:logearn.com',{startDate,endDate},source);
+ assert.equal(zero.property_totals.position,6);
 });

@@ -22,11 +22,17 @@ function normalizeGoogleRows(response,dimension,max){
    !Number.isFinite(r.clicks)||r.clicks<0?'clicks':
    !Number.isFinite(r.impressions)||r.impressions<0?'impressions':
    !Number.isFinite(r.ctr)||r.ctr<0||r.ctr>1?'ctr':
-   !Number.isFinite(r.position)||r.position<1?'position':null;
-  if(invalid)fail(`Search Console ${dimension} 第 ${index+1} 行 ${invalid} 无效，拒绝保存`,503);
+   !Number.isFinite(r.position)||r.position<0||r.position>0&&r.position<1?'position':null;
+  if(invalid){
+   const value=r?.[invalid];
+   const detail=invalid==='position'?value===undefined?'（缺失）':
+    typeof value==='number'?`（数值：${String(value)}）`:
+    value===null?'（null）':`（类型：${typeof value}）`:'';
+   fail(`Search Console ${dimension} 第 ${index+1} 行 ${invalid} 无效${detail}，拒绝保存`,503);
+  }
   if(dimension==='date')dateMs(r.keys[0]);
   return {[dimension]:r.keys[0],clicks:r.clicks,
-   impressions:r.impressions,ctr:r.ctr,position:r.position};
+   impressions:r.impressions,ctr:r.ctr,position:r.position===0?null:r.position};
  });
 }
 function summarizeGsc(record){
@@ -44,7 +50,8 @@ function summarizeGsc(record){
   queries:queries.slice(0,100),pages:pages.slice(0,50),opportunities,coverage,
   warnings:['Search Console 的查询、页面维度受内部行数限制及匿名化影响；绝不能用行合计代替站点总量',
    'GSC 数据日期按太平洋时间（PT），与 LogEarn 曼谷业务日不同',
-   'GSC 点击与排名不证明注册、筹码分析、成交或 SEO 行动的因果效果']};
+   'GSC 点击与排名不证明注册、筹码分析、成交或 SEO 行动的因果效果',
+   ...(coverage?.positionUnavailableRows?['Google 返回的部分排名为 0，已标记为不可用；有曝光的缺失排名会使整体平均排名不可用']:[])]};
 }
 function buildGoogleSnapshot(siteUrl,window,responses,mode='service-account'){
  const daily=normalizeGoogleRows(responses.daily,'date',31)
@@ -61,7 +68,7 @@ function buildGoogleSnapshot(siteUrl,window,responses,mode='service-account'){
    clicks:daily.length?clicks:null,
    impressions:daily.length?impressions:null,
    ctr:daily.length&&impressions?clicks/impressions:null,
-   position:daily.length&&impressions?
+   position:daily.length&&impressions&&!daily.some(r=>r.impressions>0&&r.position===null)?
     daily.reduce((n,r)=>n+r.position*r.impressions,0)/impressions:null
   },
   coverage:{
@@ -70,6 +77,7 @@ function buildGoogleSnapshot(siteUrl,window,responses,mode='service-account'){
     (_,i)=>new Date(dateMs(window.startDate)+i*DAY).toISOString().slice(0,10))
     .filter(d=>!seen.has(d)),
    queryRowsReturned:queries.length,pageRowsReturned:pages.length,
+   positionUnavailableRows:[...daily,...queries,...pages].filter(r=>r.position===null).length,
    queryTruncatedPossible:queries.length===500,pageTruncatedPossible:pages.length===100,
    googleApiVerifiedForServiceIdentity:mode==='service-account',
    googleAuthorizationMode:mode,
