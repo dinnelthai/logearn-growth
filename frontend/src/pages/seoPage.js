@@ -8,7 +8,7 @@ const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 /** SEO evidence and explicitly requested Google sync; never starts paid AI work. */
 export function createSeoPage(ctx){
  const {$,esc}=ctx;
- let generation=0,busy=false,notice='',oauthListener=null,oauthTimer=null;
+ let generation=0,busy=false,notice='',syncNotice='',oauthListener=null,oauthTimer=null;
  const backendOrigin=new URL(import.meta.env.VITE_BACKEND_BASE_URL??'http://localhost:3001').origin;
  const gscDates={start:new Date(Date.now()-30*DAY).toISOString().slice(0,10),end:new Date(Date.now()-3*DAY).toISOString().slice(0,10)};
  const formatCount=v=>v==null?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0});
@@ -69,6 +69,7 @@ export function createSeoPage(ctx){
               <input type="date" name="endDate" required value="${esc(gscDates.end)}"></label>
             <button type="submit" class="a-button" ${!gscConnection.selectedSite?'disabled':''}>从 Google 同步数据</button>
           </form>
+          <p data-gsc-sync-status role="status" aria-live="polite">${esc(syncNotice)}</p>
           <p>同步采用已最终确定的 Google 搜索数据；不会发起 AI 调查，也不会修改网站、索引或 Sitemap 设置。</p>
         </section>
         <section class="a-card ai-gsc-report">
@@ -187,14 +188,22 @@ export function createSeoPage(ctx){
         const button=e.target.querySelector('button');button.disabled=true;
         const form=new FormData(e.target),startDate=String(form.get('startDate')||''),
           endDate=String(form.get('endDate')||'');
+        const syncStatus=host.querySelector('[data-gsc-sync-status]');
+        syncNotice='正在读取并校验 Google 搜索数据…';
+        if(syncStatus)syncStatus.textContent=syncNotice;
         try{
           const synced=await syncGscPerformance(startDate,endDate);
           gscDates.start=startDate;gscDates.end=endDate;
           if(token===generation){
-            message(synced.cached?'已读取最近同步的 Search Console 快照':'Google Search Console 已同步最终数据');
+            syncNotice=synced.cached?'已读取最近同步的 Search Console 快照':'Google Search Console 已同步最终数据';
+            message(syncNotice);
             await draw();
           }
-        }catch(error){if(token===generation)message('Search Console 同步失败：'+error.message)}
+        }catch(error){if(token===generation){
+          syncNotice='Search Console 同步失败：'+error.message;
+          if(syncStatus)syncStatus.textContent=syncNotice;
+          message(syncNotice);
+        }}
         finally{busy=false;if(button.isConnected)button.disabled=false}
       };
       const gscDiagnostics=host.querySelector('[data-gsc-diagnostic-result]');
