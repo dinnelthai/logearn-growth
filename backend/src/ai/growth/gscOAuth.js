@@ -95,26 +95,29 @@ function createGscOAuth({db=pool,env=process.env,request=fetch,clock=Date.now}={
  }
  async function accessToken(ownerId){
   const id=String(ownerId);
-  const saved=cache.get(id);
-  if(saved&&saved.expires>clock()+60000)return saved.token;
-  if(pending.has(id))return pending.get(id);
+  // Read the connection version each time so revoked or replaced grants cannot reuse
+  // an access-token cache left in another HTTP or Worker process.
+  const r=await db.query('SELECT refresh_token_enc,updated_at FROM ai_growth_gsc_oauth_connections WHERE owner_id=$1',[id]);
+  if(!r.rows[0]){cache.delete(id);fail('尚未连接 Google Search Console',409)}
+  const version=String(r.rows[0].updated_at),saved=cache.get(id);
+  if(saved&&saved.version===version&&saved.expires>clock()+60000)return saved.token;
+  if(pending.get(id)?.version===version)return pending.get(id).job;
   const job=(async()=>{
-   const r=await db.query('SELECT refresh_token_enc FROM ai_growth_gsc_oauth_connections WHERE owner_id=$1',[id]);
-   if(!r.rows[0])fail('尚未连接 Google Search Console',409);
    const c=config(env);
    const refreshToken=decrypt(r.rows[0].refresh_token_enc,c.key);
    const result=await googleToken({client_id:c.clientId,client_secret:c.clientSecret,
     refresh_token:refreshToken,grant_type:'refresh_token'});
-   cache.set(id,{token:result.access_token,expires:clock()+Math.min(3600,Math.max(60,Number(result.expires_in)||3600))*1000});
+   cache.set(id,{version,token:result.access_token,expires:clock()+Math.min(3600,Math.max(60,Number(result.expires_in)||3600))*1000});
    return result.access_token;
   })();
-  pending.set(id,job);
-  try{return await job}finally{pending.delete(id)}
+  pending.set(id,{version,job});
+  try{return await job}finally{if(pending.get(id)?.job===job)pending.delete(id)}
  }
  async function disconnect(ownerId){
   const id=String(ownerId);
   await db.query('DELETE FROM ai_growth_gsc_oauth_connections WHERE owner_id=$1',[id]);
   await db.query('DELETE FROM ai_growth_gsc_settings WHERE owner_id=$1',[id]);
+  await db.query('DELETE FROM ai_growth_gsc_sync_jobs WHERE owner_id=$1',[id]);
   cache.delete(id);
   return {connected:false};
  }
