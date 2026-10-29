@@ -1,5 +1,6 @@
 'use strict';
-// Declarative Growth Skills; existing tools remain the only data source.
+// Declarative Growth Skills combine existing business/GSC tools with optional,
+// owner-scoped reviewed connectors. Missing connectors are filtered at planning.
 // Versions are explicit so future skill changes can be reviewed independently.
 const skills=Object.freeze([
  {id:'growth-overview',version:'1',goal:'activation',label:'每日增长概览',
@@ -21,8 +22,8 @@ const skills=Object.freeze([
   tools:['get_channel_economics','query_metrics','check_data_quality'],signals:[],
   instructions:'按币种独立统计，未记录的收入不能当作零'},
  {id:'seo-organic',version:'1',goal:'conversion',label:'SEO Search Console 搜索表现',
-  tools:['get_seo_performance','get_channels','get_funnel'],signals:['new_users','activation_rate'],
-  instructions:'优先使用 Google API 已最终确定的聚合快照，手动导入仅为有限证据；报告期可能与业务分析期不一致，不得据此计算 SEO 转化或声称因果关系；GSC 查询行不代表全站总量'},
+  tools:['get_seo_performance','get_channels','get_funnel','openseo.saved_rankings'],signals:['new_users','activation_rate'],
+  instructions:'组合内部业务事实、第一方 GSC 观测与第三方 OpenSEO 已保存排名；来源、时间和覆盖不同，不计算未经验证的 SEO 因果归因。OpenSEO 未配置或故障时仅使用现有 GSC/内部数据'},
  {id:'content-growth',version:'1',goal:'conversion',label:'内容增长与渠道表现',
   tools:['get_content_growth','get_channels','get_funnel'],signals:['new_users','activation_rate'],
   instructions:'人工登记内容数据仅作累积表现参考；必须额外查验独立访问和注册事实，不能归因假设当因果证据'},

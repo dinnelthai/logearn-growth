@@ -87,11 +87,20 @@ async function businessAnalysis(job) {
       focusGoal==='conversion'&&source==='all';
     const availableSpecialties=isDailyConversion
       ?require('../../ai/growth/dailySpecialties').availableDailySpecialties(require('../../db/connection'),ownerId):[];
+    const focusSkillId=executionClaim.record.filter_conditions?.skillId||null;
+    // Only a specialized SEO task needs external tool discovery. The provider
+    // catalog evaluates the LIVE owner binding; nothing is sourced from model input.
+    let availableCapabilityIds=null;
+    if(focusSkillId==='seo-organic'){
+      const toolRegistry=require('../../ai/business/tools/registry').defaultRegistry();
+      availableCapabilityIds=toolRegistry.listCapabilities({
+        ownerId,runId:analysisId,scope,period:compact.period
+      }).map(item=>item.id);
+    }
     const growthPlan=require('../../ai/growth/planner').planGrowthInvestigation({
-      goal:focusGoal,report:compact,history:memory,
-      focusSkillId:executionClaim.record.filter_conditions?.skillId||null,
+      goal:focusGoal,report:compact,history:memory,focusSkillId,
       maxSkills:Math.min(6,3+availableSpecialties.length),availableSpecialties,
-      strategy:learnedStrategy
+      strategy:learnedStrategy,availableCapabilityIds
     });
     const memoryView=require('../../ai/business/contextBudget').compactMemory(memory);
     compact={...compact,business:{...compact.business,question:userQuestion||compact.business.question},

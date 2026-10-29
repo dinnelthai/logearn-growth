@@ -10,6 +10,23 @@ function createRouter({db,registry}){
  router.get('/changes',handle(async(req,res)=>res.json({changes:store.listChanges(req.user.user_id)})));
  router.get('/metrics',handle(async(req,res)=>res.json({metrics:require('../ai/business/metricRegistry').listMetrics()})));
  router.get('/capabilities',handle(async(req,res)=>res.json({tools:registry.listCapabilities(context(req))})));
+ // Minimal management status: NEVER echo service URL, credentials, project IDs,
+ // or assume live connectivity just because server configuration exists.
+ router.get('/connectors',handle(async(req,res)=>{
+  const {configuration,bindingFor}=require('../ai/business/tools/openseoConnector');
+  const ownerId=String(req.user.user_id);
+  const configured=!!configuration();
+  const authorized=!!bindingFor(process.env,{ownerId});
+  const listed=registry.listCapabilities(context(req));
+  res.json({connectors:[{
+    id:'openseo',status:configured?(authorized?'configured_authorized':'unmapped'):'disabled',
+    connectivity:'not_verified',readOnly:true,
+    capabilities:listed.filter(cap=>cap.id.startsWith('openseo.'))
+      .map(({id,version,description,cost})=>({id,version,description,cost})),
+    paidResearch:'disabled_pending_billing_verification',
+    changes:'server_configuration_only',lastError:null
+  }]});
+ }));
  router.post('/tools/:id',handle(async(req,res)=>{
   const base=context(req);
   // Direct user requests obtain a fresh server-side catalog, never a request
