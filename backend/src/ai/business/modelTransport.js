@@ -305,8 +305,11 @@ function fitWeeklyModelContext(context,raw){
  // Select first owner-scoped evidence by reference and KPI importance, not
  // ingestion order, which otherwise pushes earlier-week and SEO facts out.
  const original=Array.isArray(raw.evidence)?raw.evidence:[];
- const wanted=new Set((raw.weeklyCoverage?.modules||[]).flatMap(x=>
-  (x.evidenceIds||[]).slice(0,2)));
+ const moduleRows=raw.weeklyCoverage?.modules||[];
+ const firstModuleIds=moduleRows.map(x=>x.evidenceIds?.[0]).filter(Boolean);
+ const extraModuleIds=new Set(moduleRows.flatMap(x=>
+  (x.evidenceIds||[]).slice(1,2)));
+ const evidenceById=new Map(original.map(x=>[x.id,x]));
  const kpi=['active_users','new_users','returning_users'];
  // At most two period-identified observations per KPI. Otherwise a
  // long series of active_users points can crowd SEO and other modules out.
@@ -328,7 +331,9 @@ function fitWeeklyModelContext(context,raw){
  }
  const order=[
   ...kpiRows,
-  ...original.filter(x=>wanted.has(x.id)||x.metricId==='seo_search'),
+  ...firstModuleIds.map(id=>evidenceById.get(id)).filter(Boolean),
+  ...original.filter(x=>x.metricId==='seo_search'),
+  ...original.filter(x=>extraModuleIds.has(x.id)),
   ...original.filter(x=>kpi.includes(x.metricId)),
   ...original
  ];
