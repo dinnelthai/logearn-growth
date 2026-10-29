@@ -6,7 +6,7 @@ const {summarizeExperience}=require('./experienceFeedback');
 const goalMap={activation:['growth-overview','activation-funnel'],retention:['growth-overview','retention'],conversion:['growth-overview','channel-growth','trade-conversion','referral-and-invite','login-conversion'],revenue:['growth-overview','revenue']};
 function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[],focusSkillId=null,strategy=null,availableSpecialties=[],availableCapabilityIds=null,includeWeeklySpecialties=false}={}){
  if(!Object.hasOwn(goalMap,goal))throw Object.assign(Error('未知增长目标'),{status:400});
- if(!Number.isInteger(maxSkills)||maxSkills<1||maxSkills>(includeWeeklySpecialties?8:6))throw Error('技能数量限制无效');
+ if(!Number.isInteger(maxSkills)||maxSkills<1||maxSkills>(includeWeeklySpecialties?12:6))throw Error('技能数量限制无效');
  if(!report||typeof report!=='object'||!report.business?.scope||!report.period)
   throw Error('必须提供现有业务报告作为任务规划依据');
  const specialized={
@@ -42,10 +42,12 @@ function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[
  if(typeof includeWeeklySpecialties!=='boolean')throw Error('周报专项授权标识无效');
  const additional=(goal==='conversion'||includeWeeklySpecialties)&&
    report.business.scope.source==='all'?availableSpecialties:[];
- const weeklyEssential=['growth-overview','activation-funnel','seo-organic',
-  'channel-growth','retention','trade-conversion'];
+ const weeklyEssential=['growth-overview','seo-organic','channel-growth',
+  'activation-funnel','retention','trade-conversion','revenue',
+  'referral-and-invite','login-conversion','kol-impact',
+  'content-growth','follower-quality'];
  const defaultIds=includeWeeklySpecialties&&report.business.scope.source==='all'
-  ?[...new Set([...weeklyEssential,...additional])]
+  ?weeklyEssential
   :[...new Set([...additional,...goalMap[goal]])];
  const available=[...(focusSkillId?[getSkill(focusSkillId)]:[]),...defaultIds.filter(id=>id!==focusSkillId).map(getSkill)];
  const ordered=available.map((skill,i)=>({
