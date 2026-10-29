@@ -567,14 +567,24 @@ router.get('/jobs/:jobId/checkpoint',handle(async(req,res)=>{
   // model responses or tool results on this diagnostics endpoint.
   const calls=require('../ai/business/trace').createTraceStore(require('../db/connection')).list(req.user.user_id,record.id);
   const summary=require('../ai/business/checkpointState').inspectCheckpoint(calls);
+  // This is a server-side view of the shared, durable PostgreSQL paid-call
+  // fence. Local SQLite alone cannot prove no provider call was dispatched.
+  const ledger=await records.listAnalysisPaidCalls(record.id,req.user.user_id);
+  const paidCallState=ledger.length===0?(calls.length?'mismatch':'not-started'):
+    ledger.some(item=>['started','unknown'].includes(item.status))?'uncertain':
+    ledger.some(item=>item.status!=='received')||ledger.length!==calls.length
+      ?'mismatch':'received';
+  const safeToRetry=record.status==='failed'&&!record.cancel_requested&&
+    paidCallState==='not-started'&&summary.state==='not-started'&&summary.modelCalls===0;
   const leaseExpired=record.status==='processing' && (!record.lease_expires_at || Number(record.lease_expires_at)<=Date.now());
   const active=record.status==='processing'&&!leaseExpired&&!record.cancel_requested;
   const inProgress=active&&((summary.reason==='unresolved-paid-call'&&calls.at(-1)?.status==='started')||summary.state==='partial-tools');
   res.json({analysisId:record.id,recordStatus:record.status,
     leaseExpired,leaseExpiresAt:record.lease_expires_at||null,
-    ...summary,
+    ...summary,paidCallState,paidCallCount:ledger.length,safeToRetry,
     ...(inProgress?{state:'in-progress',reason:'work-in-progress'}:{}),
-    requiresHumanReview:leaseExpired||(!inProgress&&(summary.state==='blocked'||summary.state==='partial-tools'))});
+    requiresHumanReview:leaseExpired||['uncertain','mismatch'].includes(paidCallState)||
+      (!inProgress&&(summary.state==='blocked'||summary.state==='partial-tools'))});
 }));
 router.get('/jobs/:jobId/status',handle(async(req,res)=>{
   const status=await getJobStatus('aiAnalysis',req.params.jobId);
