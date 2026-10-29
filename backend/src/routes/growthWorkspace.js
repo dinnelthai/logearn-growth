@@ -1,6 +1,6 @@
 'use strict';
 // Mount only behind the application's existing `requireAuth` middleware.
-// This API is fully read-only with respect to external services and models.
+// Existing workspace routes are read-only for external services. Weekly AI runs require an explicit POST and use the existing paid-call guards.
 const express=require('express');
 const {workspaceStore}=require('../ai/growth/workspace/store');
 const {currentMonth}=require('../ai/growth/workspace/period');
@@ -41,6 +41,52 @@ function createRouter({db=require('../db/connection')}={}){
  router.post('/actions/:id/status',h(async(req,res,owner)=>res.json(store.updateAction(owner,req.params.id,req.body?.status,req.body||{}))));
  router.post('/actions/:id/review',h(async(req,res,owner)=>res.json(store.reviewAction(owner,req.params.id,req.body||{}))));
  router.get('/evidence/:id',h(async(req,res,owner)=>{const evidence=store.getEvidence(owner,req.params.id);res.status(evidence?200:404).json(evidence||{error:'证据不存在'})}));
+ // Last *completed* Monday-Sunday period, computed server-side in Bangkok time.
+ // All report queries use the shared, owner-scoped AI record store.
+ router.get('/ai-weekly-reports',h(async(req,res,owner)=>{
+  const records=require('../db/aiRecords');
+  const {weeklyPeriod}=require('../ai/growth/weeklyReport');
+  res.json({period:weeklyPeriod(),
+   reports:await records.listWeeklyReportRecords(owner,{limit:20}),paidGeneration:false});
+ }));
+ router.post('/ai-weekly-reports',h(async(req,res,owner)=>{
+  const {weeklyPeriod,weeklyKey,weeklyOperations}=require('../ai/growth/weeklyReport');
+  const records=require('../db/aiRecords');
+  const period=weeklyPeriod();
+  const requestKey=weeklyKey(period);
+  const prior=await records.listWeeklyReportRecords(owner,{limit:50});
+  const existing=prior.find(row=>Number(row.date_range_start)===period.start&&Number(row.date_range_end)===period.end);
+  if(existing)return res.json({analysisId:existing.id,status:existing.status,reused:true,notice:'本周已有周报任务，不会重复触发模型'});
+  const operations=weeklyOperations(store,owner,period);
+  const userQuestion='请对本周 LogEarn 业务增长与运营工作输出可核对的完整 AI 运营周报：本周变化、核心漏斗、重要异常、渠道证据、人工运营工作量、下周优先事项和数据缺口。严禁无数据归因或编造业务指标。';
+  const focusGoal='activation',scope={source:'all'},modelMode='auto',title='AI 运营周报 · '+new Date(period.start+25200000).toISOString().slice(0,10);
+  const record=await records.createAnalysisRecord({
+   ownerId:owner,requestKey,title,analysisType:'optimization',
+   dateRangeStart:period.start,dateRangeEnd:period.end,businessScope:scope,
+   userQuestion,dataSnapshot:{},filterConditions:{
+    businessScope:scope,focusGoal,modelMode,evidenceReportId:null,goalRef:null,
+    skillId:null,weeklyReport:'v1',weeklyOperations:operations}
+  });
+  if(record.filter_conditions?.weeklyReport!=='v1'||
+     Number(record.date_range_start)!==period.start||Number(record.date_range_end)!==period.end)
+   return res.status(409).json({error:'周报请求标识与已保存任务不一致，禁止重复付费'});
+  // Existing rows are never queued a second time. The original request
+  // may have reserved model calls; the safe recovery flow remains manual.
+  if(record.created_at< Date.now()-120000)
+   return res.json({analysisId:record.id,status:record.status,reused:true});
+  try{
+   const job=await require('../queues/queues').addAIAnalysisJob('business-analysis',{
+    analysisId:record.id,ownerId:owner,dateRangeStart:period.start,dateRangeEnd:period.end,
+    businessScope:scope,userQuestion,focusGoal,modelMode,skillId:null
+   },{jobId:record.id,attempts:1});
+   res.status(202).json({analysisId:record.id,jobId:job.id,status:record.status,queued:true,
+    notice:'AI 周报已提交到现有分析队列，模型调用可能产生费用。'});
+  }catch(error){
+   // The task is durable. Do not fabricate a successful queue dispatch.
+   await records.updateAnalysisStatus(record.id,'failed',null,'队列提交失败：'+error.message);
+   throw error;
+  }
+ }));
  router.get('/reports',h(async(req,res,owner)=>res.json({reports:store.reportList(owner,{kind:req.query.kind||null})})));
  router.post('/reports/:kind',h(async(req,res,owner)=>{const report=store.buildReport(owner,req.params.kind,{publish:req.body?.publish===true,forceRevision:req.body?.forceRevision===true});res.json(report)}));
  router.get('/quality',h(async(req,res,owner)=>res.json(store.qualitySummary(owner))));
