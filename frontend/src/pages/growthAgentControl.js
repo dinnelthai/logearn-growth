@@ -53,8 +53,8 @@ export function createGrowthAgentControl(ctx){
   const rows=briefs.briefs||[],questions=research.questions||[],candidates=prompts.candidates||[]
   const policies=learning.strategies||{}
   host().innerHTML=`
-  <section class="a-card a-details"><h2>AI Growth Agent 控制台</h2>
-   <p>只读状态与人工审核。查看和刷新不触发付费 AI，也不执行运营修改。</p>
+  <section class="a-card a-details"><h2>运行状态</h2>
+   <p>查看状态与刷新数据不会触发付费 AI。</p>
    ${err(status)}
    <div style="display:flex;gap:16px;flex-wrap:wrap">
     <div><strong>调度</strong><p>${status.schedulerRunning?'运行中':status.schedulerConfigured?'未确认运行':'未启用'}</p></div>
@@ -140,10 +140,10 @@ export function createGrowthAgentControl(ctx){
   const tabNav=document.createElement('nav')
   tabNav.className='ga-switcher'
   tabNav.setAttribute('aria-label','Growth Agent 页面视图')
-  tabNav.innerHTML=`<div class="ga-heading"><span class="ga-eyebrow">LogEarn · Growth Intelligence</span><strong>增长决策中心</strong><small>先看问题，再看证据，最后决定行动</small></div>
+  tabNav.innerHTML=`<div class="ga-heading"><strong>工作区</strong></div>
   <div class="ga-tabs" role="tablist" aria-label="切换增长工作区">
-   <button class="ga-tab" role="tab" type="button" data-ga-tab="workspace" aria-controls="ga-panel-workspace">决策工作台</button>
-   <button class="ga-tab" role="tab" type="button" data-ga-tab="runtime" aria-controls="ga-panel-runtime">运行与日报</button>
+   <button class="ga-tab" role="tab" type="button" data-ga-tab="workspace" aria-controls="ga-panel-workspace">周报与决策</button>
+   <button class="ga-tab" role="tab" type="button" data-ga-tab="runtime" aria-controls="ga-panel-runtime">日报与运行</button>
    <button class="ga-tab" role="tab" type="button" data-ga-tab="governance" aria-controls="ga-panel-governance">研究与治理</button>
   </div>`
   host().classList.add('ga-control-surface')
