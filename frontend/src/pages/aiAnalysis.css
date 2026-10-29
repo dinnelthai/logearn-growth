@@ -658,8 +658,10 @@
 #la-studio .ai-history-heading .a-button { font-size: 12px; padding: 8px 10px; }
 #la-studio .ai-history-list { display: grid; gap: 4px; margin-top: 12px; }
 #la-studio .ai-history-row {
-  display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 12px;
-  align-items: center; padding: 9px 12px; border-radius: var(--ui-radius-sm);
+  display: grid;
+  grid-template-columns: minmax(0,1.2fr) minmax(0,1fr) auto auto;
+  align-items: center; gap: 14px;
+  padding: 12px 14px; border-radius: var(--ui-radius-sm);
   border: 1px solid transparent; background: transparent;
 }
 #la-studio .ai-history-row:hover { background: var(--ui-surface-raised); }
@@ -671,7 +673,15 @@
   appearance: none; display: block; min-width: 0; padding: 0; border: 0; background: none;
   color: var(--a-text); font-size: 13px; font-weight: 600; text-align: left; overflow-wrap: anywhere; cursor: pointer;
 }
-#la-studio .ai-history-meta { grid-column: auto; font-size: 11px; color: var(--a-muted); }
+#la-studio .ai-history-main { display: grid; min-width: 0; gap: 5px; }
+#la-studio .ai-history-time { font-size: 11px; color: var(--a-muted); line-height: 1.45; }
+#la-studio .ai-history-progress { font-size: 12px; line-height: 1.6; color: var(--a-muted); }
+#la-studio .ai-history-row .ai-history-delete {
+  justify-self: end; align-self: center; width: auto;
+  min-width: 0; padding: 6px 10px; font-size: 11px;
+  background: transparent; color: var(--a-muted);
+  white-space: nowrap;
+}
 #la-studio .ai-history-row .ai-state { font-size: 10px; white-space: nowrap; }
 
 #la-studio .ai-result { padding: 25px 28px; min-width: 0; }
@@ -736,8 +746,8 @@
 #la-studio .ai-history-pagination .a-button {
   padding: 7px 12px; min-width: 68px; font-size: 12px;
 }
-@media (max-width: 700px) {
-  #la-studio .ai-history-row { grid-template-columns: minmax(0,1fr) auto; }
-  #la-studio .ai-history-meta { grid-column: 1 / -1; }
+@media (max-width: 1150px) {
+  #la-studio .ai-history-row { grid-template-columns: minmax(0,1fr) auto auto; gap: 8px 12px; }
+  #la-studio .ai-history-progress { grid-column: 1 / -1; grid-row: 2; }
 }
-#la-studio .ai-history-delete { padding:4px 8px; font-size:11px; }
+
