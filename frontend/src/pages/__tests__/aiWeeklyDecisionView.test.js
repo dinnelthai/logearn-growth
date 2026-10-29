@@ -32,6 +32,7 @@ describe('decision-first weekly view',()=>{
  it('puts genuine negative business changes ahead of technical logs',()=>{
   const html=renderWeeklyDecisionReport({...options,data:base,record});
   expect(html.indexOf('最需要处理的问题')).toBeLessThan(html.indexOf('关键指标 · 环比'));
+  expect(html).toContain('部分校验 · 业务结论待核实');
   expect(html).toContain('首次分析用户下降 55%');
   expect(html).toContain('分析活跃用户下降 13.41%');
   expect(html).toContain('18');
@@ -54,6 +55,14 @@ describe('decision-first weekly view',()=>{
   expect(html).toContain('class="ai-weekly-kpi" data-trend="down"');
   expect(html).toContain('class="ai-weekly-action" data-priority="p0"');
   expect(html).toContain('data-status="not-investigated"');
+ });
+ it('never equates JSON validation with verified business diagnosis',()=>{
+  const report={...base,result:{...base.result,weeklyReport:{
+   ...base.result.weeklyReport,partial:false
+  }}};
+  const html=renderWeeklyDecisionReport({...options,data:report,record});
+  expect(html).toContain('结构校验通过 · 业务结论待核实');
+  expect(html).not.toContain('结构已验证</span>');
  });
  it('does not invent historical SEO results without saved GSC evidence',()=>{
   const html=renderWeeklyDecisionReport({...options,data:base,record});
