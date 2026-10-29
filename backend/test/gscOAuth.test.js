@@ -24,12 +24,13 @@ function fixture(){
   if(sql.startsWith('SELECT owner_id FROM ai_growth_gsc_oauth_connections')){
    return {rows:connections.has(p[0])?[{owner_id:p[0]}]:[]};
   }
-  if(sql.startsWith('SELECT refresh_token_enc FROM ai_growth_gsc_oauth_connections')){
-   return {rows:connections.has(p[0])?[{refresh_token_enc:connections.get(p[0])}]:[]};
+  if(sql.startsWith('SELECT refresh_token_enc,updated_at FROM ai_growth_gsc_oauth_connections')){
+   return {rows:connections.has(p[0])?[{refresh_token_enc:connections.get(p[0]),updated_at:1000000}]:[]};
   }
   if(sql.startsWith('DELETE FROM ai_growth_gsc_oauth_connections')){
    connections.delete(p[0]);return {rows:[]};
   }
+  if(sql.startsWith('DELETE FROM ai_growth_gsc_sync_jobs'))return {rows:[]};
   if(sql.startsWith('DELETE FROM ai_growth_gsc_settings')){
    settings.delete(p[0]);return {rows:[]};
   }
@@ -58,11 +59,15 @@ test('OAuth state is one-use, owner-bound, PKCE-protected and stored as a hash',
  assert.ok(state&&state.length>32);
  assert.equal(f.states.has(state),false);
  assert.equal(f.states.size,1);
+ const verifier=[...f.states.values()][0].verifier;
+ const {createHash}=require('node:crypto');
+ assert.equal(url.searchParams.get('code_challenge'),
+  createHash('sha256').update(verifier).digest('base64url'));
  await oauth.complete(state,'authorization-code');
  assert.equal(await oauth.connected('owner-a'),true);
  assert.equal(await oauth.connected('owner-b'),false);
  assert.ok(!f.connections.get('owner-a').includes('SUPER_SECRET_REFRESH'));
- assert.equal(f.exchanges[0].get('code_verifier'),[...f.states.values()][0]?.verifier??f.exchanges[0].get('code_verifier'));
+ assert.equal(f.exchanges[0].get('code_verifier'),verifier);
  await assert.rejects(oauth.complete(state,'authorization-code'),/已使用/);
  assert.equal(await oauth.accessToken('owner-a'),'REFRESHED_ACCESS');
  assert.equal(await oauth.accessToken('owner-a'),'REFRESHED_ACCESS');
