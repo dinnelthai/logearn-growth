@@ -30,7 +30,9 @@ export function renderWeeklyCoverage(data,{safe,fmt,links}){
   return {id,label,status:LABELS[source?.status]?source.status:'not-investigated',
    reason:source?.reason||'缺少该模块的调查结果',
    evidenceIds:Array.isArray(source?.evidenceIds)?source.evidenceIds.slice(0,3):[],
-   facts:Array.isArray(source?.facts)?source.facts.slice(0,3):[]};
+   facts:Array.isArray(source?.facts)?source.facts.slice(0,3):[],
+   insight:typeof source?.insight==='string'?source.insight.slice(0,200):'',
+   nextAction:typeof source?.nextAction==='string'?source.nextAction.slice(0,160):''};
  });
  const confirmed=rows.filter(r=>r.status==='analyzed').length;
  const collected=rows.filter(r=>r.status==='collected').length;
@@ -47,6 +49,10 @@ export function renderWeeklyCoverage(data,{safe,fmt,links}){
     '<div class="ai-weekly-module-top"><strong>'+safe(row.label)+'</strong>'+
      '<span class="ai-weekly-module-status">'+safe(LABELS[row.status])+'</span></div>'+
     '<p>'+safe(row.reason)+'</p>'+
+    (row.insight?'<p class="ai-weekly-module-insight"><strong>关键判断：</strong>'+
+      safe(row.insight)+'</p>':'')+
+    (row.nextAction?'<p class="ai-weekly-module-action"><strong>下步动作：</strong>'+
+      safe(row.nextAction)+'</p>':'')+
     (row.facts.length?'<div class="ai-weekly-module-facts">'+
       row.facts.filter(f=>typeof f?.metric==='string'&&
         typeof f.value==='number'&&Number.isFinite(f.value)).slice(0,3).map(f=>
