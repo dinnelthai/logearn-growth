@@ -256,3 +256,34 @@
 #la-studio .ai-weekly-unknown-charge label {display:flex;align-items:flex-start;gap:9px;}
 #la-studio .ai-weekly-unknown-charge input {margin-top:4px;}
 #la-studio .ai-weekly-unknown-charge button:disabled {cursor:not-allowed;opacity:.5;}
+
+/* Failed AI weekly reports can be removed from view without deleting paid audit. */
+#la-studio .ai-weekly-delete-trigger {
+  margin-left:10px;
+  border-color:var(--a-border);
+  font-size:12px;
+}
+#la-studio .ai-weekly-delete-confirmation[hidden] {display:none;}
+#la-studio .ai-weekly-delete-confirmation {
+  margin-top:12px;
+  padding:14px 16px;
+  max-width:760px;
+  border:1px solid var(--a-border);
+  border-radius:10px;
+  background:var(--a-panel,#1b2636);
+}
+#la-studio .ai-weekly-delete-confirmation p {
+  margin:0 0 12px;
+  font-size:13px;
+  line-height:1.65;
+}
+#la-studio .ai-weekly-delete-confirmation > div {
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+}
+#la-studio .ai-weekly-delete-confirmation .ai-weekly-delete-submit {
+  color:light-dark(#a52b36,#ff9fa7);
+  border-color:light-dark(#e7bac0,#854753);
+}
