@@ -96,7 +96,8 @@ class LLMClient {
         stream: options.stream ?? false,
         tools: options.tools,
         toolChoice: options.toolChoice,
-        responseFormat: options.responseFormat
+        responseFormat: options.responseFormat,
+        timeoutMs: options.timeoutMs
       });
 
       // Record the actual provider usage once before publishing a reusable response.
