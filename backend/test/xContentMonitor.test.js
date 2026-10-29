@@ -2,79 +2,101 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {DatabaseSync}=require('node:sqlite');
-const {createXContentMonitor,usernameOf}=require('../src/services/xContentMonitor');
+const {createXContentMonitor}=require('../src/services/xContentMonitor');
+const {ACCOUNTS,valid}=require('../src/analytics/officialXAccounts');
 function fixture(options={}){
  const db=new DatabaseSync(':memory:');
- db.exec('CREATE TABLE x_content_accounts(owner_id TEXT PRIMARY KEY,username TEXT NOT NULL,user_id TEXT,display_name TEXT,followers INTEGER,auto_sync INTEGER NOT NULL DEFAULT 0,last_synced INTEGER,last_attempt INTEGER,sync_error TEXT);CREATE TABLE x_content_posts(owner_id TEXT NOT NULL,post_id TEXT NOT NULL,published_at TEXT NOT NULL,body TEXT NOT NULL,impressions INTEGER,likes INTEGER,replies INTEGER,reposts INTEGER,quotes INTEGER,bookmarks INTEGER,observed_at INTEGER NOT NULL,PRIMARY KEY(owner_id,post_id));CREATE TABLE x_content_follower_daily(owner_id TEXT NOT NULL,day TEXT NOT NULL,followers INTEGER NOT NULL,observed_at INTEGER NOT NULL,PRIMARY KEY(owner_id,day))');
- const calls=[],time={now:Date.parse('2026-10-28T12:00:00Z')};
- const request=async(url,requestOptions)=>{
-  calls.push({url:String(url),requestOptions});
-  if(options.fail)return {ok:false,status:options.fail,json:async()=>({error:'do not show provider secrets'})};
-  if(String(url).includes('/by/username/'))return {ok:true,json:async()=>({data:{id:'42',username:'logearn',name:'LogEarn',public_metrics:{followers_count:101}}})};
-  if(String(url).includes('/42/tweets'))return {ok:true,json:async()=>({data:[
-   {id:'123',text:'Token holder distribution demo',created_at:'2026-10-27T10:00:00Z',
-    public_metrics:{impression_count:100,like_count:5,reply_count:2,retweet_count:3,quote_count:0,bookmark_count:1}},
-   {id:'124',text:'Second public post',created_at:'2026-10-26T10:00:00Z',
-    public_metrics:{like_count:1,reply_count:0,retweet_count:0,quote_count:0}}
-  ]})};
-  throw Error('unexpected external request');
+ db.exec('CREATE TABLE x_official_account_sync(owner_id TEXT NOT NULL,account TEXT NOT NULL,user_id TEXT,display_name TEXT,followers INTEGER,auto_sync INTEGER NOT NULL DEFAULT 0,last_synced INTEGER,last_attempt INTEGER,sync_error TEXT,PRIMARY KEY(owner_id,account));'+
+  'CREATE TABLE x_official_posts(owner_id TEXT NOT NULL,account TEXT NOT NULL,post_id TEXT NOT NULL,published_at TEXT NOT NULL,body TEXT NOT NULL,impressions INTEGER,likes INTEGER,replies INTEGER,reposts INTEGER,quotes INTEGER,observed_at INTEGER NOT NULL,PRIMARY KEY(owner_id,account,post_id));'+
+  'CREATE TABLE x_official_follower_daily(owner_id TEXT NOT NULL,account TEXT NOT NULL,day TEXT NOT NULL,followers INTEGER NOT NULL,observed_at INTEGER NOT NULL,PRIMARY KEY(owner_id,account,day))');
+ const time={now:Date.parse('2026-10-28T12:00:00Z')},calls=[],spent=[];
+ let followers=101;
+ const provider={
+  profile:async(account,hooks)=>{
+   calls.push('profile:'+account);
+   const ref=hooks.reserve(18);hooks.settle(ref,18);
+   if(options.fail)throw Error('账号数据源暂不可用');
+   return {id:account==='logearn_cn'?'11':'22',
+    userName:options.wrongProfile?'not_official':account,
+    name:account,followers:followers++};
+  },
+  timeline:async(id,cursor,hooks)=>{
+   calls.push('timeline:'+id);assert.equal(cursor,'');
+   const ref=hooks.reserve(600);hooks.settle(ref,120);
+   return {posts:[
+    {id:id+'1',text:'Original content',createdAt:'2026-10-27T10:00:00Z',
+     viewCount:100,likeCount:5,replyCount:2,retweetCount:3,isReply:false},
+    {id:id+'2',text:'Missing views',createdAt:'2026-10-26T10:00:00Z',
+     viewCount:null,likeCount:2,replyCount:0,retweetCount:1,isReply:false},
+    {id:id+'3',text:'A reply',createdAt:'2026-10-25T10:00:00Z',
+     viewCount:10,likeCount:0,replyCount:0,retweetCount:0,isReply:true}
+   ]};
+  }
  };
- const env={TWITTER_BEARER_TOKEN:options.token===false?'':'test-token'};
- return {db,calls,time,monitor:createXContentMonitor({db,env,request,clock:()=>time.now})};
+ const monitor=createXContentMonitor({db,clock:()=>time.now,
+  env:{TWITTERAPI_IO_API_KEY:options.token===false?'':'test-key'},provider,
+  reserve:(run,credits)=>{spent.push({run,credits});return spent.length},
+  settle:(id,credits)=>{spent[id-1].actual=credits}});
+ return {monitor,db,time,calls,spent};
 }
-test('username only binding does not call X, invalid usernames are rejected',()=>{
+test('official account options are reused; arbitrary usernames cannot be added',()=>{
+ assert.deepEqual(ACCOUNTS.map(a=>a.id),['logearn_cn','logearn_global']);
+ assert.equal(valid('logearn_cn'),true);
+ assert.equal(valid('other_username'),false);
  const f=fixture();
- assert.equal(usernameOf('@logearn'),'logearn');
- assert.throws(()=>usernameOf('https://x.com/logearn'),/用户名/);
- assert.throws(()=>usernameOf('a'.repeat(20)),/用户名/);
- f.monitor.save('a',{username:'@logearn',auto_sync:true});
+ const data=f.monitor.overview('owner');
+ assert.deepEqual(data.accounts.map(a=>a.id),ACCOUNTS.map(a=>a.id));
+ assert.equal(data.accounts[0].autoSync,false);
  assert.equal(f.calls.length,0);
- assert.equal(f.monitor.overview('b').account,null);
- assert.equal(f.monitor.overview('a').account.username,'logearn');
+ assert.throws(()=>f.monitor.setAutoSync('owner','not_official',true),/官方账号/);
+ assert.throws(()=>f.monitor.setAutoSync('owner','logearn_cn',1),/是否/);
+ assert.throws(()=>f.monitor.sync('owner','nonofficial'),/官方账号/);
 });
-test('read-only bounded sync imports metrics, preserves missing metrics, and isolates owners',async()=>{
+test('shared provider data, per-account and owner isolation, missing metrics are not zero',async()=>{
  const f=fixture();
- f.monitor.save('a',{username:'logearn',auto_sync:true});
- await f.monitor.sync('a');
- assert.equal(f.calls.length,2);
- assert.ok(f.calls.every(c=>c.requestOptions.headers.Authorization==='Bearer test-token'));
- assert.ok(f.calls.every(c=>!c.requestOptions.method||c.requestOptions.method==='GET'));
- const url=new URL(f.calls[1].url);
- assert.equal(url.searchParams.get('max_results'),'10');
- assert.equal(url.searchParams.get('exclude'),'retweets,replies');
- const a=f.monitor.overview('a');
- assert.equal(a.account.followers,101);
- assert.equal(a.metrics.samplePosts,2);
- assert.equal(a.metrics.measuredPosts,1);
- assert.equal(a.metrics.engagementRate,10);
- assert.equal(a.posts.find(p=>p.post_id==='124').impressions,null);
- assert.equal(f.monitor.overview('b').posts.length,0);
- await assert.rejects(f.monitor.sync('a'),/1 小时/);
+ await f.monitor.sync('a','logearn_cn');
+ let a=f.monitor.overview('a'),cn=a.accounts[0],global=a.accounts[1];
+ assert.deepEqual(f.calls,['profile:logearn_cn','timeline:11']);
+ assert.deepEqual(f.spent.map(s=>s.credits),[18,600]);
+ assert.equal(cn.followers,101);
+ assert.equal(cn.metrics.samplePosts,2);
+ assert.equal(cn.metrics.measuredPosts,1);
+ assert.equal(cn.metrics.engagementRate,10);
+ assert.equal(cn.posts.find(p=>p.post_id==='112').impressions,null);
+ assert.equal(global.posts.length,0);
+ assert.equal(f.monitor.overview('b').accounts[0].posts.length,0);
+ await f.monitor.sync('a','logearn_global');
+ a=f.monitor.overview('a');
+ assert.equal(a.accounts[0].posts.length,2);
+ assert.equal(a.accounts[1].posts.length,2);
+ await assert.rejects(f.monitor.sync('a','logearn_cn'),/一小时/);
  f.time.now+=86400000;
- await f.monitor.syncDue();
- assert.equal(f.calls.length,4);
- assert.equal(f.monitor.overview('a').metrics.followerChange,0);
+ await f.monitor.sync('a','logearn_cn');
+ assert.equal(f.monitor.overview('a').accounts[0].metrics.followerChange,2);
 });
-test('API failure does not forge success or leak upstream error, missing token fails closed',async()=>{
- const f=fixture({fail:403});
- f.monitor.save('owner',{username:'logearn'});
- await assert.rejects(f.monitor.sync('owner'),/访问权限不足/);
- assert.equal(f.monitor.overview('owner').account.lastSynced,null);
- assert.equal(f.monitor.overview('owner').account.error,'X API 访问权限不足');
- assert.ok(!JSON.stringify(f.monitor.overview('owner')).includes('provider secrets'));
- const missing=fixture({token:false});
- missing.monitor.save('owner',{username:'logearn'});
- await assert.rejects(missing.monitor.sync('owner'),/TWITTER_BEARER_TOKEN/);
- assert.equal(missing.calls.length,0);
-});
-test('switching username and removing monitoring never deletes manual content',async()=>{
+test('daily sync is opt-in per account, errors are recorded, no additional OAuth',async()=>{
  const f=fixture();
- f.monitor.save('a',{username:'logearn'});
- await f.monitor.sync('a');
- assert.equal(f.monitor.overview('a').posts.length,2);
- f.monitor.save('a',{username:'different'});
- assert.equal(f.monitor.overview('a').posts.length,0);
- assert.equal(f.monitor.overview('a').account.followers,null);
- f.monitor.remove('a');
- assert.equal(f.monitor.overview('a').account,null);
+ assert.equal((await f.monitor.syncDue()).checked,0);
+ f.monitor.setAutoSync('a','logearn_global',true);
+ assert.equal((await f.monitor.syncDue()).checked,1);
+ assert.equal(f.calls[0],'profile:logearn_global');
+ assert.equal((await f.monitor.syncDue()).checked,0);
+ f.time.now+=86400000;
+ assert.equal((await f.monitor.syncDue()).checked,1);
+ const noKey=fixture({token:false});
+ assert.throws(()=>noKey.monitor.setAutoSync('a','logearn_cn',true),/TWITTERAPI_IO_API_KEY/);
+ await assert.rejects(noKey.monitor.sync('a','logearn_cn'),/TWITTERAPI_IO_API_KEY/);
+ assert.equal(noKey.calls.length,0);
+ const failed=fixture({wrongProfile:true});
+ await assert.rejects(failed.monitor.sync('a','logearn_cn'),/不匹配/);
+ assert.equal(failed.monitor.overview('a').accounts[0].lastSynced,null);
+ assert.match(failed.monitor.overview('a').accounts[0].error,/不匹配/);
+});
+test('same account can have independent observation rows for different operators',async()=>{
+ const f=fixture();
+ await f.monitor.sync('owner-a','logearn_cn');
+ await f.monitor.sync('owner-b','logearn_cn');
+ assert.equal(f.db.prepare("SELECT COUNT(*) count FROM x_official_posts WHERE account='logearn_cn'").get().count,4);
+ assert.equal(f.monitor.overview('owner-a').accounts[0].posts.length,2);
+ assert.equal(f.monitor.overview('owner-b').accounts[0].posts.length,2);
 });
