@@ -315,8 +315,14 @@ function fitWeeklyModelContext(context,raw){
   for(const [start,end] of [[raw.period?.start,raw.period?.end],
     [raw.period?.previousStart,raw.period?.previousEnd]]){
    if(!Number.isFinite(start)||!Number.isFinite(end))continue;
-   const found=original.find(x=>x.metricId===metric&&
-    x.period?.start===start&&x.period?.end===end);
+   const target=start===raw.period.start&&end===raw.period.end?
+    raw.current?.totals?.[metric]:raw.previous?.totals?.[metric];
+   const match=x=>x.metricId===metric&&
+    x.period?.start===start&&x.period?.end===end;
+   const found=original.find(x=>match(x)&&
+    typeof x.value==='number'&&Number.isFinite(x.value)&&
+    (typeof target==='number'?x.value===target:true))||
+    original.find(x=>match(x)&&typeof x.value==='number'&&Number.isFinite(x.value));
    if(found)kpiRows.push(found);
   }
  }
