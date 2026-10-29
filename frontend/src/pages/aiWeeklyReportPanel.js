@@ -71,7 +71,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
    const row=rows.find(x=>x.id===selected);
    root.innerHTML='<div class="ai-weekly-heading"><div><h3>AI 运营周报</h3><p class="a-muted">最近完整周：'+
     safe(date(d.period.start))+' — '+safe(date(d.period.end-DAY))+' · UTC+7</p></div>'+
-    (current?'<span class="ai-weekly-status">'+safe(statuses[current.status]||current.status)+'</span>':
+    (current?'<span class="ai-weekly-status">'+safe(row?'正在查看 · '+(statuses[row.status]||row.status):'本期 · '+(statuses[current.status]||current.status))+'</span>':
      '<button type="button" class="a-button a-primary" data-weekly-confirm>生成 AI 周报</button>')+'</div>'+
     '<p>AI 调查真实的业务统计、历史变化与已保存的运营执行数量，输出可追溯证据和下周行动。只有人工点击确认才调用可能收费的模型；每个完整周只创建一份。</p>'+
     '<form class="ai-weekly-consent" data-weekly-consent hidden><label><input name="ack" type="checkbox" required>我了解本次将调用 AI 分析模型，可能产生 Token 费用；不会自动执行建议、推文或其他外部操作。</label>'+
