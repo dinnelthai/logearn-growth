@@ -7,10 +7,12 @@ describe('AI weekly 12-module coverage',()=>{
   const html=renderWeeklyCoverage({result:{weeklyReport:{}}},options);
   expect(MODULES.length).toBe(12);
   expect((html.match(/class="ai-weekly-module" data-module=/g)||[]).length).toBe(12);
-  expect(html).toContain('已分析 0');
+  expect(html).toContain('有数值结论 0');
   expect(html).toContain('已取数待分析 0');
   expect(html).toContain('data-module="seo-organic" data-status="not-investigated"');
   expect(html).toContain('data-module="kol-impact" data-status="not-investigated"');
+  expect(html).toContain('<details class="ai-weekly-coverage-gaps">');
+  expect(html).toContain('未调查模块 · 12 项（点击展开）');
   expect(html).not.toContain('未连接 / 未授权</span><p>历史');
  });
  it('shows verified numbers and evidence links only from the archived manifest',()=>{
@@ -35,7 +37,10 @@ describe('AI weekly 12-module coverage',()=>{
   expect(html).toContain('180');
   expect(html).toContain('data-module="revenue" data-status="not-connected"');
   expect(html).toContain('data-module="channel-growth" data-status="collected"');
-  expect(html).toContain('已分析 1');
+  expect(html.indexOf('data-module="seo-organic"')).toBeLessThan(
+   html.indexOf('data-module="revenue"'));
+  expect(html).toContain('数据不足、未连接及未调查模块 · 10 项');
+  expect(html).toContain('有数值结论 1');
   expect(html).toContain('已取数待分析 1');
  });
  it('escapes source text and never sends original data to model',()=>{
