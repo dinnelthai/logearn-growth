@@ -104,6 +104,65 @@ function createRouter({db=require('../db/connection')}={}){
    throw error;
   }
  }));
+ // Explicit, owner-scoped regeneration of an EXISTING current weekly report.
+ // Unlike retry/resume, this creates a separate paid task and leaves original
+ // models, citations, charges and status untouched. Source-ID-derived key is
+ // stable: double clicks and concurrent callers can enqueue at most one job.
+ router.post('/ai-weekly-reports/:id/regenerate',h(async(req,res,owner)=>{
+  if(req.body?.acceptPotentialDuplicateCharge!==true)
+   return res.status(400).json({error:'请确认重新生成会产生新的模型费用，既有账单和报告将保留'});
+  const {weeklyPeriod,weeklyKey,weeklyOperations}=require('../ai/growth/weeklyReport');
+  const records=require('../db/aiRecords');
+  const period=weeklyPeriod();
+  const previous=await records.getAnalysisRecord(req.params.id,owner);
+  if(!previous||previous.filter_conditions?.weeklyReport!=='v1')
+   return res.status(404).json({error:'原周报不存在或无访问权限'});
+  if(previous.cancel_requested||!['completed','failed','cancelled'].includes(previous.status)||
+     previous.filter_conditions?.hiddenFromHistory===true||
+     Number(previous.date_range_start)!==period.start||
+     Number(previous.date_range_end)!==period.end)
+   return res.status(409).json({error:'只能基于最近完整周已结束且未隐藏的周报重新生成'});
+  const reports=await records.listWeeklyReportRecords(owner,{limit:50});
+  const latest=reports.find(row=>Number(row.date_range_start)===period.start&&
+   Number(row.date_range_end)===period.end);
+  if(latest&&latest.id!==previous.id){
+   if(latest.weekly_reissue_of===previous.id)
+    return res.json({analysisId:latest.id,status:latest.status,reused:true,
+     notice:'已创建基于该周报的新任务，没有再次提交付费模型调用'});
+   return res.status(409).json({error:'本周已有更新的周报任务，请刷新后从最新记录重新生成'});
+  }
+  const requestKey=weeklyKey(period)+':explicit-regenerate:'+previous.id;
+  const userQuestion=previous.user_question||
+   '请使用真实业务证据生成覆盖增长、SEO、渠道、激活、留存、交易与运营行动的完整 AI 周报';
+  const scope={source:'all'},focusGoal='activation',modelMode='auto';
+  const {record,created}=await records.createWeeklyReportRecord({
+   ownerId:owner,requestKey,
+   title:'AI 运营周报 · 重新生成 · '+new Date(period.start+25200000).toISOString().slice(0,10),
+   start:period.start,end:period.end,question:userQuestion,
+   conditions:{businessScope:scope,focusGoal,modelMode,evidenceReportId:null,
+    goalRef:null,skillId:null,weeklyReport:'v1',
+    weeklyOperations:weeklyOperations(store,owner,period),
+    weeklyReissueOf:previous.id,weeklyRegeneration:'explicit-v1'}
+  });
+  if(record.filter_conditions?.weeklyReport!=='v1'||
+     record.filter_conditions?.weeklyReissueOf!==previous.id||
+     Number(record.date_range_start)!==period.start||
+     Number(record.date_range_end)!==period.end)
+   return res.status(409).json({error:'重新生成的任务标识不匹配，拒绝重复计费'});
+  if(!created)return res.json({analysisId:record.id,status:record.status,reused:true,
+   notice:'已有该周报的重新生成任务，没有再次提交模型调用'});
+  try{
+   const job=await require('../queues/queues').addAIAnalysisJob('business-analysis',{
+    analysisId:record.id,ownerId:owner,dateRangeStart:period.start,dateRangeEnd:period.end,
+    businessScope:scope,userQuestion,focusGoal,modelMode,skillId:null
+   },{jobId:record.id,attempts:1});
+   res.status(202).json({analysisId:record.id,jobId:job.id,status:record.status,
+    queued:true,notice:'已创建独立的 AI 周报任务；旧报告和费用保留，本次模型调用可能另外收费'});
+  }catch(error){
+   await records.updateAnalysisStatus(record.id,'failed',null,'队列提交失败：'+error.message);
+   throw error;
+  }
+ }));
  // Only a human can deliberately authorize another paid task when the last
  // model call timed out with UNKNOWN cost. Preserve the failed record and ledger.
  // Never reset its original request key or replay the old unknown provider call.
