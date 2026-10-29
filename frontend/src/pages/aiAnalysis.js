@@ -10,7 +10,7 @@ const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 const timestamp=d=>Date.parse(d+'T00:00:00+07:00');
 export function createAIAnalysis(ctx){
   const {$,esc}=ctx;
-  let generation=0,detailRequest=0,displayedDetailId=null,timer=null,reviewTimer=null,selected=null,busy=false,reviewPolling=false,historyFilter='all',historyPage=0,notice='';
+  let contentPresetConsumed=false,generation=0,detailRequest=0,displayedDetailId=null,timer=null,reviewTimer=null,selected=null,busy=false,reviewPolling=false,historyFilter='all',historyPage=0,notice='';
   const HISTORY_PAGE_SIZE=5;
   const defaults={start:day(Date.now()-7*DAY),end:day(Date.now()-DAY)};
   const label=s=>TASK_LABELS[s]||s;
@@ -73,8 +73,8 @@ export function createAIAnalysis(ctx){
         <label>结束日期（含当日）<input name="end" type="date" required value="${defaults.end}"></label>
         <label>来源<input name="source" value="all" maxlength="200" placeholder="all 或业务来源值"></label>
         <label>业务目标<select name="goal"><option value="activation">提升激活</option><option value="retention">提升留存</option><option value="conversion">提升转化</option><option value="revenue">收入策略</option></select></label>
-        <label>专项增长技能<select name="skillId"><option value="">通用增长分析</option><option value="seo-organic">SEO · Search Console（激活/转化）</option><option value="kol-impact">KOL · 合作归组（转化/收入）</option></select></label>
-        <p>专项技能只允许全来源分析；SEO 不会把搜索点击假设成交易转化，KOL 不会把 CRM 归组等同于合作增量。</p>
+        <label>专项增长技能<select name="skillId"><option value="">通用增长分析</option><option value="seo-organic">SEO · Search Console（激活/转化）</option><option value="kol-impact">KOL · 合作归组（转化/收入）</option><option value="content-growth">X 内容增长 · 只读统计与运营评价（转化）</option></select></label>
+        <p>专项技能只允许全来源分析；X 内容专项读取最近30天的公开内容观察与有限样本，不把互动量当作X推荐分或产品获客。模型调用只在点击「开始分析」后发生。</p>
         <label>分析方式<select name="modelMode"><option value="auto">自动调查（单模型）</option><option value="complex">深度调查（同一模型）</option></select></label>
         <label>业务背景与问题<textarea name="question" maxlength="5000" placeholder="当前目标、资源约束、近期活动、产品改动，以及你想解决的问题"></textarea></label>
         <button class="a-button" type="submit" ${busy?'disabled':''}>开始分析</button></form>
@@ -125,6 +125,23 @@ export function createAIAnalysis(ctx){
         </section>
         </div>`;
       const analysisDialog=host.querySelector('#ai-new-analysis');
+      const analysisForm=host.querySelector('[data-ai-form]');
+      const selectedSkill=analysisForm.elements.skillId;
+      selectedSkill.onchange=()=>{
+        if(selectedSkill.value==='content-growth'){
+          analysisForm.elements.goal.value='conversion';
+          analysisForm.elements.source.value='all';
+        }
+      };
+      if(new URLSearchParams(window.location.search).get('skill')==='content-growth'&&!contentPresetConsumed){
+        contentPresetConsumed=true;
+        selectedSkill.value='content-growth';
+        analysisForm.elements.goal.value='conversion';
+        analysisForm.elements.source.value='all';
+        analysisForm.elements.title.value='X 官方账号内容增长专项分析';
+        analysisForm.elements.question.value='结合两个官方账号近30天已采集的浏览、回复/转发/点赞率、内容摘要及真实24/48小时快照，识别采集覆盖和发布节奏问题，提出2-3个可验证的选题或格式实验。明确数据量、时间差、缺失快照及站内转化归因限制，不计算X推荐算法分数。';
+        analysisDialog.showModal();
+      }
       host.querySelector('[data-open-analysis]')?.addEventListener('click',()=>analysisDialog.showModal());
       host.querySelector('[data-close-analysis]')?.addEventListener('click',()=>analysisDialog.close());
       host.querySelector('[data-health]').onclick=async()=>{try{const state=await getAgentHealth();if(token===generation)host.querySelector('[data-health-result]').textContent=JSON.stringify(state,null,2);}catch(error){if(token===generation)message(error.message);}};

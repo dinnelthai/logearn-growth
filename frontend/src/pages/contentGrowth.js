@@ -12,7 +12,7 @@ export function renderXPanel(x,esc,selected,sort){
  const posts=Array.isArray(account.posts)?account.posts:[];
  const rate=p=>p.impressions>0&&[p.likes,p.replies,p.reposts].every(v=>Number.isFinite(v))?
   100*(p.likes+p.replies+p.reposts+(p.quotes||0))/p.impressions:null;
- const measured=posts.filter(p=>rate(p)!=null);
+ const measured=posts.filter(p=>rate(p)!=null&&Date.parse(p.published_at)>=Date.now()-30*86400000);
  const byRate=[...measured].sort((a,b)=>rate(b)-rate(a));
  const byViews=[...measured].sort((a,b)=>b.impressions-a.impressions);
  const recent=posts.filter(p=>Date.parse(p.published_at)>=Date.now()-30*86400000);
@@ -52,7 +52,7 @@ export function renderXPanel(x,esc,selected,sort){
   '<div class="a-card a-details"><div class="a-muted">近30天样本帖子</div><div class="a-statvalue">'+fmt(recent.length)+'</div><small>已保存 '+fmt(posts.length)+' 条，不代表全部发布量</small></div>'+
   '<div class="a-card a-details"><div class="a-muted">近30天已知浏览</div><div class="a-statvalue">'+fmt(m.impressions)+'</div><small>只包含指标完整的样本</small></div>'+
   '<div class="a-card a-details"><div class="a-muted">近30天互动率</div><div class="a-statvalue">'+(m.engagementRate==null?'未知':fmt(m.engagementRate)+'%')+'</div><small>'+fmt(m.measuredPosts)+' 条有效样本 · 赞/回复/转发 ÷ 浏览</small></div></div></section>';
- html+='<section class="a-card a-details" style="margin-bottom:14px"><h2>内容评价与运营建议</h2>';
+ html+='<section class="a-card a-details" style="margin-bottom:14px"><h2>近期内容对比线索（非 AI 结论）</h2>';
  if(measured.length<2){
   html+='<p>当前有 '+fmt(measured.length)+' 条具备浏览和互动指标的已采集内容，暂时不足以比较内容表现。</p>'+
    '<p class="a-muted">建议继续积累同类型帖子样本，再观察互动率和浏览差异；此处不会把单条内容判断为成功策略。</p>';
@@ -60,9 +60,9 @@ export function renderXPanel(x,esc,selected,sort){
   const best=byRate[0],reach=byViews[0];
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">'+
    '<div class="a-card a-details"><strong>互动率较高</strong><p><a target="_blank" rel="noopener noreferrer" href="'+href(best)+'">'+short(best)+'</a></p>'+
-   '<p>互动率 '+renderRate(best)+' · 浏览 '+fmt(best.impressions)+'</p><small>可以复用选题结构，后续发同类内容再验证。</small></div>'+
+   '<p>互动率 '+renderRate(best)+' · 浏览 '+fmt(best.impressions)+'</p><small>该帖子近期互动率相对突出，但仍需按相近发布时间与内容主题验证。</small></div>'+
    '<div class="a-card a-details"><strong>浏览量较高</strong><p><a target="_blank" rel="noopener noreferrer" href="'+href(reach)+'">'+short(reach)+'</a></p>'+
-   '<p>浏览 '+fmt(reach.impressions)+' · 互动率 '+renderRate(reach)+'</p><small>浏览量高不等于有效获客，需继续看互动与站内渠道数据。</small></div></div>';
+   '<p>浏览 '+fmt(reach.impressions)+' · 互动率 '+renderRate(reach)+'</p><small>浏览量高不等于有效获客；由 Growth Agent 结合内容与站内数据进一步判断。</small></div></div>';
   html+='<p class="a-muted">比较基于 '+fmt(measured.length)+' 条指标完整的累计样本；发布时间不同，不能当作同口径实验或因果证明。</p>';
  }
  html+=m.followerChange==null?'<p class="a-muted">粉丝增长趋势暂不可计算：至少需要两天的历史快照。</p>':
@@ -72,6 +72,8 @@ export function renderXPanel(x,esc,selected,sort){
   html+='<p class="a-muted">发布后24小时附近的同账号样本浏览中位数：'+fmt(baseline.medianViews)+'（'+fmt(baseline.sampleSize)+'条，±6小时观测）。尚未按内容主题分组，不代表同类内容。</p>';
  else
   html+='<p class="a-muted">发布后24小时同龄对比：'+fmt(baseline?.sampleSize??0)+'条可用样本，需要至少4条才能形成账号基准；不会把今日累计值倒填到24小时。</p>';
+ html+='<p class="a-muted">以上只是规则生成的样本观察，不是AI评价；不自动生成行动、分数或发帖。运营结论由Growth Agent使用有来源的证据生成。</p>'+
+  '<p><a class="a-button" href="?view=ai-analysis&skill=content-growth">用 Growth Agent 分析内容（提交后才计费）</a></p>';
  html+='</section>';
  const sorted=[...posts].sort((a,b)=>sort==='views'?(b.impressions??-1)-(a.impressions??-1):
   sort==='engagement'?(rate(b)??-1)-(rate(a)??-1):
