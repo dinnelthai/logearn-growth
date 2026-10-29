@@ -1,6 +1,6 @@
 import './aiAnalysis.css';
 import {loadingState} from './loadingState.js';
-import {getSeoImports,importSeoSnapshot,previewSeoSnapshot,getGscConnection,saveGscSite,syncGscPerformance,getGscPerformance,getGscSitemaps,inspectGscUrl} from '../api/aiAnalysis.js';
+import {getSeoImports,importSeoSnapshot,previewSeoSnapshot,getGscConnection,saveGscSite,syncGscPerformance,getGscPerformance,getGscSitemaps,inspectGscUrl,beginGscOAuth,disconnectGscOAuth} from '../api/aiAnalysis.js';
 
 const DAY=86400000, OFFSET=7*3600000;
 const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
@@ -8,13 +8,19 @@ const day=t=>new Date(t+OFFSET).toISOString().slice(0,10);
 /** SEO evidence and explicitly requested Google sync; never starts paid AI work. */
 export function createSeoPage(ctx){
  const {$,esc}=ctx;
- let generation=0,busy=false,notice='';
+ let generation=0,busy=false,notice='',oauthListener=null,oauthTimer=null;
+ const backendOrigin=new URL(import.meta.env.VITE_BACKEND_BASE_URL??'http://localhost:3001').origin;
  const gscDates={start:new Date(Date.now()-30*DAY).toISOString().slice(0,10),end:new Date(Date.now()-3*DAY).toISOString().slice(0,10)};
  const formatCount=v=>v==null?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0});
  const formatPercent=v=>v==null?'—':(100*Number(v)).toFixed(2)+'%';
  const formatPosition=v=>v==null?'—':Number(v).toFixed(1);
  const message=value=>{notice=String(value);const node=$('#as-output')?.querySelector('[data-seo-message]');if(node)node.textContent=notice};
- function dispose(){generation++}
+ function clearOAuthWatch(){
+  if(oauthListener)window.removeEventListener('message',oauthListener);
+  if(oauthTimer)clearInterval(oauthTimer);
+  oauthListener=null;oauthTimer=null;
+ }
+ function dispose(){generation++;clearOAuthWatch()}
  async function draw(){
   ctx.clear?.();
   const token=++generation,host=$('#as-output');
@@ -31,13 +37,18 @@ export function createSeoPage(ctx){
     <p data-seo-message role="status" aria-live="polite">${esc(notice)}</p>
         <section class="a-card ai-gsc-settings">
           <h2>Google Search Console · 网站与数据设置</h2>
-          <p>只读 Search Console API。凭证保存在服务器环境，网页不会上传或显示 Google 私钥／Token。</p>
+          <p>只读 Search Console API。Google 授权凭据仅保存在服务器端，网页不会上传或显示密钥／Token。</p>
           <p role="status">
             ${gscConnection.configured?
               (gscConnection.selectedSite?'已连接 · 站点已选定':'API 已配置 · 请选择可访问站点'):
               '尚未完成此账号的 API 授权配置'}
             ${gscConnection.mode&&gscConnection.configured?' · '+esc(gscConnection.mode):''}
           </p>
+          ${gscConnection.oauthAvailable?`<div class="ai-gsc-controls">
+            <button class="a-button" type="button" data-gsc-oauth-connect>${gscConnection.oauthConnected?'重新授权 Google':'连接 Google Search Console'}</button>
+            ${gscConnection.oauthConnected?'<button class="a-button" type="button" data-gsc-oauth-disconnect>断开 Google 连接</button>':''}
+            <span>登录 Google 后授权只读 SEO 数据；授权后可由已启用的每日 Worker 自动同步。</span>
+          </div>`:'<p>Google 登录连接未启用，请先在后端配置 OAuth 客户端。</p>'}
           ${gscConnection.error?'<p role="alert">连接检查失败：'+esc(gscConnection.error)+'</p>':''}
           ${gscConnection.reason?'<p>'+esc(gscConnection.reason)+'</p>':''}
           ${gscConnection.selectionNeedsReview?'<p role="alert">此前站点已失去 API 权限，请重新选择。</p>':''}
@@ -116,6 +127,49 @@ export function createSeoPage(ctx){
     <section class="a-card" data-specialist-preview><p>选择 SEO 快照查看已保存的业务证据。</p></section>
     </div>`;
    host.querySelector('[data-seo-refresh]').onclick=draw;
+       const oauthConnect=host.querySelector('[data-gsc-oauth-connect]');
+       if(oauthConnect)oauthConnect.onclick=async()=>{
+         if(busy)return;
+         const popup=window.open('about:blank','logearn-gsc-oauth','width=520,height=680');
+         if(!popup){message('浏览器拦截了 Google 授权窗口，请允许弹窗后重试');return}
+         busy=true;oauthConnect.disabled=true;
+         try{
+           const {authorizationUrl}=await beginGscOAuth();
+           if(new URL(authorizationUrl).origin!=='https://accounts.google.com')
+             throw Error('Google 授权地址无效');
+           clearOAuthWatch();
+           oauthListener=event=>{
+             if(event.origin!==backendOrigin||event.data?.type!=='logearn:gsc:oauth')return;
+             clearOAuthWatch();
+             if(event.data.status==='connected'){
+               message('Google Search Console 授权成功，请选择站点');
+               void draw();
+             }else message('Google 授权未完成，请重试');
+           };
+           window.addEventListener('message',oauthListener);
+           popup.location.replace(authorizationUrl);
+           // Some browsers isolate the OAuth popup; a closed popup can still be verified server-side.
+           oauthTimer=setInterval(async()=>{
+             if(!popup.closed||token!==generation)return;
+             clearOAuthWatch();
+             try{
+               const state=await getGscConnection();
+               if(state.oauthConnected){message('Google 授权成功');await draw()}
+               else message('Google 授权未完成，请重试');
+             }catch(error){message('授权状态检查失败：'+error.message)}
+           },1500);
+         }catch(error){
+           popup.close();message('无法启动 Google 授权：'+error.message);
+         }finally{busy=false;if(oauthConnect.isConnected)oauthConnect.disabled=false}
+       };
+       const oauthDisconnect=host.querySelector('[data-gsc-oauth-disconnect]');
+       if(oauthDisconnect)oauthDisconnect.onclick=async()=>{
+         if(busy||!window.confirm('断开此后台的 Google Search Console 连接？已保存的历史 SEO 数据将保留。'))return;
+         busy=true;oauthDisconnect.disabled=true;
+         try{await disconnectGscOAuth();message('Google 连接已从本后台断开');await draw()}
+         catch(error){message('断开失败：'+error.message)}
+         finally{busy=false;if(oauthDisconnect.isConnected)oauthDisconnect.disabled=false}
+       };
        const gscSave=host.querySelector('[data-gsc-save]');
       if(gscSave)gscSave.onclick=async()=>{
         const value=host.querySelector('[data-gsc-site]')?.value;
