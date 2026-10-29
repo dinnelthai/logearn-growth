@@ -172,11 +172,20 @@ function finalizeWeeklyCoverage(raw,analysis,{additionalEvidence=[]}={}){
 
  if(!raw||raw.version!==VERSION||!Array.isArray(raw.modules))return null;
  const analyzed=raw.modules.map(entry=>{
-  const chosen=entry.status==='collected'?entry:(updates.get(entry.id)||entry);
+  const later=updates.get(entry.id);
+  // The initial snapshot can be an aggregate summary; a later model query
+  // may discover a real channel / funnel breakdown. Keep BOTH evidence sets
+  // without reissuing any tool calls or losing the previous attribution.
+  const chosen=entry.status==='collected'&&later?.status==='collected'?{
+   ...entry,evidenceIds:[...new Set([...(entry.evidenceIds||[]),
+    ...(later.evidenceIds||[])])].slice(0,8),
+   facts:[...(entry.facts||[]),...(later.facts||[])].slice(0,12),
+   reason:'已合并预查与后续只读调查证据'
+  }:entry.status==='collected'?entry:(later||entry);
   const row={id:chosen.id,label:chosen.label,tool:chosen.tool,
    status:chosen.status,reason:chosen.reason,source:chosen.source,
-   evidenceIds:[...(chosen.evidenceIds||[])].slice(0,4),
-   facts:(chosen.facts||[]).filter(x=>typeof x.metric==='string'&&validNumber(x.value)).slice(0,8)};
+   evidenceIds:[...(chosen.evidenceIds||[])].slice(0,8),
+   facts:(chosen.facts||[]).filter(x=>typeof x.metric==='string'&&validNumber(x.value)).slice(0,12)};
   // A citation alone does not mean this module was analyzed. A
   // "data not provided" statement citing a channel query is a data gap,
   // not a verified channel finding. Require a real numeric observation,
