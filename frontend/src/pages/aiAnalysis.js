@@ -1,5 +1,6 @@
 import './aiAnalysis.css';
 import {mountAIGrowthModulesPanel} from './aiGrowthModulesPanel.js';
+import {consumeAnalysisLaunch} from '../analysisLaunchContext.js';
 import {loadingState} from './loadingState.js';
 import {TASK_LABELS,displayTaskStatus,canOfferTaskResume,canOfferTaskRetry,shouldPollTask} from './aiTaskStatus.js';
 import {renderAISuggestion} from './aiSuggestionView.js';
@@ -59,7 +60,9 @@ export function createAIAnalysis(ctx){
         getGrowthInbox().catch(error=>({tasks:[],counts:{total:0},warnings:[error.message]}))
       ]);
       if(token!==generation)return;
-      if(!list.records?.some(r=>r.id===selected))selected=list.records?.[0]?.id??null;
+      const launch=consumeAnalysisLaunch();
+      if(launch?.kind==='analysis'&&typeof launch.analysisId==='string')selected=launch.analysisId;
+      else if(!list.records?.some(r=>r.id===selected))selected=list.records?.[0]?.id??null;
       host.innerHTML=`<div class="si-page ai-analysis-page">
         <section class="ai-decision-hero"><div><span class="ai-eyebrow">GROWTH INTELLIGENCE</span><h1>增长决策工作台</h1><p>发现问题 · 核查证据 · 制定行动 · 持续复盘</p></div><button type="button" class="a-button a-primary" data-open-analysis>＋ 新建分析</button></section>
         <p class="ai-workspace-notice" data-ai-message role="status" aria-live="polite" ${notice?'':'hidden'}>${esc(notice)}</p>
@@ -138,7 +141,19 @@ export function createAIAnalysis(ctx){
           analysisForm.elements.source.value='all';
         }
       };
-      if(selectedSkill&&new URLSearchParams(window.location.search).get('skill')==='content-growth'&&!contentPresetConsumed){
+      if(launch?.kind==='seo'&&selectedSkill){
+        selectedSkill.value='seo-organic';
+        analysisForm.elements.goal.value='activation';
+        analysisForm.elements.source.value='all';
+        analysisForm.elements.title.value='SEO 自然搜索增长专项分析';
+        const details=['请基于已授权的 Search Console 数据与站内激活漏斗调查搜索增长机会。',
+          '资源：'+String(launch.site||'已选站点'),
+          '已观察数据期：'+String(launch.start||'未知')+' 至 '+String(launch.end||'未知'),
+          '必须核对 Google 数据是否已同步、日期覆盖、搜索查询匿名化及站内转化归因；不得把搜索点击直接视作注册或交易。'];
+        analysisForm.elements.question.value=details.join('\n').slice(0,5000);
+        analysisDialog.showModal();
+      }
+      if(!launch&&selectedSkill&&new URLSearchParams(window.location.search).get('skill')==='content-growth'&&!contentPresetConsumed){
         contentPresetConsumed=true;
         selectedSkill.value='content-growth';
         analysisForm.elements.goal.value='conversion';
