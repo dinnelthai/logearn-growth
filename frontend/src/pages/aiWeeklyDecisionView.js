@@ -128,6 +128,7 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,links,canC
    (numeric(x.changePct)?'<div class="ai-weekly-problem-change" aria-label="相较上周下降">'+
     '<strong>↓ '+fmt(Math.abs(x.changePct))+'%</strong><span>较上周</span></div>':'')+
    '</div>')+'</section>'+
+  '<p role="status" class="ai-weekly-action-note" data-weekly-action-note></p>'+
   '<section class="ai-weekly-section ai-weekly-kpi-section" id="weekly-metrics"><div class="ai-weekly-section-heading">'+
    '<div><span class="ai-weekly-section-index">02 / METRICS</span><h4>关键指标 · 环比</h4></div>'+
   '<span>同口径业务快照；历史覆盖限制详见底部</span></div>'+
@@ -164,8 +165,7 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,links,canC
    '<div><strong>'+safe(a.action)+'</strong>'+
    '<p>验证：'+safe(a.metric||'待定义')+'</p>'+
    '<p>复查：'+safe(a.reviewCondition||'待定义')+'</p>'+
-   evidence(a.evidenceIds)+'</div></div>')+'</section>'+ 
-  '<p role="status" class="ai-weekly-action-note" data-weekly-action-note></p>'+
+   evidence(a.evidenceIds)+'</div></div>')+'</section>'+
   '<details class="ai-weekly-details"><summary>其他事实与数据完整性'+
    ' · '+gaps.length+' 项待核对</summary>'+
    '<div class="ai-weekly-details-body">'+
