@@ -7,13 +7,7 @@ const records = require('../../db/aiRecords');
 const remote = require('../../data/hologres');
 const reportsService = require('../../services/businessReport').createService({remote,evidence:{fetchNorthStar,fetchGrowthInsights,fetchWeeklyCore}});
 
-const prompt=`你是LogEarn业务增长分析师。依据业务目标和真实观测证据排序任务，考虑目标差距、影响人数、证据强度、实施成本。
-筹码查看/下钻是行为代理，不代表成功、理解或付费；未观测不等于流失。历史及采集覆盖未知时降低结论强度。
-检查所有相关证据，必要时请求补查并由当前单模型深入调查；不能为节省费用省略必要任务。不得以相关性证明因果。
-参考历史行动、拒绝原因和复盘；重复建议必须解释新证据。业务范围以请求为准。
-最终输出必须包含claims数组，每项为{id,kind:"fact|hypothesis|recommendation",text,evidenceIds,values:[{evidenceId,value}],uncertainties}。事实和建议必须引用提供的证据ID；引用数值写在values中。建议evidence对象必须包含evidenceIds数组。补查可返回investigations:[{tool:"能力目录中的ID",input:{}}]。
-输出JSON：{"summary":"摘要","keyFindings":["发现"],"suggestions":[{"problem":"问题","evidence":{"metrics":["可核对数值"],"dataPoints":["证据"]},"hypothesis":"假设","uncertainties":["未知"],"action":"具体行动","priority":"P0或P1或P2","priorityReason":"数据影响、实施成本及排序依据","scope":{"source":"请求来源"},"expectedImpact":"有依据的预期或未知","impactBasis":"依据","validationMetrics":{"primary":"active_users/new_users/returning_users 或明确业务指标ID","secondary":[]},"reviewConditions":["验证条件与观察期"]}]}。
-每条建议可以增加可选 forecast 字段，包含 metric（必须等于 validationMetrics.primary）、direction（increase/decrease）、horizonDays（3–14整数）、minRelativeChangePct（0–100）、confidence（low/medium/high）以及 evidenceIds（已引用的证据ID）。预测不是必要字段；没有足够证据就不要提供数字预测，绝不宣称行动的因果收益。可不提出建议，但必须解释原因；指标不存在时不能自行造数。不得自行承诺收益。`;
+const {analysisPrompt:prompt}=require('../../ai/business/analysisContract');
 async function persistValidatedResult({job,analysisId,ownerId,token,compact,result}) {
   const source=compact.business.scope.source;
   const {analysis}=result;

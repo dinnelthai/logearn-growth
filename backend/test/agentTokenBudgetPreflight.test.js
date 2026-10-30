@@ -51,8 +51,9 @@ test('preflight over budget warns and continues despite actual overage',async()=
     clientFactory:()=>({chat:async()=>{calls++;return {content:JSON.stringify(completion),usage:{totalTokens:51000}}}})
    }));
    assert.equal(calls,1);assert.equal(result.analysis.summary,'ok');
-   assert.ok(warnings.some(x=>/Token预算不足/.test(x)));
-   assert.ok(warnings.some(x=>/实际Token用量/.test(x)));
+   assert.ok(warnings.some(x=>/Token预估超出参考预算/.test(x)));
+   assert.ok(warnings.some(x=>/累计实际 Token 已超过参考预算/.test(x)));
+   assert.equal(result.calls[0].budgetActualTotalAfterCall,51000);
   } finally {console.warn=original}
  });
 });

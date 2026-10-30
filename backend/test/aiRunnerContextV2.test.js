@@ -5,7 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
 const crypto=require('node:crypto');
-const {modelContext,modelQuery}=require('../src/ai/business/modelTransport');
+const {modelContext,modelQuery,investigationKey}=require('../src/ai/business/modelTransport');
 const {forModel}=require('../src/ai/business/modelEvidence');
 const {estimateChatTokens}=require('../src/ai/business/tokenBudget');
 
@@ -16,7 +16,8 @@ function runner(env={}){
    createClient:()=>{throw Error('A real provider must never be called in tests')}},
   './policy':{routeTask:()=>({tier:'simple',reason:'test'})},
   './modelEvidence':{forModel},
-  './modelTransport':{modelContext,modelQuery},
+  './modelTransport':{modelContext,modelQuery,investigationKey},
+  './analysisContract':require('../src/ai/business/analysisContract'),
   './tokenBudget':{estimateChatTokens}
  };
  const file=fs.readFileSync(path.join(__dirname,'../src/ai/business/runner.js'),'utf8');
@@ -87,15 +88,16 @@ test('v2 reduces earlier model-only evidence and journals per-stage input bytes'
  assert.deepEqual(env.paid,['begin:0','end:0:received','begin:1',
   'end:1:received','begin:2','end:2:received']);
 });
-test('v2 strict token preflight blocks calls before both provider and paid ledger',async()=>{
+test('v2 token preflight warns and records instead of blocking',async()=>{
  const env=setup([final]);
- await assert.rejects(runner({AI_TASK_MAX_TOKENS:'100'}).runTask({
+ const result=await runner({AI_TASK_MAX_TOKENS:'100'}).runTask({
   context:context(),prompt:'weekly model test',contextVersion:'v2',
   ownerId:'o',operationId:'o-2',operationType:'analysis',
   ...env,validate:()=>{}
- }),/Token硬预算不足/);
- assert.equal(env.observed.length,0);
- assert.equal(env.paid.length,0);
+ });
+ assert.equal(env.observed.length,1);
+ assert.equal(result.calls[0].budgetEstimateExceeded,true);
+ assert.equal(env.paid.length,2);
 });
 test('v2 resume reuses archived paid response and protocol without replaying its charge',async()=>{
  const original=runner();
@@ -123,16 +125,17 @@ test('v2 resume reuses archived paid response and protocol without replaying its
  assert.equal(env.tools.length,0);
  assert.deepEqual(env.paid,['begin:1','end:1:received']);
 });
-test('v2 blocks a second paid round when previous usage exhausts the remaining budget',async()=>{
+test('v2 records budget warning on later paid rounds',async()=>{
  const env=setup([investigations,final]);
- await assert.rejects(runner({AI_TASK_MAX_TOKENS:'6000'}).runTask({
+ const result=await runner({AI_TASK_MAX_TOKENS:'6000'}).runTask({
   context:context(),prompt:'weekly model test',contextVersion:'v2',
   ownerId:'o',operationId:'o-budget',operationType:'analysis',
   ...env,validate:()=>{}
- }),/Token硬预算不足/);
- assert.equal(env.observed.length,1);
+ });
+ assert.equal(env.observed.length,2);
+ assert.equal(result.calls[1].budgetEstimateExceeded,true);
  assert.equal(env.tools.length,6);
- assert.deepEqual(env.paid,['begin:0','end:0:received']);
+ assert.deepEqual(env.paid,['begin:0','end:0:received','begin:1','end:1:received']);
  assert.equal(env.archive.get(0).results.length,6);
 });
 test('v3 completes a report beyond estimated task tokens without blind auto-retries',async()=>{
@@ -235,6 +238,19 @@ test('v4 weekly analysis sends core statistics first and preserves paid checkpoi
  assert.deepEqual(env.paid,['begin:0','end:0:received','begin:1','end:1:received']);
  assert.equal(env.archive.get(0).results.length,6);
 });
+test('new v4 warns and records budget excess while allowing the paid call',async()=>{
+ const ctx=context();
+ ctx.weeklyCoverage={version:'weekly-coverage-v1',modules:[]};
+ const env=setup([final]);
+ const result=await runner({AI_TASK_MAX_TOKENS:'100'}).runTask({
+  context:ctx,prompt:'weekly',contextVersion:'v4',ownerId:'o',
+  operationId:'v4-budget',operationType:'analysis',...env,validate:()=>{}
+ });
+ assert.equal(env.observed.length,1);
+ assert.equal(result.calls[0].budgetReferenceTokens,100);
+ assert.equal(result.calls[0].budgetEstimateExceeded,true);
+ assert.equal(env.paid.length,2);
+});
 test('v4 retains SEO metrics across a third model round, without replaying old tools',async()=>{
  const ctx=context();
  ctx.weeklyCoverage={version:'weekly-coverage-v1',modules:[{
@@ -256,6 +272,9 @@ test('v4 retains SEO metrics across a third model round, without replaying old t
  const finalMessages=env.observed[2].messages;
  assert.ok(finalMessages.some(x=>x.content.includes('priorToolEvidence')));
  assert.ok(finalMessages.some(x=>x.content.includes('"clicks":')));
+ const prior=JSON.parse(finalMessages.find(x=>x.content.includes('priorToolEvidence')).content);
+ assert.equal(prior.priorToolEvidence[0].query.input.start,100);
+ assert.match(prior.priorToolEvidence[0].query.queryFingerprint,/^[a-f0-9]{16}$/);
  assert.equal(env.archive.get(0).results.length,6);
  assert.equal(env.archive.get(1).results.length,6);
  assert.ok(env.archive.get(1).results.every(x=>

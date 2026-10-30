@@ -180,9 +180,9 @@ function modelEvidence(row){
   warnings:(row.warnings||[]).slice(0,6).map(s=>safeText(s))
  };
 }
-function modelQuery(query){
+function modelQuery(query,{extended=false}={}){
  const input=query?.input||{};
- return {tool:typeof query?.tool==='string'?safeText(query.tool,90):null,
+ const result={tool:typeof query?.tool==='string'?safeText(query.tool,90):null,
   ...(query?.kind?{kind:safeText(query.kind,40)}:{}),
   input:{
    ...(Number.isSafeInteger(input.start)?{start:input.start}:{}),
@@ -190,8 +190,34 @@ function modelQuery(query){
    ...(Number.isSafeInteger(input.hours)?{hours:input.hours}:{}),
    ...(Array.isArray(input.metrics)?{metrics:input.metrics.slice(0,10).map(x=>safeText(x,80))}:{}),
    ...(Array.isArray(input.steps)?{steps:input.steps.slice(0,8).map(x=>safeText(x,80))}:{}),
+   ...(extended&&Array.isArray(input.dimensions)?{dimensions:input.dimensions.slice(0,8).map(x=>safeText(x,80))}:{}),
+   ...(extended&&typeof input.initial==='string'?{initial:safeText(input.initial,80)}:{}),
+   ...(extended&&typeof input.returning==='string'?{returning:safeText(input.returning,80)}:{}),
+   ...(extended&&Number.isSafeInteger(input.limit)?{limit:input.limit}:{}),
    ...(input.scope?.source?{scope:{source:safeText(input.scope.source,120)}}:{})
   }};
+ if(extended&&extended!=='legacy'){
+  if(input.filters&&typeof input.filters==='object'&&!Array.isArray(input.filters)){
+   const filters={};
+   if(typeof input.filters.source==='string')filters.source=safeText(input.filters.source,120);
+   if(Object.keys(filters).length)result.input.filters=filters;
+  }
+  const represented=new Set(Object.keys(result.input));
+  const omitted=Object.keys(input).filter(key=>!represented.has(key)).sort();
+  if(input.scope&&typeof input.scope==='object')for(const key of Object.keys(input.scope))
+   if(key!=='source')omitted.push('scope.'+key);
+  if(input.filters&&typeof input.filters==='object')for(const key of Object.keys(input.filters))
+   if(key!=='source')omitted.push('filters.'+key);
+  if(omitted.length)result.input.omittedFields=omitted.map(key=>safeText(key,80)).slice(0,30);
+ }
+ return result;
+}
+// Identity is computed from the original query, never its lossy display view.
+function investigationKey(query){
+ const normalize=value=>Array.isArray(value)?value.map(normalize):
+  value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort()
+   .map(key=>[key,normalize(value[key])])):value;
+ return JSON.stringify(normalize(query));
 }
 // Model-only transport v2. Full evidence and input schemas remain in the
 // immutable context/registry. A reference to shared provenance is explicit.
@@ -420,10 +446,10 @@ function fitWeeklyModelContext(context,raw){
   context.omissions.weeklyModelInput.shownEvidence=context.evidence.length;
  }
 }
-function modelContext(raw,{transportVersion='v1'}={}){
+function modelContext(raw,{transportVersion='v1',reviewRevision=0}={}){
  if(!['v1','v2','v3','v4'].includes(transportVersion))throw Error('不支持的模型上下文版本');
  if(transportVersion==='v4')return require('./weeklyContextV4').buildWeeklyContextV4(
-  raw,{modelEvidence,compactCapabilities,safeText});
+  raw,{modelEvidence,compactCapabilities,safeText,reviewRevision});
  const scope=raw.business?.scope||{};
  const evidence=Array.isArray(raw.evidence)?raw.evidence:[];
  const candidates=Array.isArray(raw.candidates)?raw.candidates:[];
@@ -559,4 +585,4 @@ function modelContext(raw,{transportVersion='v1'}={}){
  if(!fits())throw Error('聚合模型上下文仍超出22000字节预算；需要缩小业务期间或来源');
  return context;
 }
-module.exports={statView,modelEvidence,modelContext,modelQuery,safeText,compactCapabilities};
+module.exports={statView,modelEvidence,modelContext,modelQuery,investigationKey,safeText,compactCapabilities};

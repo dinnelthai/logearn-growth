@@ -5,7 +5,7 @@ const {modelEvidence,safeText}=require('./modelTransport');
 // V4 projects each aggregate evidence item independently. Previously, two
 // large items could cause ALL values to become {omitted:true}, leaving the AI
 // without a single observed statistic. Full values remain in the tool journal.
-function forModelV4(result,{maxBytes=3500}={}){
+function forModelV4(result,{maxBytes=3500,legacy=false}={}){
  if(!Number.isSafeInteger(maxBytes)||maxBytes<1024||maxBytes>64000)
   throw Error('模型证据字节预算无效');
  const rows=Array.isArray(result?.evidence)?result.evidence:[];
@@ -30,6 +30,10 @@ function forModelV4(result,{maxBytes=3500}={}){
    const nested=nums(value[field]);
    if(Object.keys(nested).length)out[field]=nested;
   }
+  // modelEvidence has already removed row-level data and identifiers.
+  for(const field of legacy?[]:['steps','stages','drops','channels','groups','cohorts','sources']){
+   if(Array.isArray(value[field]))out[field]=value[field].slice(0,6);
+  }
   if(typeof value.available==='boolean')out.available=value.available;
   if(!Object.keys(out).length)out.detailOmitted=true;
   return out;
@@ -43,12 +47,14 @@ function forModelV4(result,{maxBytes=3500}={}){
    ...(e.sampleSize!=null?{sampleSize:e.sampleSize}:{}),
    ...(e.period?{period:{start:e.period.start,end:e.period.end}}:{}),
    ...(e.coverage?{coverage:{status:e.coverage.status,
-    periodMatched:e.coverage.periodMatched}}:{})};
+    periodMatched:e.coverage.periodMatched}}:{}),
+   ...(!legacy&&e.warnings?.length?{warnings:e.warnings.slice(0,2)}:{})};
  });
  const base={status,evidence:[],omittedEvidence:rows.length,
   transport:'aggregated-business-v4',
   ...(reason?{reason}:{}),
-  warnings:['保留逐条聚合数值与证据ID；未传输的维度未知而非0，完整证据保留在只读档案']};
+  warnings:[...(legacy?[]:(result?.warnings||[]).slice(0,2).map(x=>safeText(x))),
+   '保留逐条聚合数值与证据ID；未传输的维度未知而非0，完整证据保留在只读档案']};
  const fits=()=>Buffer.byteLength(JSON.stringify(base),'utf8')<=maxBytes;
  // Always prioritize several distinct metrics over many similarly shaped
  // values. Each item is individually compacted before budget decisions.
@@ -79,8 +85,8 @@ function forModelV4(result,{maxBytes=3500}={}){
  }
  return base;
 }
-function forModel(result,{maxBytes=12000,projectionVersion='v1'}={}){
- if(projectionVersion==='v4')return forModelV4(result,{maxBytes});
+function forModel(result,{maxBytes=12000,projectionVersion='v1',legacy=false}={}){
+ if(projectionVersion==='v4')return forModelV4(result,{maxBytes,legacy});
  if(!Number.isSafeInteger(maxBytes)||maxBytes<1024||maxBytes>64000)
   throw Error('模型证据字节预算无效');
  const rows=Array.isArray(result?.evidence)?result.evidence:[];

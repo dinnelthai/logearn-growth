@@ -1,5 +1,6 @@
 const {compactChanges}=require('./contextBudget');
 const {createContextStore}=require('./context'),{createEvidenceStore,reportEvidence,validateClaims}=require('./evidence'),{createTraceStore}=require('./trace');
+const {validateEvidenceReferences}=require('./analysisContract');
 // The planner selects read-only skills before the model context is persisted.
 // Keep the full catalog for legacy reports without a plan.
 function modelCapabilities(registry,base,plan){
@@ -22,8 +23,7 @@ function createFoundation(db,registry){
    evidence:reportEvidence(report,base,evidenceStore),
    capabilities:modelCapabilities(registry,base,report.growthPlan)};
   function validate(analysis){
-   analysis.claims=validateClaims(analysis.claims,base,evidenceStore);
-   for(const s of analysis.suggestions){if(!Array.isArray(s.evidence?.evidenceIds)||!s.evidence.evidenceIds.length)throw Error('建议必须引用证据ID');for(const id of s.evidence.evidenceIds)evidenceStore.get(id,base);}
+   validateEvidenceReferences(analysis,base,evidenceStore,validateClaims);
   }
   // Only server-selected tools may execute, not merely appear in the model prompt.
   const authorized={...base,taskAllowedTools:context.capabilities.map(cap=>cap.id)};
@@ -38,11 +38,7 @@ function createFoundation(db,registry){
     throw Error('恢复上下文与任务身份不一致');
   const base={ownerId,runId,scope:context.business.scope,period:context.period};
   function validate(analysis){
-   analysis.claims=validateClaims(analysis.claims,base,evidenceStore);
-   for(const s of analysis.suggestions){
-    if(!Array.isArray(s.evidence?.evidenceIds)||!s.evidence.evidenceIds.length)throw Error('建议必须引用证据ID');
-    for(const id of s.evidence.evidenceIds)evidenceStore.get(id,base);
-   }
+   validateEvidenceReferences(analysis,base,evidenceStore,validateClaims);
   }
   // A resumed call cannot gain tools absent from its persisted task catalog.
   // Also intersect with the LIVE catalog, so revocations survive process restarts.

@@ -45,7 +45,7 @@ function factsFromValue(value,max=4){
  });
  return matches.slice(0,max);
 }
-function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText}){
+function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,reviewRevision=0}){
  if(raw?.weeklyCoverage?.version!=='weekly-coverage-v1')
   throw Error('周报 Context v4 缺少可信的服务端模块覆盖记录');
  const period=compactPeriod(raw.period);
@@ -85,7 +85,7 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText}){
    coverage:refs.length===2?'period-evidence':'snapshot-only'};
  }).filter(Boolean);
  const issues=core.filter(x=>x.changePct!==null&&x.changePct<0)
-  .sort((a,b)=>b.score-a.score).slice(0,4)
+  .sort((a,b)=>reviewRevision>=2?0:b.score-a.score).slice(0,4)
   .map(({id,label,current,previous,changePct,evidenceIds,coverage})=>
    ({metricId:id,label,current,previous,changePct,evidenceIds,coverage,
     classification:coverage==='period-evidence'?'observed-decline;cause-unverified':
@@ -123,17 +123,17 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText}){
   'get_seo_performance','get_product_chain','get_retention',
   ...(raw.business?.focusGoal==='content-growth'?['get_content_growth']:[]),
   ...allowedIds];
- const relevant=[...new Set(toolOrder)].filter(id=>allowedIds.includes(id)).slice(0,5);
+ const relevant=[...new Set(toolOrder)].filter(id=>allowedIds.includes(id)).slice(0,reviewRevision>=2?allowedIds.length:5);
  const chosen=originalCapabilities.filter(x=>relevant.includes(x.id))
   .sort((a,b)=>relevant.indexOf(a.id)-relevant.indexOf(b.id));
  const tools=compactCapabilities(chosen).map(x=>({
   id:x.id,required:x.required,
-  input:Object.fromEntries(Object.entries(x.input||{}).slice(0,9)),
-  description:safeText(x.description,75)
+  input:reviewRevision>=2?x.input:Object.fromEntries(Object.entries(x.input||{}).slice(0,9)),
+  description:safeText(x.description,reviewRevision>=2?110:75)
  }));
  // Tie investigation to the largest verified change. Tool names here
  // are suggestions, never new permissions or automatic paid queries.
- const primary=issues[0]||null;
+ const primary=reviewRevision>=2?null:issues[0]||null;
  const investigationFocus=primary?{
   metricId:primary.metricId,changePct:primary.changePct,
   question:primary.metricId==='new_users'?
@@ -181,7 +181,7 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText}){
  // Statistical facts and every module's status outrank tool documentation.
  if(size()>CAP){
   out.capabilities=out.capabilities.map(x=>({id:x.id,required:x.required,
-   input:Object.fromEntries(Object.entries(x.input).slice(0,5))}));
+   input:reviewRevision>=2?x.input:Object.fromEntries(Object.entries(x.input).slice(0,5))}));
   out.otherAvailableTools=out.otherAvailableTools.slice(0,20);
  }
  // At most one evidence from each relevant module survives before surplus.
