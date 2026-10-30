@@ -54,6 +54,19 @@ async function startRedisTunnel(env){
  for(let i=0;i<50;i++){if(failure)break;if(await canConnect(Number(url.port||6379)))return child;await new Promise(resolve=>setTimeout(resolve,100))}
  child.kill('SIGTERM');throw Error(`Redis 启动失败：${failure?.message||'连接超时'}（请检查是否安装 redis-server）`);
 }
+async function startLocalAiDatabase(env){
+ if(!env.AI_DATABASE_URL)return;
+ const url=new URL(env.AI_DATABASE_URL);
+ if(!['localhost','127.0.0.1'].includes(url.hostname)||Number(url.port||5432)!==15432||await canConnect(15432))return;
+ const runtime=path.join(root,'backend','data','dev-runtime');
+ const ctl=path.join(runtime,'postgres','bin','pg_ctl'),data=path.join(runtime,'pgdata'),socket=path.join(runtime,'pgsocket');
+ if(!fs.existsSync(ctl)||!fs.existsSync(path.join(data,'PG_VERSION')))throw Error('本地 AI 数据库未运行，且未找到已有 PostgreSQL 程序或数据目录');
+ fs.mkdirSync(socket,{recursive:true});
+ console.log('[PostgreSQL] 启动已有本地 AI 数据库');
+ const quotedSocket='"'+socket.replace(/(["\\])/g,'\\$1')+'"';
+ execFileSync(ctl,['-D',data,'-l',path.join(runtime,'postgres.log'),'-o',`-h 127.0.0.1 -p 15432 -k ${quotedSocket}`,'start'],{stdio:'inherit'});
+ if(!await canConnect(15432))throw Error('本地 AI 数据库启动后无法连接');
+}
 function startServices({spawn:launch=spawn,onExit=code=>{process.exitCode=code},log=console.log,skipWorker=false}={}){
  const specs=[['后端','backend',['src/index.js']],['AI Worker','backend',['src/queues/workers/aiAnalysisWorker.js']],['前端','frontend',['node_modules/vite/bin/vite.js','--port','5173','--strictPort']]];
  const children=[];let stopping=false;
@@ -80,6 +93,7 @@ async function main(){
  const port=Number(process.env.PORT||env.PORT||3001);
  if(!Number.isInteger(port)||port<1||port>65535)throw Error('后端 PORT 配置无效');
  await checkPort(5173);
+ await startLocalAiDatabase({...env,...process.env});
  await releaseOldBackend(port);
  await checkPort(port);
  const tunnel=await startRedisTunnel({...env,...process.env});
