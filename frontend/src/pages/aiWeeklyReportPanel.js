@@ -7,7 +7,7 @@ const DAY=86400000;
 const date=ms=>Number.isFinite(Number(ms))?new Date(Number(ms)+7*3600000).toISOString().slice(0,10):'未知';
 const fmt=x=>typeof x==='number'&&Number.isFinite(x)?x.toLocaleString('zh-CN',{maximumFractionDigits:2}):'未知';
 const statuses={pending:'排队中',processing:'AI 正在分析',completed:'已完成',failed:'生成失败',cancelled:'已取消'};
-export function mountAIWeeklyReport(root,{api,safe,navigate}){
+export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null}){
  let disposed=false,seq=0,poll=null,selected=null,busy=false,recoveryQueued=false,notice='',lastSnapshot=null;
  const clear=()=>{if(poll){clearTimeout(poll);poll=null}};
  const schedule=(rows,token)=>{
@@ -30,7 +30,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
  const section=(title,items,render)=>
   '<section class="ai-weekly-section"><h4>'+safe(title)+'</h4>'+
   (items?.length?'<ul>'+items.map(render).join('')+'</ul>':'<p class="a-muted">暂无经验证的内容，不能据此断定该项正常。</p>')+'</section>';
- const reportBody=(data,record)=>renderWeeklyDecisionReport({data,record,safe,fmt,date,links});
+ const reportBody=(data,record)=>renderWeeklyDecisionReport({data,record,safe,fmt,date,links,canCreateProblem:typeof onCreateProblem==='function'});
 
  async function showReport(row,token,currentPeriod){
   const target=root.querySelector('[data-weekly-body]');if(!target)return;
@@ -158,6 +158,31 @@ export function mountAIWeeklyReport(root,{api,safe,navigate}){
 
    target.querySelectorAll('[data-weekly-navigate]').forEach(button=>
     button.addEventListener('click',()=>{if(typeof navigate==='function')navigate(button.dataset.weeklyNavigate)}));
+   target.querySelectorAll('[data-weekly-section]').forEach(button=>
+    button.addEventListener('click',()=>{
+     target.querySelector('#'+button.dataset.weeklySection)?.scrollIntoView?.({block:'start'});
+    }));
+   if(typeof onCreateProblem==='function'){
+    target.querySelectorAll('[data-weekly-create-problem]').forEach(button=>
+     button.addEventListener('click',async()=>{
+      const card=button.closest('.ai-weekly-problem');
+      const subject=card?.querySelector('.ai-weekly-problem-title strong')?.textContent?.trim().slice(0,120);
+      const description=card?.querySelector('.ai-weekly-problem-content > p')?.textContent?.trim().slice(0,1200);
+      if(!subject||button.disabled)return;
+      button.disabled=true;button.textContent='正在保存…';
+      const note=target.querySelector('[data-weekly-action-note]');
+      try{
+       await onCreateProblem({subject,description:description||subject});
+       if(disposed||token!==seq||!button.isConnected)return;
+       button.textContent='已加入问题池';
+       if(note)note.textContent='已记录待处理问题；创建调查和付费模型调用仍需要单独操作。';
+      }catch(error){
+       if(!button.isConnected)return;
+       button.disabled=false;button.textContent='加入问题池';
+       if(note)note.textContent='加入问题池失败：'+error.message;
+      }
+     }));
+   }
    target.querySelectorAll('[data-weekly-evidence]').forEach(button=>button.addEventListener('click',async()=>{
     const out=target.querySelector('[data-weekly-evidence-detail]');
     button.disabled=true;out.hidden=false;out.textContent='正在读取归档证据…';

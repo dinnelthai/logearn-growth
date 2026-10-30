@@ -1,4 +1,4 @@
-import {renderWeeklyCoverage} from './aiWeeklyCoverageView.js';
+import {renderWeeklyCoverage,weeklyCoverageSummary} from './aiWeeklyCoverageView.js';
 // Decision-first weekly report view. Read-only; all numbers come from the
 // saved business snapshot or an already-validated weekly report.
 const knownMetrics=[
@@ -32,9 +32,10 @@ function trustedMetrics(data){
  }).filter(Boolean);
 }
 const riskPriority=id=>id==='new_users'?'P0':'P1';
-export function renderWeeklyDecisionReport({data,record,safe,fmt,date,links}){
+export function renderWeeklyDecisionReport({data,record,safe,fmt,date,links,canCreateProblem=false}){
  const result=data?.result||{},w=result.weeklyReport;
  if(!w)return '<p role="alert">未形成通过证据校验的周报正文，不能视作生成成功。</p>';
+ const coverage=weeklyCoverageSummary(data);
  const snapshotKpis=trustedMetrics(data);
  const generatedKpis=Array.isArray(w.metrics)?w.metrics:[];
  const metrics=[...snapshotKpis,
@@ -43,8 +44,8 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,links}){
   (value>0?'+':'')+fmt(value)+'%';
  const indicator=row=>row.changePct==null?'unknown':row.changePct<0?'down':row.changePct>0?'up':'flat';
  const evidence=ids=>(Array.isArray(ids)&&ids.length?
-  '<div class="ai-weekly-ref">'+links(ids.slice(0,2))+
-   (ids.length>2?'<span>另有 '+(ids.length-2)+' 条证据</span>':'')+'</div>':
+  '<details class="ai-weekly-ref ai-weekly-evidence-toggle"><summary>查看证据（'+ids.length+'）</summary><div>'+links(ids.slice(0,2))+
+   (ids.length>2?'<span>另有 '+(ids.length-2)+' 条证据</span>':'')+'</div></details>':
   '<span class="ai-weekly-caveat">无可点开的证据编号 · 请核查归档</span>');
  const kpi=metric=>'<div class="ai-weekly-kpi" data-trend="'+indicator(metric)+'">'+
   '<div class="ai-weekly-kpi-top"><span class="ai-weekly-kpi-label">'+safe(metric.label)+'</span>'+
@@ -101,6 +102,15 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,links}){
   safe(date(Number(record.date_range_end)-86400000))+' · Asia/Bangkok · 已保存分析</p></div>'+
   '<span class="ai-weekly-quality" data-quality="'+(w.partial?'partial':'validated')+'">'+
    (w.partial?'部分校验 · 业务结论待核实':'结构校验通过 · 业务结论待核实')+'</span></header>'+
+  '<section class="ai-weekly-coverage-alert" data-complete="'+(coverage.analyzed===coverage.total?'true':'false')+'" role="status">'+
+   '<div><strong>业务分析覆盖：'+coverage.analyzed+' / '+coverage.total+' 个模块有数值结论</strong>'+
+   '<p>已取数待分析 '+coverage.collected+' 项；数据不足、未连接或未调查 '+coverage.missing+
+   ' 项。生成成功不等于所有业务模块已完成分析。</p></div>'+
+   '<button class="a-button" type="button" data-weekly-section="weekly-coverage">查看模块覆盖</button></section>'+
+  '<nav class="ai-weekly-jump" aria-label="周报快速定位">'+
+   '<button type="button" data-weekly-section="weekly-priorities">核心问题</button>'+
+   '<button type="button" data-weekly-section="weekly-metrics">关键指标</button>'+
+   '<button type="button" data-weekly-section="weekly-actions">下周行动</button></nav>'+
   (w.partial?'<p class="ai-weekly-partial" role="status">这是部分周报：AI 的结构化结果未全部通过校验。可信的业务数字从本次归档快照补充，缺失的 SEO 与归因不会虚构。</p>':'')+
   '<div class="ai-weekly-focus"><div class="ai-weekly-focus-label"><span>本周经营判断</span>'+
    '<span>EXECUTIVE BRIEF</span></div><p>'+safe(w.executiveSummary||'没有经过验证的摘要')+'</p></div>'+
@@ -113,11 +123,12 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,links}){
    '<div class="ai-weekly-problem-content">'+
    '<div class="ai-weekly-problem-title"><strong>'+safe(x.title)+'</strong>'+
    '<span class="ai-weekly-priority-chip">'+safe(x.priority)+'</span></div>'+
-   '<p>'+safe(x.detail)+'</p>'+evidence(x.evidenceIds)+'</div>'+
+   '<p>'+safe(x.detail)+'</p>'+evidence(x.evidenceIds)+
+   (canCreateProblem?'<button type="button" class="a-button ai-weekly-create-problem" data-weekly-create-problem>加入问题池</button>':'')+'</div>'+
    (numeric(x.changePct)?'<div class="ai-weekly-problem-change" aria-label="相较上周下降">'+
     '<strong>↓ '+fmt(Math.abs(x.changePct))+'%</strong><span>较上周</span></div>':'')+
    '</div>')+'</section>'+
-  '<section class="ai-weekly-section ai-weekly-kpi-section"><div class="ai-weekly-section-heading">'+
+  '<section class="ai-weekly-section ai-weekly-kpi-section" id="weekly-metrics"><div class="ai-weekly-section-heading">'+
    '<div><span class="ai-weekly-section-index">02 / METRICS</span><h4>关键指标 · 环比</h4></div>'+
   '<span>同口径业务快照；历史覆盖限制详见底部</span></div>'+
   (metrics.length?'<div class="ai-weekly-kpis">'+metrics.map(kpi).join('')+'</div>':
@@ -144,7 +155,7 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,links}){
   '<div class="ai-weekly-source-card"><div class="ai-weekly-source-label"><strong>渠道与获客</strong></div>'+
   list(observations.slice(0,4),x=>'<div class="ai-weekly-observation"><p>'+safe(x.text)+'</p>'+evidence(x.evidenceIds)+'</div>')+
   '</div></div></section>'+
-  '<section class="ai-weekly-section ai-weekly-panel ai-weekly-actions-panel">'+
+  '<section class="ai-weekly-section ai-weekly-panel ai-weekly-actions-panel" id="weekly-actions">'+
    '<div class="ai-weekly-section-heading"><div><span class="ai-weekly-section-index">05 / NEXT STEPS</span>'+
    '<h4>下周行动清单</h4></div><span>优先级、动作与验证标准</span></div>'+
   list(actions,(a,i)=>'<div class="ai-weekly-action" data-priority="'+
@@ -153,7 +164,8 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,links}){
    '<div><strong>'+safe(a.action)+'</strong>'+
    '<p>验证：'+safe(a.metric||'待定义')+'</p>'+
    '<p>复查：'+safe(a.reviewCondition||'待定义')+'</p>'+
-   evidence(a.evidenceIds)+'</div></div>')+'</section>'+
+   evidence(a.evidenceIds)+'</div></div>')+'</section>'+ 
+  '<p role="status" class="ai-weekly-action-note" data-weekly-action-note></p>'+
   '<details class="ai-weekly-details"><summary>其他事实与数据完整性'+
    ' · '+gaps.length+' 项待核对</summary>'+
    '<div class="ai-weekly-details-body">'+
