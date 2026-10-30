@@ -195,3 +195,46 @@ test('raw-only tool results cannot be counted as collected statistics',async()=>
  assert.equal(result.modules.find(m=>m.id==='channel-growth').status,'insufficient');
  assert.equal(JSON.stringify(result).includes('999'),false);
 });
+
+test('real channel aggregate shape survives safe transport and preserves breakdown',()=>{
+ const {statView}=require('../src/ai/business/modelTransport');
+ const {factsFromEvidence}=require('../src/ai/growth/weeklyCoverage');
+ const safe=statView({
+  total:{users:200,new_users:80,analysis:110,logged:140},
+  groups:[
+   {source:'direct',users:120,new_users:50,analysis:60,logged:90},
+   {source:'seo',users:60,new_users:25,analysis:30,logged:40},
+   {source:'x',users:20,new_users:5,analysis:20,logged:10}
+  ],
+  members:{secret:{user_id:'private'}},
+  rows:[{email:'not-for-model@example.com',users:9999}]
+ });
+ const facts=factsFromEvidence([{id:'channel-real',metricId:'channels',value:safe}]);
+ assert.ok(facts.some(x=>x.metric==='groups.seo.new_users'&&x.value===25));
+ assert.ok(facts.some(x=>x.metric==='groups.x.analysis'&&x.value===20));
+ assert.ok(facts.some(x=>x.metric==='total.new_users'&&x.value===80));
+ assert.equal(JSON.stringify(safe).includes('not-for-model'),false);
+ assert.equal(facts.some(x=>x.value===9999),false);
+});
+
+test('retention projection keeps only complete, mature all-cohort D1/D7 statistics',()=>{
+ const {retentionSummary}=require('../src/ai/business/tools/registry');
+ const {statView}=require('../src/ai/business/modelTransport');
+ const {factsFromEvidence}=require('../src/ai/growth/weeklyCoverage');
+ const payload={history_complete:false,curve_groups:{all:[{id:'all:selected',periods:[
+  {period:1,complete:true,eligible_users:50,retained_users:20,
+   retention_rate:0.4,pending_users:0},
+  {period:7,complete:false,eligible_users:10,retained_users:null,
+   retention_rate:null,pending_users:40}
+ ]}]},retention_store:{users:[{id:'private-user'}]}};
+ const safe=statView(retentionSummary(payload));
+ const facts=factsFromEvidence([{id:'retention-real',metricId:'retention',value:safe}]);
+ assert.deepEqual(safe.retention.days.map(x=>x.day),[1]);
+ assert.ok(facts.some(x=>x.metric==='retention.days.0.returned'&&x.value===20));
+ assert.equal(JSON.stringify(safe).includes('private-user'),false);
+ const immature=retentionSummary({curve_groups:{all:[{id:'all:selected',periods:[
+  {period:1,complete:false,eligible_users:1,retained_users:null}
+ ]}]}});
+ assert.equal(immature.retention.available,false);
+ assert.deepEqual(immature.retention.days,[]);
+});
