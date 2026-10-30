@@ -92,7 +92,12 @@ export function mountGrowthDecisionWorkspace(root,{navigate=null}={}){
    </details></section>`
    bind(d)
    const weeklyRoot=root.querySelector('[data-ai-weekly-report]');
-   if(weeklyRoot)disposeWeekly=mountAIWeeklyReport(weeklyRoot,{api,safe,navigate});
+   if(weeklyRoot)disposeWeekly=mountAIWeeklyReport(weeklyRoot,{api,safe,navigate,
+    onCreateProblem:async ({subject,description})=>{
+     await api('/problems','POST',{subject,description});
+     const message=root.querySelector('[data-workspace-message]');
+     if(message)message.textContent='已从 AI 周报添加待处理问题。重新打开页面可在问题池查看。';
+    }});
   }catch(error){if(!disposed&&version===seq)root.innerHTML=`<section class="a-card a-details"><h2>决策工作台未就绪</h2><p role="alert">${safe(error.message)}</p><button class="a-button" data-retry>重新读取</button></section>`;root.querySelector('[data-retry]')?.addEventListener('click',draw)}
  }
  function issueCard(i){

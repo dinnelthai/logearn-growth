@@ -23,7 +23,7 @@ function getManifest(data){
   evidenceIds:[],facts:[]
  }))};
 }
-export function renderWeeklyCoverage(data,{safe,fmt,links}){
+export function weeklyCoverageRows(data){
  const byId=new Map(getManifest(data).modules.map(row=>[row.id,row]));
  const archived=data?.context_payload||data?.data_snapshot;
  let ctx=archived;
@@ -68,6 +68,16 @@ export function renderWeeklyCoverage(data,{safe,fmt,links}){
     source?.insightType==='recommendation'?'recommendation':'fact',
    nextAction:typeof source?.nextAction==='string'?source.nextAction.slice(0,160):''};
  });
+ return rows;
+}
+export function weeklyCoverageSummary(data){
+ const rows=weeklyCoverageRows(data);
+ const analyzed=rows.filter(r=>r.status==='analyzed').length;
+ const collected=rows.filter(r=>r.status==='collected').length;
+ return {total:rows.length,analyzed,collected,missing:rows.length-analyzed-collected};
+}
+export function renderWeeklyCoverage(data,{safe,fmt,links}){
+ const rows=weeklyCoverageRows(data);
  const analyzed=rows.filter(r=>r.status==='analyzed');
  const collected=rows.filter(r=>r.status==='collected');
  const other=rows.filter(r=>!['analyzed','collected'].includes(r.status));
@@ -87,9 +97,8 @@ export function renderWeeklyCoverage(data,{safe,fmt,links}){
         typeof f.value==='number'&&Number.isFinite(f.value)).slice(0,3).map(f=>
        '<div><span>'+safe(f.metric)+'</span><strong>'+fmt(f.value)+'</strong></div>'
       ).join('')+'</div>':'')+
-    (row.evidenceIds.length?'<div class="ai-weekly-ref">'+links(row.evidenceIds)+
-     '</div>':'')+'</div>';
- return '<section class="ai-weekly-section ai-weekly-module-section">'+
+    (row.evidenceIds.length?'<details class="ai-weekly-ref ai-weekly-source-refs"><summary>查看数据证据（'+row.evidenceIds.length+'）</summary><div>'+links(row.evidenceIds)+'</div></details>':'')+'</div>';
+ return '<section class="ai-weekly-section ai-weekly-module-section" id="weekly-coverage">'+
   '<div class="ai-weekly-section-heading"><div>'+
    '<span class="ai-weekly-section-index">03 / SOURCE COVERAGE</span>'+
    '<h4>增长模块调查与分析</h4></div>'+

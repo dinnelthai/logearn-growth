@@ -336,3 +336,38 @@
  #la-studio .ga-workspace > section.ga-ws-issues,
  #la-studio .ga-workspace > section.ga-ws-goals { grid-column:1/-1; grid-row:auto; }
 }
+
+
+/* Review 2026-10-30: clear decision summary and progressive evidence disclosure. */
+#la-studio .ai-weekly-decision .ai-weekly-coverage-alert {
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;
+  gap:16px; padding:14px 18px; border:1px solid var(--ui-warning-border);
+  border-radius:var(--ui-radius-md); background:var(--ui-input-bg);
+}
+#la-studio .ai-weekly-coverage-alert[data-complete="true"] {border-color:var(--a-border)}
+#la-studio .ai-weekly-coverage-alert > div {min-width:0;flex:1}
+#la-studio .ai-weekly-coverage-alert strong {font-size:14px;line-height:1.5}
+#la-studio .ai-weekly-coverage-alert p {margin:5px 0 0;font-size:13px;line-height:1.6;color:var(--a-muted)}
+#la-studio .ai-weekly-coverage-alert .a-button {flex:none;font-size:13px;min-height:38px}
+#la-studio .ai-weekly-jump {display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+#la-studio .ai-weekly-jump button {
+  cursor:pointer;background:transparent;color:var(--a-text);
+  border:1px solid var(--a-border);border-radius:var(--ui-radius-sm);
+  padding:8px 12px;font:inherit;font-size:13px;min-height:36px;
+}
+#la-studio .ai-weekly-jump button:hover {background:var(--ui-surface-hover)}
+#la-studio .ai-weekly-decision :is(#weekly-priorities,#weekly-metrics,#weekly-coverage,#weekly-actions) {scroll-margin-top:24px}
+#la-studio .ai-weekly-evidence-toggle,#la-studio .ai-weekly-source-refs {display:block;max-width:100%;margin-top:10px}
+#la-studio .ai-weekly-evidence-toggle > summary,#la-studio .ai-weekly-source-refs > summary {
+  cursor:pointer;display:list-item;font-size:12px;line-height:1.55;
+  color:var(--a-muted);font-weight:600;list-style-position:inside;
+}
+#la-studio .ai-weekly-evidence-toggle > div,#la-studio .ai-weekly-source-refs > div {
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 0 0 8px;
+}
+#la-studio .ai-weekly-create-problem {margin-top:12px;min-height:34px;font-size:13px}
+#la-studio .ai-weekly-action-note {margin:0;font-size:13px;color:var(--a-muted)}
+#la-studio .ga-workspace .ga-ws-issue p,#la-studio .ga-workspace .ga-ws-action strong {font-size:14px}
+#la-studio .ga-workspace form :is(input,select,textarea),#la-studio .ga-workspace .a-button {font-size:13px}
+#la-studio .ga-tab {font-size:13px;min-height:38px}
+@media (max-width:800px){#la-studio .ai-weekly-coverage-alert .a-button {width:100%}}
