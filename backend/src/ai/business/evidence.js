@@ -28,22 +28,36 @@ function validateClaims(claims,context,store){
   if(!c.id||!['fact','hypothesis','recommendation'].includes(c.kind)||typeof c.text!=='string'||!c.text.trim()||!Array.isArray(c.evidenceIds)||!c.evidenceIds.length)fail('结论缺少证据或类型');
   const evidence=new Map(c.evidenceIds.map(id=>[id,store.get(id,context)]));
   for(const reference of c.values||[]){
+   if(!reference||typeof reference!=='object'||!evidence.has(reference.evidenceId))
+    fail('结论 '+String(c.id).slice(0,40)+' 引用了未声明的数值证据');
    const e=evidence.get(reference.evidenceId);
    const path=reference.path||'value';
-   // Only cite values the model was actually allowed to see; never traverse
-   // unprojected event/member records or arbitrary array indices.
-   if(!/^value(?:\.[a-zA-Z][a-zA-Z0-9_]{0,63}){0,5}$/.test(path))
-    fail('结论 '+String(c.id).slice(0,40)+' 引用了不支持的证据字段路径');
+   // "stats.<metric>" is a bounded, allowlisted aggregate path exposed by
+   // weeklyCoverage.stats. It is never a raw member or arbitrary array index.
    const projected=require('./modelTransport').modelEvidence(e);
-   let actual=projected;
-   for(const segment of path.split('.')){
-    if(!actual||typeof actual!=='object'||Array.isArray(actual)||
-     !Object.hasOwn(actual,segment)){actual=undefined;break;}
-    actual=actual[segment];
-   }
-   if(typeof actual!=='number'||!Number.isFinite(actual)||!Object.is(actual,reference.value))
+   let actual;
+   if(/^stats(?:\\.[a-zA-Z][a-zA-Z0-9_-]{0,63}|\\.[0-9]{1,2}){1,6}$/.test(path)){
+    const facts=require('../growth/weeklyCoverage').factsFromEvidence([projected]);
+    const metric=path.slice('stats.'.length);
+    actual=facts.find(f=>f.metric===metric)?.value;
+   }else if(/^value(?:\\.[a-zA-Z][a-zA-Z0-9_]{0,63}){0,5}$/.test(path)){
+    actual=projected;
+    for(const segment of path.split('.')){
+     if(!actual||typeof actual!=='object'||Array.isArray(actual)||
+      !Object.hasOwn(actual,segment)){actual=undefined;break}
+     actual=actual[segment];
+    }
+   }else fail('结论 '+String(c.id).slice(0,40)+' 引用了不支持的证据字段路径');
+   if(typeof actual!=='number'||!Number.isFinite(actual)||!Object.is(actual,reference.value)){
+    // Only return safe model-visible paths, never raw evidence or PII.
+    const facts=require('../growth/weeklyCoverage').factsFromEvidence([projected])
+     .slice(0,6).map(f=>'stats.'+f.metric+'='+f.value);
+    const hint=typeof projected.value==='number'?'value='+projected.value:
+     facts.length?facts.join('，'):'无可引用的聚合数字';
     fail('结论 '+String(c.id).slice(0,40)+' 的证据 '+String(reference.evidenceId).slice(0,40)+
-     ' 字段 '+path+' 数值不匹配；请以已投影证据的数值和字段路径为准，不能猜测或代入缺失值');
+     ' 字段 '+path+' 数值不匹配；可引用统计：'+hint+
+     '。只引用相符路径与原值，未知不填0');
+   }
   }
   return {...c,uncertainties:c.uncertainties||[],semanticStatus:'needs_evaluation',referenceStatus:'verified'};
  });
