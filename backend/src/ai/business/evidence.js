@@ -36,11 +36,11 @@ function validateClaims(claims,context,store){
    // weeklyCoverage.stats. It is never a raw member or arbitrary array index.
    const projected=require('./modelTransport').modelEvidence(e);
    let actual;
-   if(/^stats(?:\\.[a-zA-Z][a-zA-Z0-9_-]{0,63}|\\.[0-9]{1,2}){1,6}$/.test(path)){
+   if(/^stats(?:\.[a-zA-Z][a-zA-Z0-9_-]{0,63}|\.[0-9]{1,2}){1,6}$/.test(path)){
     const facts=require('../growth/weeklyCoverage').factsFromEvidence([projected]);
     const metric=path.slice('stats.'.length);
     actual=facts.find(f=>f.metric===metric)?.value;
-   }else if(/^value(?:\\.[a-zA-Z][a-zA-Z0-9_]{0,63}){0,5}$/.test(path)){
+   }else if(/^value(?:\.[a-zA-Z][a-zA-Z0-9_]{0,63}){0,5}$/.test(path)){
     actual=projected;
     for(const segment of path.split('.')){
      if(!actual||typeof actual!=='object'||Array.isArray(actual)||
