@@ -4,6 +4,7 @@ const {makeEvidence,fingerprint}=require('../evidence');
 const {validateRange}=require('../../../analytics/businessPriorities');
 const {statView}=require('../modelTransport');
 const {createCapabilityCatalog}=require('./capabilityCatalog');
+const {loginSummary,economicsSummary,kolSummary,contentSummary,followerSummary}=require('./weeklyModuleSummaries');
 const fail=(message,status=400)=>{throw Object.assign(Error(message),{status})};
 const definitions={
  query_metrics:{metric:'active_users',adapter:'metrics',scopes:['source'],description:'现有北极星、增长、周核心指标'},
@@ -165,8 +166,13 @@ function createToolRegistry(deps){
    // model. In particular, don't trust short "rows" or nested arrays.
    const payload=id==='get_product_chain'?productChainSummary(rawPayload):
     id==='get_referral'?referralSummary(rawPayload):
-     id==='get_retention'?retentionSummary(rawPayload):
-    ['get_login_conversion','get_invite_conversion'].includes(id)?conversionSummary(rawPayload):rawPayload;
+    id==='get_retention'?retentionSummary(rawPayload):
+    id==='get_login_conversion'?loginSummary(rawPayload):
+    id==='get_invite_conversion'?conversionSummary(rawPayload):
+    id==='get_channel_economics'?economicsSummary(rawPayload):
+    id==='get_kol_performance'?kolSummary(rawPayload):
+    id==='get_content_growth'?contentSummary(rawPayload):
+    id==='get_follower_quality'?followerSummary(rawPayload):rawPayload;
    const safe=statView(payload);
    if(Buffer.byteLength(JSON.stringify(safe))>maxResultBytes)
      fail('统计摘要超出大小预算，请缩小查询范围',422);
