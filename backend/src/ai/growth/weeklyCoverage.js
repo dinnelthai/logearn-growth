@@ -17,33 +17,77 @@ const DEFINITIONS=Object.freeze([
  ['content-growth','X 内容增长','get_content_growth','content_growth'],
  ['follower-quality','X 粉丝质量','get_follower_quality','follower_quality']
 ].map(([id,label,tool,metric])=>Object.freeze({id,label,tool,metric})));
+// Only observed aggregate metrics may enter the weekly model. Do not traverse
+// arbitrary rows, events, identities or raw payloads just to find a number.
 const ALLOWED_NUMBERS=new Set([
- 'active_users','new_users','returning_users','clicks','impressions','ctr','position',
+ 'active_users','new_users','returning_users','registered_users',
  'users','visits','eligible','converted','returned','activated','registered',
- 'success','started','pending','failed','rate','participation_rate',
- 'views','likes','replies','retweets','posts','count','total',
- 'trade','trades','volume','revenue','cost','bound','inviters'
+ 'success','successes','started','pending','failed','cancelled','unknown',
+ 'rate','conversion_rate','success_rate','activation_rate','retention_rate',
+ 'participation_rate','continuation_rate','binding_rate',
+ 'views','likes','replies','retweets','reposts','posts','impressions','clicks',
+ 'ctr','position','followers','engagementRate','trades','transactions',
+ 'volume','volume_usd','cost_usd','revenue','cost','bound','inviters',
+ 'count','total','flows','exposures','clicked','entered','details',
+ 'visitor_users','clicked_users','drop_off_users','mature_users',
+ 'h24Views','h48Views','viewCount','postCount','likeCount','replyCount'
+]);
+const AGGREGATE_OBJECTS=new Set([
+ 'metrics','summary','totals','global','conversion','product_chain',
+ 'first_value','referral','window','trade','xOfficial','contentSignals',
+ 'counts','retention','growth','current','previous','funnel','attribution',
+ 'registration','association','first_value','exposure','entrance',
+ 'byCurrency','bySource','dimensions','rates','d7','d30',
+ 'channels','sources','steps','stages','drops','groups','cohorts',
+ 'families','retention_summary','entrance_breakdown','page_clicks_summary',
+ 'items','series','trends'
+]);
+const AGGREGATE_ARRAYS=new Set([
+ 'channels','sources','steps','stages','drops','groups','cohorts',
+ 'families','retention_summary','entrance_breakdown','page_clicks_summary',
+ 'items','series','trends','bySource'
 ]);
 const validNumber=x=>typeof x==='number'&&Number.isFinite(x);
 const cleanText=(value,max=180)=>String(value??'').slice(0,max);
+// Labels are dimensions, never arbitrary names/addresses. Unknown categories
+// are still counted but are not exported into the metric path.
+const safeDimension=v=>typeof v==='string'&&/^[a-z0-9_-]{1,32}$/i.test(v)?
+ v.toLowerCase():null;
 function factsFromEvidence(evidence){
- const facts=[];
- const walk=(obj,evidenceId,prefix='',depth=0)=>{
-  if(depth>3||!obj||typeof obj!=='object'||Array.isArray(obj)||facts.length>=8)return;
+ const facts=[],seen=new Set();
+ const add=(metric,value,evidenceId)=>{
+  if(!validNumber(value)||!evidenceId||facts.length>=12)return;
+  const key=evidenceId+':'+metric;
+  if(seen.has(key))return;
+  seen.add(key);facts.push({metric,value,evidenceId});
+ };
+ const visit=(obj,evidenceId,prefix='',depth=0)=>{
+  if(depth>5||!obj||typeof obj!=='object'||facts.length>=12)return;
+  if(Array.isArray(obj))return;
   for(const [key,value] of Object.entries(obj)){
-   if(facts.length>=8)break;
-   if(validNumber(value)&&ALLOWED_NUMBERS.has(key))
-    facts.push({metric:prefix?prefix+'.'+key:key,value,evidenceId});
-   else if(depth<3&&value&&typeof value==='object'&&!Array.isArray(value)&&
-    ['metrics','summary','totals','global','conversion','product_chain','first_value',
-     'referral','window','trade','xOfficial','counts'].includes(key))
-    walk(value,evidenceId,prefix?prefix+'.'+key:key,depth+1);
+   if(facts.length>=12)break;
+   const name=prefix?prefix+'.'+key:key;
+   if(validNumber(value)&&ALLOWED_NUMBERS.has(key))add(name,value,evidenceId);
+   else if(depth<5&&AGGREGATE_OBJECTS.has(key)&&value&&typeof value==='object'){
+    if(Array.isArray(value)){
+     if(!AGGREGATE_ARRAYS.has(key))continue;
+     for(const [i,item] of value.slice(0,8).entries()){
+      if(!item||typeof item!=='object'||Array.isArray(item))continue;
+      const category=safeDimension(item.source)||safeDimension(item.channel)||
+       safeDimension(item.key)||safeDimension(item.stage)||
+       safeDimension(item.label);
+      // A numeric index alone is stable within this snapshot, not attribution.
+      visit(item,evidenceId,name+'.'+(category||String(i)),depth+1);
+      if(facts.length>=12)break;
+     }
+    }else visit(value,evidenceId,name,depth+1);
+   }
   }
  };
- for(const e of evidence.slice(0,6)){
-  if(facts.length>=8)break;
-  if(validNumber(e?.value))facts.push({metric:e.metricId||'value',value:e.value,evidenceId:e.id});
-  else walk(e?.value,e?.id);
+ for(const e of (Array.isArray(evidence)?evidence:[]).slice(0,8)){
+  if(facts.length>=12)break;
+  if(validNumber(e?.value))add(e.metricId||'value',e.value,e.id);
+  else visit(e?.value,e?.id);
  }
  return facts;
 }
