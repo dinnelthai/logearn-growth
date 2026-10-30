@@ -1,5 +1,6 @@
 import './aiAnalysis.css';
 import {loadingState} from './loadingState.js';
+import {beginPageLoad} from './pageLoading.js';
 import {getGrowthAlerts,getGrowthMonitorControl,setGrowthMonitorControl,scanGrowthAlerts,changeGrowthAlert,getGrowthBudget,getGrowthInvestigations,decideGrowthInvestigation,getGrowthNotifications,markGrowthNotificationRead,getGrowthInvestigationTimeline} from '../api/aiAnalysis.js';
 import {TASK_LABELS} from './aiTaskStatus.js';
 
@@ -13,7 +14,7 @@ export function createGrowthMonitorPage(ctx){
  function dispose(){generation++}
  async function draw(){
   ctx.clear?.();const token=++generation,host=$('#as-output');
-  host.innerHTML=loadingState('正在读取增长异常与调查提案…');
+  const finishLoading=beginPageLoad(host,{placeholder:loadingState('正在读取增长异常与调查提案…'),selector:'.ai-ops-monitor',message:'正在更新异常监控，旧调查结果暂时保留…'});
   try{
    const [alertData,monitorControl,proposalData,noticeData,budgetData]=await Promise.all([
     getGrowthAlerts().catch(error=>({alerts:[],error:error.message})),
@@ -233,7 +234,7 @@ export function createGrowthMonitorPage(ctx){
   }catch(error){
    if(token===generation)host.innerHTML=`<section class="a-card"><p role="alert">${esc(error.message)}</p><button class="a-button" data-monitor-refresh>重新读取</button></section>`;
    host.querySelector('[data-monitor-refresh]')?.addEventListener('click',draw);
-  }
+  }finally{finishLoading()}
  }
  return {draw,dispose};
 }
