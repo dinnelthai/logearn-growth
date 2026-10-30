@@ -7,6 +7,7 @@ import {performanceSummary,memberRows} from './memberPerformance.js'
 import {listActivities} from '../api/activities.js'
 import {observedTime} from './observedDrill.js'
 import {remotePageCorrection} from '../components/remotePaging.js'
+import {beginPageLoad} from './pageLoading.js'
 import {previewKolPerformance} from '../api/aiAnalysis.js'
 const STAGES=['待联系','已联系','沟通中','试用中','合作中','暂停','已结束']
 const DAY=86400000,OFFSET=25200000
@@ -14,7 +15,7 @@ export function createKolCrm(ctx) {
   const {$,esc,fmt,table}=ctx
   let reportState=inheritedReportPeriod(),promotions=null,thresholds={decline_pct:30,low_events:3,high_volume:1000}
   let epoch=0,selected=null,editing=null,draft=null,q='',stage='',assignee='',page=0,days=28,profiles=[],metrics=new Map(),metricMeta=null,detail=null
-  let returnToWorkbench=false,followupDirty=false,editorDirty=false,feedback='',excludeOwn=false,collaborations=null,sort='updated_at',direction='desc',scope='tagged',view='all',rankingSnapshot=null,listVersion=null,rankingPeriod=null
+  let returnToWorkbench=false,followupDirty=false,editorDirty=false,feedback='',compactView=true,focusField='',excludeOwn=false,collaborations=null,sort='updated_at',direction='desc',scope='tagged',view='all',rankingSnapshot=null,listVersion=null,rankingPeriod=null
   const resetRanking=()=>{rankingSnapshot=null;listVersion=null;rankingPeriod=null}
   const host=()=>$('#as-output'),time=value=>value==null?'—':observedTime(value)
   const number=value=>value==null?'—':fmt(value)
@@ -50,8 +51,20 @@ export function createKolCrm(ctx) {
     }
   }
   function renderList(data) {
-    host().innerHTML=`<div class="si-page crm-page">${toolbar('KOL CRM','按用户范围追踪使用与交易，管理合作批次、投入和复盘','<button class="a-button" type="button" data-crm-impact>查看归组观察</button><button class="a-button a-primary" data-crm-new>＋ 录入 KOL</button>')}<div data-crm-impact-result role="status"></div><div class="crm-summary"><span>共 <strong>${fmt(data.summary.total)}</strong> 个 KOL</span><span>待跟进 <strong>${fmt(data.summary.due)}</strong> 个</span></div><section class="a-card si-panel"><div class="crm-filters"><label>搜索<input data-crm-search value="${esc(q)}" placeholder="名称、平台、账号、标签"></label><label>合作阶段<select data-crm-stage><option value="">全部阶段</option>${STAGES.map(s=>`<option ${stage===s?'selected':''}>${s}</option>`).join('')}</select></label><label>负责人<select data-crm-assignee><option value="">全部负责人</option>${data.assignees.map(s=>`<option ${assignee===s?'selected':''}>${esc(s)}</option>`).join('')}</select></label></div><div class="crm-filters"><label>统计范围<select data-crm-scope>${[['tagged','KOL 标签用户'],['own','KOL 本人'],['invited','有效直接邀请用户']].map(([v,l])=>`<option value="${v}" ${scope===v?'selected':''}>${l}</option>`).join('')}</select></label><label>关注视图<select data-crm-view>${[['all','全部'],['due','到期待跟进'],['analysed','期间有分析'],['unobserved','期间未观测分析'],['traded','期间有交易'],['analysis_no_trade','期间分析未交易'],['declining','分析使用下降'],['low_usage','低使用'],['high_value','高成交额']].map(([v,l])=>`<option value="${v}" ${view===v?'selected':''}>${l}</option>`).join('')}</select></label><label>全量排序<select data-crm-sort>${[['updated_at','档案更新时间'],['next_followup_at','下次跟进时间'],['analysis_users','分析用户数'],['analysis_events','分析次数'],['analysis_rate','分析覆盖率'],['analysis_days','分析人日'],['volume_usd','已知成交额 USD'],['transactions','交易笔数'],['last_analysis_at','最近分析']].map(([v,l])=>`<option value="${v}" ${sort===v?'selected':''}>${l}</option>`).join('')}</select></label><label>顺序<select data-crm-direction><option value="desc" ${direction==='desc'?'selected':''}>降序（数值大 / 时间晚优先）</option><option value="asc" ${direction==='asc'?'selected':''}>升序（数值小 / 时间早优先）</option></select></label></div><div class="crm-filters">${[['decline_pct','下降阈值 %'],['low_events','低使用：次数少于'],['high_volume','高成交额：USD 至少']].map(([key,label])=>`<label>${label}<input type="number" min="0" data-crm-threshold="${key}" value="${thresholds[key]}"></label>`).join('')}</div><p class="a-muted">使用趋势与紧邻前一期等时长比较；上期为零或数据未知时不计算变化率。阈值按当前范围判断。</p><p class="a-muted">对全部匹配KOL排序后分页；未取得的数据排在最后。三种用户范围分别统计，可在详情展开。</p><div class="a-scroll" data-crm-table></div><div class="rf-pagination"><span>匹配 ${fmt(data.total)} 个 · 第 ${page+1}/${Math.max(1,Math.ceil(data.total/50))} 页</span><div><button class="a-button" data-crm-prev ${page?'':'disabled'}>上一页</button><button class="a-button" data-crm-next ${(page+1)*50<data.total?'':'disabled'}>下一页</button></div></div></section><div data-crm-coverage></div></div>`
+    host().innerHTML=`<div class="si-page crm-page">${toolbar('KOL CRM','按用户范围追踪使用与交易，管理合作批次、投入和复盘','<button class="a-button" type="button" data-crm-impact>查看归组观察</button><button class="a-button a-primary" data-crm-new>＋ 录入 KOL</button>')}<div data-crm-impact-result role="status"></div><div class="crm-summary"><span>共 <strong>${fmt(data.summary.total)}</strong> 个 KOL</span><span>待跟进 <strong>${fmt(data.summary.due)}</strong> 个</span></div><section class="a-card si-panel"><div class="crm-filters"><label>搜索<input data-crm-search value="${esc(q)}" placeholder="名称、平台、账号、标签"></label><label>合作阶段<select data-crm-stage><option value="">全部阶段</option>${STAGES.map(s=>`<option ${stage===s?'selected':''}>${s}</option>`).join('')}</select></label><label>负责人<select data-crm-assignee><option value="">全部负责人</option>${data.assignees.map(s=>`<option ${assignee===s?'selected':''}>${esc(s)}</option>`).join('')}</select></label></div><div class="crm-filters"><label>统计范围<select data-crm-scope>${[['tagged','KOL 标签用户'],['own','KOL 本人'],['invited','有效直接邀请用户']].map(([v,l])=>`<option value="${v}" ${scope===v?'selected':''}>${l}</option>`).join('')}</select></label><label>关注视图<select data-crm-view>${[['all','全部'],['due','到期待跟进'],['analysed','期间有分析'],['unobserved','期间未观测分析'],['traded','期间有交易'],['analysis_no_trade','期间分析未交易'],['declining','分析使用下降'],['low_usage','低使用'],['high_value','高成交额']].map(([v,l])=>`<option value="${v}" ${view===v?'selected':''}>${l}</option>`).join('')}</select></label><label>全量排序<select data-crm-sort>${[['updated_at','档案更新时间'],['next_followup_at','下次跟进时间'],['analysis_users','分析用户数'],['analysis_events','分析次数'],['analysis_rate','分析覆盖率'],['analysis_days','分析人日'],['volume_usd','已知成交额 USD'],['transactions','交易笔数'],['last_analysis_at','最近分析']].map(([v,l])=>`<option value="${v}" ${sort===v?'selected':''}>${l}</option>`).join('')}</select></label><label>顺序<select data-crm-direction><option value="desc" ${direction==='desc'?'selected':''}>降序（数值大 / 时间晚优先）</option><option value="asc" ${direction==='asc'?'selected':''}>升序（数值小 / 时间早优先）</option></select></label></div><div class="crm-filters">${[['decline_pct','下降阈值 %'],['low_events','低使用：次数少于'],['high_volume','高成交额：USD 至少']].map(([key,label])=>`<label>${label}<input type="number" min="0" data-crm-threshold="${key}" value="${thresholds[key]}"></label>`).join('')}</div><p class="a-muted">使用趋势与紧邻前一期等时长比较；上期为零或数据未知时不计算变化率。阈值按当前范围判断。</p><p class="a-muted">对全部匹配KOL排序后分页；未取得的数据排在最后。三种用户范围分别统计，可在详情展开。</p><div class="crm-list-density"><span>默认展示核心指标，需要时可展开全部列</span><button type="button" class="a-button" data-crm-density aria-pressed="${!compactView}">${compactView?'显示完整指标':'精简指标'}</button></div><div class="a-scroll" data-crm-table></div><div class="rf-pagination"><span>匹配 ${fmt(data.total)} 个 · 第 ${page+1}/${Math.max(1,Math.ceil(data.total/50))} 页</span><div><button class="a-button" data-crm-prev ${page?'':'disabled'}>上一页</button><button class="a-button" data-crm-next ${(page+1)*50<data.total?'':'disabled'}>下一页</button></div></div></section><div data-crm-coverage></div></div>`
     bindToolbar();
+    const densityButton=host().querySelector('[data-crm-density]');
+    if(densityButton)densityButton.onclick=()=>{
+     compactView=!compactView;
+     densityButton.textContent=compactView?'显示完整指标':'精简指标';
+     densityButton.setAttribute?.('aria-pressed',String(!compactView));
+     renderRows();
+     densityButton.focus?.({preventScroll:true});
+    };
+    if(focusField){
+     host().querySelector(focusField)?.focus?.({preventScroll:true});
+     focusField='';
+    }
      const impactButton=host().querySelector('[data-crm-impact]');
      if(impactButton)impactButton.onclick=async()=>{
        impactButton.disabled=true;
@@ -66,16 +79,18 @@ export function createKolCrm(ctx) {
        finally{if(impactButton.isConnected)impactButton.disabled=false}
      };
      host().querySelector('[data-crm-new]').onclick=()=>{editing='new';draft={stage:'待联系'};renderEditor()}
-    for(const [attr,set] of [['search',v=>q=v],['stage',v=>stage=v],['assignee',v=>assignee=v],['scope',v=>scope=v],['sort',v=>sort=v],['direction',v=>direction=v],['view',v=>view=v]])host().querySelector('[data-crm-'+attr+']').onchange=e=>{set(e.target.value.trim());page=0;resetRanking();draw()}
+    for(const [attr,set] of [['search',v=>q=v],['stage',v=>stage=v],['assignee',v=>assignee=v],['scope',v=>scope=v],['sort',v=>sort=v],['direction',v=>direction=v],['view',v=>view=v]])host().querySelector('[data-crm-'+attr+']').onchange=e=>{set(e.target.value.trim());focusField='[data-crm-'+attr+']';page=0;resetRanking();draw()}
     host().querySelector('[data-crm-prev]').onclick=()=>{page--;draw()};host().querySelector('[data-crm-next]').onclick=()=>{page++;draw()}
     host().querySelectorAll('[data-crm-threshold]').forEach(el=>el.onchange=()=>{thresholds[el.dataset.crmThreshold]=Number(el.value);page=0;resetRanking();draw()})
     renderRows()
   }
   function renderRows() {
     const node=host().querySelector('[data-crm-table]');if(!node)return
-    node.innerHTML=profiles.length?table(['KOL / 平台','阶段 / 负责人','范围人数','分析人数 / 覆盖率','分析次数（观测）','分析次数变化率','分析人日','交易用户','交易笔数','已知成交额 USD','期间最近分析 · UTC+7','下次跟进 · UTC+7'],profiles.map(p=>{
+    node.innerHTML=profiles.length?table(compactView?
+     ['KOL / 平台','阶段 / 负责人','分析人数 / 覆盖率','分析次数（观测）','交易用户','已知成交额 USD','下次跟进 · UTC+7']:
+     ['KOL / 平台','阶段 / 负责人','范围人数','分析人数 / 覆盖率','分析次数（观测）','分析次数变化率','分析人日','交易用户','交易笔数','已知成交额 USD','期间最近分析 · UTC+7','下次跟进 · UTC+7'],profiles.map(p=>{
       const m=p.metric,t=m?.total
-      return [`<button class="a-tablelink" data-crm-open="${esc(p.id)}">${esc(p.name)} ↗</button><div class="a-muted">${esc(p.platform)}</div>`,esc(p.stage)+'<div class="a-muted">'+esc(p.assignee||'未分配')+'</div>',t?number(t.users):esc(m?.reason||'待获取'),number(t?.analysis_users)+' / '+(t?.analysis_rate==null?'—':(t.analysis_rate*100).toFixed(1)+'%'),number(t?.analysis_events),m?.trend?.analysis_change_rate==null?'—':(m.trend.analysis_change_rate*100).toFixed(1)+'%',number(t?.analysis_days),number(t?.trade_users),number(t?.transactions),money(t?.volume_usd),time(t?.last_analysis_at),time(p.next_followup_at)]
+      return [`<button class="a-tablelink" data-crm-open="${esc(p.id)}">${esc(p.name)} ↗</button><div class="a-muted">${esc(p.platform)}</div>`,esc(p.stage)+'<div class="a-muted">'+esc(p.assignee||'未分配')+'</div>',t?number(t.users):esc(m?.reason||'待获取'),number(t?.analysis_users)+' / '+(t?.analysis_rate==null?'—':(t.analysis_rate*100).toFixed(1)+'%'),number(t?.analysis_events),m?.trend?.analysis_change_rate==null?'—':(m.trend.analysis_change_rate*100).toFixed(1)+'%',number(t?.analysis_days),number(t?.trade_users),number(t?.transactions),money(t?.volume_usd),time(t?.last_analysis_at),time(p.next_followup_at)].filter((_,i)=>!compactView||[0,1,3,4,7,9,11].includes(i))
     })):'<div class="crm-empty"><h2>还没有匹配的 KOL</h2><p>可调整筛选，或录入 KOL 和标签用户。</p><button class="a-button a-primary" data-crm-empty-new>录入 KOL</button></div>'
     node.querySelectorAll('[data-crm-open]').forEach(b=>b.onclick=()=>{selected=b.dataset.crmOpen;returnToWorkbench=false;draw()})
     const add=node.querySelector('[data-crm-empty-new]');if(add)add.onclick=()=>host().querySelector('[data-crm-new]').click()
@@ -138,7 +153,7 @@ export function createKolCrm(ctx) {
     reportState=inheritedReportPeriod(reportState)
     ctx.clear();const id=++epoch;metrics=new Map();metricMeta=null
     if(editing){renderEditor();return}
-    host().innerHTML='<div class="a-card si-panel si-loading" role="status">正在加载 KOL CRM…</div>'
+    const finishLoading=beginPageLoad(host(),{placeholder:'<div class="a-card si-panel si-loading" role="status">正在加载 KOL CRM…</div>',selector:'.crm-page',message:'正在更新 KOL 列表，原结果暂时保留…'})
     try {
       if(selected) {
         const result=await getKol(selected);if(id!==epoch)return;detail=result;
@@ -161,6 +176,7 @@ export function createKolCrm(ctx) {
         profiles=data.kols;renderList(data)
       }
     } catch(e) {if(id===epoch){host().innerHTML=`<section class="a-card si-panel"><h2>CRM 加载失败</h2><p class="si-error">${esc(e.message)}</p><button class="a-button" data-crm-retry>重试</button><button class="a-button" data-crm-return>返回列表</button></section>`;host().querySelector('[data-crm-retry]').onclick=()=>{resetRanking();draw()};host().querySelector('[data-crm-return]').onclick=()=>{selected=null;resetRanking();draw()}}}
+    finally{finishLoading()}
   }
   return {draw,dispose,openKol:(id,{returnToWorkbench:back=false}={})=>{selected=id;editing=null;draft=null;returnToWorkbench=back;feedback='';followupDirty=false;editorDirty=false},hasPendingChanges:()=>!!editing||followupDirty||!!collaborations?.hasPendingChanges()}
 }

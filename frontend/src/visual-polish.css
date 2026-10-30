@@ -1,0 +1,141 @@
+/* LogEarn Growth · desktop visual system, scoped to existing workspace.
+   Keep product metrics, page-specific charts and functional markup untouched. */
+@media (min-width: 901px) {
+  #la-studio {
+    --ui-content-max: 1540px;
+    --ui-text-body: 14px;
+    --ui-text-secondary: 13px;
+    --ui-text-caption: 12px;
+    --ui-card-radius: 12px;
+    --ui-input-height: 38px;
+    --ui-row-height: 42px;
+    font-size: var(--ui-text-body);
+  }
+
+  #la-studio .a-head,
+  #la-studio .a-layout,
+  #la-studio .a-top,
+  #la-studio .a-footer { box-sizing: border-box; }
+  #la-studio .a-head { padding: 24px 32px 18px; }
+  #la-studio .a-head h1 { font-size: 24px; letter-spacing: -.45px; line-height: 1.35; }
+  #la-studio .a-head .a-muted { font-size: 13px; max-width: 90ch; }
+  #la-studio .a-layout { padding-inline: 32px; padding-bottom: 32px; }
+  #la-studio #as-output { min-width: 0; }
+  #la-studio #as-output > .si-page:not(.seo-workspace) { width: 100%; max-width: var(--ui-content-max); margin-inline: auto; }
+  #la-studio :is(.si-page,.ai-analysis-page) > header:first-child { margin-bottom: 2px; }
+  #la-studio .si-sectionhead { gap: 14px; align-items: baseline; }
+  #la-studio .si-sectionhead :is(h2,h3) { letter-spacing: -.2px; line-height: 1.4; }
+  #la-studio .a-topnav .a-nav { min-height: 40px; font-size: 13px; }
+  #la-studio .nav-children .a-nav-sub { min-height: 34px; font-size: 12.5px; }
+  #la-studio .toolbar-title { font-size: 13px; }
+  #la-studio .a-top #as-data-badge { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #la-studio :is(.a-card,.si-panel,.a-config,.si-kpi,.home-kpi) {
+    border-color: var(--a-border);
+    border-radius: var(--ui-card-radius);
+    box-shadow: none;
+  }
+  #la-studio .a-card :is(p,li),
+  #la-studio .si-panel :is(p,li) { line-height: 1.65; }
+  #la-studio :is(.a-card,.si-panel) :is(h2,h3) { overflow-wrap: anywhere; }
+  #la-studio .a-button {
+    min-height: var(--ui-input-height);
+    padding: 8px 13px;
+    font-size: 13px;
+    font-weight: 620;
+    border-radius: 8px;
+    box-shadow: none;
+  }
+  #la-studio .a-button.a-primary { color: var(--ui-on-accent); background: var(--ui-accent-strong); border-color: var(--ui-accent-strong); }
+  #la-studio .a-button.a-primary:not(:disabled):hover { color: var(--ui-on-accent); background: #859cfe; border-color: #859cfe; }
+  #la-studio :is(input,select,textarea):not([type=checkbox]):not([type=radio]) {
+    font-size: 13px;
+    min-height: var(--ui-input-height);
+    line-height: 1.5;
+    background: var(--ui-input-bg);
+    border-color: var(--ui-border-interactive);
+  }
+  #la-studio textarea { min-height: 76px; }
+  #la-studio :is(button,input,select,textarea,a,summary):focus-visible {
+    outline: 2px solid var(--ui-border-focus);
+    outline-offset: 2px;
+  }
+  #la-studio button:disabled { cursor: not-allowed; opacity: .52; }
+  #la-studio [role="alert"] { overflow-wrap: anywhere; }
+  #la-studio :is(.a-scroll,.data-table-scroll) {
+    max-width: 100%;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ui-border-interactive) transparent;
+  }
+  #la-studio :is(.a-scroll,.data-table-scroll) th {
+    color: #becbde;
+    font-size: 12px;
+    letter-spacing: .01em;
+    font-weight: 650;
+    white-space: nowrap;
+    padding: 11px 14px;
+  }
+  #la-studio :is(.a-scroll,.data-table-scroll) td {
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 11px 14px;
+    vertical-align: middle;
+  }
+  #la-studio :is(.a-scroll,.data-table-scroll) tbody tr:hover td { background: var(--ui-surface-raised); }
+  #la-studio :is(.a-scroll,.data-table-scroll) :is(td,th) { border-bottom-color: var(--a-border); }
+  #la-studio .a-tablelink { font-size: 13px; font-weight: 650; }
+  #la-studio .rf-pagination { gap: 12px; align-items: center; }
+  #la-studio .rf-pagination > span { color: var(--a-muted); font-size: 12px; }
+  #la-studio :is(.si-details,.a-details,details.seo-settings) > summary { cursor: pointer; }
+  #la-studio :is(.si-details,.a-details,details.seo-settings) > summary:focus-visible { border-radius: 5px; }
+  #la-studio .home-monitor .home-north-hero { border-color: #354765; background: linear-gradient(110deg, #172238, var(--a-panel) 80%); }
+  #la-studio .home-monitor .home-kpi > strong { font-variant-numeric: tabular-nums; }
+  #la-studio .home-monitor .home-bottom-grid { align-items: stretch; }
+  #la-studio .seo-workspace { width: 100%; max-width: var(--ui-content-max); margin-inline: auto; gap: 18px; }
+  #la-studio .seo-workspace .ai-gsc-report { border-color: #344563; }
+  #la-studio .seo-workspace .seo-kpi strong { font-size: 25px; }
+  #la-studio .crm-page .crm-filters { gap: 12px; }
+  #la-studio .crm-page .crm-filters label { min-width: 145px; }
+  #la-studio .crm-page .crm-summary { gap: 12px; }
+  #la-studio .operations-workbench .work-ai-task { padding-block: 13px; }
+  #la-studio .operations-compare-page fieldset { border-color: var(--a-border); border-radius: var(--ui-radius-md); }
+  #la-studio .x-content-post-row { column-gap: 20px; padding-block: 16px; }
+  #la-studio .x-content-post-link { font-size: 14px; }
+  #la-studio .x-content-post-metric strong { font-size: 17px; }
+  #la-studio .ai-ops-monitor .a-card { min-width: 0; }
+}
+#la-studio [hidden] { display: none !important; }
+#la-studio .ui-refresh-banner {
+  position: sticky; top: 64px; z-index: 19;
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; margin: 0 0 12px;
+  background: #202d41; color: var(--a-text);
+  border: 1px solid var(--ui-border-interactive);
+  border-radius: var(--ui-radius-sm);
+  font-size: 13px; line-height: 1.5;
+}
+#la-studio .ui-refresh-banner::before {
+  content: ''; display: inline-block; flex: none;
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid var(--a-muted); border-top-color: var(--a-accent);
+  animation: logearn-page-loading .75s linear infinite;
+}
+@keyframes logearn-page-loading { to { transform: rotate(360deg); } }
+#la-studio .crm-list-density {
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  flex-wrap:wrap; margin:12px 0 10px;
+}
+#la-studio .crm-list-density > span { color: var(--a-muted); font-size: 12px; }
+#la-studio .crm-list-density .a-button[aria-pressed="true"] {
+  background: var(--ui-surface-selected); border-color: var(--ui-border-focus);
+}
+#la-studio .home-evidence-details { padding: 12px 18px; }
+#la-studio .home-evidence-details > summary { cursor: pointer; font-size: 13px; font-weight: 650; }
+#la-studio .home-evidence-details > p { color: var(--a-muted); font-size: 13px; }
+#la-studio .x-content-data-note { margin-top: 14px; border-top: 1px solid var(--a-border); padding-top: 11px; }
+#la-studio .x-content-data-note summary { cursor: pointer; font-size: 12px; font-weight: 650; color: var(--a-muted); }
+#la-studio .x-content-data-note p { font-size: 12px; line-height: 1.7; }
+#la-studio .seo-workspace .seo-setup-link { margin-top: 12px; }
+@media (prefers-reduced-motion: reduce) {
+  #la-studio .ui-refresh-banner::before { animation: none; }
+}

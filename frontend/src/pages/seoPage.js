@@ -3,6 +3,7 @@ import './seoReport.css';
 import {queueAnalysisLaunch} from '../analysisLaunchContext.js';
 import {renderSeoReport,applySeoQueryFilter,safeSeoUrl} from './seoReportView.js';
 import {loadingState} from './loadingState.js';
+import {beginPageLoad} from './pageLoading.js';
 import {getSeoImports,importSeoSnapshot,previewSeoSnapshot,getGscConnection,saveGscSite,syncGscPerformance,getGscPerformance,getGscSitemaps,inspectGscUrl,beginGscOAuth,disconnectGscOAuth} from '../api/aiAnalysis.js';
 
 const DAY=86400000, OFFSET=7*3600000;
@@ -27,7 +28,7 @@ export function createSeoPage(ctx){
  async function draw(){
   ctx.clear?.();
   const token=++generation,host=$('#as-output');
-  host.innerHTML=loadingState('正在读取 Search Console 与 SEO 数据…');
+  const finishLoading=beginPageLoad(host,{placeholder:loadingState('正在读取 Search Console 与 SEO 数据…'),selector:'.seo-workspace',message:'正在更新 Search Console，已保存结果暂时保留…'});
   try{
    const [seoData,gscConnection,gscSnapshot]=await Promise.all([
     getSeoImports().catch(error=>({imports:[],error:error.message})),
@@ -38,6 +39,12 @@ export function createSeoPage(ctx){
    host.innerHTML=`<div class="si-page ai-analysis-page seo-workspace">
     <header class="ai-decision-hero"><div><span class="ai-eyebrow">CHANNEL INTELLIGENCE</span><h1>SEO 分析</h1><p>搜索曝光、关键词、页面与收录状态；同步本身不调用 AI。</p></div><div class="seo-page-actions"><button class="a-button" data-seo-refresh type="button">刷新</button><button class="a-button a-primary" data-seo-agent type="button" ${!gscSnapshot.available||!gscSnapshot.report?'disabled':''}>交给 AI 分析</button></div></header>
     <p data-seo-message role="status" aria-live="polite">${esc(notice)}</p>
+        <section class="a-card ai-gsc-report">
+          <h2>自然搜索表现</h2>
+          ${gscSnapshot.error?'<p role="status">历史同步数据暂不可用：'+esc(gscSnapshot.error)+'</p>':''}
+          ${gscSnapshot.available&&gscSnapshot.report?renderSeoReport(gscSnapshot.report,esc):
+           '<div class="seo-setup-link"><p>暂无已同步的 Search Console 报告。连接站点并同步后才能分析搜索表现。</p><button type="button" class="a-button" data-seo-setup>前往数据源设置</button></div>'}
+         </section>
         <details class="a-card ai-gsc-settings seo-settings" ${(!gscConnection.selectedSite||!gscSnapshot.available)?'open':''}>
           <summary>数据源设置 <span>${gscConnection.selectedSite?'已连接 · '+esc(gscConnection.selectedSite):'需要配置'}</span></summary>
           <h2>Google Search Console · 网站与数据设置</h2>
@@ -76,12 +83,6 @@ export function createSeoPage(ctx){
           <p data-gsc-sync-status role="status" aria-live="polite">${esc(syncNotice)}</p>
           <p>同步采用已最终确定的 Google 搜索数据；不会发起 AI 调查，也不会修改网站、索引或 Sitemap 设置。</p>
         </details>
-        <section class="a-card ai-gsc-report">
-          <h2>自然搜索表现</h2>
-          ${gscSnapshot.error?'<p role="status">历史同步数据暂不可用：'+esc(gscSnapshot.error)+'</p>':''}
-          ${gscSnapshot.available&&gscSnapshot.report?renderSeoReport(gscSnapshot.report,esc):
-           '<p>暂无已同步的 Google Search Console 报告。请展开上方数据源设置连接并同步。</p>'}
-         </section>
          <details class="a-card ai-gsc-diagnostics seo-settings">
           <summary>Sitemap 与 URL 收录检查</summary>
           <p>只读查看 Search Console 中已经提交的 Sitemap 和某个 URL 的 Google 索引版本；不提交 Sitemap，不请求收录，也不更改网站。</p>
@@ -109,6 +110,13 @@ export function createSeoPage(ctx){
         </details>
     </div>`;
    host.querySelector('[data-seo-refresh]').onclick=draw;
+   host.querySelector('[data-seo-setup]')?.addEventListener('click',()=>{
+    const settings=host.querySelector('.ai-gsc-settings');
+    if(!settings)return;
+    settings.open=true;
+    settings.scrollIntoView?.({block:'start',behavior:'smooth'});
+    settings.querySelector('button:not(:disabled), select:not(:disabled)')?.focus?.({preventScroll:true});
+   });
    host.querySelector('[data-seo-agent]')?.addEventListener('click',()=>{
      if(!gscSnapshot.available||!gscSnapshot.report)return;
      const report=gscSnapshot.report;
@@ -261,7 +269,7 @@ export function createSeoPage(ctx){
     host.innerHTML=`<section class="a-card"><p role="alert">${esc(error.message)}</p><button class="a-button" data-seo-refresh>重试</button></section>`;
     host.querySelector('[data-seo-refresh]').onclick=draw;
    }
-  }
+  }finally{finishLoading()}
  }
  return {draw,dispose};
 }
