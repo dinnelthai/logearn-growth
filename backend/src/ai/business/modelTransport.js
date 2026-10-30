@@ -46,7 +46,13 @@ const numeric=new Set([
  'logged','token','submitted','succeeded','analysis_rate','strategy_rate','trade_rate',
  'source_conflicts','first_visit_users','eligible_users','retained_users',
  'pending_users','observed_returned_users','continuous_retained_users',
- 'continuous_retention_rate','cohort_size','total_entered','total_converted'
+ 'continuous_retention_rate','cohort_size','total_entered','total_converted',
+ 'requests','terminal_coverage','observed_completion_rate','success_rate',
+ 'click_users','record_total','currencyCount','receivedEntries','income_entries','roi',
+ 'measuredProfiles','profilesWithObservedUsers','profilesWithAnalysis',
+ 'profilesWithTrade','maxObservedUsers','observedAccounts','measuredPosts',
+ 'measuredImpressions','measuredEngagementRate','sampledPosts',
+ 'scannedRecords','analyzedRecords','reviewedRecords','records','reviewed','analyzed'
 ]);
 const flags=new Set(['available','historyComplete','history_complete','complete',
  'truncated','mature','known','coverageVerified','platformSync','conversionAttribution',
@@ -73,7 +79,8 @@ const groups=new Set(['totals','days','growth','change','dimensions','channels',
  'sourceVersions','watermarks','goal','current','previous','weekly','northStar',
  'contentSignals',
  'referral','conversion','global','window','retention',
- 'candidate','candidates','result','data','snapshots','snapshot']);
+ 'candidate','candidates','result','data','snapshots','snapshot',
+ 'manual','official','economics']);
 const ids=new Set(['snapshot_id','snapshotId','as_of','eventsCompleteThrough',
  'events_complete_through','cutoff','asOf','queryFingerprint']);
 const privacy=/\b(?:user|session|wallet|account|token_visit|strategy_run|user_id|session_id|cookie|email|phone)[:=][^\s,;]+|[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}|\b0x[a-fA-F0-9]{35,}\b|\b(?:[0-9a-fA-F]{8}-){4}[0-9a-fA-F]{12}\b|https?:\/\/\S+|\b(?:\d[\s-]?){12,}\b/gi;
