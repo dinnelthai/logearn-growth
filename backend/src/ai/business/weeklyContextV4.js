@@ -58,7 +58,8 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
   // the first four overall numbers. This remains bounded and aggregate-only.
   const maxFacts=['channel-growth','activation-funnel'].includes(row.id)?12:4;
   const facts=(row.facts||[]).filter(f=>valid(f.value)&&typeof f.metric==='string')
-   .slice(0,maxFacts).map(f=>({metric:safeText(f.metric,65),value:f.value}));
+   .slice(0,maxFacts).map(f=>({metric:safeText(f.metric,110),
+    path:'stats.'+safeText(f.metric,110),value:f.value}));
   if(!facts.length)for(const e of evidence){
    for(const f of factsFromValue(modelEvidence(e).value,4)){
     if(!facts.some(x=>x.metric===f.metric))facts.push(f);
