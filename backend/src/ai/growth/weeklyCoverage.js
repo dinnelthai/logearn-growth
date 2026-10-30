@@ -99,22 +99,15 @@ function baselineEvidence(context){
 function describeAvailable(result){
  const evidence=Array.isArray(result?.evidence)?result.evidence:[];
  if(result?.status!=='ok'||!evidence.length)return 'insufficient';
- if(evidence.every(e=>e?.value?.available===false||e?.value==null))return 'insufficient';
- // A nominally successful tool request with no observed statistic should
- // remain a data gap; it is not proof that a business outcome was observed.
- const containsStatistic=(value,depth=0)=>{
-  if(depth>4||value==null)return false;
-  if(validNumber(value))return true;
-  if(Array.isArray(value))return value.slice(0,8).some(x=>containsStatistic(x,depth+1));
-  if(typeof value!=='object')return false;
-  return Object.entries(value).slice(0,28).some(([key,v])=>
-   ALLOWED_NUMBERS.has(key)&&validNumber(v)||
-   (typeof v==='object'&&containsStatistic(v,depth+1)));
- };
- if(!evidence.some(e=>containsStatistic(e.value)))return 'insufficient';
+ if(evidence.every(e=>e?.value?.available===false||e?.value==null))
+  return 'insufficient';
+ // Raw rows and identifier-like numbers are NOT valid observations.
+ // Only the same allowlisted, evidence-linked aggregate facts that can reach
+ // the AI may promote a module to "collected".
+ if(!factsFromEvidence(evidence).length)return 'insufficient';
  if(evidence.some(e=>e.metricId==='seo_search'&&e.coverage?.periodMatched!==true))
-  return 'insufficient'; // reference-only GSC must not qualify as weekly analyzed
- return 'collected'; // only model citations can promote a source to analyzed
+  return 'insufficient'; // PT reference snapshots cannot be weekly facts
+ return 'collected';
 }
 function packModule(def,{status,reason,evidence=[],source='read-only',tool=def.tool}={}){
  return {id:def.id,label:def.label,status,reason:cleanText(reason||'',180),
