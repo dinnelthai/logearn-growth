@@ -39,8 +39,8 @@ function economicsSummary(payload){
   source:safeDimension(r.currency),...pick(r,['income_entries','roi'])
  }));
  return {available:chosen.length>0,
-  economics:{currencyCount:chosen.length,
-   ...(received.length?{receivedEntries:sum(received)}:{})},
+  ...(chosen.length?{economics:{currencyCount:chosen.length,
+   ...(received.length?{receivedEntries:sum(received)}:{})}}:{}),
   groups,coverage:payload?.coverage||{status:'unknown'},
   warnings:[...(payload?.warnings||[]),
    '金额保存为高精度十进制字符串，不进行浮点转换；收到的入账条数及ROI只描述人工账本，不代表全平台收入']};
