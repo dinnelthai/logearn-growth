@@ -164,3 +164,34 @@ test('a successful but empty tool payload is not business evidence',async()=>{
   }]})});
  assert.equal(out.modules.find(x=>x.id==='seo-organic').status,'insufficient');
 });
+
+test('bounded channel and funnel buckets keep numeric evidence without private rows',()=>{
+ const rows=[{id:'channel-safe',metricId:'channels',value:{
+  channels:[{source:'direct',users:15,visits:23},{source:'seo',users:6,visits:11}],
+  rows:[{user_id:'private-user-123',users:9000}]
+ }},{id:'funnel-safe',metricId:'funnel',value:{
+  conversion:{stages:[{key:'visit',users:40},{key:'login',users:24}]},
+  events:[{user_id:'private-user-456',users:8000}]
+ }}];
+ const {factsFromEvidence}=require('../src/ai/growth/weeklyCoverage');
+ const facts=factsFromEvidence(rows);
+ assert.ok(facts.some(f=>f.metric==='channels.direct.users'&&f.value===15&&f.evidenceId==='channel-safe'));
+ assert.ok(facts.some(f=>f.metric==='channels.seo.visits'&&f.value===11));
+ assert.ok(facts.some(f=>f.metric==='conversion.stages.login.users'&&f.value===24));
+ assert.equal(facts.some(f=>f.value===9000||f.value===8000),false);
+ assert.equal(JSON.stringify(facts).includes('private-user'),false);
+});
+
+test('raw-only tool results cannot be counted as collected statistics',async()=>{
+ const ctx=context();
+ const result=await collectWeeklyCoverage({context:ctx,allowedTools:toolIds,maxQueries:2,
+  investigate:async({tool})=>tool==='get_seo_performance'?
+   {status:'ok',evidence:[{id:'seo-unmatched',metricId:'seo_search',
+    value:{metrics:{clicks:8}},coverage:{periodMatched:false}}]}:
+   {status:'ok',evidence:[{id:'channel-raw',metricId:'channels',
+    value:{rows:[{user_id:'secret',users:999}]}}]}
+ });
+ assert.equal(result.modules.find(m=>m.id==='seo-organic').status,'insufficient');
+ assert.equal(result.modules.find(m=>m.id==='channel-growth').status,'insufficient');
+ assert.equal(JSON.stringify(result).includes('999'),false);
+});
