@@ -1,16 +1,19 @@
 /**
- * Retain the last rendered page during an explicit, read-only refresh.
- * Prevents a long page from briefly collapsing into a one-line loading placeholder.
- * A different route still receives its normal loading state.
+ * Keep a rendered page visible while a read-only refresh runs.
+ * Re-entrant refreshes retire the previous banner without leaving stale content inert.
+ * Navigation to another page still gets the normal loading state.
  */
-export function beginPageLoad(host,{placeholder,selector,message}){
+const activeLoads=new WeakMap();
+
+export function beginPageLoad(host,{placeholder,selector,message}={}){
+ const old=activeLoads.get(host);
+ old?.finish();
  const previous=selector&&host?.querySelector?.(selector);
  const doc=host?.ownerDocument;
  if(!previous||!doc?.createElement||!host?.prepend){
   host.innerHTML=placeholder;
   return ()=>{};
  }
- host.querySelector?.(':scope > .ui-refresh-banner')?.remove();
  const notice=doc.createElement('div');
  notice.className='ui-refresh-banner';
  notice.setAttribute('role','status');
@@ -18,8 +21,12 @@ export function beginPageLoad(host,{placeholder,selector,message}){
  const priorInert=previous.inert===true;
  previous.inert=true;
  host.prepend(notice);
- return ()=>{
+ const state={finish:()=>{
+  if(activeLoads.get(host)!==state)return;
+  activeLoads.delete(host);
   notice.remove();
   if(previous.isConnected)previous.inert=priorInert;
- };
+ }};
+ activeLoads.set(host,state);
+ return state.finish;
 }
