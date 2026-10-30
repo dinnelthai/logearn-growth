@@ -41,7 +41,12 @@ const numeric=new Set([
  'registered','bound','inviters','analysis','strategy','used','trade','continued','nearby',
  'stored','next_generation','next_used','new_nearby','reinviters','participation_rate',
  'continuation_rate','output','observed_output','confirmed_new_registration_rate',
- 'binding_rate','record_total','flows','success','failed','cancelled','conflict'
+ 'binding_rate','record_total','flows','success','failed','cancelled','conflict',
+ // Channel and mature-retention results are aggregate counts, not row identities.
+ 'logged','token','submitted','succeeded','analysis_rate','strategy_rate','trade_rate',
+ 'source_conflicts','first_visit_users','eligible_users','retained_users',
+ 'pending_users','observed_returned_users','continuous_retained_users',
+ 'continuous_retention_rate','cohort_size','total_entered','total_converted'
 ]);
 const flags=new Set(['available','historyComplete','history_complete','complete',
  'truncated','mature','known','coverageVerified','platformSync','conversionAttribution',
