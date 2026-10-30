@@ -28,7 +28,7 @@ export function createWorkbench(ctx){
     }
   });
   const crmHost=host().querySelector('[data-work-crm]');if(oldCrm&&crmHost)crmHost.replaceWith(oldCrm);else if(crmHost)crm=mountUserCrm(crmHost,ctx,{onSaved:async()=>{const token=epoch;try{const r=await fetchWorkbench();if(token===epoch&&crmHost.isConnected){data=r;render(true)}}catch(e){if(token===epoch)host().querySelector('[data-work-error]').textContent=e.message}}});
-  host().querySelector('[data-work-refresh]').onclick=refresh;host().querySelectorAll('[data-work-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.workFilter;page=0;pendingFocus='[data-work-filter="'+filter+'"]';render()});host().querySelector('[data-work-prev]').onclick=()=>{page--;pendingFocus='[data-work-prev]';render()};host().querySelector('[data-work-next]').onclick=()=>{page++;pendingFocus='[data-work-next]';render()}
+  host().querySelector('[data-work-refresh]').onclick=refresh;host().querySelectorAll('[data-work-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.workFilter;page=0;pendingFocus='.a-audience-actions [data-work-filter="'+filter+'"]';render()});host().querySelector('[data-work-prev]').onclick=()=>{page--;pendingFocus='[data-work-prev]';render()};host().querySelector('[data-work-next]').onclick=()=>{page++;pendingFocus='[data-work-next]';render()}
   if(pendingFocus){
     host().querySelector(pendingFocus)?.focus?.({preventScroll:true});
     pendingFocus=null;
