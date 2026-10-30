@@ -162,7 +162,7 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
   const maxCalls=Number(process.env.AI_TASK_MAX_CALLS || 6), maxBytes=Number(process.env.AI_TASK_MAX_INPUT_BYTES || 240000);
   const maxTokens=Number(process.env.AI_TASK_MAX_TOKENS || 50000), deadline=Date.now()+Number(process.env.AI_TASK_TIMEOUT_MS || 600000);
   if (![maxCalls,maxBytes,maxTokens].every(n=>Number.isFinite(n)&&n>0)) throw Error('任务预算配置必须为正数');
-  let lastError;
+  let lastError,lastFailureKind='investigation';
   for (let round=0;round<maxCalls;round++) {
     if (Date.now()>deadline || Buffer.byteLength(JSON.stringify(messages))>maxBytes)
       throw Error('分析预算已达上限，必要调查尚未完成；请调整预算后重试，未保存为成功结果');
@@ -234,7 +234,7 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
     if(calls.reduce((n,c)=>n+c.tokens,0)>maxTokens)console.warn(`累计实际 Token 已超过参考预算 ${maxTokens}；记录告警并继续完成分析，不自动重发任何模型请求。`);
     let value;
     try { value=parseJSON(response.content); }
-    catch(error) { lastError=error; routing={tier:'complex',reason:'模型输出无法解析，由当前模型重试'}; const correction='输出无法解析，请完成原任务并返回完整合法 JSON。'; if(saved){if(saved.result?.followup?.kind!=='parse-error'||saved.result.followup.content!==correction)throw Error('解析纠正消息断点不一致');}
+    catch(error) { lastError=error;lastFailureKind='parse'; routing={tier:'complex',reason:'模型输出无法解析，由当前模型重试'}; const correction='输出无法解析，请完成原任务并返回完整合法 JSON。'; if(saved){if(saved.result?.followup?.kind!=='parse-error'||saved.result.followup.content!==correction)throw Error('解析纠正消息断点不一致');}
       else traceStore?.saveFollowup?.(callTrace,round,correction,'parse-error'); messages.push({role:'assistant',content:compactToolReplies?String(response.content).slice(-3000):response.content},{role:'user',content:correction});continue; }
     // A tool-use round needs the requested queries, not the entire prior
     // analysis prose. The unmodified completion is still in the trace journal.
@@ -247,6 +247,7 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
       }):response.content;
     messages.push({role:'assistant',content:assistantReply});
     if (Array.isArray(value.investigations) && value.investigations.length) {
+      lastFailureKind='investigation';
       if (!investigate) throw Error('该任务暂不支持请求的补充调查，任务未完成');
       // Preserve the original provider response in the journal, but strictly cap
       // real tool executions. Over-limit requests become explicit non-observations.
@@ -319,12 +320,15 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
       continue;
     }
     try { await validate(value); }
-    catch(error) {lastError=error;routing={tier:'complex',reason:'结果缺少必要字段，由当前模型补全'};const correction=error.message+'。请完成原任务，返回完整结构，不能省略必要内容。';if(saved){if(saved.result?.followup?.kind!=='validation-error'||saved.result.followup.content!==correction)throw Error('结果校验纠正消息断点不一致');}
+    catch(error) {lastError=error;lastFailureKind='validation';routing={tier:'complex',reason:'结果缺少必要字段，由当前模型补全'};const correction=error.message+'。请完成原任务，返回完整结构，不能省略必要内容。';if(saved){if(saved.result?.followup?.kind!=='validation-error'||saved.result.followup.content!==correction)throw Error('结果校验纠正消息断点不一致');}
       else traceStore?.saveFollowup?.(callTrace,round,correction,'validation-error');messages.push({role:'user',content:correction});continue;}
     if(saved?.result?.validatedAnalysis && JSON.stringify(saved.result.validatedAnalysis)!==JSON.stringify(value))throw Error('已验证的最终输出不一致');
     if(!saved?.result?.validatedAnalysis)traceStore?.saveValidatedAnalysis?.(callTrace,round,value);
     return {analysis:value,calls,evidence,routing,cost:calls.reduce((n,c)=>n+c.cost,0),model,provider:response.provider||calls.at(-1)?.provider};
   }
-  throw Error('分析未完成：已达到调查调用上限。'+(lastError?.message||'请提高预算或缩小问题范围'));
+  const cause=lastFailureKind==='validation'?'最终结论未通过证据校验':
+    lastFailureKind==='parse'?'模型输出无法解析':'调查仍未完成';
+  throw Error('分析未完成：'+cause+'，且已达到模型调用上限。'+
+    (lastError?.message||'请收窄任务范围；不要盲目重放已有付费请求'));
 }
 module.exports={runTask,parseJSON,validateAnalysis,validateReview,buildSystemPrompt};
