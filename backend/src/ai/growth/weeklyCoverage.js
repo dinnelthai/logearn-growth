@@ -30,7 +30,12 @@ const ALLOWED_NUMBERS=new Set([
  'volume','volume_usd','cost_usd','revenue','cost','bound','inviters',
  'count','total','flows','exposures','clicked','entered','details',
  'visitor_users','clicked_users','drop_off_users','mature_users',
- 'h24Views','h48Views','viewCount','postCount','likeCount','replyCount'
+ 'h24Views','h48Views','viewCount','postCount','likeCount','replyCount',
+ 'logged','token','analysis','strategy','submitted','succeeded',
+ 'analysis_rate','strategy_rate','trade_rate','source_conflicts','first_visit_users',
+ 'total_entered','total_converted','pending_count','drop_off_users',
+ 'previous_conversion_rate','total_conversion_rate','eligible_users',
+ 'retained_users','pending_users','observed_returned_users'
 ]);
 const AGGREGATE_OBJECTS=new Set([
  'metrics','summary','totals','global','conversion','product_chain',
@@ -40,12 +45,12 @@ const AGGREGATE_OBJECTS=new Set([
  'byCurrency','bySource','dimensions','rates','d7','d30',
  'channels','sources','steps','stages','drops','groups','cohorts',
  'families','retention_summary','entrance_breakdown','page_clicks_summary',
- 'items','series','trends'
+ 'items','series','trends','days'
 ]);
 const AGGREGATE_ARRAYS=new Set([
  'channels','sources','steps','stages','drops','groups','cohorts',
  'families','retention_summary','entrance_breakdown','page_clicks_summary',
- 'items','series','trends','bySource'
+ 'items','series','trends','bySource','days'
 ]);
 const validNumber=x=>typeof x==='number'&&Number.isFinite(x);
 const cleanText=(value,max=180)=>String(value??'').slice(0,max);
