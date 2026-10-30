@@ -89,10 +89,25 @@ function kolSummary(payload){
   'KOL分组可能重叠；只记录档案数量和单档案最高观测人数，不把各档案人数相加当独立获客']};
 }
 function contentSummary(payload){
- if(payload?.available!==true)return {available:false,
-  reason:'当前窗口没有已保存的X内容数据',
-  coverage:payload?.coverage||{status:'unavailable'},
-  warnings:['没有已保存的 X 内容指标，不能按零曝光处理']};
+ if(payload?.available!==true){
+  const historicalGap=payload?.coverage?.status==='snapshots-after-cutoff';
+  const laterAt=Number(payload?.coverage?.laterObservedAt);
+  const cutoff=Number(payload?.coverage?.cutoff);
+  const dates=historicalGap&&Number.isFinite(laterAt)&&laterAt>0&&
+   Number.isFinite(cutoff)&&cutoff>0?
+   '（报告截止 '+new Date(cutoff).toISOString().slice(0,10)+
+   '，已有采集 '+new Date(laterAt).toISOString().slice(0,10)+'）':'';
+  return {available:false,
+   reason:historicalGap?
+    '已有 X 官方内容及较晚采集的累计指标'+dates+
+    '，但缺少报告截止前的指标快照，不能还原当周浏览或互动':
+    '当前窗口没有可核验的X内容历史指标',
+   coverage:payload?.coverage||{status:'unavailable'},
+   warnings:[historicalGap?
+    '已保存的X数据晚于报告期，可用于当前内容诊断，不可倒填历史周报':
+    '没有报告期内已保存的X内容指标，不能按零曝光处理']};
+ }
+
  const manual=payload.summary?.x||{};
  const accounts=Array.isArray(payload.xOfficial?.accounts)?
   payload.xOfficial.accounts:[];
