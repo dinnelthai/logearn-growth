@@ -62,11 +62,11 @@ async function seoPerformance(body,context){
   Date.parse(latest.end_date+'T00:00:00Z'):Infinity;
  // A covering snapshot may end AFTER the report week: do not discard it
  // as "too new". A wholly unrelated reference still uses the age limit.
- const connected=overlapping||latest&&age>=0&&age<=31*86400000?latest:null;
+ const connected=overlapping||(latest&&age>=0&&age<=31*86400000?latest:null);
  if(connected){
   const result=overlapping?
    summarizeGscWindow(connected,{startDate,endDate}):summarizeGsc(connected);
-  const matched=overlapping&&result.coverage?.periodMatched===true;
+  const matched=!!overlapping&&result.coverage?.periodMatched===true;
   const maskPage=value=>{
    try{
     const url=new URL(value);
