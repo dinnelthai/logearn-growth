@@ -62,6 +62,25 @@ function referralSummary(payload){
   warnings:['推荐绑定不等于新注册；历史首次/绑定顺序可能缺失；交易量不是收入']
  };
 }
+// The retention engine also returns cohort member stores. Only export
+// fully mature, all-selected aggregate D1/D7 points; a partial period is
+// unknown, not a 0% cohort. No daily user rows or membership sets survive.
+function retentionSummary(payload){
+ const overall=(payload?.curve_groups?.all||[]).find(x=>x?.id==='all:selected');
+ const days=[1,7].map(day=>{
+  const point=(overall?.periods||[]).find(x=>x?.period===day);
+  if(point?.complete!==true||
+   !Number.isFinite(point.eligible_users)||
+   !Number.isFinite(point.retained_users)||
+   !Number.isFinite(point.retention_rate))return null;
+  return {day,eligible:point.eligible_users,returned:point.retained_users,
+   rate:point.retention_rate,pending:point.pending_users??null};
+ }).filter(Boolean);
+ return {retention:{available:days.length>0,days},
+  coverage:{status:days.length?'partial':'not-mature',
+   historyComplete:payload?.history_complete===true},
+  warnings:['仅输出完整成熟的全选队列 D1/D7 聚合；未成熟和历史覆盖未知不可作为0留存']};
+}
 function conversionSummary(payload){
  const pick=(o,keys)=>Object.fromEntries(keys.filter(k=>o?.[k]!==undefined).map(k=>[k,o[k]]));
  const compactStages=(payload.steps||payload.stages?.rows||[]).slice(0,12)
@@ -146,6 +165,7 @@ function createToolRegistry(deps){
    // model. In particular, don't trust short "rows" or nested arrays.
    const payload=id==='get_product_chain'?productChainSummary(rawPayload):
     id==='get_referral'?referralSummary(rawPayload):
+     id==='get_retention'?retentionSummary(rawPayload):
     ['get_login_conversion','get_invite_conversion'].includes(id)?conversionSummary(rawPayload):rawPayload;
    const safe=statView(payload);
    if(Buffer.byteLength(JSON.stringify(safe))>maxResultBytes)
