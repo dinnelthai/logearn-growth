@@ -141,6 +141,25 @@ function describeAvailable(result){
   return 'insufficient'; // PT reference snapshots cannot be weekly facts
  return 'collected';
 }
+// Surface a safe, actionable reason for missing statistics. Never expose
+// raw tool errors, owner identifiers or underlying business rows.
+function insufficientReason(result){
+ if(result?.status==='unavailable'){
+  const type=result?.error?.type;
+  if(type==='data_unavailable')return '底层只读数据源查询失败或超时；需核查 Worker 查询日志';
+  if(type==='query_budget_exceeded'||type==='investigation_budget_exceeded')
+   return '只读调查预算已用尽，本次没有执行该查询';
+  if(type==='permission_denied')return '当前任务没有该来源的读取权限';
+  return '只读数据源暂不可用，无法核验统计';
+ }
+ const raw=(result?.evidence||[]).find(e=>
+  e?.value?.available===false&&typeof e.value.reason==='string')?.value.reason;
+ if(raw){
+  const safe=raw.slice(0,120).replace(/https?:\/\/\S+|[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi,'[隐藏]');
+  return '来源未提供可用指标：'+safe;
+ }
+ return '本周没有足够的可核对聚合指标，不能视作零';
+}
 function packModule(def,{status,reason,evidence=[],source='read-only',tool=def.tool}={}){
  return {id:def.id,label:def.label,status,reason:cleanText(reason||'',180),
   tool,source,evidenceIds:evidence.map(e=>e?.id).filter(id=>typeof id==='string').slice(0,4),
@@ -201,8 +220,7 @@ async function collectWeeklyCoverage({context,investigate,allowedTools,
    const status=describeAvailable(result);
    const replacement=packModule(def,{status,
     reason:status==='collected'?'已取得只读统计；是否形成 AI 结论以证据引用为准':
-     result?.status==='unavailable'?'当前数据源暂不可用，不能视作零':
-     '本周没有足够的可核对聚合指标，不能视作零',evidence});
+     insufficientReason(result),evidence});
    Object.assign(row,replacement);
    if(evidence.length){
     const ids=new Set((context.evidence||[]).map(x=>x.id));
@@ -236,7 +254,7 @@ function finalizeWeeklyCoverage(raw,analysis,{additionalEvidence=[]}={}){
   if(original?.status==='collected'&&status!=='collected')continue;
   updates.set(def.id,packModule(def,{status,evidence,
    reason:status==='collected'?'AI 已调用对应模块，获得只读统计证据':
-    'AI 已调查，但当前来源没有足够的可核对指标'}));
+    insufficientReason(entry.result)}));
  }
 
  if(!raw||raw.version!==VERSION||!Array.isArray(raw.modules))return null;
