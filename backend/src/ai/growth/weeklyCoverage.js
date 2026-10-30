@@ -41,7 +41,7 @@ const ALLOWED_NUMBERS=new Set([
  'measuredProfiles','profilesWithObservedUsers','profilesWithAnalysis',
  'profilesWithTrade','maxObservedUsers','observedAccounts','measuredPosts',
  'measuredImpressions','measuredEngagementRate','sampledPosts',
- 'scannedRecords','analyzedRecords','reviewedRecords','records','reviewed','analyzed'
+ 'scannedRecords','analyzedRecords','reviewedRecords','records','reviewed','analyzed','netRevenueMinor','actualCostMinor','decimalPlaces'
 ]);
 const AGGREGATE_OBJECTS=new Set([
  'metrics','summary','totals','global','conversion','product_chain',
