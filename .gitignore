@@ -8,6 +8,7 @@ frontend/*.local
 node_modules/
 backend/.env
 backend/data/
+backend/.dev-redis/
 output/events-audit/remote-events.json
 output/node_modules/
 
@@ -16,3 +17,6 @@ frontend/src/api/*.json
 !frontend/src/api/.gitkeep
 
 **/ops-token.key
+
+# Local database migration backups
+output/growth-migration-backup-*/

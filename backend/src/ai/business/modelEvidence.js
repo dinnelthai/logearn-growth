@@ -67,9 +67,14 @@ function forModelV4(result,{maxBytes=3500,legacy=false}={}){
   base.evidence.push(row);
   base.omittedEvidence=rows.length-base.evidence.length;
   if(!fits()){
-   base.evidence.pop();
-   base.omittedEvidence=rows.length-base.evidence.length;
-   break;
+   // Keep core numeric facts from more evidence before dropping whole items.
+   base.evidence=base.evidence.map(item=>({...item,value:item.value&&typeof item.value==='object'?
+    Object.fromEntries(Object.entries(item.value).filter(([,v])=>!Array.isArray(v))):item.value,warnings:undefined}));
+   if(!fits()){
+    base.evidence.pop();
+    base.omittedEvidence=rows.length-base.evidence.length;
+    break;
+   }
   }
  }
  // An oversized single item may still carry large provenance: keep its

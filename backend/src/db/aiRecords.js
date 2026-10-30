@@ -796,11 +796,12 @@ async function updateAnalysisSnapshot(id, snapshot, ownerId, token) {
 async function getAnalysisMemory(ownerId, source = 'all') {
   const result = await read(`SELECT s.id, s.business_problem, s.action, s.user_status,
     s.actual_action, s.rejection_reason, s.updated_at,
-    s.validation_metrics, s.applicable_scope, s.executed_at, COALESCE(e.result_summary,ret.conclusion) AS result_summary, e.effectiveness, COALESCE(e.updated_at,ret.created_at) AS reviewed_at
+    s.validation_metrics, s.applicable_scope, s.action_scope, s.executed_at, COALESCE(e.result_summary,ret.conclusion) AS result_summary, e.effectiveness, COALESCE(e.updated_at,ret.created_at) AS reviewed_at,
+    ret.metric_changes,ret.confidence AS review_confidence,ret.has_improvement,ret.baseline_data->>'reviewContextVersion' AS review_context_version
     FROM ai_suggestions s LEFT JOIN ai_experience_index e ON e.suggestion_id=s.id
     JOIN ai_analysis_records a ON a.id=s.analysis_id
-    LEFT JOIN LATERAL (SELECT conclusion,created_at FROM ai_retrospectives WHERE suggestion_id=s.id AND owner_id=$1 ORDER BY created_at DESC LIMIT 1) ret ON true
-    WHERE s.owner_id=$1 AND ($2='all' OR COALESCE(a.business_scope->>'source','all')=$2 OR a.business_scope->>'source'='all')
+    LEFT JOIN LATERAL (SELECT conclusion,created_at,metric_changes,confidence,has_improvement,baseline_data FROM ai_retrospectives WHERE suggestion_id=s.id AND owner_id=$1 ORDER BY created_at DESC LIMIT 1) ret ON true
+    WHERE s.owner_id=$1 AND COALESCE(s.action_scope->>'source',s.applicable_scope->>'source',a.business_scope->>'source','all')=$2
     ORDER BY GREATEST(s.updated_at,COALESCE(e.updated_at,0)) DESC LIMIT 30`, [ownerId, source]);
   return result.rows;
 }

@@ -1,0 +1,10 @@
+{
+  "description": "Synthetic example only; not evidence of model performance",
+  "cases": [
+    {
+      "id": "synthetic-activation-1",
+      "baseline": {"reviewer": "example", "ratings": {"facts": true, "evidence": true, "investigation": false, "action": true, "uncertainty": true}},
+      "candidate": {"reviewer": "example", "ratings": {"facts": true, "evidence": true, "investigation": true, "action": true, "uncertainty": true}}
+    }
+  ]
+}

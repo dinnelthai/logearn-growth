@@ -523,6 +523,26 @@ function modelContext(raw,{transportVersion='v1',reviewRevision=0}={}){
    note:'原始用户/事件明细及操作记录仅保存在业务库；模型仅接收聚合统计与可追溯证据ID，未知值不是零'
   }
  };
+ if(raw.reviewContextVersion===1){
+  context.review={
+   suggestion:Object.fromEntries(['problem','hypothesis','action','expectedImpact'].map(k=>[k,safeText(raw.suggestion?.[k]||'',260)])),
+   scope:{source:safeText(raw.suggestion?.scope?.source||'all',120)},
+   periods:raw.periods,
+   metricChanges:raw.metricChanges,
+   baseline:statView(raw.baseline||{}),effect:statView(raw.effect||{}),
+   note:'执行前后观察不证明因果；缺失指标保持未知。'
+  };
+ }
+ if([1,2].includes(raw.reviewLessonsVersion)&&raw.focusGoal==='activation'){
+  context.reviewLessons=(raw.growthPlan?.experienceFeedback||[]).slice(0,8).map(({metric,effectiveReviews,ineffectiveReviews})=>({metric,observedImproved:effectiveReviews,observedNotImproved:ineffectiveReviews}));
+  context.omissions.reviewLessons='仅为同范围历史复盘汇总；观察结果不证明因果。未改善时检验新假设，不能直接重复旧行动。';
+ }
+ if(raw.reviewLessonsVersion===2&&raw.focusGoal==='activation'&&context.growthPlan){
+  context.growthPlan.steps=context.growthPlan.steps.map((step,i)=>({ ...step,
+   id:safeText(raw.growthPlan.steps[i].skillId||step.id,120),
+   investigation:safeText(raw.growthPlan.steps[i].investigation||'',260)
+  }));
+ }
  if(transportVersion==='v2'||transportVersion==='v3'){
   context.transportVersion='aggregated-business-'+transportVersion;
   // Do not discard metric values, provenance or authorized tools. Compress

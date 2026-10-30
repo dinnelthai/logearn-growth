@@ -26,6 +26,34 @@ function checkPort(port){
   server.listen(port,'127.0.0.1',()=>server.close(resolve));
  });
 }
+function redisTunnelConfig(env){
+ const url=new URL(env.BULL_REDIS_URL||env.REDIS_URL||'redis://localhost:6379');
+ if(!['127.0.0.1','localhost'].includes(url.hostname))return null;
+ const target=env.REDIS_SSH_TARGET,remoteHost=env.REDIS_SSH_REMOTE_HOST,remotePort=Number(env.REDIS_SSH_REMOTE_PORT);
+ if(!target||!remoteHost||!Number.isInteger(remotePort)||remotePort<1||remotePort>65535)throw Error('Redis 未连接；请启动 Redis，或配置 REDIS_SSH_TARGET、REDIS_SSH_REMOTE_HOST 和 REDIS_SSH_REMOTE_PORT');
+ if(target.startsWith('-')||!/^[\w.@-]+$/.test(target)||!/^[\w.-]+$/.test(remoteHost))throw Error('Redis SSH 隧道配置无效');
+ return {port:Number(url.port||6379),target,remoteHost,remotePort};
+}
+function canConnect(port){return new Promise(resolve=>{const socket=net.connect({host:'127.0.0.1',port});socket.setTimeout(500);socket.once('connect',()=>{socket.destroy();resolve(true)});socket.once('error',()=>resolve(false));socket.once('timeout',()=>{socket.destroy();resolve(false)})})}
+async function startRedisTunnel(env){
+ const url=new URL(env.BULL_REDIS_URL||env.REDIS_URL||'redis://localhost:6379');
+ if(!['127.0.0.1','localhost'].includes(url.hostname)||await canConnect(Number(url.port||6379)))return null;
+ let child;
+ if(env.REDIS_SSH_TARGET||env.REDIS_SSH_REMOTE_HOST||env.REDIS_SSH_REMOTE_PORT){
+  const config=redisTunnelConfig(env);
+  console.log('[Redis] 正在建立 SSH 隧道');
+  child=spawn('ssh',['-N','-o','ExitOnForwardFailure=yes','-o','BatchMode=yes','-L',`127.0.0.1:${config.port}:${config.remoteHost}:${config.remotePort}`,config.target],{stdio:'inherit'});
+ }else{
+  if(url.username||url.password||url.protocol!=='redis:')throw Error('Redis 配置需要认证或 TLS，请启动配置的 Redis 服务或提供 SSH 隧道配置');
+  const dir=path.join(root,'backend','.dev-redis');fs.mkdirSync(dir,{recursive:true});
+  console.log('[Redis] 启动本地开发 Redis（数据与远程 Redis 独立）');
+  const localRedis=path.join(require('node:os').homedir(),'.local','bin','redis-server');
+  child=spawn(fs.existsSync(localRedis)?localRedis:'redis-server',['--bind','127.0.0.1','--port',String(url.port||6379),'--dir',dir,'--appendonly','yes'],{stdio:'inherit'});
+ }
+ let failure;child.once('error',error=>{failure=error});child.once('exit',()=>{failure=failure||new Error('SSH 隧道进程已退出')});
+ for(let i=0;i<50;i++){if(failure)break;if(await canConnect(Number(url.port||6379)))return child;await new Promise(resolve=>setTimeout(resolve,100))}
+ child.kill('SIGTERM');throw Error(`Redis 启动失败：${failure?.message||'连接超时'}（请检查是否安装 redis-server）`);
+}
 function startServices({spawn:launch=spawn,onExit=code=>{process.exitCode=code},log=console.log,skipWorker=false}={}){
  const specs=[['后端','backend',['src/index.js']],['AI Worker','backend',['src/queues/workers/aiAnalysisWorker.js']],['前端','frontend',['node_modules/vite/bin/vite.js','--port','5173','--strictPort']]];
  const children=[];let stopping=false;
@@ -54,9 +82,12 @@ async function main(){
  await checkPort(5173);
  await releaseOldBackend(port);
  await checkPort(port);
+ const tunnel=await startRedisTunnel({...env,...process.env});
  console.log('启动后端、AI Worker 和前端；按 Ctrl+C 停止。');
- const services=startServices({skipWorker:existingWorker()});
- process.once('SIGINT',()=>services.stop(0));process.once('SIGTERM',()=>services.stop(0));
+ const services=startServices({skipWorker:existingWorker(),onExit:code=>{if(tunnel&&!tunnel.killed)tunnel.kill('SIGTERM');process.exitCode=code}});
+ const stop=()=>{services.stop(0);if(tunnel&&!tunnel.killed)tunnel.kill('SIGTERM')};
+ if(tunnel)tunnel.once('exit',()=>{if(!tunnel.killed){console.error('[Redis] 连接服务已退出');services.stop(1)}});
+ process.once('SIGINT',stop);process.once('SIGTERM',stop);
 }
 if(require.main===module)main().catch(error=>{console.error(error.message);process.exitCode=1});
-module.exports={checkPort,startServices,isProjectBackend};
+module.exports={checkPort,startServices,isProjectBackend,redisTunnelConfig};

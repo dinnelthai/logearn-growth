@@ -20,7 +20,7 @@ const registry={listCapabilities:()=>tools.map(id=>({
 }))};
 
 test('weekly activation report explicitly authorizes discovered channel evidence',()=>{
- const plan=planGrowthInvestigation({goal:'activation',report,maxSkills:5,history:[],
+ const plan=planGrowthInvestigation({goal:'activation',report,maxSkills:12,history:[],
   availableSpecialties:special,includeWeeklySpecialties:true});
  assert.ok(plan.steps.some(s=>s.skillId==='content-growth'));
  assert.ok(plan.steps.some(s=>s.skillId==='follower-quality'));

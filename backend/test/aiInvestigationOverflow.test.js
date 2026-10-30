@@ -15,6 +15,7 @@ function runner(){
   '../llm':{createClient:()=>{throw Error('clientFactory injection was skipped')},
    getConfig:()=>({defaultModel:'mock'})},
   './policy':{routeTask:()=>({tier:'simple',reason:'test'})},
+  './analysisContract':require('../src/ai/business/analysisContract'),
   './modelEvidence':{forModel:x=>x},
   './modelTransport':{modelContext:x=>x,modelQuery:x=>x},
   './tokenBudget':{estimateChatTokens:()=>100}

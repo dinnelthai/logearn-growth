@@ -86,3 +86,36 @@ test('v3 trims empty evidence metadata without weakening numeric facts or attrib
  assert.ok(Buffer.byteLength(JSON.stringify(after),'utf8')<=
   Buffer.byteLength(JSON.stringify(before),'utf8'));
 });
+
+test('new activation analyses give the model scoped review lessons without exposing action text',()=>{
+ const report={...raw,focusGoal:'activation',reviewLessonsVersion:1,
+  growthPlan:{experienceFeedback:[{metric:'activation_rate',effectiveReviews:1,ineffectiveReviews:2,
+   recentLessons:['private action details']}],steps:[]}};
+ const view=modelContext(report,{transportVersion:'v3'});
+ assert.deepEqual(view.reviewLessons,[{metric:'activation_rate',observedImproved:1,observedNotImproved:2}]);
+ assert.match(view.omissions.reviewLessons,/因果/);
+ assert.equal(JSON.stringify(view).includes('private action details'),false);
+ assert.equal(modelContext({...report,reviewLessonsVersion:undefined},{transportVersion:'v3'}).reviewLessons,undefined);
+});
+
+test('retrospective model input contains observed metric changes and periods',()=>{
+ const review={reviewContextVersion:1,suggestion:{problem:'激活下降',action:'检查入口',scope:{source:'all'}},
+  periods:{baselineStart:1,baselineEnd:2,effectStart:3,effectEnd:4,days:3},
+  metricChanges:{activation_rate:{available:true,baseline:0.2,effect:0.3,absolute:0.1,change:50,direction:'up'},
+   d7:{available:false,error:'metric_not_found'}},baseline:{totals:{users:10},rows:[{email:'secret@example.com'}]},effect:{totals:{users:12}}};
+ const view=modelContext(review);
+ assert.deepEqual(view.review.metricChanges,review.metricChanges);
+ assert.deepEqual(view.review.periods,review.periods);
+ assert.equal(view.review.suggestion.action,'检查入口');
+ assert.equal(JSON.stringify(view).includes('secret@example.com'),false);
+});
+
+test('new activation analyses receive the planned investigation and permitted tools',()=>{
+ const view=modelContext({...raw,focusGoal:'activation',reviewLessonsVersion:2,
+  growthPlan:{experienceFeedback:[],steps:[{skillId:'activation-funnel',label:'激活漏斗诊断',
+   investigation:'只比较成熟样本；排除埋点覆盖变化',tools:['get_funnel','check_data_quality']}]}},
+  {transportVersion:'v3'});
+ assert.equal(view.growthPlan.steps[0].id,'activation-funnel');
+ assert.match(view.growthPlan.steps[0].investigation,/成熟样本/);
+ assert.deepEqual(view.growthPlan.steps[0].tools,['get_funnel','check_data_quality']);
+});

@@ -2,8 +2,15 @@ const {runTask,validateReview} = require('../../ai/business/runner');
 const {definitions,reviewPeriods,metricChanges,effectiveness,validateScope}=require('../../ai/business/policy');
 const {fetchNorthStar,fetchGrowthInsights}=require('./dataFetcher');
 const records=require('../../db/aiRecords'),remote=require('../../data/hologres');
+function reviewEvidence(kind,data,{start,end,source,snapshot}){
+  const {statView}=require('../../ai/business/modelTransport');
+  return {status:'ok',evidence:[{id:`review:${kind}:${start}:${end}`,metricId:kind,
+    value:statView(data),period:{start,end,timezone:'Asia/Bangkok'},filters:{source},
+    sourceVersions:{events:snapshot.snapshot_id},watermarks:{events:snapshot.as_of},
+    coverage:data.quality||{status:'unknown'},warnings:['统计观察不证明行动的因果效果']} ]};
+}
 const prompt=`你负责LogEarn增长建议复盘。比较等长完整UTC+7业务日的数据，区分相关性和因果性。
-缺少对照实验、充分样本或指标证据时不能声称因果；无法判断时confidence=insufficient。建议未产生改善不等于已证实无效。
+缺少对照实验时不能声称因果。confidence表示对指标前后观测和数据质量的判断，不代表因果可信度；样本或指标证据不足时为insufficient。建议未产生改善不等于已证实无效。
 分析所有主要及次要验证指标；不存在的指标明确说明，不得改用别的指标冒充。遇到复杂归因或证据冲突由当前单模型补查并说明不确定性。
 输出JSON：{"hasImprovement":false,"hasCausality":false,"confidence":"high/medium/low/insufficient中的一个","conclusion":"结论及证据","confoundingFactors":["混淆因素"],"lessonsLearned":"经验","nextSteps":["下一步"]}。`;
 async function retrospectiveAnalysis(job){
@@ -30,15 +37,18 @@ async function retrospectiveAnalysis(job){
     return {...north.totals,activation_rate:eligible?activated/eligible:null,d7:d7Eligible?d7Returned/d7Eligible:null};
   }
   const changes=metricChanges(values(baseline,baselineGrowth),values(effect,effectGrowth),requested);
-  const context={definitions,suggestion:{problem:suggestion.business_problem,hypothesis:suggestion.hypothesis,
+  const context={reviewContextVersion:1,definitions,suggestion:{problem:suggestion.business_problem,hypothesis:suggestion.hypothesis,
     action:suggestion.actual_action,scope,expectedImpact:suggestion.expected_impact},periods,metricChanges:changes,
     baseline:{...baseline,channels:baselineGrowth.channels,quality:baselineGrowth.quality},effect:{...effect,channels:effectGrowth.channels,quality:effectGrowth.quality}};
   await job.progress(45);
   const investigate=async q=>{
     const a=q.start??effectStart,b=q.end??effectEnd,src=q.source||source;
     if(!Number.isSafeInteger(a)||!Number.isSafeInteger(b)||a<baselineStart||b>effectEnd||b<=a||(source!=='all'&&src!==source))throw Error('复盘补查范围无效');
-    if(q.kind==='north')return fetchNorthStar(a,b,src,snapshot);
-    if(q.kind==='growth')return fetchGrowthInsights({start:a,end:b,source:src,snapshot});
+    if(q.kind==='north'||q.kind==='growth'){
+      const data=q.kind==='north'?await fetchNorthStar(a,b,src,snapshot):
+        await fetchGrowthInsights({start:a,end:b,source:src,snapshot});
+      return reviewEvidence(q.kind,data,{start:a,end:b,source:src,snapshot});
+    }
     throw Error('复盘调查工具未支持：'+q.kind);
   };
   const result=await runTask({context,prompt,ownerId,operationId:retrospectiveId,operationType:'retrospective',mode:modelMode,investigate,traceStore:require('../../ai/business/trace').createTraceStore(require('../../db/connection')),validate:validateReview});
@@ -48,7 +58,7 @@ async function retrospectiveAnalysis(job){
   if(requested.some(k=>!changes[k].available))analysis.confidence='insufficient';
   const review=await records.createRetrospective({id:retrospectiveId,suggestionId,ownerId,
     baselinePeriod:{start:baselineStart,end:baselineEnd,days},effectPeriod:{start:effectStart,end:effectEnd,days},
-    baselineData:context.baseline,effectData:context.effect,metricChanges:changes,
+    baselineData:{...context.baseline,reviewContextVersion:context.reviewContextVersion},effectData:context.effect,metricChanges:changes,
     hasImprovement:analysis.hasImprovement,hasCausality:analysis.hasCausality,conclusion:analysis.conclusion,confidence:analysis.confidence,
     confoundingFactors:analysis.confoundingFactors,lessonsLearned:analysis.lessonsLearned,
     modelProvider:result.provider,modelName:result.model,costUsd:result.cost,triggeredBy});
@@ -57,4 +67,4 @@ async function retrospectiveAnalysis(job){
     applicableScope:scope,dateRange:{start:baselineStart,end:effectEnd}});
   await job.progress(100);return review;
 }
-module.exports={retrospectiveAnalysis};
+module.exports={retrospectiveAnalysis,reviewEvidence};

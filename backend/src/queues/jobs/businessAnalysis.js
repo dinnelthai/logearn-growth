@@ -122,6 +122,7 @@ async function businessAnalysis(job) {
     const memoryView=require('../../ai/business/contextBudget').compactMemory(memory);
     compact={...compact,business:{...compact.business,question:userQuestion||compact.business.question},
       memory:memoryView.items,memoryMeta:memoryView.meta,growthPlan,
+      ...(!isWeeklyReport&&focusGoal==='activation'?{reviewLessonsVersion:2}:{}),
       ...(isWeeklyReport?{weeklyOperations:executionClaim.record.filter_conditions.weeklyOperations}:{}),
       };
     const session=require('../../ai/business/foundation').defaultFoundation().prepare(compact,{ownerId,runId:analysisId,goalRef:job.data.goalRef});

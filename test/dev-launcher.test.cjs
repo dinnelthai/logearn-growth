@@ -20,3 +20,9 @@ test('only a verified project backend is eligible for automatic restart',()=>{
  assert.equal(isProjectBackend({command:'node src/index.js',cwd:'/tmp/other/backend'}),false);
  assert.equal(isProjectBackend({command:'node other.js',cwd:require('node:path').resolve(__dirname,'../backend')}),false);
 });
+test('Redis tunnel config requires explicit destination and uses configured local port',()=>{
+ const {redisTunnelConfig}=require('../scripts/dev.cjs');
+ assert.deepEqual(redisTunnelConfig({BULL_REDIS_URL:'redis://127.0.0.1:16379',REDIS_SSH_TARGET:'dev-host',REDIS_SSH_REMOTE_HOST:'redis.internal',REDIS_SSH_REMOTE_PORT:'6379'}),{port:16379,target:'dev-host',remoteHost:'redis.internal',remotePort:6379});
+ assert.throws(()=>redisTunnelConfig({BULL_REDIS_URL:'redis://127.0.0.1:16379'}),/REDIS_SSH_TARGET/);
+ assert.equal(redisTunnelConfig({BULL_REDIS_URL:'redis://redis.internal:6379'}),null);
+});
