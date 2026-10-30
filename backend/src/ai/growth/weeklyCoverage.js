@@ -95,10 +95,12 @@ function factsFromEvidence(evidence){
   if(validNumber(value)){add(e.metricId||'value',value,e.id);continue}
   // Reserve facts for the actual *breakdown* instead of letting a wide
   // overall summary consume the entire evidence budget.
-  if(e.metricId==='channels'&&Array.isArray(value?.groups)){
+  const channelGroups=Array.isArray(value?.groups)?value.groups:
+   Array.isArray(value?.groups?.items)?value.groups.items:null;
+  if(e.metricId==='channels'&&channelGroups){
    for(const key of ['new_users','users','analysis'])
     add('total.'+key,value.total?.[key],e.id);
-   for(const [i,row] of value.groups.slice(0,3).entries()){
+   for(const [i,row] of channelGroups.slice(0,3).entries()){
     const source=safeDimension(row?.source)||'group'+i;
     for(const key of ['new_users','users','analysis'])
      add('groups.'+source+'.'+key,row?.[key],e.id);
