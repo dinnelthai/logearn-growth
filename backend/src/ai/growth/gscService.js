@@ -53,6 +53,42 @@ function summarizeGsc(record){
    'GSC 点击与排名不证明注册、筹码分析、成交或 SEO 行动的因果效果',
    ...(coverage?.positionUnavailableRows?['Google 返回的部分排名为 0，已标记为不可用；有曝光的缺失排名会使整体平均排名不可用']:[])]};
 }
+// Slice an owner-scoped, already-saved finalized GSC snapshot by its PT
+// daily rows. Query/page top-N dimensions belong to the ORIGINAL snapshot
+// and cannot be treated as dimensions for the sliced week.
+function summarizeGscWindow(record,{startDate,endDate}){
+ const first=dateMs(startDate),last=dateMs(endDate);
+ if(last<first||last-first>30*DAY)fail('GSC 统计窗口无效');
+ const full=summarizeGsc(record);
+ const daily=full.daily.filter(r=>r.date>=startDate&&r.date<=endDate);
+ const expectedDays=Math.floor((last-first)/DAY)+1;
+ const dates=new Set(daily.map(r=>r.date));
+ const unreportedDates=Array.from({length:expectedDays},(_,i)=>
+  new Date(first+i*DAY).toISOString().slice(0,10)).filter(d=>!dates.has(d));
+ const complete=full.startDate<=startDate&&full.endDate>=endDate&&
+  dates.size===expectedDays&&daily.length===expectedDays;
+ const clicks=daily.length?daily.reduce((n,r)=>n+r.clicks,0):null;
+ const impressions=daily.length?daily.reduce((n,r)=>n+r.impressions,0):null;
+ const hasUnranked=daily.some(r=>r.impressions>0&&r.position==null);
+ const position=impressions>0&&!hasUnranked?
+  daily.reduce((n,r)=>n+r.position*r.impressions,0)/impressions:null;
+ const exact=full.startDate===startDate&&full.endDate===endDate;
+ return {...full,available:daily.length>0,startDate,endDate,daily,
+  metrics:{clicks,impressions,ctr:impressions>0?clicks/impressions:null,position},
+  queries:exact?full.queries:[],pages:exact?full.pages:[],
+  opportunities:exact?full.opportunities:[],
+  coverage:{...full.coverage,status:complete?'reported-final-dates':
+   'partial-or-missing-gsc-dates',expectedDays,reportedDays:dates.size,
+   unreportedDates,periodMatched:complete,derivedFromStoredDaily:!exact,
+   sourceSnapshotStartDate:full.startDate,sourceSnapshotEndDate:full.endDate,
+   dimensionsMatchRequestedPeriod:exact,
+   dateTimezone:'America/Los_Angeles'},
+  warnings:[...full.warnings,
+   '本周统计仅由已保存的 PT 每日站点汇总重算，不能对应曼谷业务周小时窗口；不做注册或交易归因',
+   ...(!exact?['原快照的查询/页面 Top-N 汇总没有日期细分，已从周视图排除']:[]),
+   ...(!complete?['所选 GSC 日历日期未全部观测，统计仅为已报告日期的部分值，不可作完整周环比']:[])]
+ };
+}
 function buildGoogleSnapshot(siteUrl,window,responses,mode='service-account'){
  const daily=normalizeGoogleRows(responses.daily,'date',31)
   .filter(r=>r.date>=window.startDate&&r.date<=window.endDate)
@@ -129,6 +165,25 @@ function createGscService({db=pool,client=defaultClient,clock=Date.now}={}){
   const r=await db.query(sql+' ORDER BY fetched_at DESC,id DESC LIMIT 1',values);
   return r.rows[0]||null;
  }
+ // Reuse a broader saved GSC window instead of demanding identical
+ // start/end labels. The query is owner- and selected-property-scoped.
+ async function latestOverlapping(ownerId,{siteUrl=null,startDate,endDate}){
+  const selected=await setting(ownerId);
+  const property=siteUrl?propertyName(siteUrl):selected?.site_url;
+  if(!property||siteUrl&&property!==selected?.site_url)return null;
+  const start=dateMs(startDate),end=dateMs(endDate);
+  if(end<start||end-start>30*DAY)fail('GSC 统计窗口无效');
+  const r=await db.query(`SELECT id,owner_id,site_url,start_date::text,
+    end_date::text,source,data_state,property_totals,daily,queries,pages,
+    coverage,fetched_at FROM ai_growth_gsc_snapshots
+    WHERE owner_id=$1 AND site_url=$2
+      AND start_date<=$4::date AND end_date>=$3::date
+    ORDER BY
+      CASE WHEN start_date<=$3::date AND end_date>=$4::date THEN 0 ELSE 1 END,
+      fetched_at DESC,id DESC LIMIT 1`,
+   [String(ownerId),property,startDate,endDate]);
+  return r.rows[0]||null;
+ }
  async function sync(ownerId,{startDate,endDate}){
   dateWindow(startDate,endDate,clock());
   const selection=await setting(ownerId);
@@ -185,6 +240,6 @@ function createGscService({db=pool,client=defaultClient,clock=Date.now}={}){
   if(!selected?.site_url)fail('先选择 Search Console 资源再检查 URL',409);
   return client.inspect(ownerId,selected.site_url,inspectionUrl);
  }
- return {connection,setting,select,latest,sync,sitemaps,inspect};
+ return {connection,setting,select,latest,latestOverlapping,sync,sitemaps,inspect};
 }
-module.exports={createGscService,buildGoogleSnapshot,summarizeGsc,dateWindow};
+module.exports={createGscService,buildGoogleSnapshot,summarizeGsc,summarizeGscWindow,dateWindow};
