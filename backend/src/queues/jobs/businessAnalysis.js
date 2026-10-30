@@ -134,7 +134,7 @@ async function businessAnalysis(job) {
       const coverage=await weeklyCoverage.collectWeeklyCoverage({
        context:compact,investigate:session.investigate,
        allowedTools:compact.capabilities.map(x=>x.id),
-       availableSpecialties,maxQueries:8,shouldContinue:beforeStep
+       availableSpecialties,maxQueries:10,shouldContinue:beforeStep
       });
       compact.weeklyCoverage=coverage;
       const seo=coverage.modules.find(x=>x.id==='seo-organic');
