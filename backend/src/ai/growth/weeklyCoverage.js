@@ -35,7 +35,13 @@ const ALLOWED_NUMBERS=new Set([
  'analysis_rate','strategy_rate','trade_rate','source_conflicts','first_visit_users',
  'total_entered','total_converted','pending_count','drop_off_users',
  'previous_conversion_rate','total_conversion_rate','eligible_users',
- 'retained_users','pending_users','observed_returned_users'
+ 'retained_users','pending_users','observed_returned_users',
+ 'requests','terminal_coverage','observed_completion_rate','success_rate',
+ 'click_users','record_total','currencyCount','receivedEntries','income_entries','roi',
+ 'measuredProfiles','profilesWithObservedUsers','profilesWithAnalysis',
+ 'profilesWithTrade','maxObservedUsers','observedAccounts','measuredPosts',
+ 'measuredImpressions','measuredEngagementRate','sampledPosts',
+ 'scannedRecords','analyzedRecords','reviewedRecords','records','reviewed','analyzed'
 ]);
 const AGGREGATE_OBJECTS=new Set([
  'metrics','summary','totals','global','conversion','product_chain',
@@ -45,7 +51,7 @@ const AGGREGATE_OBJECTS=new Set([
  'byCurrency','bySource','dimensions','rates','d7','d30',
  'channels','sources','steps','stages','drops','groups','cohorts',
  'families','retention_summary','entrance_breakdown','page_clicks_summary',
- 'items','series','trends','days'
+ 'items','series','trends','days','manual','official','economics'
 ]);
 const AGGREGATE_ARRAYS=new Set([
  'channels','sources','steps','stages','drops','groups','cohorts',
