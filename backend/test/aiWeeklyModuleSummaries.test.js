@@ -64,7 +64,8 @@ test('X manual and official snapshots remain separate, without post bodies',()=>
  assertMetric(e,'official.measuredPosts',3);
  assertMetric(e,'groups.logearn.sampledPosts',4);
  assert.doesNotMatch(JSON.stringify(e),/MUST NOT BE MODELED/);
- assert.ok(e.value.warnings.some(x=>x.includes('最近30天')));
+ assert.ok(contentSummary({available:true,summary:{x:{count:1}}})
+  .warnings.some(x=>x.includes('最近30天')));
 });
 test('follower rows are aggregated by category, never user identities',()=>{
  const e=make('follower_quality',followerSummary({available:true,
