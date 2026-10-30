@@ -6,6 +6,7 @@ import {weeklyCoreMarkup,bindWeeklyCore} from './weeklyCore.js'
 import { fetchNorthStarMetrics } from '../api/metrics.js'
 import { fetchDrillUsers, fetchUserTimeline } from '../api/drill.js'
 import { createChartLifecycle } from './chartLifecycle.js'
+import {beginPageLoad} from './pageLoading.js'
 
 function fmtDate(dateStr) {
   return String(dateStr).slice(5).replace('-', '/')
@@ -61,7 +62,7 @@ export function createNorthStarAggPage(ctx) {
       b.onclick = () => ctx.setPeriod(b.dataset.northPeriod)
     })
 
-    $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted si-loading" role="status">正在从 /api/metrics/north-star 加载…</p></div>'
+    const finishLoading=beginPageLoad($('#as-output'),{placeholder:'<div class="a-card"><p class="a-muted si-loading" role="status">正在从 /api/metrics/north-star 加载…</p></div>',selector:'#as-north-yesterday',message:'正在更新北极星指标，当前结果暂时保留…'});
 
     const configKey = JSON.stringify(c)
     let metrics
@@ -80,7 +81,7 @@ export function createNorthStarAggPage(ctx) {
       $('#as-output').innerHTML = `<div class="a-card a-details"><h2>北极星加载失败</h2><p>${esc(err.message || err)}</p></div>`
       return
       }
-    }
+    }finally{finishLoading()}
     if (reqId !== inflight) return
 
     previousMetrics=metrics;previousConfig=configKey

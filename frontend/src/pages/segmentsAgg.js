@@ -1,5 +1,6 @@
 import {createSegmentInsightsPage} from './segmentInsights.js'
 import {viewState} from '../components/viewStates.js'
+import {beginPageLoad} from './pageLoading.js'
 import { fetchSegmentsMetrics } from '../api/metrics.js'
 import { fetchDrillUsers, fetchUserTimeline } from '../api/drill.js'
 import { mountComparisonAgg } from '../comparison/panelAgg.js'
@@ -42,7 +43,7 @@ export function createSegmentsAggPage(ctx) {
     }
     clearNative()
     const reqId = ++inflight
-    $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted si-loading" role="status">正在从 /api/metrics/segments 加载…</p></div>'
+    const finishLoading=beginPageLoad($('#as-output'),{placeholder:'<div class="a-card"><p class="a-muted si-loading" role="status">正在从 /api/metrics/segments 加载…</p></div>',selector:'[data-agg-view="segments"]',message:'正在更新用户分群，当前结果暂时保留…'});
     // Include the aggregate snapshot cutoff; same UI filters on a newer snapshot
     // must not display stale members/counts from the earlier dataset.
     const configKey = JSON.stringify({config:c,asOf:ctx.dataStore.meta.asOf})
@@ -65,7 +66,7 @@ export function createSegmentsAggPage(ctx) {
       $('#as-output').querySelector('[data-segments-retry]')?.addEventListener('click',()=>draw(c))
       return
       }
-    }
+    }finally{finishLoading()}
     if (reqId !== inflight) return
 
     previousMetrics=metrics;previousConfig=configKey
@@ -75,7 +76,7 @@ export function createSegmentsAggPage(ctx) {
 
     $('#as-output').innerHTML = `
       ${staleError?viewState({kind:'partial',title:'保留上一次相同条件的分析结果',description:'新数据加载失败：'+staleError+'。以下内容来自上次快照，请核对数据时间后再下钻。',actionLabel:'重新运行',actionAttr:'data-segments-retry'}):''}
-      <div class="a-context"><span class="a-chip">服务端分群 · ${ctx.dataStore.meta.storage==='hologres'?'实时用户与行为事实':'user_features'}</span><span>asOf ${clock(asof)} · 共 ${fmt(metrics.total || 0)} 人</span></div>
+      <div class="a-context" data-agg-view="segments"><span class="a-chip">服务端分群 · ${ctx.dataStore.meta.storage==='hologres'?'实时用户与行为事实':'user_features'}</span><span>asOf ${clock(asof)} · 共 ${fmt(metrics.total || 0)} 人</span></div>
       <div class="a-summary a-four">
         ${stat('Telegram 已绑定', fmt(tags.telegram_bound || 0), `未知 ${fmt(tags.telegram_binding_unknown || 0)}`)}
         ${stat('邮箱已绑定', fmt(tags.email_bound || 0), `未知 ${fmt(tags.email_binding_unknown || 0)}`)}

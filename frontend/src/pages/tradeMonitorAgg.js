@@ -1,5 +1,6 @@
 import {createOnlineTradeMonitorPage} from './onlineTradeMonitor.js'
 import {viewState} from '../components/viewStates.js'
+import {beginPageLoad} from './pageLoading.js'
 import { fetchTradeMetrics } from '../api/metrics.js'
 import { createChartLifecycle } from './chartLifecycle.js'
 
@@ -16,7 +17,7 @@ export function createTradeMonitorAggPage(ctx) {
     nativeChart = null
     clearNative()
     const reqId = ++inflight
-    $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted si-loading" role="status">正在从 /api/metrics/trades 加载…</p></div>'
+    const finishLoading=beginPageLoad($('#as-output'),{placeholder:'<div class="a-card"><p class="a-muted si-loading" role="status">正在从 /api/metrics/trades 加载…</p></div>',selector:'#as-trade-monitor-chart',message:'正在更新交易指标，当前结果暂时保留…'});
     let metrics
     try {
       metrics = await fetchTradeMetrics({ start: c.start, end: c.end, source: c.source || 'all' })
@@ -25,7 +26,7 @@ export function createTradeMonitorAggPage(ctx) {
       $('#as-output').innerHTML = viewState({kind:'error',title:'交易监控加载失败',description:err.message||String(err),actionLabel:'重新运行',actionAttr:'data-trade-retry'});
       $('#as-output').querySelector('[data-trade-retry]')?.addEventListener('click',()=>draw(c))
       return
-    }
+    }finally{finishLoading()}
     if (reqId !== inflight) return
 
     const t = metrics.total || {}

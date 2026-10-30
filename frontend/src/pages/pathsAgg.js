@@ -1,5 +1,6 @@
 import {createBehaviorPathsPage} from './behaviorPaths.js'
 import {viewState} from '../components/viewStates.js'
+import {beginPageLoad} from './pageLoading.js'
 import { fetchPathsMetrics } from '../api/metrics.js'
 import { fetchDrillUsers, fetchUserTimeline } from '../api/drill.js'
 import { createChartLifecycle } from './chartLifecycle.js'
@@ -60,7 +61,7 @@ export function createPathsAggPage(ctx) {
       return
     }
 
-    $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted si-loading" role="status">正在从 /api/metrics/paths 加载…</p></div>'
+    const finishLoading=beginPageLoad($('#as-output'),{placeholder:'<div class="a-card"><p class="a-muted si-loading" role="status">正在从 /api/metrics/paths 加载…</p></div>',selector:'#as-path-chart',message:'正在重新计算行为路径，当前路径图暂时保留…'});
     let metrics
     try {
       metrics = await fetchPathsMetrics({
@@ -77,7 +78,7 @@ export function createPathsAggPage(ctx) {
       $('#as-output').innerHTML = viewState({kind:'error',title:'行为路径加载失败',description:err.message||String(err),actionLabel:'重新运行',actionAttr:'data-paths-retry'});
       $('#as-output').querySelector('[data-paths-retry]')?.addEventListener('click',()=>draw(c))
       return
-    }
+    }finally{finishLoading()}
     if (reqId !== inflight) return
 
     const cacheId = metrics.drill?.cache_id
