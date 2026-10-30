@@ -44,7 +44,7 @@ async function activities(body,snapshot,audience,context){
 // Dedicated owner-scoped specialist adapters. No model calls or external writes.
 async function seoPerformance(body,context){
  const {createSeoStore,summarizeSeo}=require('../../growth/seoStore');
- const {createGscService,summarizeGsc}=require('../../growth/gscService');
+ const {createGscService,summarizeGsc,summarizeGscWindow}=require('../../growth/gscService');
  // Business periods are Bangkok-local; GSC dates are Pacific Time.
  // Prefer an exact snapshot. Otherwise a recent aggregate remains useful
  // as context, but must never be presented as period-matched evidence.
@@ -52,12 +52,21 @@ async function seoPerformance(body,context){
  const endDate=new Date(body.end-1+7*3600000).toISOString().slice(0,10);
  const service=createGscService();
  const exact=await service.latest(context.ownerId,{siteUrl:body.siteUrl||null,startDate,endDate});
- const latest=exact||await service.latest(context.ownerId,{siteUrl:body.siteUrl||null});
- const age=latest?Date.parse(endDate+'T00:00:00Z')-Date.parse(latest.end_date+'T00:00:00Z'):Infinity;
- const connected=latest&&age>=0&&age<=31*86400000?latest:null;
+ // A larger stored GSC window may already contain the requested PT days.
+ // Read it without re-syncing Google, widening access or making model calls.
+ const overlapping=exact||await service.latestOverlapping(context.ownerId,{
+  siteUrl:body.siteUrl||null,startDate,endDate
+ });
+ const latest=overlapping||await service.latest(context.ownerId,{siteUrl:body.siteUrl||null});
+ const age=latest?Date.parse(endDate+'T00:00:00Z')-
+  Date.parse(latest.end_date+'T00:00:00Z'):Infinity;
+ // A covering snapshot may end AFTER the report week: do not discard it
+ // as "too new". A wholly unrelated reference still uses the age limit.
+ const connected=overlapping||latest&&age>=0&&age<=31*86400000?latest:null;
  if(connected){
-  const result=summarizeGsc(connected);
-  const matched=!!exact;
+  const result=overlapping?
+   summarizeGscWindow(connected,{startDate,endDate}):summarizeGsc(connected);
+  const matched=overlapping&&result.coverage?.periodMatched===true;
   const maskPage=value=>{
    try{
     const url=new URL(value);
@@ -71,7 +80,7 @@ async function seoPerformance(body,context){
     periodMatched:matched},
    warnings:[...result.warnings,
     'GSC 数据日期采用 PT，增长业务日期采用 Asia/Bangkok，不能直接逐日归因',
-    ...(!matched?['使用最近 GSC 快照 '+result.startDate+' 至 '+result.endDate+'，与请求期间不完全一致；仅作为背景趋势，不得计算期间 SEO 转化或环比']:[])]};
+    ...(!matched?['所需 PT 日期未完整覆盖；当前 SEO 数值仅作部分/背景观察，不可计算完整周环比或站内转化归因']:[])]};
  }
  // Historical manual imports remain an explicit, limited fallback.
  const record=await createSeoStore().latestCovering(context.ownerId,{
