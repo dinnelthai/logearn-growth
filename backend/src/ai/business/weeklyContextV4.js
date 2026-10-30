@@ -54,14 +54,17 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
  const summaries=raw.weeklyCoverage.modules.map(row=>{
   const ids=(row.evidenceIds||[]).filter(id=>byId.has(id)).slice(0,3);
   const evidence=ids.map(id=>byId.get(id));
+  // Preserve the actual breakdown for acquisition and activation, not just
+  // the first four overall numbers. This remains bounded and aggregate-only.
+  const maxFacts=['channel-growth','activation-funnel'].includes(row.id)?12:4;
   const facts=(row.facts||[]).filter(f=>valid(f.value)&&typeof f.metric==='string')
-   .slice(0,4).map(f=>({metric:safeText(f.metric,65),value:f.value}));
+   .slice(0,maxFacts).map(f=>({metric:safeText(f.metric,65),value:f.value}));
   if(!facts.length)for(const e of evidence){
    for(const f of factsFromValue(modelEvidence(e).value,4)){
     if(!facts.some(x=>x.metric===f.metric))facts.push(f);
-    if(facts.length>=4)break;
+    if(facts.length>=maxFacts)break;
    }
-   if(facts.length>=4)break;
+   if(facts.length>=maxFacts)break;
   }
   return {id:row.id,status:row.status,
    ...(facts.length?{stats:facts}:{}),
