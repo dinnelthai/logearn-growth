@@ -1,12 +1,13 @@
 import {mountUserCrm} from './userCrm.js'
 import {loadingState} from './loadingState.js'
+import {beginPageLoad} from './pageLoading.js'
 import {viewState} from '../components/viewStates.js'
 import {fetchWorkbench,setFollowupStatus} from '../api/userOperations.js'
 import {observedTime} from './observedDrill.js'
 import {getGrowthInbox} from '../api/aiAnalysis.js'
 import {queueAnalysisLaunch} from '../analysisLaunchContext.js'
 export function createWorkbench(ctx){
- const {$,esc,fmt,table}=ctx;let epoch=0,data=null,aiInbox=null,filter='due',page=0,crm=null
+ const {$,esc,fmt,table}=ctx;let epoch=0,data=null,aiInbox=null,filter='due',page=0,crm=null,pendingFocus=null
  const host=()=>$('#as-output')
  function render(preserveCrm=true){const oldCrm=preserveCrm?host().querySelector('[data-work-crm]'):null;if(!oldCrm)crm?.dispose();const s=data.summary,now=data.as_of,tasks=data.tasks.filter(t=>filter==='done'?t.status==='done':t.status!=='done'&&(filter==='all'||filter==='due'&&t.due_at!=null&&t.due_at<=now||t.type===filter))
   const maxPage=Math.max(0,Math.ceil(tasks.length/20)-1);
@@ -27,7 +28,11 @@ export function createWorkbench(ctx){
     }
   });
   const crmHost=host().querySelector('[data-work-crm]');if(oldCrm&&crmHost)crmHost.replaceWith(oldCrm);else if(crmHost)crm=mountUserCrm(crmHost,ctx,{onSaved:async()=>{const token=epoch;try{const r=await fetchWorkbench();if(token===epoch&&crmHost.isConnected){data=r;render(true)}}catch(e){if(token===epoch)host().querySelector('[data-work-error]').textContent=e.message}}});
-  host().querySelector('[data-work-refresh]').onclick=refresh;host().querySelectorAll('[data-work-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.workFilter;page=0;render()});host().querySelector('[data-work-prev]').onclick=()=>{page--;render()};host().querySelector('[data-work-next]').onclick=()=>{page++;render()}
+  host().querySelector('[data-work-refresh]').onclick=refresh;host().querySelectorAll('[data-work-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.workFilter;page=0;pendingFocus='[data-work-filter="'+filter+'"]';render()});host().querySelector('[data-work-prev]').onclick=()=>{page--;pendingFocus='[data-work-prev]';render()};host().querySelector('[data-work-next]').onclick=()=>{page++;pendingFocus='[data-work-next]';render()}
+  if(pendingFocus){
+    host().querySelector(pendingFocus)?.focus?.({preventScroll:true});
+    pendingFocus=null;
+  }
   host().querySelectorAll('[data-work-open]').forEach(b=>b.onclick=()=>{
     const t=data?.tasks?.find(task=>task.id===b.dataset.workOpen);
     if(!t||!t.target){
@@ -69,6 +74,6 @@ export function createWorkbench(ctx){
     if(button?.isConnected){button.disabled=false;button.textContent='刷新';}
   }
  }
- async function draw(){crm?.dispose();ctx.clear();const token=++epoch;host().innerHTML=loadingState('正在加载运营待办…');try{const [r,ai]=await Promise.all([fetchWorkbench(),getGrowthInbox().catch(e=>({error:e.message}))]);if(token!==epoch)return;data=r;aiInbox=ai;render()}catch(e){if(token===epoch){host().innerHTML=viewState({kind:'error',title:'运营待办加载失败',description:e.message,actionLabel:'重试',actionAttr:'data-work-refresh'});host().querySelector('[data-work-refresh]')?.addEventListener('click',draw)}}}
+ async function draw(){crm?.dispose();ctx.clear();const token=++epoch;const finishLoading=beginPageLoad(host(),{placeholder:loadingState('正在加载运营待办…'),selector:'.operations-workbench',message:'正在更新运营待办，旧列表暂时保留…'});try{const [r,ai]=await Promise.all([fetchWorkbench(),getGrowthInbox().catch(e=>({error:e.message}))]);if(token!==epoch)return;data=r;aiInbox=ai;render()}catch(e){if(token===epoch){host().innerHTML=viewState({kind:'error',title:'运营待办加载失败',description:e.message,actionLabel:'重试',actionAttr:'data-work-refresh'});host().querySelector('[data-work-refresh]')?.addEventListener('click',draw)}}finally{finishLoading()}}
  return {draw,hasPendingChanges:()=>crm?.hasPendingChanges?.()===true,dispose(){epoch++;crm?.dispose()}}
 }
