@@ -91,8 +91,27 @@ function factsFromEvidence(evidence){
  };
  for(const e of (Array.isArray(evidence)?evidence:[]).slice(0,8)){
   if(facts.length>=12)break;
-  if(validNumber(e?.value))add(e.metricId||'value',e.value,e.id);
-  else visit(e?.value,e?.id);
+  const value=e?.value;
+  if(validNumber(value)){add(e.metricId||'value',value,e.id);continue}
+  // Reserve facts for the actual *breakdown* instead of letting a wide
+  // overall summary consume the entire evidence budget.
+  if(e.metricId==='channels'&&Array.isArray(value?.groups)){
+   for(const key of ['new_users','users','analysis'])
+    add('total.'+key,value.total?.[key],e.id);
+   for(const [i,row] of value.groups.slice(0,3).entries()){
+    const source=safeDimension(row?.source)||'group'+i;
+    for(const key of ['new_users','users','analysis'])
+     add('groups.'+source+'.'+key,row?.[key],e.id);
+   }
+  }else if(e.metricId==='funnel'&&Array.isArray(value?.steps)){
+   for(const key of ['total_entered','total_converted','pending_count'])
+    add(key,value[key],e.id);
+   for(const [i,row] of value.steps.slice(0,4).entries()){
+    const step=safeDimension(row?.key)||'step'+i;
+    for(const key of ['users','previous_conversion_rate','drop_off_users'])
+     add('steps.'+step+'.'+key,row?.[key],e.id);
+   }
+  }else visit(value,e?.id);
  }
  return facts;
 }
