@@ -71,7 +71,7 @@ function createOperationsTimeline({
     scheduleChanges:scheduleByActivity.get(r.id)||[],
     scheduleIssue:!!r.schedule_error
    });
-   coverage.growthActivities={status:status(rows.length),count:rows.length,ownerScoped:true};
+   coverage.growthActivities={status:status(rows.length),count:rows.length,limit,truncated:rows.length===limit,ownerScoped:true};
    return rows;
   });
 
@@ -101,7 +101,7 @@ function createOperationsTimeline({
      revenueTotals:(f?.revenueTotals||[]).slice(0,4)
     });
    }
-   coverage.kolCollaborations={status:status(rows.length),count:rows.length,ownerScoped:true};
+   coverage.kolCollaborations={status:status(rows.length),count:rows.length,limit,truncated:rows.length===limit,ownerScoped:true};
    return rows;
   });
 
@@ -122,7 +122,7 @@ function createOperationsTimeline({
     evaluation:{audienceFit:r.audience_fit??null,actionability:r.actionability??null},
     collection:'manual'
    });
-   coverage.contentRecords={status:status(rows.length),count:rows.length,ownerScoped:true,collection:'manual'};
+   coverage.contentRecords={status:status(rows.length),count:rows.length,limit,truncated:rows.length===limit,ownerScoped:true,collection:'manual'};
    return rows;
   });
 
@@ -138,14 +138,16 @@ function createOperationsTimeline({
     priority:r.priority,status:r.status,dueAt:r.due_at??null,
     createdAt:r.created_at,updatedAt:r.updated_at,completedAt:r.completed_at??null
    });
-   coverage.operationTasks={status:status(rows.length),count:rows.length,ownerScoped:true};
+   coverage.operationTasks={status:status(rows.length),count:rows.length,limit,truncated:rows.length===limit,ownerScoped:true};
    return rows;
   });
 
   await read('xOfficial',async()=>{
    const overview=xMonitor.overview(ownerId);
-   let count=0;
+   let count=0,truncated=false;
    for(const account of overview.accounts||[]){
+    const oldest=Date.parse((account.posts||[]).at(-1)?.published_at||'');
+    if((account.posts||[]).length===20&&Number.isFinite(oldest)&&start<oldest)truncated=true;
     const posts=(account.posts||[]).filter(p=>{
      const at=Date.parse(p.published_at);return Number.isFinite(at)&&at>=start&&at<end;
     });
@@ -170,7 +172,7 @@ function createOperationsTimeline({
     });
    }
    coverage.xOfficial={status:count?'available':overview.configured?'empty':'not_configured',
-    count,source:overview.source||'twitterapi.io',limit:'最多最近20条/账号；公开指标非转化归因'};
+    count,limitPerAccount:20,truncated,source:overview.source||'twitterapi.io',limit:'最多最近20条/账号；公开指标非转化归因'};
    return overview;
   });
 
@@ -213,7 +215,7 @@ function createOperationsTimeline({
      attribution:'observational-not-causal'
     });
    }
-   coverage.kolObservations={status:status(selected.length),count:selected.length,ownerScoped:true};
+   coverage.kolObservations={status:status(selected.length),count:selected.length,limit:12,truncated:snapshots.length===12,ownerScoped:true};
    return selected;
   });
 
@@ -237,20 +239,21 @@ function createOperationsTimeline({
      }:null
     });
    }
-   coverage.aiReportActions={status:status(rows.length),count:rows.length,ownerScoped:true};
+   coverage.aiReportActions={status:status(rows.length),count:rows.length,limit,truncated:rows.length===limit,ownerScoped:true};
    return rows;
   });
 
   await read('specialistSignals',async()=>{
    const rows=await specialistStore.list(ownerId,{limit:50,includeClosed:true});
-   const selected=rows.filter(r=>Number(r.first_seen_at)<end&&Number(r.last_seen_at)>=start).slice(0,limit);
+   const matching=rows.filter(r=>Number(r.first_seen_at)<end&&Number(r.last_seen_at)>=start);
+   const selected=matching.slice(0,limit);
    for(const r of selected)aiActions.push({
     id:'ai-signal:'+r.id,kind:'ai_specialist_signal',layer:'ai_suggestion_or_review',
     source:'ai_growth_specialist_tasks',title:text(r.title,120),priority:r.priority,
     status:r.status,firstSeenAt:r.first_seen_at,lastSeenAt:r.last_seen_at,
     occurrences:r.occurrences??1,sourceKind:r.kind
    });
-   coverage.specialistSignals={status:status(selected.length),count:selected.length,ownerScoped:true};
+   coverage.specialistSignals={status:status(selected.length),count:selected.length,limit,truncated:selected.length===limit||rows.length===50,ownerScoped:true};
    return selected;
   });
 
