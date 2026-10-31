@@ -24,7 +24,7 @@ async function run({kind,body,snapshot:s,audience,owner}){
     const users=await require('../data/behaviorPaths').pathUsers(s,body,audience,{valueOnly:true})
     const options={start,end,asOf:Date.parse(s.snapshot_cutoff||s.as_of)}
     const requests=require('../analytics/requestDiagnostics').requestDiagnostics(users,options)
-    const tradeFacts=await require('../data/productChainTrades').productChainTrades(s,users,body)
+    const tradeFacts=await require('../data/productChainTrades').productChainTrades(s,users,body,requests.analysis_rows)
     const value=require('../analytics/valueDiagnostics').valueDiagnostics(users,options,requests.analysis_rows,tradeFacts)
     const members=Object.fromEntries(users.map(u=>[u.id,{id:u.id,source:u.source}]))
     return {members,lists:{...requests.lists,...value.lists,...Object.fromEntries(users.map(u=>['diagnostic:user:'+u.id,[u.id]]))},payload:{start,end,as_of:asOf,request_diagnostics:requests.payload,value_diagnostics:value.payload,candidate_count:users.length,truncated:false,context_scope:'full_observed_relevant_events'}}
