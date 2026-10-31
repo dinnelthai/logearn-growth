@@ -107,7 +107,8 @@ function createAgentStore(db=pool){
     s.validation_metrics,s.forecast,s.priority,s.created_at,s.executed_at,s.action_scope,s.applicable_scope,
     a.business_scope,a.filter_conditions,
     r.id AS retrospective_id,r.created_at AS reviewed_at,
-    r.metric_changes,r.effect_period,r.has_improvement,r.has_causality,r.confidence,
+    r.metric_changes,r.effect_period,r.baseline_data,r.effect_data,
+    r.has_improvement,r.has_causality,r.confidence,
     r.baseline_data->>'reviewContextVersion' AS review_context_version
    FROM ai_suggestions s
    JOIN ai_analysis_records a ON a.id=s.analysis_id AND a.owner_id=s.owner_id
