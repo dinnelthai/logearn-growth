@@ -107,7 +107,6 @@ Required behavior:
 - [x] Code-level source contract: product-to-trade reads authoritative `trading_transaction` facts and confirmed ledger / indexed swap token enrichment; identity, token and visit association remain separate.
 - [x] Bound the trade query to successful same-token analysis windows and expose truncation / unknown coverage.
 - [ ] Validate actual Hologres latency, trade match rate and identity coverage using the already-authorized read-only source; CI fixtures are not live-source acceptance.
-- Verify product-to-trade reads authoritative business transactions, not only front-end trade events.
 - Separate registration from first observed analysis; inspect `growthEvidence.registrationFacts` and adapt the existing registered-user metric only if the source contract is authoritative.
 - Confirm activation denominator and maturity.
 - Review SEO/GSC PT date alignment and X observation timestamps.
