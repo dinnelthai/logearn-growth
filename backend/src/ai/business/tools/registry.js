@@ -78,15 +78,62 @@ function operationsTimelineSummary(payload){
   }));
   return {...base,...(kolSummaries.length?{kolSummaries}:{})};
  });
+ // Only an explicit same-owner CRM collaboration→activity key and a
+ // fully comparable, settled window may connect human work with its observed
+ // activity outcome. Never attach X/GSC or KOL platform counts by date alone.
+ const activityById=new Map((payload.humanOperations||[])
+  .filter(row=>row?.kind==='growth_activity'&&typeof row.id==='string')
+  .map(row=>[row.id.slice('activity:'.length),row]));
+ const outcomeLinks=[];
+ const reportEnd=payload.period?.end;
+ for(const collaboration of (payload.humanOperations||[])){
+  if(collaboration?.kind!=='kol_collaboration'||!Array.isArray(collaboration.linkedActivityIds))
+   continue;
+  for(const activityId of collaboration.linkedActivityIds.slice(0,8)){
+   if(outcomeLinks.length>=8)break;
+   const activity=activityById.get(String(activityId));
+   const asOf=Date.parse(activity?.outcome?.asOf||activity?.outcome?.snapshotCutoff||'');
+   const validWindow=[activity?.startAt,activity?.endAt,
+    collaboration.startAt,collaboration.endAt,activity?.settledAt,reportEnd]
+    .every(Number.isSafeInteger);
+   if(!validWindow||activity.outcome?.status!=='settled'||!Number.isFinite(asOf)||
+    activity.startAt>=activity.endAt||collaboration.startAt>=collaboration.endAt||
+    collaboration.startAt>activity.startAt||collaboration.endAt<activity.endAt||
+    activity.endAt>reportEnd||activity.settledAt>=reportEnd||
+    asOf<activity.endAt||asOf>reportEnd)continue;
+   const source=activity.outcome.sourceCoverage||{};
+   const performance=activity.outcome.performance||{};
+   const summary=activity.outcome.summary||{};
+   const observed={
+    ...(source.account==='available'&&typeof summary.completed==='number'?
+     {completed:summary.completed}:{}),
+    ...(source.analysis==='available'&&typeof performance.analysis_users==='number'?
+     {analysis_users:performance.analysis_users}:{}),
+    ...(source.trade==='available'&&typeof performance.trade_users==='number'?
+     {trade_users:performance.trade_users}:{}),
+    ...(source.trade==='available'&&typeof performance.transactions==='number'?
+     {transactions:performance.transactions}:{})
+   };
+   if(!Object.keys(observed).length)continue;
+   outcomeLinks.push({collaborationRef:opaqueRef(collaboration.id),
+    activityRef:opaqueRef(activity.id),relationshipType:'explicit-crm-activity-link',
+    attribution:'observed-non-causal',
+    window:{start:activity.startAt,end:activity.endAt},
+    sourceAsOf:asOf,observed,
+    coverage:{account:source.account||'unknown',analysis:source.analysis||'unknown',
+     trade:source.trade||'unknown'}});
+  }
+ }
  const ai=(payload.aiActions||[]).slice(0,20).map(row=>pick(row,[
   'kind','layer','source','title','reportTitle','priority','status','createdAt',
   'updatedAt','executedAt','review','firstSeenAt','lastSeenAt','occurrences','sourceKind'
  ]));
  return {period:payload.period,humanOperations:human,channelObservations:observations,
-  aiActions:ai,counts:{human_operations_shown:human.length,channel_observations_shown:observations.length,
+  outcomeLinks,aiActions:ai,counts:{human_operations_shown:human.length,channel_observations_shown:observations.length,
    ai_actions_shown:ai.length,total_records_shown:human.length+observations.length+ai.length},
   coverage:payload.coverage||{},asOf:payload.asOf,
-  warnings:payload.warnings||['各来源独立记录，未提供的数据保持未知']};
+  warnings:[...(payload.warnings||['各来源独立记录，未提供的数据保持未知']),
+   '跨运营记录的结果关联仅基于显式CRM活动键、完整覆盖窗口与已结算活动统计；属于相关观察，非KOL带来的增量或因果贡献']};
 }
 function referralSummary(payload){
  const pick=(o,keys)=>Object.fromEntries(keys.filter(k=>o?.[k]!==undefined).map(k=>[k,o[k]]));
