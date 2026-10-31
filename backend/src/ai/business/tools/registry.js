@@ -56,6 +56,7 @@ function operationsTimelineSummary(payload){
   'kind','layer','source','title','channel','topic','kol','startAt','endAt','eventAt',
   'status','goal','targetMetric','targetValue','assignee','dueAt','createdAt','updatedAt',
   'completedAt','settledAt','linkedKols','linkedActivityIds','metrics','evaluation',
+  'memberCount','plannedMemberCount','assignments','deliveryEvidence','scheduleChanges',
   'financeSource','costTotals','revenueTotals','collection'
  ]));
  const observations=(payload.channelObservations||[]).slice(0,20).map(row=>pick(row,[
