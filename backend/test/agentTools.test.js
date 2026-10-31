@@ -190,6 +190,68 @@ test('query_metrics enforces source-only journey grouping and archives allowlist
   assert.equal(seen.length,1,'invalid dimensions must fail before triggering analytics');
  }finally{t.db.close()}
 });
+test('every metric evidence pins source contract, period scope, definition and unverified freshness',async()=>{
+ const {modelEvidence}=require('../src/ai/business/modelTransport');
+ const completeThrough='2026-10-06T00:00:00Z';
+ const t=setup({
+  snapshot:async()=>({snapshot_id:'events-7',as_of:'2026-10-20T00:00:00Z',
+   events_complete_through:completeThrough}),
+  metrics:async()=>({metrics:[
+   {metricId:'registered_users',value:3,coverage:{status:'partial'}},
+   {metricId:'registered_user_journey',value:{available:false},
+    coverage:{status:'unavailable'}},
+   {metricId:'active_users',value:5,coverage:{status:'partial'}}
+  ]}),
+  seoPerformance:async()=>({available:true,source:'gsc-api',snapshotId:'gsc-4',
+   syncedAt:Date.parse('2026-10-08T00:00:00Z'),
+   coverage:{status:'partial',periodMatched:false},metrics:{clicks:3}}),
+  economics:async()=>({byCurrency:[],coverage:{finance:'manual_records_only'}})
+ });
+ try{
+  const grouped=await t.registry.executeTool('query_metrics',
+   {metrics:['registered_users','registered_user_journey','active_users']},t.context);
+  assert.equal(grouped.status,'ok');
+  const [registered,journey,events]=grouped.evidence;
+  assert.deepEqual(grouped.evidence.map(e=>e.definitionVersion),['1','1','1']);
+  assert.equal(registered.sourceMetadata.sourceType,'account_creation');
+  assert.equal(registered.sourceMetadata.scope,'observed_source');
+  assert.equal(registered.sourceMetadata.clock,'independent_registration');
+  assert.equal(registered.sourceMetadata.freshness.status,'unknown');
+  assert.equal(registered.sourceMetadata.freshness.referenceAt,null);
+  assert.equal(registered.sourceMetadata.freshness.reportedCompleteThrough,null);
+  assert.equal(journey.sourceMetadata.sourceType,'registration_events_and_trades');
+  assert.equal(journey.sourceMetadata.freshness.referenceAt,null,
+   'event as_of must not stand in for complete registration and trade clocks');
+  assert.equal(journey.sourceMetadata.coverageStatus,'unavailable');
+  assert.equal(events.sourceMetadata.sourceType,'hologres_observed_events');
+  assert.equal(events.sourceMetadata.freshness.referenceAt,'2026-10-20T00:00:00.000Z');
+  assert.equal(events.sourceMetadata.freshness.reportedCompleteThrough,
+   '2026-10-06T00:00:00.000Z');
+  assert.equal(events.sourceMetadata.freshness.status,'unverified',
+   'reported complete through still needs real-source verification');
+  assert.equal(events.definitionVersion,'1');
+  assert.deepEqual(registered.period,t.context.period);
+  const projected=modelEvidence(events);
+  assert.equal(projected.sourceMetadata.freshness.reportedCompleteThrough,
+   '2026-10-06T00:00:00.000Z');
+  assert.equal(projected.sourceMetadata.scope,'observed_source');
+  const ctx={...t.context,scope:{source:'all'}};
+  const gsc=await t.registry.executeTool('get_seo_performance',{},ctx);
+  assert.equal(gsc.evidence[0].sourceMetadata.clock,'pt_calendar_snapshot');
+  assert.equal(gsc.evidence[0].sourceMetadata.freshness.referenceAt,
+   '2026-10-08T00:00:00.000Z');
+  assert.equal(gsc.evidence[0].sourceMetadata.freshness.reportedCompleteThrough,null);
+  assert.equal(gsc.evidence[0].sourceMetadata.coverageStatus,'partial');
+  assert.equal(modelEvidence(gsc.evidence[0]).sourceMetadata.freshness.status,'unverified');
+  const ledger=await t.registry.executeTool('get_channel_economics',{},ctx);
+  assert.equal(ledger.evidence[0].sourceMetadata.sourceType,
+   'crm_manual_collaboration_ledger');
+  assert.equal(ledger.evidence[0].sourceMetadata.freshness.status,'unknown');
+  assert.equal(ledger.evidence[0].sourceMetadata.freshness.referenceAt,null);
+  assert.equal(ledger.evidence[0].sourceMetadata.freshness.reportedCompleteThrough,null);
+  assert.doesNotMatch(JSON.stringify(modelEvidence(ledger.evidence[0])),/alice|account_id|wallet/i);
+ }finally{t.db.close()}
+});
 test('manual CRM ledger read works when unrelated Hologres snapshot is unavailable',async()=>{
  let queriedSnapshot=false,ledgerCalls=0;
  const t=setup({snapshot:async()=>{queriedSnapshot=true;throw Error('Hologres unavailable')},
