@@ -176,7 +176,7 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,dateTime=n
      '<p class="ai-weekly-empty">没有可核对的历史行动/复盘记录；这不代表没有发生运营工作。</p>')+
     '</section>':'')+
    '<details class="ai-weekly-details ai-weekly-coverage-details" id="weekly-coverage-details">'+
-    '<summary>模块覆盖与调查状态 · 12 个增长模块（点击展开）</summary>'+
+    '<summary>模块覆盖与调查状态 · '+coverage.total+' 个增长模块（点击展开）</summary>'+
     '<div class="ai-weekly-details-body">'+renderWeeklyCoverage(data,{safe,fmt,links})+'</div></details>'+
   '<section class="ai-weekly-section ai-weekly-channel-section"><div class="ai-weekly-section-heading">'+
    '<div><span class="ai-weekly-section-index">04 / ACQUISITION</span><h4>渠道、SEO 与获客</h4></div>'+
