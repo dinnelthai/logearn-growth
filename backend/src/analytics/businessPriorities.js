@@ -5,7 +5,10 @@ const definitions = {
   returning_users: '首次分析早于统计期且期内再次观测到分析的去重用户',
   activation_rate: '首次观测人群中成熟24小时内观测到首次分析的比例；按渠道给出分母',
   d7: '成熟队列在第7个业务日再次观测到分析的比例；未成熟不计入分母',
-  weekly_core: '近7个完整UTC+7自然日至少4天观测到筹码分析；目标与数据覆盖见原始证据'
+  weekly_core: '近7个完整UTC+7自然日至少4天观测到筹码分析；目标与数据覆盖见原始证据',
+  registered_users: '真实注册账户人数，来自 account_v2.created_at；不是首次分析用户',
+  registration_activation_rate: '已成熟注册账户中注册后24小时内首次筹码分析行为比例；未成熟注册单列',
+  registered_trade_conversion_rate: '已成熟且身份可验证的注册用户中，首次筹码分析后7天内真实交易比例；按用户身份关联，非同Token归因或因果证明'
 };
 function validateRange(start, end, now = Date.now()) {
   if (![start, end].every(Number.isSafeInteger) || start < 0 || end <= start || end > now || end-start > 31*DAY || start-(end-start)<0)
