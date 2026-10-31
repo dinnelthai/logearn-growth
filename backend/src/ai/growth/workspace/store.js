@@ -171,6 +171,10 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
   db.prepare('INSERT INTO gw_reports VALUES(?,?,?,?,?,?,?,?,?)').run(owner,id,kind,period.start,period.end,rev,publish?'published':'draft',JSON.stringify(snapshot),getNow());return report(owner,kind,{now,revision:rev});
  })}
  function reportList(owner,{kind=null,limit=30}={}){ownerId(owner);return all('SELECT * FROM gw_reports WHERE owner_id=? '+(kind?'AND kind=? ':'')+'ORDER BY period_end DESC,revision DESC LIMIT ?',...(kind?[owner,kind,limit]:[owner,limit])).map(r=>({...r,snapshot:safeJSON(r.snapshot_json)}))}
+ function suggestionIdsForOperationTask(owner,taskId){
+  ownerId(owner);requiredString(taskId,'运营任务ID');
+  return all("SELECT DISTINCT SUBSTR(p.subject,14) AS suggestionId FROM gw_operation_links l JOIN gw_problems p ON p.owner_id=l.owner_id AND p.id=l.problem_id WHERE l.owner_id=? AND l.task_id=? AND p.type='user' AND p.subject LIKE 'ai-suggestion:%'",owner,taskId).map(row=>row.suggestionId).filter(Boolean);
+ }
  function suggestionOperationTasks(owner,suggestionId){
   ownerId(owner);requiredString(suggestionId,'AI 建议 ID');
   const rows=all("SELECT * FROM gw_problems WHERE owner_id=? AND type='user' AND subject=? ORDER BY first_seen DESC",owner,'ai-suggestion:'+suggestionId);
@@ -246,6 +250,6 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
    reviewSampleSize:reviewed,uncertainReviews:byVerdict.uncertain||0,
    interpretation:'仅来自人工审阅样本，未审核问题不计入准确率；样本存在选择偏差'};
  }
- return {saveGoal,goalById,listGoals,saveEvidence,getEvidence,progress,observeProblem,problem,problems,problemEvents,setProblemStatus,startRun,run,ask,answer,cancelRun,finishRun,createAction,action,actions,updateAction,reviewAction,report,buildReport,reportList,linkOperationTask,linkedOperationTasks,linkAcceptedSuggestionToTask,suggestionOperationTasks,reviewProblem,reconcileSource,qualitySummary};
+ return {saveGoal,goalById,listGoals,saveEvidence,getEvidence,progress,observeProblem,problem,problems,problemEvents,setProblemStatus,startRun,run,ask,answer,cancelRun,finishRun,createAction,action,actions,updateAction,reviewAction,report,buildReport,reportList,linkOperationTask,linkedOperationTasks,linkAcceptedSuggestionToTask,suggestionOperationTasks,suggestionIdsForOperationTask,reviewProblem,reconcileSource,qualitySummary};
 }
 module.exports={workspaceStore};
