@@ -287,3 +287,11 @@ Branch: `codex/ai-comprehensive-upgrade`
 
 - X post-level campaign linkage is not established by title or time overlap; keep it unlinked until a real shared post/campaign identifier exists.
 - Search Console remains a site/query-period observation; do not attribute its clicks to individual manual content records without a landing-page/campaign join.
+
+
+### CI verification update — 2026-10-31
+
+- GitHub Actions [41171204432](https://github.com/dinnelthai/logearn-growth/actions/runs/41171204432) passed AI Contract, AI Integration and AI Frontend.
+- Contract groups: 41/41, 33/33, 13/13, 23/23, 2/2 and 112/112; aggregate harness reported zero failures. Integration: 17/17. Frontend: success.
+- This verifies fixture/service-container contracts for the hashed activity and KOL CRM joins; it is not a live Hologres or production runtime acceptance.
+- Branch remains `codex/ai-comprehensive-upgrade`; no deployment, migration, paid model call, paid data collection or external action occurred.
