@@ -36,6 +36,21 @@ test('owner-scoped observed tool durations require at least three real archived 
    return e;
   };
   for(const ms of [12,35,20])add('alice','get_channels',ms);
+  // A known tool query from another scope must not distort this cohort's
+  // latency estimate even if it belongs to the same owner.
+  const differentScope={...context,scope:{source:'all'}};
+  for(const ms of [0,0,0]){
+   const ev=makeEvidence({metricId:'active_users',value:1,
+    query:{tool:'get_channels'},executionTiming:{elapsedMs:ms}},differentScope);
+   store.save(ev,differentScope);
+  }
+  const differentPeriod={...context,period:{start:100,end:100+30*86400000,
+   timezone:'Asia/Bangkok'}};
+  for(const ms of [1,1,1]){
+   const ev=makeEvidence({metricId:'active_users',value:1,
+    query:{tool:'get_channels'},executionTiming:{elapsedMs:ms}},differentPeriod);
+   store.save(ev,differentPeriod);
+  }
   for(const ms of [1,2,3,4])add('bob','get_channels',ms);
   add('alice','get_paths',5);add('alice','get_paths',10);
   add('alice','get_funnel',-1);
