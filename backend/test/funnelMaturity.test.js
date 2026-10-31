@@ -9,7 +9,7 @@ const options={steps:['token_click','token','chip'],startAt:base,endAt:base+DAY,
 test('funnel rates exclude pending users and retain mature known denominator',()=>{
  const asOf=base+DAY+500;
  const rows=[
-  user('pending',[e('token_click',1,{token_visit_id:'v1'}),e('token',2,{token_visit_id:'v1'})]),
+  user('pending',[e('token_click',1000,{token_visit_id:'v1'}),e('token',1001,{token_visit_id:'v1'})]),
   user('converted',[e('token_click',10,{token_visit_id:'v2'}),e('token',20,{token_visit_id:'v2'}),e('chip',30,{token_visit_id:'v2'})]),
   user('drop',[e('token_click',100,{token_visit_id:'v3'}),e('token',200,{token_visit_id:'v3'})])
  ];
