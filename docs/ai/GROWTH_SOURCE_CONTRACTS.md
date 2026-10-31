@@ -1,6 +1,6 @@
 # Growth Agent 2.0 — Channel source and historical-period contracts
 
-> Branch: `codex/ai-comprehensive-upgrade`. Latest audited source/test HEAD: `1f6ca609ac864cb3877208136e8e9c8dae29ddae`; [AI infrastructure CI 41199595293](https://github.com/dinnelthai/logearn-growth/actions/runs/41199595293) passed Contract, Integration and Frontend.
+> Branch: `codex/ai-comprehensive-upgrade`. Latest audited source/test HEAD: `e5a08a39d4668d2895c23bc5997946885292a9a0`; [AI infrastructure CI 41200563427](https://github.com/dinnelthai/logearn-growth/actions/runs/41200563427) passed Contract, Integration and Frontend.
 >
 > This is a **code + fixture/CI contract audit**, not an assertion that real X, Search Console, Hologres, CRM or referral data have been connected, are current, or passed a paid-model end-to-end test. Unknown is not zero. No source here authorizes automatic external collection or paid calls.
 
