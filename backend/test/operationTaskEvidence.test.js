@@ -60,6 +60,8 @@ test('cohort evidence waits for three complete business days after task completi
     snapshot_cutoff:new Date(now).toISOString()}});
   assert.equal(result.status,'waiting');
   assert.equal(result.reason,'cohort-observation-window-not-mature');
+  assert.ok(Number.isSafeInteger(result.observeUntil));
+  assert.ok(result.observeUntil>completedAt);
  }finally{db.close()}
 });
 
@@ -82,4 +84,5 @@ test('cohort baseline window ends before task creation and effect window begins 
  assert.equal(periods.baselineEnd-periods.baselineStart,periods.effectEnd-periods.effectStart);
  assert.equal(periods.baselineAnchor,'before-task-created');
  assert.equal(periods.effectAnchor,'after-task-completed');
+ assert.ok(Number.isSafeInteger(periods.observeUntil));
 });
