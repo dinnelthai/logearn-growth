@@ -33,3 +33,36 @@ test('learning strategy validity period is bounded and cannot be negative',()=>{
  assert.throws(()=>proposeStrategy(values,{goal:'activation',now,ttlDays:0}),/有效期/);
  assert.throws(()=>proposeStrategy(values,{goal:'activation',now,ttlDays:91}),/有效期/);
 });
+
+test('v2 learning uses fixed-cohort evidence for a directly comparable active-user metric',()=>{
+ const base={...row('cohort',true),review_context_version:'2',
+  validation_metrics:{primary:'active_users'},
+  // Deliberately conflicting whole-business data must not override the cohort.
+  metric_changes:{active_users:{available:true,baseline:900,effect:100}},
+  baseline_data:{reviewContextVersion:2,operationTaskCohort:{
+   status:'available',periods:{days:3},snapshot:{id:'snap-1'},
+   metrics:{analysis_users:20,requested_users:30,unmatched_users:0}}},
+  effect_data:{operationTaskCohort:{analysis_users:25,requested_users:30,unmatched_users:0}}};
+ const values=judgeHistory([base],{now});
+ assert.equal(values[0].assessment,'observed-supported');
+ assert.equal(values[0].evidence.outcomeBasis,'fixed-cohort-observation');
+ assert.equal(values[0].evidence.change.baseline,20);
+ assert.equal(values[0].evidence.change.effect,25);
+ assert.equal(values[0].evidence.hasCausality,false);
+});
+test('v2 learning fails closed when cohort coverage is incomplete or primary metric has no direct equivalent',()=>{
+ const incomplete={...row('incomplete',true),review_context_version:'2',
+  validation_metrics:{primary:'active_users'},
+  baseline_data:{reviewContextVersion:2,operationTaskCohort:{status:'available',metrics:{
+   analysis_users:20,requested_users:30,unmatched_users:1}}},
+  effect_data:{operationTaskCohort:{analysis_users:25,requested_users:30,unmatched_users:0}}};
+ const unsupported={...incomplete,suggestion_id:'s-unsupported',
+  validation_metrics:{primary:'new_users'},
+  baseline_data:{reviewContextVersion:2,operationTaskCohort:{status:'available',metrics:{
+   analysis_users:20,requested_users:30,unmatched_users:0}}},
+  effect_data:{operationTaskCohort:{analysis_users:25,requested_users:30,unmatched_users:0}}};
+ const values=judgeHistory([incomplete,unsupported],{now});
+ assert.deepEqual(values.map(x=>x.assessment),['insufficient','insufficient']);
+ assert.equal(values[0].evidence.reason,'fixed-cohort-coverage-incomplete');
+ assert.equal(values[1].evidence.reason,'primary-metric-has-no-direct-cohort-equivalent');
+});
