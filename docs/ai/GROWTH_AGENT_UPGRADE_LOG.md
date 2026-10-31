@@ -295,3 +295,28 @@ Branch: `codex/ai-comprehensive-upgrade`
 - Contract groups: 41/41, 33/33, 13/13, 23/23, 2/2 and 112/112; aggregate harness reported zero failures. Integration: 17/17. Frontend: success.
 - This verifies fixture/service-container contracts for the hashed activity and KOL CRM joins; it is not a live Hologres or production runtime acceptance.
 - Branch remains `codex/ai-comprehensive-upgrade`; no deployment, migration, paid model call, paid data collection or external action occurred.
+
+
+## 2026-10-31 — Decision Engine: goal-ranked growth opportunities in v5
+
+Branch: `codex/ai-comprehensive-upgrade`
+
+### Implemented
+
+- Added a v5-only `growthOpportunities` projection from the same period-matched `coreMetrics` and evidence references used by the report; archived v4 context remains structurally unchanged.
+- Positive observed changes are ranked by the current Business Brain goal's `priorityMetrics`, then evidence completeness and relative change magnitude. Non-focus metrics keep an unknown goal rank.
+- The v5 prompt now explicitly asks the model to inspect positive and negative signals, compare only like units, and verify maturity, scope, persistence and concurrent factors before calling an increase a repeatable opportunity.
+- Each positive signal carries exact evidence IDs and is labeled `observed-increase;replicability-unverified` or `snapshot-increase;period-evidence-incomplete`; it is not a causal or ROI claim.
+- Added regression coverage proving v5 surfaces goal-ranked positive signals and v4 remains unchanged.
+
+### Validation
+
+- GitHub Actions [41171641824](https://github.com/dinnelthai/logearn-growth/actions/runs/41171641824) passed AI Contract, AI Integration and AI Frontend.
+- AI Contract groups: 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112; AI Integration: 17/17; AI Frontend: success.
+- Fixture/service-container validation only; no live source or paid model call was used.
+
+### Remaining Decision Engine work
+
+- Complete prioritization using affected population and investigation/query cost, not just goal relevance, evidence completeness and relative change.
+- Generate competing root-cause hypotheses and the cheapest authorized discriminating query.
+- Generate fully specified actions and validate their metrics against the registry/retrospective service; prevent duplicate or already-disproved actions.
