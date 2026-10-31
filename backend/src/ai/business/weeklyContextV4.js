@@ -6,7 +6,7 @@ const DEFAULT_CAP=22000;
 const METRICS=[
  ['new_users','首次分析用户',5],['active_users','分析活跃用户',5],
  ['returning_users','回访分析用户',3],['activation_rate','激活率',5],
- ['registered_users','注册用户',3],['volume_usd','交易量',3]
+ ['registered_users','注册用户',3],['registration_activation_rate','注册后24小时激活率',3],['volume_usd','交易量',3]
 ];
 const valid=n=>typeof n==='number'&&Number.isFinite(n);
 const compactPeriod=p=>({
@@ -20,7 +20,7 @@ function factsFromValue(value,max=4){
  if(valid(value))return [{metric:'value',value}];
  if(typeof value!=='object')return [];
  const matches=[],allowed=new Set([
-  'active_users','new_users','returning_users','activation_rate','registered_users',
+  'active_users','new_users','returning_users','activation_rate','registered_users','registration_activation_rate','activated',
   'users','visits','clicks','impressions','ctr','position','views','likes',
   'replies','retweets','reposts','posts','followers','followerChange',
   'engagementRate','replyRate','repostRate','likeRate','h24Views','h48Views',
@@ -33,7 +33,7 @@ function factsFromValue(value,max=4){
   for(const [key,v] of Object.entries(obj).slice(0,40)){
    if(valid(v)&&allowed.has(key))matches.push({metric:prefix?prefix+'.'+key:key,value:v});
    else if(depth<2&&['metrics','totals','summary','counts','contentSignals',
-     'xOfficial','global','conversion','retention','trade','product_chain'].includes(key))
+     'xOfficial','global','conversion','retention','trade','product_chain','cohorts','registration'].includes(key))
     visit(v,prefix?prefix+'.'+key:key,depth+1);
   }
  };
