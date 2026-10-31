@@ -146,7 +146,7 @@ function attachBusinessBrain(context,raw){
   focusGoal:raw.focusGoal||raw.business?.focusGoal||'activation'
  });
  context.operatingMemory=brain.projectOperatingMemory(
-  Array.isArray(raw.memory)?raw.memory:[],{safeText,limit:6}
+  Array.isArray(raw.memory)?raw.memory:[],{safeText,limit:3}
  );
  context.omissions.businessBrain='businessBrain 是版本化经营知识，不是数值证据；operatingMemory 仅覆盖已有AI建议与复盘记录，不代表全部运营活动。';
  const bytes=Buffer.byteLength(JSON.stringify(context),'utf8');
