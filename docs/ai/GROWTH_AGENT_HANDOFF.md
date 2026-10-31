@@ -102,6 +102,7 @@ New v5 flags:
 - [x] Distinguish X per-account available/empty/not-synced/unavailable/not-configured states and preserve them in the safe model projection.
 - [x] Reuse owner-scoped `agent_changes` business notes as self-reported operating-memory timeline entries; keep note text bounded and treat it as untrusted, non-verified context.
 - [x] Preserve stable references for existing CRM collaboration-to-activity links in the safe model projection; do not interpret these links as channel attribution.
+- [x] Join KOL observation aggregates to CRM collaborations only by the shared CRM KOL profile ID; export aggregate behavior only and label the relation observational, not causal.
 - [ ] Link campaign/content activity to channel metrics and mature outcomes where stable identifiers and windows allow.
 - [ ] Validate operator-note freshness and model-safe text projection on the live read-only source.
 - [ ] Add dedicated community/training connectors only if an existing source and business need are confirmed; do not infer absence from missing records.
