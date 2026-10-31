@@ -2,7 +2,7 @@
 
 Branch: `codex/ai-comprehensive-upgrade`  
 Scope: Business Brain, Growth Intelligence, Operating Memory, Decision Engine and Learning Loop.  
-Progress snapshot (2026-10-31): 22 / 45 implementation checklist items have code and CI coverage in place (49%); live-source acceptance is tracked separately.  
+Progress snapshot (2026-10-31): 25 / 48 implementation checklist items have code and CI coverage in place (52%); live-source acceptance is tracked separately.  
 Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace and storage.
 
 ## Product definition
