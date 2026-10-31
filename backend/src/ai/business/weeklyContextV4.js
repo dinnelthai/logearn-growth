@@ -83,7 +83,7 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
   const evidence=ids.map(id=>byId.get(id));
   // Preserve the actual breakdown for acquisition and activation, not just
   // the first four overall numbers. This remains bounded and aggregate-only.
-  const maxFacts=['channel-growth','activation-funnel'].includes(row.id)?12:4;
+  const maxFacts=['channel-growth','activation-funnel','operations-timeline'].includes(row.id)?12:4;
   const facts=(row.facts||[]).filter(f=>valid(f.value)&&typeof f.metric==='string')
    .slice(0,maxFacts).map(f=>({metric:safeText(f.metric,110),
     path:'stats.'+safeText(f.metric,110),value:f.value}));
