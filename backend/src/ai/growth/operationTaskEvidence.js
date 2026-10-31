@@ -12,7 +12,7 @@ function taskReviewPeriods(task,cutoff){
  const effectStart=Math.floor((completedAt+OFFSET)/DAY)*DAY-OFFSET+DAY;
  const fullDayEnd=Math.floor((cutoff+OFFSET)/DAY)*DAY-OFFSET;
  const availableDays=Math.floor((fullDayEnd-effectStart)/DAY);
- if(availableDays<3)throw Error('任务完成后至少需要3个完整业务日才能复盘');
+ if(availableDays<3){const error=Error('任务完成后至少需要3个完整业务日才能复盘');error.observeUntil=effectStart+3*DAY;throw error;}
  const days=Math.min(14,availableDays);
  const baselineEnd=Math.floor((createdAt+OFFSET)/DAY)*DAY-OFFSET;
  const baselineStart=baselineEnd-days*DAY;
@@ -20,7 +20,7 @@ function taskReviewPeriods(task,cutoff){
  if(baselineStart<0||baselineEnd>createdAt||effectEnd>fullDayEnd)
   throw Error('固定人群前后观察窗口无效');
  return {baselineStart,baselineEnd,effectStart,effectEnd,days,
-  timezone:'Asia/Bangkok',baselineAnchor:'before-task-created',effectAnchor:'after-task-completed'};
+  timezone:'Asia/Bangkok',baselineAnchor:'before-task-created',effectAnchor:'after-task-completed',observeUntil:effectStart+3*DAY};
 }
 function metricChanges(baseline,effect){
  return Object.fromEntries(METRICS.map(key=>{
@@ -62,7 +62,7 @@ async function loadLinkedTaskEvidence({db,ownerId,suggestionId,executedAt,expect
  let periods;
  try{periods=(dependencies.taskReviewPeriods||taskReviewPeriods)(task,cutoff)}
  catch(error){return {status:'waiting',reason:'cohort-observation-window-not-mature',taskId:task.id,
-  message:String(error.message||error).slice(0,200)}}
+  message:String(error.message||error).slice(0,200),observeUntil:error.observeUntil||null}}
  const factsLoader=dependencies.memberFacts||require('../../data/memberMetrics').memberFacts;
  const metricBuilder=dependencies.memberMetrics||require('../../data/memberMetrics').memberMetrics;
  const ids=members.map(String);
