@@ -44,7 +44,7 @@ function createOperationsTimeline({
  gscService=require('../../growth/gscService').createGscService(),
  summarizeGscWindow=require('../../growth/gscService').summarizeGscWindow,
  specialistStore=require('../../growth/specialistStore').createSpecialistStore(),
- clock=Date.now
+ onReadError=()=>{},clock=Date.now
 }={}){
  async function collect({start,end,source='all',limit=60}={},context={}){
   const ownerId=String(context.ownerId??context.userId??context.user_id??'');
@@ -58,7 +58,7 @@ function createOperationsTimeline({
   const status=count=>count?'available':'empty';
   const read=async(key,fn)=>{
    try{return await fn()}
-   catch(error){coverage[key]={status:'unavailable',count:null,reason:'来源读取失败'};return null}
+   catch(error){try{onReadError(key,error)}catch{}coverage[key]={status:'unavailable',count:null,reason:'来源读取失败'};return null}
   };
 
   await read('growthActivities',async()=>{
