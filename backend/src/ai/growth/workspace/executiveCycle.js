@@ -79,7 +79,7 @@ async function runExecutiveCycle({ownerId,store,now=Date.now(),load=loadObservat
  for(const item of [...found.created,...found.updated].slice(0,8)){
   const p=store.problem(ownerId,item.id);
   if(p?.type!=='business'||!['open','monitoring'].includes(p.status))continue;
-  const metric=signals.find(s=>s.subject===p.subject)?.metricId;
+  const metric=signals.find(s=>s.metricId+':'+s.subject===p.subject)?.metricId;
   if(!metric)continue;
   const proposed=store.proposeActionOnce(ownerId,p.id,{
    description:caseFor(metric).action,assignee:'AI Growth Agent',
