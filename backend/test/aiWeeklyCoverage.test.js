@@ -85,6 +85,16 @@ test('operating timeline is a collected weekly module with separate aggregate la
  assert.ok(row.facts.some(x=>x.metric==='humanOperations.growth_activities.assignments.control.delivered'&&x.value===1));
  assert.equal(out.queries,2);
 });
+test('weekly evidence manifest preserves parallel registered product engagement counts',()=>{
+ const facts=factsFromEvidence([{id:'registered-engagement',metricId:'growth_insights',value:{
+  cohorts:{registration:{engagement:{
+   eligible:12,pending:3,chip_analysis_users:8,holder_view_users:5,
+   strategy_started_users:4,signal_view_users:6,repeat_analysis_users:2
+  }}}
+ }}]);
+ assert.ok(facts.some(x=>x.metric==='cohorts.registration.engagement.holder_view_users'&&x.value===5));
+ assert.ok(facts.some(x=>x.metric==='cohorts.registration.engagement.repeat_analysis_users'&&x.value===2));
+});
 test('unmatched SEO source stays insufficient, not falsely counted as weekly analyzed',async()=>{
  const ctx=context();
  const out=await collectWeeklyCoverage({context:ctx,allowedTools:toolIds,maxQueries:1,
