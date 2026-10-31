@@ -42,3 +42,23 @@ test('hypotheses remain optional when evidence already resolves the decision',()
  delete value.suggestions[0].competingHypotheses;
  assert.equal(validateAnalysis(value),value);
 });
+
+test('analysis rejects an exact repeated action for the same metric and scope',()=>{
+ const value=base();
+ const memory=[{user_status:'executed',validation_metrics:{primary:'new_users'},
+  applicable_scope:{source:'all'},action:'Run the smallest authorized investigation'}];
+ assert.throws(()=>validateAnalysis(value,{memory}),/完全重复/);
+});
+test('analysis permits a materially different action for the same metric',()=>{
+ const value=base();
+ value.suggestions[0].action='Compare channel acquisition against login completion';
+ const memory=[{user_status:'rejected',validation_metrics:{primary:'new_users'},
+  applicable_scope:{source:'all'},action:'Run the smallest authorized investigation'}];
+ assert.equal(validateAnalysis(value,{memory}),value);
+});
+test('analysis permits the same action in a different business scope',()=>{
+ const value=base();
+ const memory=[{user_status:'executed',validation_metrics:{primary:'new_users'},
+  applicable_scope:{source:'telegram'},action:'Run the smallest authorized investigation'}];
+ assert.equal(validateAnalysis(value,{memory}),value);
+});
