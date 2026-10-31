@@ -62,3 +62,55 @@ test('analysis permits the same action in a different business scope',()=>{
   applicable_scope:{source:'telegram'},action:'Run the smallest authorized investigation'}];
  assert.equal(validateAnalysis(value,{memory}),value);
 });
+
+function strictValue(){
+ const value=base(),suggestion=value.suggestions[0];
+ suggestion.scope={source:'all'};
+ suggestion.expectedImpact='可能改善成熟首次分析用户数，幅度未知';
+ suggestion.impactBasis='当前证据只支持问题存在，尚无可量化的因果收益';
+ suggestion.executionPlan={
+  ownerRole:'Growth 负责人',effort:'先评估，预计不超过1人日',
+  resourceNeeds:['现有业务漏斗'],dependencies:[],
+  steps:['核对成熟样本','验证主要断点','记录实际执行'],
+  target:'确认首次分析用户变化的主要可验证原因',
+  successCriteria:'同口径成熟用户指标可在复盘窗口复核',
+  suggestedObservationDays:7,stopConditions:['覆盖不足时停止','指标恶化时回滚']
+ };
+ return value;
+}
+test('new analysis contract only accepts metrics the retrospective service can actually read',()=>{
+ const value=strictValue();
+ value.suggestions[0].validationMetrics={primary:'new_users',secondary:['active_users','activation_rate']};
+ assert.equal(validateAnalysis(value,{analysisContractVersion:'analysis-contract-v2',
+  business:{scope:{source:'all'}},capabilities:[{id:'get_channels'},{id:'get_login_conversion'}]}),value);
+});
+test('new analysis contract rejects registered-user metrics until retrospective reads them directly',()=>{
+ const value=strictValue();
+ value.suggestions[0].validationMetrics={primary:'registered_users',secondary:[]};
+ assert.throws(()=>validateAnalysis(value,{analysisContractVersion:'analysis-contract-v2',
+  business:{scope:{source:'all'}}}),/当前未被复盘服务支持/);
+});
+test('new analysis contract rejects unknown, duplicate or excessive review metrics',()=>{
+ for(const metrics of [
+  {primary:'made_up_metric',secondary:[]},
+  {primary:'new_users',secondary:['new_users']},
+  {primary:'new_users',secondary:['active_users','returning_users','activation_rate','d7']}
+ ]){
+  const value=strictValue();value.suggestions[0].validationMetrics=metrics;
+  assert.throws(()=>validateAnalysis(value,{analysisContractVersion:'analysis-contract-v2',
+   business:{scope:{source:'all'}}}),/指标|验证指标/);
+ }
+});
+test('new analysis contract requires a complete executable action and exact business scope',()=>{
+ const context={analysisContractVersion:'analysis-contract-v2',business:{scope:{source:'all'}}};
+ const missingPlan=strictValue();delete missingPlan.suggestions[0].executionPlan;
+ assert.throws(()=>validateAnalysis(missingPlan,context),/完整执行计划/);
+ const wrongScope=strictValue();wrongScope.suggestions[0].scope.source='twitter';
+ assert.throws(()=>validateAnalysis(wrongScope,context),/完整执行计划/);
+ const noReview=strictValue();noReview.suggestions[0].reviewConditions=[];
+ assert.throws(()=>validateAnalysis(noReview,context),/完整执行计划/);
+});
+test('archived analysis contexts without the v2 marker keep legacy validation compatibility',()=>{
+ const value=base();
+ assert.equal(validateAnalysis(value),value);
+});
