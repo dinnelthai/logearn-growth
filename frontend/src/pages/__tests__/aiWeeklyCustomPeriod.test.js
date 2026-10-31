@@ -13,7 +13,7 @@ vi.mock('../aiWeeklyDecisionView.js',()=>({
 const DAY=86400000,OFFSET=7*3600000;
 const local=ms=>new Date(ms+OFFSET).toISOString().slice(0,16);
 const settle=async()=>{for(let i=0;i<30;i++)await Promise.resolve()};
-function fixture(){
+function fixture({reports=[]}={}){
  const start=Math.floor((Date.now()-7*DAY)/60000)*60000;
  const end=start+6*DAY;
  const defaultPeriod={kind:'weekly',start:start-7*DAY,end:start,
@@ -44,8 +44,8 @@ function fixture(){
  const api=vi.fn(async(path,method,payload)=>{
   sent.push({path,method,payload});
   if(method==='POST')return {analysisId:'custom-report-1'};
-  if(path.includes('?start='))return {period:customPeriod,reports:[]};
-  return {period:defaultPeriod,reports:[]};
+  if(path.includes('?start='))return {period:customPeriod,reports};
+  return {period:defaultPeriod,reports};
  });
  const dispose=mountAIWeeklyReport(root,{api,safe:x=>String(x??''),navigate:vi.fn()});
  return {root,start,end,startInput,endInput,apply,reset,confirm,api,sent,dispose};
@@ -68,6 +68,18 @@ describe('AI operating report custom collection period',()=>{
   const post=v.sent.find(x=>x.method==='POST');
   expect(post).toEqual({path:'/ai-weekly-reports',method:'POST',
    payload:{start:v.start,end:v.end}});
+  v.dispose();
+ });
+ it('keeps a selected historical custom report period visible and regenerable',async()=>{
+  const start=Date.parse('2026-10-10T08:30:00+07:00');
+  const end=Date.parse('2026-10-16T18:45:00+07:00');
+  const v=fixture({reports:[{id:'custom-history',title:'Custom report',status:'completed',
+   date_range_start:start,date_range_end:end,report_period:'custom-v1'}]});
+  await settle();
+  expect(v.root.innerHTML).toContain('AI 运营报告');
+  expect(v.root.innerHTML).toContain('重新生成所选时间范围报告');
+  expect(v.root.innerHTML).toContain('value="'+local(start)+'"');
+  expect(v.root.innerHTML).toContain('value="'+local(end)+'"');
   v.dispose();
  });
  it('can return to the latest completed week preset',async()=>{
