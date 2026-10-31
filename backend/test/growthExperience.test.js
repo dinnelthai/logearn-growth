@@ -81,3 +81,29 @@ test('experience follows the executed action scope instead of the original sugge
  assert.equal(summarizeExperience([row],{source:'twitter',now}).length,1);
  assert.equal(summarizeExperience([row],{source:'all',now}).length,0);
 });
+
+test('experience feedback uses fixed-cohort evidence for v2 reviews without falling back to whole-business metrics',()=>{
+ const history=[{review_context_version:'2',user_status:'executed',effectiveness:'unknown',
+  reviewed_at:now-1000,confidence:'medium',has_improvement:true,
+  validation_metrics:{primary:'active_users'},action_scope:{source:'all'},
+  metric_changes:{active_users:{available:true,baseline:900,effect:100}},
+  baseline_data:{reviewContextVersion:2,operationTaskCohort:{status:'available',
+   metrics:{analysis_users:20,requested_users:30,unmatched_users:0}}},
+  effect_data:{operationTaskCohort:{analysis_users:25,requested_users:30,unmatched_users:0}},
+  result_summary:'Fixed cohort analysis activity increased'}];
+ const result=summarizeExperience(history,{source:'all',now});
+ assert.equal(result.length,1);
+ assert.equal(result[0].effectiveReviews,1);
+ assert.equal(result[0].observedSupportedReviews,1);
+ assert.equal(result[0].outcomeBasis,'fixed-cohort-observation');
+ assert.match(result[0].interpretation,/不代表/);
+});
+test('experience feedback excludes v2 cohort records without complete coverage or direct metric equivalence',()=>{
+ const history=[{review_context_version:'2',user_status:'executed',effectiveness:'unknown',
+  reviewed_at:now-1000,confidence:'medium',has_improvement:true,
+  validation_metrics:{primary:'new_users'},action_scope:{source:'all'},
+  baseline_data:{reviewContextVersion:2,operationTaskCohort:{status:'available',
+   metrics:{analysis_users:20,requested_users:30,unmatched_users:0}}},
+  effect_data:{operationTaskCohort:{analysis_users:25,requested_users:30,unmatched_users:0}}}];
+ assert.deepEqual(summarizeExperience(history,{source:'all',now}),[]);
+});
