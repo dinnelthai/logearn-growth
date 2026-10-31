@@ -269,7 +269,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
      d.archivedCurrentWeek?'<span class="ai-weekly-status">本期记录已移除</span>':
      '<button type="button" class="a-button a-primary" data-weekly-confirm>'+(customPeriod?'生成所选时间范围报告':'生成最近完整周报告')+'</button>')+'</div>'+
     rangePicker+
-    (canRegenerateCurrent?
+    (canRegenerateSelected?
      '<div class="ai-weekly-regenerate-confirm" data-weekly-regenerate-confirm hidden>'+
      '<p><strong>重新生成当前报告？</strong>将重新读取所选时间范围的业务数据，并创建一份独立的新报告。旧报告、证据与历史费用全部保留；本次可能再次产生模型费用。</p>'+
      '<div class="ai-weekly-regenerate-buttons">'+
