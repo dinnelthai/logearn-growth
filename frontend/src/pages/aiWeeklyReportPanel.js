@@ -20,6 +20,29 @@ const periodText=row=>row.report_period==='custom-v1'?
  date(row.date_range_start)+' — '+date(Number(row.date_range_end)-1)+' · 完整周';
 const fmt=x=>typeof x==='number'&&Number.isFinite(x)?x.toLocaleString('zh-CN',{maximumFractionDigits:2}):'未知';
 const statuses={pending:'排队中',processing:'AI 正在分析',completed:'已完成',failed:'生成失败',cancelled:'已取消'};
+// Show only named boolean checks. Never copy private snapshots or model evidence.
+export function savedSnapshotAuditNotice(result){
+ if(result?.version!=='weekly-saved-context-audit-v1'||!result.audit)
+  return '未收到可核对的存档检查结果；不能判断 v5 验收状态。';
+ if(result.audit.status==='snapshot-contract-ready')
+  return '已保存 v5 周报的结构检查通过（含 13 个模块及 22KB 模型上下文限制）。这不是实时数据源、原始模型调用或生产环境验收。';
+ const labels={
+  pinnedV5Report:'缺少已存档 v5 周报标记',
+  versionedWeeklyManifest:'缺少版本化模块清单',
+  exactThirteenModules:'不是完整的 13 模块',
+  validPeriod:'报告期间无效',
+  scopedBusinessContext:'缺少业务范围',
+  savedEvidenceArray:'没有已保存的证据记录',
+  projectionBuilds:'本地投影无法通过',
+  under22KB:'模型上下文超出预算'
+ };
+ const failed=Object.entries(result.audit.checks||{})
+  .filter(([key,value])=>value===false&&labels[key])
+  .slice(0,3).map(([key])=>labels[key]);
+ return '当前周报不能证明是合格的 v5 存档'+
+  (failed.length?'：'+failed.join('、'):'；存档验证条件不足')+
+  '。旧 v4 记录不会升级或重新收费；仍需真实数据验收。';
+}
 export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null}){
  let disposed=false,seq=0,poll=null,selected=null,busy=false,recoveryQueued=false,notice='',lastSnapshot=null,
   customPeriod=false,initialized=false,range={start:'',end:''};
@@ -290,7 +313,9 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
      rows.map(x=>'<option value="'+safe(x.id)+'" '+(x.id===selected?'selected':'')+'>'+
       safe(periodText(x))+' · '+safe(statuses[x.status]||x.status)+'</option>').join('')+'</select></label>':
      '')+
-    (row?'<button type="button" class="a-button" data-weekly-inspect>查看原始 AI 调查记录、检查点与费用</button>':'')+
+    (row?'<button type="button" class="a-button" data-weekly-inspect>查看原始 AI 调查记录、检查点与费用</button>'+
+     '<button type="button" class="a-button" data-weekly-snapshot-audit>检查 v5 快照（只读）</button>'+
+     '<p class="a-muted" role="status" data-weekly-snapshot-status></p>':'')+
     (row?.status==='failed'?
      '<button type="button" class="a-button ai-weekly-delete-trigger" data-weekly-delete>删除失败周报</button>'+
      '<div class="ai-weekly-delete-confirmation" data-weekly-delete-confirmation hidden>'+
@@ -323,6 +348,20 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
     if(!row||typeof navigate!=='function')return;
     queueAnalysisLaunch({kind:'analysis',analysisId:row.id});
     navigate('ai-analysis');
+   });
+   root.querySelector('[data-weekly-snapshot-audit]')?.addEventListener('click',async event=>{
+    if(!row||event.currentTarget.disabled)return;
+    const button=event.currentTarget,status=root.querySelector('[data-weekly-snapshot-status]');
+    button.disabled=true;
+    if(status)status.textContent='正在只读核验已保存的周报快照…';
+    try{
+     const result=await api('/ai-weekly-reports/'+encodeURIComponent(row.id)+'/snapshot-audit');
+     if(!disposed&&token===seq&&status?.isConnected)
+      status.textContent=savedSnapshotAuditNotice(result);
+    }catch(_error){
+     if(!disposed&&token===seq&&status?.isConnected)
+      status.textContent='无法读取存档审计结果；没有启动模型调用或重新生成。';
+    }finally{if(button.isConnected)button.disabled=false}
    });
    const regeneration=root.querySelector('[data-weekly-regenerate-confirm]');
    root.querySelector('[data-weekly-regenerate]')?.addEventListener('click',()=>{

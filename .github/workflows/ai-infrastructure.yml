@@ -282,7 +282,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: npm test -- --run src/analytics/__tests__/aiRecoveryPage.test.js
+      - run: npm test -- --run src/analytics/__tests__/aiRecoveryPage.test.js src/pages/__tests__/aiWeeklySnapshotAudit.test.js
       - name: Run Agent tab loading and page lifecycle regression tests
         run: npm test -- --run src/analytics/__tests__/growthAgentRequestPlan.test.js src/analytics/__tests__/lazyPage.test.js
       - run: npm run build
