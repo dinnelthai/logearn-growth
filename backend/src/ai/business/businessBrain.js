@@ -4,7 +4,7 @@
 // This is business context, not a source of numeric observations or permissions.
 const {describeMetric}=require('./metricRegistry');
 
-const VERSION='logearn-business-brain-v1';
+const VERSION='logearn-business-brain-v2';
 const BUSINESS=Object.freeze({
  name:'LogEarn',
  category:'Web3 Token Research, On-chain Analytics and Wallet Trading',
@@ -33,12 +33,12 @@ const LIFECYCLE=Object.freeze([
  {id:'engagement',name:'产品参与',productIds:['ai_strategy','chip_distribution','holder_ranking'],metricIds:['product_chain','paths'],caveat:'多价值入口，不是强制线性漏斗。'},
  {id:'retention',name:'留存',metricIds:['d7','retention'],caveat:'只比较成熟队列。'},
  {id:'trading',name:'真实交易',productIds:['wallet_trading'],metricIds:['product_chain','registered_trade_conversion_rate'],caveat:'注册队列交易率只统计首次筹码分析后7日内的用户级交易关联；不是同Token归因。交易量不等于收入。'},
- {id:'economics',name:'商业经济',metricIds:['trade_revenue'],caveat:'交易量不等于收入；合作账本不等于全平台收入。'}
+ {id:'economics',name:'商业经济',metricIds:['trade_revenue','collaboration_economics'],caveat:'平台真实收入暂无直接验证来源；合作账本只证明已记录的合作收支，交易量不等于收入。'}
 ]);
 const LABELS=Object.freeze({
  active_users:'分析活跃用户',new_users:'首次分析用户',returning_users:'回访分析用户',
  activation_rate:'激活率',d7:'D7 留存',weekly_core:'周核心用户',
- registered_users:'注册用户',registration_activation_rate:'注册后24小时激活率',registered_trade_conversion_rate:'注册用户分析后7日交易率',trade_revenue:'已登记合作收入',
+ registered_users:'注册用户',registration_activation_rate:'注册后24小时激活率',registered_trade_conversion_rate:'注册用户分析后7日交易率',trade_revenue:'平台真实收入（未验证）',collaboration_economics:'CRM/KOL合作账本收支',
  funnel:'转化漏斗',paths:'行为路径',product_chain:'产品到交易链路',
  retention:'用户留存',channels:'渠道获客',segments:'用户分群',
  activities:'运营活动',quality:'数据质量',seo_search:'SEO / Search Console',
@@ -50,7 +50,7 @@ const METRIC_IDS=Object.freeze(Object.keys(LABELS));
 const CONTEXT_METRIC_IDS=Object.freeze([
  'registered_users','registration_activation_rate','registered_trade_conversion_rate','new_users','active_users','returning_users','activation_rate',
  'd7','channels','activities','seo_search','kol_performance','content_growth',
- 'product_chain','trade_revenue','login_conversion','retention'
+ 'product_chain','trade_revenue','collaboration_economics','login_conversion','retention'
 ]);
 const GOAL_FOCUS=Object.freeze({
  activation:{objective:'提高首次有效产品分析用户，同时辨别注册、访问、登录与首次分析之间的真实断点。',
@@ -60,7 +60,7 @@ const GOAL_FOCUS=Object.freeze({
  conversion:{objective:'理解从产品价值行为到真实交易的可验证转化，不把点击意图当成成交。',
   stages:['activation','engagement','trading'],priorityMetrics:['product_chain','registered_trade_conversion_rate','active_users']},
  revenue:{objective:'核对真实交易和已记录收入、成本，分清交易量、收入与合作账本。',
-  stages:['trading','economics'],priorityMetrics:['product_chain','trade_revenue']}
+  stages:['trading','economics'],priorityMetrics:['product_chain','trade_revenue','collaboration_economics']}
 });
 const OPERATING_RULES=Object.freeze([
  '围绕经营目标分析，再选能解决关键歧义的已授权模块；不机械罗列。',
@@ -69,7 +69,7 @@ const OPERATING_RULES=Object.freeze([
  '首次分析不是注册；active_users、new_users 和 registered_users 严格区分。注册激活率只用已成熟注册队列作分母；注册后7日的筹码、Holder、策略和信号入口分别计数，入口可重叠，不合并单一参与率；未观测不等于未参与。',
  'SEO/X/KOL曝光、点击、粉丝和互动不等于站内注册、激活或增量。',
  '比较前核对渠道、队列、分母、时区、范围和成熟窗口。',
- '交易量不等于收入；合作账本不等于全平台收入；注册后交易率仅为首次筹码分析后的7日用户级关联，不等于同Token交易或因果归因。',
+ '交易量不等于收入；平台真实收入当前尚无核验来源，必须保持未知；CRM/KOL合作账本仅为人工记录的合作收支，不能代替平台收入；注册后交易率仅为首次筹码分析后的7日用户级关联，不等于同Token交易或因果归因。',
  '运营复盘必须读取 get_operations_timeline；人工活动、渠道观察与AI建议/复盘分层，AI建议不得视为已执行活动。',
  '多产品价值入口非强制漏斗；采纳和前后变化不证明有效；知识不覆盖证据/权限/预算。'
 ]);
