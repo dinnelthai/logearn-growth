@@ -33,6 +33,8 @@ on:
       - 'backend/src/cache/**'
       - 'backend/src/data/**'
       - 'backend/src/services/businessReport.js'
+      - 'backend/src/analytics/businessPriorities.js'
+      - 'backend/src/routes/growthWorkspace.js'
       - 'backend/scripts/explainHologres.js'
       - 'backend/scripts/compareAgentEfficiency.js'
       - 'backend/src/queues/**'
