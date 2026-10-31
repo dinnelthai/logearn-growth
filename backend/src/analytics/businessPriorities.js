@@ -9,6 +9,7 @@ const definitions = {
   registered_users: '真实注册账户人数，来自 account_v2.created_at；不是首次分析用户',
   registration_activation_rate: '已成熟注册账户中注册后24小时内首次筹码分析行为比例；未成熟注册单列',
   registered_trade_conversion_rate: '已成熟且身份可验证的注册用户中，首次筹码分析后7天内真实交易比例；按用户身份关联，非同Token归因或因果证明'
+,  registered_user_journey: '注册账户队列的24小时筹码分析激活、注册后7日内并行产品入口参与、首次分析后7日身份可验证交易转化；各入口可重叠，不构成线性漏斗或因果证明'
 };
 function validateRange(start, end, now = Date.now()) {
   if (![start, end].every(Number.isSafeInteger) || start < 0 || end <= start || end > now || end-start > 31*DAY || start-(end-start)<0)
