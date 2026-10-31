@@ -435,3 +435,9 @@ Final validation update: run [41177187712](https://github.com/dinnelthai/logearn
 - Activity delivery evidence ranking now filters by selected owner-owned activity IDs before ranking; no selected activities means no delivery scan. Synthetic SQLite coverage checks latest event/owner isolation; see `backend/test/operationsTimeline.test.js`.
 - Workspace dashboard batches per-goal evidence reads into one 200-row owner-scoped scan while retaining the historical per-goal `progress` contract; see `backend/test/growthWorkspace.test.js`.
 - `docs/ai/GROWTH_PERFORMANCE_ACCEPTANCE.md` §7 records benchmark/plan requirements. These changes are not live speed measurements or evidence of the outstanding 48th checkpoint. Fetch latest branch HEAD and CI before further work.
+
+### 2026-10-31 — Growth Executive Decision Loop v1
+
+- Added owner-scoped read-only Executive cycle and durable problem→internal-action draft mapping, integrated into the opt-in workspace scheduler. One primary investigation draft per cycle, no automatic paid/external operations.
+- Added decision queue and owner UI with review-due, approval and overdue-task reminders. Correctly separates verified *daily* North Star from *monthly* unique-user target; `report.executiveFocus` is separate from legacy four-goal grade.
+- Read [GROWTH_EXECUTIVE_DECISION_LOOP_V1.md](./GROWTH_EXECUTIVE_DECISION_LOOP_V1.md) for feature gates, tests and remaining gaps. The existing 47/48 live-source signoff is not advanced by this implementation.

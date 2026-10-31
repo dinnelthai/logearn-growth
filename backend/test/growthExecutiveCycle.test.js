@@ -92,3 +92,18 @@ test('bad time windows or invalid counts cannot be accepted as verified evidence
   assert.equal(f.store.actions('alice').length,0);
  }finally{f.close()}
 });
+
+test('leased workspace tick integrates the trusted Executive observation without paid AI',async()=>{
+ const f=fixture();try{
+  const {dailyWorkspaceTickWithMetrics}=require('../src/ai/growth/workspace/dailyTick');
+  let scans=0;
+  const result=await dailyWorkspaceTickWithMetrics({db:f.db,ownerId:'alice',now,
+   metricProviders:{status:async()=>{throw Error('unexpected weekly fetch')},weekly:async()=>{throw Error('unexpected weekly fetch')}},
+   executiveObservation:async()=>{scans++;return snapshot()}});
+  assert.equal(scans,1);
+  assert.equal(result.executive.status,'verified');
+  assert.equal(result.executive.proposedActions,1);
+  assert.ok(result.reportId);
+  assert.equal(f.store.actions('alice').length,1);
+ }finally{f.close()}
+});
