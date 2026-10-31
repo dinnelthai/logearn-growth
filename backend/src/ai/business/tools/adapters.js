@@ -22,6 +22,18 @@ async function metrics(body,snapshot,ids,context){
    if(registration?.scope==='observed_source')warnings.push('来源归因仅覆盖已观测来源；未归因账户不会计入该来源');
    return {metricId:m.id,value:count,warnings};
   }
+  if(m.id==='registration_activation_rate'){
+   const registration=growth?.cohorts?.registration,cohort=registration?.metrics;
+   const available=registration?.available===true&&cohort&&
+    Number.isFinite(cohort.eligible)&&Number.isFinite(cohort.activated)&&Number.isFinite(cohort.pending);
+   const denominator=available?cohort.eligible:null,numerator=available?cohort.activated:null;
+   const warnings=['注册激活定义：注册后24小时内首次筹码分析行为；仅已成熟注册队列进入分母'];
+   if(!available)warnings.push('注册队列不可用，未知不能解释为0');
+   if(available&&denominator===0)warnings.push('当前没有已成熟注册用户；比率为未知，不是0%');
+   if(registration?.scope==='observed_source')warnings.push('来源归因仅覆盖已观测来源；未归因账户不会计入该来源');
+   return {metricId:m.id,value:available&&denominator>0?cohort.rate:null,
+    numerator,denominator,sampleSize:denominator,pending:available?cohort.pending:null,warnings};
+  }
   const channels=growth.channels||[],rows=channels.map(c=>m.id==='d7'?c.d7:{eligible:c.eligible,returned:c.activated});
   const known=rows.length>0&&rows.every(r=>Number.isFinite(r?.eligible)&&Number.isFinite(r?.returned));
   const numerator=known?rows.reduce((n,r)=>n+r.returned,0):null,denominator=known?rows.reduce((n,r)=>n+r.eligible,0):null;
