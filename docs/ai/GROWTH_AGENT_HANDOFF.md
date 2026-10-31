@@ -100,9 +100,7 @@ New v5 flags:
 - [x] Include aggregate activity delivery state and frozen settled outcomes without member rows or IDs.
 - [x] Expose per-source coverage, freshness limitations and truncated samples.
 - [x] Distinguish X per-account available/empty/not-synced/unavailable/not-configured states and preserve them in the safe model projection.
-- [x] Reuse owner-scoped `agent_changes` business notes as self-reported operating-memory timeline entries; keep note text bounded and treat it as untrusted, non-verified context.
 - [ ] Link campaign/content activity to channel metrics and mature outcomes where stable identifiers and windows allow.
-- [ ] Validate operator-note freshness and model-safe text projection on the live read-only source.
 - [ ] Add dedicated community/training connectors only if an existing source and business need are confirmed; do not infer absence from missing records.
 
 ### P2 — Decision Engine and Learning Loop

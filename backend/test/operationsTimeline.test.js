@@ -106,6 +106,7 @@ test('timeline merges existing owner-scoped records but keeps human, channel and
  assert.equal(operatorNote.topic,'activity');
  assert.equal(operatorNote.status,'recorded');
  assert.equal(result.coverage.operatorNotes.verification,'self-reported');
+ assert.match(result.warnings.join(' '),/操作员自述，未经独立核验/);
 
  assert.ok(db.calls.some(c=>c.sql.includes('FROM growth_activities')&&c.args[0]==='owner-1'));
  assert.ok(db.calls.some(c=>c.sql.includes('growth_activity_assignments')&&c.args[0]==='owner-1'));

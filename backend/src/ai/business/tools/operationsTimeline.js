@@ -361,7 +361,8 @@ function createOperationsTimeline({
    'Search Console 日期按太平洋时间（PT）；与曼谷业务时间并不完全对齐',
    'KOL 观察与人工账本不证明增量因果；多币种成本/收入不得合并',
    '活动、社群与培训仅在现有 growth_activities / operation_tasks 等记录中可见；没有专门平台连接时不代表不存在活动',
-   '内容增长记录是人工登记，不是平台完整采集'
+   '内容增长记录是人工登记，不是平台完整采集',
+   '运营备注来自操作员自述，未经独立核验；作为线索而非已验证事实'
   ];
   const limited=Object.entries(coverage).filter(([,value])=>value?.truncated===true).map(([key])=>key);
   if(limited.length)warnings.push('以下来源达到本次读取上限，返回的是有界样本而非完整清单：'+limited.join(', '));
