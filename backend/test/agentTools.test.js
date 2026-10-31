@@ -60,6 +60,32 @@ test('collaboration economics evidence never becomes platform revenue or trade v
   assert.notEqual(describeMetric('trade_revenue').definition,describeMetric('collaboration_economics').definition);
  }finally{t.db.close()}
 });
+test('invite event history completeness does not certify relationship or terminal conversion coverage',async()=>{
+ const t=setup({runAnalysis:async(kind)=>{
+  assert.equal(kind,'invite-conversion');
+  return {payload:{scene:'invite',available:true,history_complete:true,
+   users:4,registration:{available:false,status:'unknown'},
+   association:{available:false,status:'unknown'},
+   steps:[{key:'visited',available:true,flows:4,users:4},
+    {key:'bound',available:false,flows:0,users:0}]}};
+ }});
+ try{
+  const ctx={...t.context,scope:{source:'all'}};
+  const out=await t.registry.executeTool('get_invite_conversion',{},ctx);
+  assert.equal(out.status,'ok');
+  const row=out.evidence[0];
+  assert.equal(row.metricId,'invite_conversion');
+  assert.equal(row.coverage.status,'partial');
+  assert.equal(row.coverage.historyComplete,true);
+  assert.equal(row.value.coverage.status,'partial');
+  assert.equal(row.value.coverage.historyComplete,true);
+  assert.equal(row.value.conversion.registration.available,false);
+  assert.equal(row.value.conversion.association.available,false);
+  assert.match(row.coverage.reason,/事件历史完整性不能证明/);
+  assert.equal(row.watermarks.registrations,null);
+  assert.equal(row.watermarks.trades,null);
+ }finally{t.db.close()}
+});
 test('referral evidence declares cumulative all-time scope instead of impersonating the report period',async()=>{
  const payload={scope:'all',start:0,end:Date.parse('2026-10-20T00:00:00Z'),
   as_of:'2026-10-20T00:00:00Z',facts_as_of:'2026-10-20T00:01:00Z',
