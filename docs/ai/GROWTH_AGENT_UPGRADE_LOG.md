@@ -503,3 +503,12 @@ Branch: `codex/ai-comprehensive-upgrade`
 - CI [41182874411](https://github.com/dinnelthai/logearn-growth/actions/runs/41182874411) passed AI Contract, AI Frontend and AI Integration.
 - Contract groups: 177 tests (176 pass, 0 fail, 1 skipped), plus 26/26, 16/16, 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112.
 - No database migration, deployment, live data collection, paid model call or external write.
+
+
+## 2026-10-31 — Discriminating-query validation
+
+- New strict analysis-contract-v2 suggestions must use genuinely distinct root-cause hypotheses.
+- Each hypothesis's discriminating query must use a capability in the current task, and its input must match that capability's input schema. The query source must match the task source and its date range must remain inside the task's authorized period. `query_metrics` metric IDs are validated against the formal metric registry.
+- Validation is strict-v2 only; archived contexts without the v2 marker preserve legacy recovery compatibility.
+- CI [41183309528](https://github.com/dinnelthai/logearn-growth/actions/runs/41183309528) passed all three AI jobs. Contract groups: 177 (176 pass, 0 fail, 1 skipped), plus 26/26, 19/19, 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112.
+- The "cheapest query" ranking remains intentionally open because trusted per-tool scan/latency cost metadata does not exist; do not invent estimates or claim cheapest. No paid call, migration, deployment, live-source collection or external write.
