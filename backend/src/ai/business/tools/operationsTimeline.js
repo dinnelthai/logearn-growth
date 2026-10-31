@@ -50,14 +50,48 @@ function createOperationsTimeline({
    const aggregate=(sql,...args)=>ids.length?db.prepare(sql.replaceAll('__IDS__',placeholders)).all(...args,...ids):[];
    const members=aggregate('SELECT activity_id,COUNT(*) AS count FROM growth_activity_members WHERE activity_id IN (__IDS__) GROUP BY activity_id',...[]);
    const planned=aggregate('SELECT activity_id,COUNT(*) AS count FROM growth_activity_planned_members WHERE activity_id IN (__IDS__) GROUP BY activity_id',...[]);
-   const assignments=aggregate('SELECT x.activity_id,x.group_key,COUNT(*) AS count FROM growth_activity_assignments x JOIN growth_activities a ON a.id=x.activity_id WHERE a.owner_id=? AND x.assigned_at>=? AND x.assigned_at<? AND x.activity_id IN (__IDS__) GROUP BY x.activity_id,x.group_key',ownerId,start,end);
-   const deliveries=aggregate('SELECT e.activity_id,e.kind,e.channel,COUNT(*) AS count,MIN(e.occurred_at) AS first_at,MAX(e.occurred_at) AS last_at FROM growth_activity_delivery_evidence e JOIN growth_activities a ON a.id=e.activity_id WHERE a.owner_id=? AND e.occurred_at>=? AND e.occurred_at<? AND e.activity_id IN (__IDS__) GROUP BY e.activity_id,e.kind,e.channel',ownerId,start,end);
+   // Reuse the activity evidence service's semantics without projecting member rows:
+   // delivery state is the latest sent/delivered/not_delivered event as of period end;
+   // cross-exposure is an independent flag and must not overwrite delivery state.
+   const assignments=aggregate(`WITH delivery_ranked AS (
+    SELECT e.activity_id,e.user_id,e.kind,e.occurred_at,
+     ROW_NUMBER() OVER(PARTITION BY e.activity_id,e.user_id
+      ORDER BY e.occurred_at DESC,e.recorded_at DESC,e.rowid DESC) AS rn
+    FROM growth_activity_delivery_evidence e
+    JOIN growth_activities g ON g.id=e.activity_id
+    WHERE g.owner_id=? AND e.kind IN ('sent','delivered','not_delivered') AND e.occurred_at<?
+   ), cross_exposed AS (
+    SELECT e.activity_id,e.user_id FROM growth_activity_delivery_evidence e
+    JOIN growth_activities g ON g.id=e.activity_id
+    WHERE g.owner_id=? AND e.kind='cross_exposed' AND e.occurred_at<?
+    GROUP BY e.activity_id,e.user_id
+   )
+   SELECT x.activity_id,x.group_key,COUNT(*) AS assigned,
+    SUM(CASE WHEN d.kind='delivered' THEN 1 ELSE 0 END) AS delivered,
+    SUM(CASE WHEN d.kind='sent' THEN 1 ELSE 0 END) AS sent_unconfirmed,
+    SUM(CASE WHEN d.kind='not_delivered' THEN 1 ELSE 0 END) AS not_delivered,
+    SUM(CASE WHEN d.kind IS NULL THEN 1 ELSE 0 END) AS delivery_unknown,
+    SUM(CASE WHEN c.user_id IS NOT NULL THEN 1 ELSE 0 END) AS cross_exposed,
+    SUM(CASE WHEN x.assigned_at>x.activity_start_at THEN 1 ELSE 0 END) AS retrospective_records,
+    MIN(d.occurred_at) AS first_delivery_at,MAX(d.occurred_at) AS last_delivery_at
+   FROM growth_activity_assignments x
+   JOIN growth_activities a ON a.id=x.activity_id AND a.owner_id=?
+   LEFT JOIN delivery_ranked d ON d.activity_id=x.activity_id AND d.user_id=x.user_id AND d.rn=1
+   LEFT JOIN cross_exposed c ON c.activity_id=x.activity_id AND c.user_id=x.user_id
+   WHERE a.owner_id=? AND x.assigned_at<?
+    AND x.activity_id IN (__IDS__)
+   GROUP BY x.activity_id,x.group_key`,ownerId,end,ownerId,end,ownerId,end);
    const scheduleChanges=aggregate('SELECT h.activity_id,h.action,COUNT(*) AS count,MIN(h.created_at) AS first_at,MAX(h.created_at) AS last_at FROM growth_activity_schedule_history h JOIN growth_activities a ON a.id=h.activity_id WHERE a.owner_id=? AND h.created_at>=? AND h.created_at<? AND h.activity_id IN (__IDS__) GROUP BY h.activity_id,h.action',ownerId,start,end);
    const group=(values,key)=>{const map=new Map();for(const item of values){if(!map.has(item.activity_id))map.set(item.activity_id,[]);map.get(item.activity_id).push(key(item))}return map};
    const memberCounts=new Map(members.map(x=>[x.activity_id,x.count]));
    const plannedCounts=new Map(planned.map(x=>[x.activity_id,x.count]));
-   const assignmentByActivity=group(assignments,x=>({group:text(x.group_key,20),count:x.count}));
-   const deliveryByActivity=group(deliveries,x=>({kind:text(x.kind,24),channel:text(x.channel,32),count:x.count,firstAt:x.first_at,lastAt:x.last_at}));
+   const assignmentByActivity=group(assignments,x=>({
+    group:text(x.group_key,20),assigned:x.assigned,
+    delivered:x.delivered,sentUnconfirmed:x.sent_unconfirmed,
+    notDelivered:x.not_delivered,deliveryUnknown:x.delivery_unknown,
+    crossExposed:x.cross_exposed,retrospectiveRecords:x.retrospective_records,
+    firstDeliveryAt:x.first_delivery_at,lastDeliveryAt:x.last_delivery_at
+   }));
    const scheduleByActivity=group(scheduleChanges,x=>({action:text(x.action,32),count:x.count,firstAt:x.first_at,lastAt:x.last_at}));
    for(const r of rows)humanOperations.push({
     id:'activity:'+r.id,kind:'growth_activity',layer:'human_operation',source:'growth_activities',
