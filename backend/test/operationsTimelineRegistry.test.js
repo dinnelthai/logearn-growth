@@ -9,9 +9,10 @@ function createRegistry(){
   period:{start,end,timezone:'Asia/Bangkok',endExclusive:true},asOf:now,
   humanOperations:[
    {id:'activity:activity-uuid',kind:'growth_activity',layer:'human_operation',source:'growth_activities',title:'Campaign',status:'active',memberCount:5,assignments:[{group:'treatment',assigned:3,delivered:2,delivery_unknown:1}],outcome:{status:'settled',summary:{completed:2,eligible:5,conversion_rate:.4}}},
-   {id:'kol-collaboration:collab-uuid',kind:'kol_collaboration',layer:'human_operation',source:'crm_collaborations',title:'KOL campaign',linkedActivityIds:['activity-uuid']}
+   {id:'kol-collaboration:collab-uuid',kolRef:'kol:kol-1',kind:'kol_collaboration',layer:'human_operation',source:'crm_collaborations',title:'KOL campaign',linkedActivityIds:['activity-uuid']}
   ],
-  channelObservations:[{kind:'x_official_account',layer:'channel_observation',source:'twitterapi.io',title:'X account',metrics:{impressions:10}}],
+  channelObservations:[{kind:'x_official_account',layer:'channel_observation',source:'twitterapi.io',title:'X account',metrics:{impressions:10}},
+   {kind:'kol_period_observation',layer:'channel_observation',source:'kol-crm-observed-behavior',title:'KOL period',relationshipType:'crm-kol-id-match',kolSummaries:[{kolRef:'kol:kol-1',label:'KOL One',stage:'active',metrics:{observedUsers:5,analysisEvents:10},linkedCollaborationRefs:['kol-collaboration:collab-uuid']}]}],
   aiActions:[{kind:'ai_report_action',layer:'ai_suggestion_or_review',source:'business_analysis_actions',title:'Suggested test',status:'pending'}],
   coverage:{growthActivities:{status:'available',count:1},xOfficial:{status:'available',count:1}},
   warnings:['AI suggestions are not completed human operations']
@@ -46,13 +47,17 @@ test('legacy tool discovery and execution expose the owner-scoped operating time
  assert.match(value.humanOperations[1].recordRef,/^record:[a-f0-9]{16}$/)
  assert.deepEqual(value.humanOperations[1].relatedRecordRefs,[value.humanOperations[0].recordRef])
  assert.equal(value.humanOperations[1].relationshipType,'explicit-crm-activity-link')
+ assert.equal(value.humanOperations[1].kolRef,value.channelObservations[1].kolSummaries[0].kolRef)
+ assert.equal(value.channelObservations[1].relationshipType,'crm-kol-id-match')
+ assert.equal(value.channelObservations[1].kolSummaries[0].metrics.analysisEvents,10)
+ assert.equal(value.channelObservations[1].kolSummaries[0].linkedCollaborationRefs[0],value.humanOperations[1].recordRef)
  assert.equal(JSON.stringify(value).includes('activity-uuid'),false)
  assert.equal(JSON.stringify(value).includes('collab-uuid'),false)
  assert.equal(value.channelObservations[0].metrics.impressions,10)
  assert.equal(value.aiActions[0].status,'pending')
  assert.equal(value.coverage.growthActivities.count,1)
  assert.equal(value.counts.human_operations_shown,2)
- assert.equal(value.counts.channel_observations_shown,1)
+ assert.equal(value.counts.channel_observations_shown,2)
  assert.equal(value.counts.ai_actions_shown,1)
  assert.equal(value.humanOperations[0].memberCount,5)
  assert.equal(value.humanOperations[0].assignments[0].assigned,3)
