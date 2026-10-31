@@ -152,7 +152,7 @@ function createOperationsTimeline({
       attribution:overview.attribution||'not-verified'}
     });
    }
-   coverage.xOfficial={status:overview.configured?'available':'not_configured',
+   coverage.xOfficial={status:count?'available':overview.configured?'empty':'not_configured',
     count,source:overview.source||'twitterapi.io',limit:'最多最近20条/账号；公开指标非转化归因'};
    return overview;
   });
