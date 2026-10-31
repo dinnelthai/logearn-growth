@@ -17,9 +17,15 @@ function fields(input,old={}){
 function tx(fn){db.exec('BEGIN');try{const value=fn();db.exec('COMMIT');return value}catch(e){db.exec('ROLLBACK');throw e}}
 const summary=t=>({title:t.title,assignee:t.assignee,priority:t.priority,status:t.status,next_step:t.next_step,due_at:t.due_at})
 async function syncLinkedAISuggestions(task,owner,resultNote='',deps={}){
- const workspace=deps.workspace||require('../ai/growth/workspace/store').workspaceStore(db);
- const records=deps.records||require('../db/aiRecords');
- const ids=workspace.suggestionIdsForOperationTask(owner,task.id);
+ let workspace,records,ids;
+ try{
+  workspace=deps.workspace||require('../ai/growth/workspace/store').workspaceStore(db);
+  records=deps.records||require('../db/aiRecords');
+  ids=workspace.suggestionIdsForOperationTask(owner,task.id);
+ }catch(error){
+  return {status:'partial',linked:0,updated:0,
+   items:[{status:'link-lookup-failed',error:String(error.message||error).slice(0,240)}]};
+ }
  if(!ids.length)return {status:'not-linked',linked:0,updated:0,items:[]};
  const items=[];
  for(const id of ids){
