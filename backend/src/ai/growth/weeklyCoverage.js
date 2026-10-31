@@ -22,6 +22,7 @@ const DEFINITIONS=Object.freeze([
 // arbitrary rows, events, identities or raw payloads just to find a number.
 const ALLOWED_NUMBERS=new Set([
  'active_users','new_users','returning_users','registered_users','registration_activation_rate','registered_trade_conversion_rate',
+ 'chip_analysis_users','holder_view_users','strategy_started_users','signal_view_users','repeat_analysis_users',
  'users','visits','eligible','converted','returned','activated','registered',
  'success','successes','started','pending','failed','cancelled','unknown',
  'rate','conversion_rate','success_rate','activation_rate','retention_rate',
@@ -48,7 +49,7 @@ const ALLOWED_NUMBERS=new Set([
  'assigned','delivered','sent_unconfirmed','not_delivered','delivery_unknown','cross_exposed','retrospective_records'
 ]);
 const AGGREGATE_OBJECTS=new Set([
- 'metrics','summary','totals','global','conversion','product_chain',
+ 'metrics','summary','totals','global','conversion','product_chain','engagement',
  'first_value','referral','window','trade','xOfficial','contentSignals',
  'counts','retention','growth','current','previous','funnel','attribution',
  'humanOperations','assignments','scheduleChanges','outcome','targetProgress','performance','sourceCoverage',
