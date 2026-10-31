@@ -347,3 +347,23 @@ Branch: `codex/ai-comprehensive-upgrade`
 
 - True query-cost ranking is not implemented because the current legacy tool descriptors do not expose comparable cost/latency metadata. Do not guess it. Add reviewed cost/latency classes to trusted tool descriptors before ranking by numeric query cost.
 - Root-cause hypothesis generation is now a validated output contract; verify quality against real, already-authorized analysis results before marking the full Decision Engine checklist complete.
+
+## 2026-10-31 — Action Engine and Learning Loop hardening
+
+Branch: `codex/ai-comprehensive-upgrade`
+
+### Implemented
+
+- Added a bounded structured execution brief to the existing suggestion action field (no schema migration): owner role, estimated effort, resources, dependencies, 1–5 steps, target, success criteria, suggested observation window and stop/rollback conditions.
+- Added validation and human-readable rendering so existing frontend action rendering and retrospective storage remain compatible.
+- Explicitly label the suggested observation window as guidance only; the existing review queue still waits for its maturity policy and data watermark. It is not falsely presented as a scheduled review.
+- Pass the existing owner-scoped action history into final analysis validation. Exact duplicate actions for the same primary metric and source scope are rejected; materially different actions remain eligible. This is deterministic exact-match protection, not semantic duplicate detection.
+- Learning strategy contract advanced to `evidence-first-strategy-v4`: includes validity start/end (30-day default), explicit goal/source scope, counter-evidence and rollback instructions.
+- Strategy storage reads only v4 policies. The planner ignores expired, future-dated or out-of-scope v4 strategies and returns to default investigation ordering.
+- Added regression tests for execution briefs, exact duplicate rejection, strategy validity/scope and counter-evidence.
+
+### Validation boundary
+
+- No database migration, production change, deployment, paid model call, paid collection or external action.
+- Existing operation-task workflow is cohort-bound to a cached segment/growth-insights job and a fixed registered-user audience. A generic Growth Agent recommendation cannot safely be converted into that task without an eligible audience snapshot; this bridge remains open rather than fabricating a cohort or creating a parallel task manager.
+- Review scheduling still uses its existing three-complete-business-day plus watermark gate; the new suggested observation window is descriptive and does not alter scheduler timing.
