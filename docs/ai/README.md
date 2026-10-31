@@ -105,6 +105,6 @@ Redis用于Bull异步队列；不需要Qdrant。`queue:dev`只启动API，不启
 3. [Growth Agent 2.0 Implementation Plan](./GROWTH_AGENT_2_0_IMPLEMENTATION_PLAN.md) — 分阶段范围和验收。
 4. [Growth Agent Upgrade Log](./GROWTH_AGENT_UPGRADE_LOG.md) — 已实现内容和真实验证记录。
 
-**当前代码状态：** Business Brain v1、模型上下文 v5 和 AI 运营报告自定义时间范围已加入指定分支。新建分析默认使用 v5；历史任务保留原有 v1-v4 协议。自定义报告支持 UTC+7 毫秒时间戳、1–31天、结束不含、前置等长周期比较及历史记录重新生成。CI 已在该分支启用；本轮 Node / frontend CI 尚在运行，不能据此宣称本地 Worker 或生产环境已完成真实模型验收。
+**当前代码状态：** Business Brain v1、模型上下文 v5 和 AI 运营报告自定义时间范围已加入指定分支。新建分析默认使用 v5；历史任务保留原有 v1-v4 协议。自定义报告支持 UTC+7 毫秒时间戳、1–31天、结束不含、前置等长周期比较及历史记录重新生成。该分支的 AI infrastructure CI 与 desktop UI regression CI 已通过；后端合同/集成、前端 429 项测试均无失败。产品到交易链查询已改为围绕成功分析窗口进行有界查询。CI 仍不等于本地 Worker、真实 Hologres 或付费模型链路验收。
 
 历史基础设施规划和早期 Phase 报告仅作历史背景，当前实现以代码、上述交接文档和最新测试结果为准。
