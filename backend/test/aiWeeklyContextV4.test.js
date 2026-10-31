@@ -19,6 +19,10 @@ function fixture(){
   value:m.id==='content-growth'?
    {contentSignals:{views:18000,posts:12,likes:144,replies:29},
     posts:[{text:'DO NOT SEND FULL X TWEET TEXT',userId:'private'}]}:
+   m.id==='operations-timeline'?
+    {counts:{human_operations_shown:4,channel_observations_shown:3,
+      ai_actions_shown:2,total_records_shown:9},
+     coverage:{growthActivities:{status:'available',count:12,limit:12,truncated:true}}}:
    {metrics:{clicks:10+i,impressions:110+i,ctr:.12},
     totals:{users:80+i,visits:300+i},rows:[{email:'private@example.test'}]},
   coverage:{status:'partial',periodMatched:true},
@@ -31,7 +35,12 @@ function fixture(){
   evidence:[...rows,...extra],
   weeklyCoverage:{version:'weekly-coverage-v1',
    modules:DEFINITIONS.map((x,i)=>({id:x.id,status:'collected',
-    evidenceIds:[extra[i].id],facts:[]}))},
+    evidenceIds:[extra[i].id],
+    reason:x.id==='operations-timeline'?'部分来源达到读取上限，结果为有界样本':'已取得只读统计',
+    facts:x.id==='operations-timeline'?[
+     {metric:'counts.human_operations_shown',value:4},
+     {metric:'counts.ai_actions_shown',value:2}
+    ]:[]}))},
   weeklySources:{seo:{status:'period-matched',periodMatched:true,
    evidenceIds:['module-seo-organic']}},
   capabilities:DEFINITIONS.map((x,i)=>({
@@ -48,13 +57,16 @@ function fixture(){
   weeklyOperations:{goalsCount:4,executedActionCount:2}
  };
 }
-test('v4 makes observed KPIs and major decline first; all 12 modules remain visible',()=>{
+test('v4 makes observed KPIs and major decline first; all 13 modules remain visible',()=>{
  const view=modelContext(fixture(),{transportVersion:'v4'});
  assert.equal(view.transportVersion,'aggregated-business-v4');
  assert.equal(view.coreMetrics.find(m=>m.id==='new_users').changePct,-55);
  assert.equal(view.priorityIssues[0].metricId,'new_users');
- assert.equal(view.weeklyCoverage.length,12);
+ assert.equal(view.weeklyCoverage.length,13);
  assert.equal(view.weeklyCoverage.find(x=>x.id==='seo-organic').status,'collected');
+ const operations=view.weeklyCoverage.find(x=>x.id==='operations-timeline');
+ assert.ok(operations.stats.some(x=>x.metric==='counts.human_operations_shown'&&x.value===4));
+ assert.match(operations.note,/有界样本/);
  assert.ok(view.evidence.some(e=>e.id==='module-seo-organic'));
  assert.ok(view.evidence.length>=12);
  assert.equal(view.capabilities.length,5);
