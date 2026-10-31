@@ -86,6 +86,11 @@ test('v5 surfaces positive growth signals in business-goal order without changin
  assert.equal(view.growthOpportunities[0].goalRank,3);
  assert.equal(view.growthOpportunities[0].classification,'observed-increase;replicability-unverified');
  assert.deepEqual(view.growthOpportunities[0].evidenceIds,['new_users-current','new_users-previous']);
+ assert.equal(view.growthOpportunities[0].affectedPopulationDelta,10);
+ assert.equal(view.investigationFocus.metricId,'new_users');
+ assert.equal(view.investigationFocus.direction,'increase');
+ assert.ok(view.investigationFocus.candidateTools.includes('get_channels'));
+ assert.match(view.investigationFocus.instruction,/最少工具/);
 });
 test('a decline in first analysis promotes channel, funnel and login investigations',()=>{
  const view=modelContext(fixture(),{transportVersion:'v4'});
