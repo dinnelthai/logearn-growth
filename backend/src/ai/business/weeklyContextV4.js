@@ -96,7 +96,7 @@ function factsFromValue(value,max=4){
  });
  return matches.slice(0,max);
 }
-function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,reviewRevision=0,reserveBytes=0}){
+function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,reviewRevision=0,reserveBytes=0,includeDecisionSignals=false}){
  if(raw?.weeklyCoverage?.version!=='weekly-coverage-v1')
   throw Error('周报 Context v4 缺少可信的服务端模块覆盖记录');
  if(!Number.isSafeInteger(reserveBytes)||reserveBytes<0||reserveBytes>12000)
@@ -143,12 +143,36 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
    score:changePct===null?0:Math.abs(cur-prev)*weight,
    coverage:refs.length===2?'period-evidence':'snapshot-only'};
  }).filter(Boolean);
+ const goalFocus=includeDecisionSignals?
+  require('./businessBrain').buildBusinessBrainContext({
+   focusGoal:raw.business?.focusGoal||raw.focusGoal||'activation'
+  }).focus:null;
+ const goalRank=metricId=>{
+  const index=goalFocus?.priorityMetrics?.indexOf(metricId)??-1;
+  return index<0?100:index;
+ };
+ const signalOrder=(a,b)=>{
+  if(!includeDecisionSignals)return reviewRevision>=2?0:b.score-a.score;
+  return goalRank(a.id)-goalRank(b.id)||
+   (a.coverage==='period-evidence'?0:1)-(b.coverage==='period-evidence'?0:1)||
+   Math.abs(b.changePct)-Math.abs(a.changePct);
+ };
  const issues=core.filter(x=>x.changePct!==null&&x.changePct<0)
-  .sort((a,b)=>reviewRevision>=2?0:b.score-a.score).slice(0,4)
+  .sort(signalOrder).slice(0,4)
   .map(({id,label,current,previous,changePct,evidenceIds,coverage})=>
    ({metricId:id,label,current,previous,changePct,evidenceIds,coverage,
+    ...(includeDecisionSignals?{goalRank:goalRank(id)+1}:{}),
     classification:coverage==='period-evidence'?'observed-decline;cause-unverified':
      'snapshot-decline;period-evidence-incomplete'}));
+ const growthOpportunities=includeDecisionSignals?core
+  .filter(x=>x.changePct!==null&&x.changePct>0)
+  .sort(signalOrder).slice(0,4)
+  .map(({id,label,current,previous,changePct,evidenceIds,coverage})=>({
+   metricId:id,label,current,previous,changePct,evidenceIds,coverage,
+   goalRank:goalRank(id)+1,
+   classification:coverage==='period-evidence'?'observed-increase;replicability-unverified':
+    'snapshot-increase;period-evidence-incomplete'
+  })):null;
  const favored=new Set([
   ...core.flatMap(x=>x.evidenceIds),
   ...summaries.filter(m=>m.status==='collected'||m.status==='analyzed')
@@ -216,6 +240,7 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
    historyComplete:raw.snapshot?.historyComplete===true},
   coreMetrics:core.map(({score,...rest})=>rest),
   priorityIssues:issues,
+  ...(growthOpportunities?{growthOpportunities}:{}),
   investigationFocus,
   weeklyCoverage:summaries,
   evidence,
