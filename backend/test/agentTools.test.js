@@ -138,7 +138,7 @@ test('query_metrics enforces source-only journey grouping and archives allowlist
     bySource:[{source:'x',users:2,activation:{eligible:2,activated:2,pending:0,rate:1},
      engagement:{eligible:2,chip_analysis_users:2,holder_view_users:1}},
      {source:'unknown',users:1,activation:{eligible:1,activated:0,pending:0,rate:0},
-      engagement:{eligible:1,chip_analysis_users:0,holder_view_users:0}}]}}},
+      engagement:{eligible:1,chip_analysis_users:0,holder_view_users:0}}]}},
    coverage:{status:'partial'},warnings:['来源仅来自已观测关联']}],coverage:{}};
  }});
  try{
