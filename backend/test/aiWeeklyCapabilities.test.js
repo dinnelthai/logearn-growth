@@ -28,6 +28,7 @@ test('weekly activation report explicitly authorizes discovered channel evidence
  assert.ok(ids.has('get_content_growth'));
  assert.ok(ids.has('get_follower_quality'));
  assert.ok(ids.has('get_operations_timeline'));
+ assert.ok(ids.has('get_operations_timeline'));
 });
 test('ordinary activation tasks do not inherit weekly specialty privileges',()=>{
  const plan=planGrowthInvestigation({goal:'activation',report,maxSkills:5,history:[],
@@ -35,6 +36,7 @@ test('ordinary activation tasks do not inherit weekly specialty privileges',()=>
  const ids=new Set(modelCapabilities(registry,{ownerId:'o',scope:{source:'all'},period:report.period},plan).map(x=>x.id));
  assert.equal(ids.has('get_content_growth'),false);
  assert.equal(ids.has('get_follower_quality'),false);
+ assert.ok(ids.has('get_operations_timeline'));
  assert.equal(ids.has('get_operations_timeline'),false);
 });
 test('non-all-source scopes cannot acquire channel specialty tools',()=>{
@@ -44,6 +46,7 @@ test('non-all-source scopes cannot acquire channel specialty tools',()=>{
  const ids=new Set(plan.steps.flatMap(s=>s.tools));
  assert.equal(ids.has('get_content_growth'),false);
  assert.equal(ids.has('get_follower_quality'),false);
+ assert.equal(ids.has('get_operations_timeline'),false);
 });
 test('weekly opt-in rejects invalid authorization flags',()=>{
  assert.throws(()=>planGrowthInvestigation({goal:'activation',report,maxSkills:5,
