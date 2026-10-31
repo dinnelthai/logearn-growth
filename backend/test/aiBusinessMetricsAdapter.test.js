@@ -114,7 +114,7 @@ test('registered trade conversion stays unknown when trade facts are unavailable
  try{
   evidence.fetchGrowthInsights=async()=>({cohorts:{registration:{available:true,scope:'all',trade:{
    available:false,eligible:null,traders:null,conversion_rate:null,pending:1,not_engaged:2,unmatched:null
-  }}})
+  }}}})
   const result=await metrics({start:100,end:200,source:'all'},{snapshot_id:'s'},['registered_trade_conversion_rate'],{})
   assert.equal(result.metrics[0].value,null)
   assert.equal(result.metrics[0].denominator,null)
