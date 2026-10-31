@@ -9,10 +9,10 @@ const baseline={id:'base-1',metricId:'active_users',value:71,
  period,coverage:{status:'partial'}};
 const context=()=>({period,evidence:[baseline],business:{scope:{source:'all'}}});
 const toolIds=DEFINITIONS.map(x=>x.tool);
-test('all twelve modules are represented, missing sources are never marked analyzed',()=>{
+test('all thirteen modules are represented, missing sources are never marked analyzed',()=>{
  const result=initialCoverage(context(),{allowedTools:toolIds,availableSpecialties:[]});
- assert.equal(result.modules.length,12);
- assert.equal(new Set(result.modules.map(x=>x.id)).size,12);
+ assert.equal(result.modules.length,13);
+ assert.equal(new Set(result.modules.map(x=>x.id)).size,13);
  assert.equal(result.modules.find(x=>x.id==='growth-overview').status,'collected');
  assert.equal(result.modules.find(x=>x.id==='content-growth').status,'not-connected');
  assert.equal(result.modules.find(x=>x.id==='kol-impact').status,'not-investigated');
@@ -37,15 +37,33 @@ test('bounded only-read once-per-module collection keeps facts and source IDs',a
  assert.equal(calls.length,8);
  assert.equal(new Set(calls).size,8);
  assert.equal(outcome.queries,8);
- assert.equal(outcome.modules.length,12);
+ assert.equal(outcome.modules.length,13);
  assert.equal(outcome.modules.find(x=>x.id==='seo-organic').status,'collected');
  assert.equal(outcome.modules.find(x=>x.id==='seo-organic').facts[0].value,14);
  assert.equal(outcome.modules.find(x=>x.id==='retention').status,'insufficient');
  assert.ok(ctx.evidence.some(x=>x.id==='seo-1'));
  assert.ok(outcome.modules.some(x=>x.status==='not-investigated'));
  const compact=modelCoverage(outcome);
- assert.equal(compact.length,12);
+ assert.equal(compact.length,13);
  assert.equal(JSON.stringify(compact).includes('impressions'),false);
+});
+test('operating timeline is a collected weekly module with separate aggregate layer counts',async()=>{
+ const ctx=context();
+ const out=await collectWeeklyCoverage({context:ctx,allowedTools:toolIds,maxQueries:2,
+  investigate:async({tool})=>tool==='get_seo_performance'?
+   {status:'ok',evidence:[{id:'seo-for-timeline',metricId:'seo_search',
+    value:{metrics:{clicks:8}},coverage:{periodMatched:true}}]}:
+   {status:'ok',evidence:[{id:'operations-1',metricId:'activities',
+    value:{counts:{human_operations:2,channel_observations:1,ai_actions:3,total_records:6},
+     humanOperations:[{title:'Campaign'}],channelObservations:[],aiActions:[]},
+    coverage:{status:'available'}}]}
+ });
+ const row=out.modules.find(x=>x.id==='operations-timeline');
+ assert.equal(row.status,'collected');
+ assert.ok(row.evidenceIds.includes('operations-1'));
+ assert.ok(row.facts.some(x=>x.metric==='counts.human_operations'&&x.value===2));
+ assert.ok(row.facts.some(x=>x.metric==='counts.ai_actions'&&x.value===3));
+ assert.equal(out.queries,2);
 });
 test('unmatched SEO source stays insufficient, not falsely counted as weekly analyzed',async()=>{
  const ctx=context();
