@@ -315,6 +315,7 @@ function createOperationsTimeline({
      source:'kol-crm-observed-behavior',title:'KOL 观察周期',
      startAt:Number(record.start_at),endAt:Number(record.end_at),
      observedAt:Date.parse(record.source_watermark)||record.captured_at||null,
+     capturedAt:Number.isSafeInteger(record.captured_at)?record.captured_at:null,
      metrics:{profiles:rows.length,observedUsers,analysisEvents},
      kolSummaries:linkedKols.map(row=>({kolRef:'kol:'+String(row.id),label:text(row.label,80),
       stage:text(row.stage,24),metrics:{observedUsers:finite(row.observedUsers),
