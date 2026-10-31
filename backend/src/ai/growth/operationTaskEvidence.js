@@ -81,8 +81,8 @@ async function loadLinkedTaskEvidence({db,ownerId,suggestionId,executedAt,expect
  if(!before||!after)return {status:'unavailable',reason:'cohort-metric-projection-incomplete',taskId:task.id,periods};
  const baseline=before.total,effect=after.total;
  return {
-  status:'available',task:{id:task.id,title:task.title,source:source.source,
-   fixedAudienceCount:ids.length,completedAt:task.completed_at},
+  status:'available',task:{id:task.id,title:task.title,assignee:task.assignee||'',source:source.source,
+   fixedAudienceCount:ids.length,createdAt:task.created_at,completedAt:task.completed_at},
   periods:{baselineStart:periods.baselineStart,baselineEnd:periods.baselineEnd,
    effectStart:periods.effectStart,effectEnd:periods.effectEnd,days:periods.days,
    timezone:'Asia/Bangkok'},
