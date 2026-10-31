@@ -475,7 +475,8 @@ function modelContext(raw,{transportVersion='v1',reviewRevision=0,reserveBytes=0
  if(!['v1','v2','v3','v4','v5'].includes(transportVersion))throw Error('不支持的模型上下文版本');
  if(!Number.isSafeInteger(reserveBytes)||reserveBytes<0||reserveBytes>6000)throw Error('上下文预留预算无效');
  if(transportVersion==='v5'){
-  const reserve=reserveBytes||4500;
+  const memoryRows=Array.isArray(raw.memory)?Math.min(3,raw.memory.length):0;
+  const reserve=reserveBytes||7000+memoryRows*900;
   const base=raw.weeklyCoverage?.version==='weekly-coverage-v1'?
    require('./weeklyContextV4').buildWeeklyContextV4(raw,{
     modelEvidence,compactCapabilities,safeText,reviewRevision,reserveBytes:reserve
