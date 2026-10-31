@@ -58,3 +58,40 @@ test('full scan reports modules omitted by budget rather than claiming completen
  assert.ok(plan.missing.some(x=>x.moduleId==='growth.seo'&&x.reason==='budget_exceeded'));
  assert.equal((await runPlan(r,ctx,plan)).status,'partial');
 });
+
+test('measured owner-local query history selects lower observed latency only among comparable authorized alternatives',()=>{
+ const registry=fake();
+ const original=registry.listBusinessModules;
+ registry.listBusinessModules=ctx=>original(ctx).map(m=>m.moduleId==='growth.activation'?
+  {...m,capabilities:[...m.capabilities,{id:'get_paths',version:'1',cost:'none'}]}:m);
+ registry.observedToolTimings=ctx=>{
+  assert.equal(ctx.ownerId,'alice');
+  return {
+   get_funnel:{sampleCount:4,medianMs:70,
+    basis:'owner-archived-successful-tool-wall-time',monetaryCostKnown:false},
+   get_paths:{sampleCount:5,medianMs:15,
+    basis:'owner-archived-successful-tool-wall-time',monetaryCostKnown:false},
+   get_channels:{sampleCount:3,medianMs:25,
+    basis:'owner-archived-successful-tool-wall-time',monetaryCostKnown:false}
+  };
+ };
+ const plan=makePlan(registry,ctx,{mode:'focused',goal:'activation',
+  question:'Which step constrains activation?',moduleIds:['growth.activation','growth.acquisition']});
+ assert.equal(plan.steps[0].capabilityId,'get_paths');
+ assert.equal(plan.steps[0].observedLatency.medianMs,15);
+ assert.equal(plan.queryEfficiency.status,'observed-latency-comparable');
+ assert.equal(plan.queryEfficiency.bestObservedLatencyTool,'get_paths');
+ assert.equal(plan.queryEfficiency.monetaryCost,'unknown');
+ assert.equal(plan.limits.paidCalls,0);
+ // Never rank an unsampled alternative as faster or cheaper than observed tools.
+ registry.observedToolTimings=()=>({
+  get_funnel:{sampleCount:4,medianMs:70,
+   basis:'owner-archived-successful-tool-wall-time',monetaryCostKnown:false}
+ });
+ const unknown=makePlan(registry,ctx,{mode:'focused',goal:'activation',
+  question:'Next step?',moduleIds:['growth.activation','growth.acquisition']});
+ assert.equal(unknown.steps[0].capabilityId,'get_funnel',
+  'partially missing measurements preserve reviewed capability order');
+ assert.equal(unknown.queryEfficiency.bestObservedLatencyTool,null);
+ assert.equal(unknown.queryEfficiency.status,'insufficient-observed-cost-data');
+});
