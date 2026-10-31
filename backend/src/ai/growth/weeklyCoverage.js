@@ -241,6 +241,39 @@ function initialCoverage(context,{allowedTools=[],availableSpecialties=[]}={}){
   return packModule(def,{status:'not-investigated',reason:'本次尚未执行该模块的只读调查'});
  })};
 }
+// When there is no trustworthy decision signal, keep the broad weekly
+// reporting order for legacy parity. Other goals may move missing modules
+// ahead of a routine SEO read while preserving the 10-query budget.
+function rankWeeklyInvestigations(context){
+ const fallback=[
+  'seo-organic','operations-timeline','channel-growth','activation-funnel',
+  'retention','trade-conversion','revenue','kol-impact',
+  'content-growth','follower-quality','referral-and-invite','login-conversion'
+ ];
+ const goal=context?.business?.focusGoal||context?.focusGoal||'activation';
+ const preferred={
+  retention:['retention','operations-timeline','channel-growth','activation-funnel'],
+  conversion:['trade-conversion','activation-funnel','login-conversion','operations-timeline'],
+  revenue:['revenue','trade-conversion','kol-impact','operations-timeline'],
+  'content-growth':['content-growth','channel-growth','seo-organic','operations-timeline']
+ }[goal]||[];
+ const questionModules={
+  active_users:['activation-funnel','channel-growth'],
+  new_users:['channel-growth','activation-funnel','login-conversion'],
+  returning_users:['retention','activation-funnel'],
+  activation_rate:['activation-funnel','login-conversion'],
+  d7:['retention'],
+  registered_trade_conversion_rate:['trade-conversion'],
+  registration_activation_rate:['login-conversion','activation-funnel'],
+  registered_users:['channel-growth','login-conversion']
+ };
+ const questions=context?.growthPlan?.questionRanking?.questions;
+ const verified=Array.isArray(questions)?questions.filter(q=>
+  q?.goalRelevant===true&&['P0','P1'].includes(q.priority)&&
+  ['high','medium'].includes(q.evidenceConfidence)).slice(0,3):[];
+ const selected=verified.flatMap(q=>questionModules[q.metric]||[]);
+ return [...new Set([...selected,...preferred,...fallback])];
+}
 // Leave model investigations available; one bounded read per module, no queries
 // for the already-fetched business overview. The worker owns the existing
 // authenticated registry session, so scopes and query limits are unchanged.
@@ -252,11 +285,9 @@ async function collectWeeklyCoverage({context,investigate,allowedTools,
  const byId=new Map(DEFINITIONS.map(def=>[def.id,def]));
  let used=0;
  // High-signal modules first; the remainder honestly stays not-investigated.
- const scheduledOrder=[
-  'seo-organic','operations-timeline','channel-growth','activation-funnel',
-  'retention','trade-conversion','revenue','kol-impact',
-  'content-growth','follower-quality','referral-and-invite','login-conversion'
- ];
+ // Adjust the bounded investigation order to the real decision goal and
+ // verified question ranking. No rank grants a permission or extra query.
+ const scheduledOrder=rankWeeklyInvestigations(context);
  const byModuleId=new Map(manifest.modules.map(row=>[row.id,row]));
  const scheduled=scheduledOrder.map(id=>byModuleId.get(id)).filter(Boolean);
  // Owner-owned X specialists are ordered before optional referral/login
@@ -296,7 +327,7 @@ async function collectWeeklyCoverage({context,investigate,allowedTools,
  }
  return {version:VERSION,modules:manifest.modules,queries:used};
 }
-function finalizeWeeklyCoverage(raw,analysis,{additionalEvidence=[]}={}){
+function finalizeWeeklyCoverage(raw,analysis,{additionalEvidence=[],requireStructuredClaims=false}={}){
  // Incorporate later AI-requested tool results without executing them again.
  // The tool journal remains the source of truth for whether a request ran.
  const updates=new Map();
@@ -347,10 +378,18 @@ function finalizeWeeklyCoverage(raw,analysis,{additionalEvidence=[]}={}){
    return !/[0-9.]/.test(before)&&!/[0-9.]/.test(after);
   };
   const matchedClaim=row.status==='collected'?claims.find(claim=>
-   !looksLikeMissing(claim.text)&&row.facts.some(fact=>
-    (claim.evidenceIds.includes(fact.evidenceId)||
-      (!fact.evidenceId&&claim.evidenceIds.some(id=>row.evidenceIds.includes(id))))&&
-    quotesObservedNumber(claim.text,fact.value))):null;
+   !looksLikeMissing(claim.text)&&row.facts.some(fact=>{
+    if(!claim.evidenceIds.includes(fact.evidenceId)||
+      !quotesObservedNumber(claim.text,fact.value))return false;
+    if(!requireStructuredClaims)return true; // archived v4 reporting semantics
+    // v5 requires a model-declared, independently validated exact path
+    // and numeric value. Quoting an arbitrary number is not evidence.
+    return Array.isArray(claim.values)&&claim.values.some(ref=>
+     ref?.evidenceId===fact.evidenceId&&Object.is(ref.value,fact.value)&&
+     (ref.path==='stats.'+fact.metric||
+      ref.path==='value.'+fact.metric||
+      (ref.path==='value'&&fact.metric===DEFINITIONS.find(x=>x.id===row.id)?.metric)));
+   })):null;
   if(matchedClaim){
    row.status='analyzed';
    row.reason='已引用本模块可核对的数值事实与证据';
@@ -374,4 +413,4 @@ function modelCoverage(raw){
   reason:cleanText(x.reason,90)}));
 }
 module.exports={VERSION,DEFINITIONS,initialCoverage,collectWeeklyCoverage,
- finalizeWeeklyCoverage,modelCoverage,factsFromEvidence};
+ finalizeWeeklyCoverage,modelCoverage,factsFromEvidence,rankWeeklyInvestigations};

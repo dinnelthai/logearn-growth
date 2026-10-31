@@ -361,3 +361,31 @@ test('retention projection keeps only complete, mature all-cohort D1/D7 statisti
  assert.equal(immature.retention.available,false);
  assert.deepEqual(immature.retention.days,[]);
 });
+
+test('v5 requires exact structured evidence field and value, not merely a quoted number',()=>{
+ const base=initialCoverage(context(),{allowedTools:toolIds});
+ const later=[{query:{tool:'get_channels'},result:{status:'ok',evidence:[
+  {id:'channel-proof',metricId:'channels',value:{summary:{users:12,visits:25}}}
+ ]}}];
+ const text='本期渠道用户12人';
+ const claim=(path,value)=>({id:'c1',kind:'fact',text,evidenceIds:['channel-proof'],
+  values:[{evidenceId:'channel-proof',path,value}]});
+ const check=claims=>finalizeWeeklyCoverage(base,{claims},{additionalEvidence:later,
+  requireStructuredClaims:true}).modules.find(x=>x.id==='channel-growth').status;
+ assert.equal(check([{id:'c1',kind:'fact',text,evidenceIds:['channel-proof']}]),'collected');
+ assert.equal(check([claim('stats.summary.visits',12)]),'collected');
+ assert.equal(check([claim('stats.summary.users',25)]),'collected');
+ assert.equal(check([claim('stats.summary.users',12)]),'analyzed');
+});
+test('weekly prefetch prioritizes reliable questions and goal-specific modules',()=>{
+ const {rankWeeklyInvestigations}=require('../src/ai/growth/weeklyCoverage');
+ const ctx=context();
+ assert.equal(rankWeeklyInvestigations(ctx)[0],'seo-organic');
+ ctx.business.focusGoal='retention';
+ assert.equal(rankWeeklyInvestigations(ctx)[0],'retention');
+ ctx.growthPlan={questionRanking:{questions:[{metric:'registered_trade_conversion_rate',
+  priority:'P0',goalRelevant:true,evidenceConfidence:'high'}]}};
+ assert.equal(rankWeeklyInvestigations(ctx)[0],'trade-conversion');
+ ctx.growthPlan.questionRanking.questions[0].evidenceConfidence='unknown';
+ assert.equal(rankWeeklyInvestigations(ctx)[0],'retention');
+});

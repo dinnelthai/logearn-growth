@@ -22,7 +22,8 @@ async function persistValidatedResult({job,analysisId,ownerId,token,compact,resu
       growthSkills:compact.growthPlan?.steps?.map(step=>({id:step.skillId,version:step.skillVersion}))||[],
       ...(compact.weeklySources?{weeklySources:compact.weeklySources}:{}),
       ...(compact.weeklyCoverage?{weeklyCoverage:weeklyCoverage.finalizeWeeklyCoverage(
-       compact.weeklyCoverage,analysis,{additionalEvidence:result.evidence})}:{}),
+       compact.weeklyCoverage,analysis,{additionalEvidence:result.evidence,
+        requireStructuredClaims:compact.weeklyReportContractVersion==='weekly-report-v2'})}:{}),
       evidenceIds:compact.evidence.map(e=>e.id),goalVersion:compact.goal?.version||null,candidates:compact.candidates,routing:result.routing,calls:result.calls,additionalEvidence:result.evidence,cost:result.cost,analysisId,
       ...(compact.weeklyOperations&&analysis.weeklyReport?{weeklyReport:analysis.weeklyReport,weeklyOperations:compact.weeklyOperations,reportPeriod:compact.period}:{})};
     await records.assertAnalysisLease(analysisId,ownerId,token);
