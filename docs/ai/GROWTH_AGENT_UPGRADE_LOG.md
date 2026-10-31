@@ -54,3 +54,48 @@ Branch: `codex/ai-comprehensive-upgrade`
 2. Verify the current report custom-period request is implemented on this branch; the branch UI currently needs explicit review because the earlier custom-period change was made on another branch.
 3. Continue Phase 2 source-contract review, prioritizing product-to-trade and real registration / activation separation.
 4. Implement an operations timeline by reusing existing KOL, SEO, X/content and operation-task records.
+
+
+## 2026-10-31 — Custom report periods, green CI and product-to-trade query bounding
+
+### Custom report period completion
+
+- Corrected v5 custom-period prompt composition: it now derives from the weekly report structure while replacing natural-week language with a selected reporting period and equal-length prior period. Business Brain reasoning is retained.
+- Corrected the exact 31-day validation boundary; 31 days is valid, anything longer is rejected.
+- Aligned history selection, displayed date-time inputs, regeneration target and timeout-recovery period with the selected report record.
+- Preserved disabled regeneration controls for reports that are still processing and restored legacy weekly delete copy.
+- Added backend tests for exact timestamps, equal-length comparison, prompt semantics, idempotency and 31-day bounds; added frontend tests for custom selection, submission, reset and historical custom reports.
+
+### Product-to-trade lookup optimization
+
+- `backend/src/data/productChainTrades.js` now builds bounded lookup windows from successful, user-triggered analysis requests with token visit, token and chain context.
+- The SQL uses the existing verified-wallet identity precedence and limits transaction rows to trades after those successful analyses, within the 24-hour observation window.
+- Merges overlapping account/chain windows; caps at 5,000 windows and 20,000 trade rows; enriches hashes in 2,000-row batches with ledger and indexed-swap reads in parallel.
+- Exposes trade-row truncation and window truncation in product-chain quality diagnostics. Missing/truncated/unmatched data remains unknown; it is never turned into a zero-trade claim.
+- `remoteAnalysis.js` now passes the validated request-analysis rows into the trade lookup.
+- Added regression tests for analysis-window filtering, interval merging, identity mapping, exact-chain/hash token enrichment, failure-as-unknown and no-query behavior when no valid analysis exists.
+
+### CI and regression results
+
+The upgrade branch now runs the relevant GitHub Actions workflows on push.
+
+- AI infrastructure run: [41156542441](https://github.com/dinnelthai/logearn-growth/actions/runs/41156542441) — **success**.
+  - AI contract suites: 166 passed, 0 failed, 1 skipped; additional suites 22/22 and 112/112.
+  - AI integration: 17 passed, 0 failed (PostgreSQL + Redis service containers).
+  - AI frontend contract suites: 24/24 and 4/4.
+- Desktop UI regression run: [41155768483](https://github.com/dinnelthai/logearn-growth/actions/runs/41155768483) — **success**.
+  - 429 passed, 0 failed, 4 skipped.
+
+The first CI runs exposed and led to fixes for a registry-unknown metric reference, pending-report UI regression, delete-copy regression, an incorrect operating-memory test expectation and a stale autonomy strategy test fixture. The final runs above include those fixes.
+
+### Validation boundary
+
+- CI tests use test fixtures and service containers; they do not validate the user's live Hologres data, local API/Worker, live GSC/X connections or a real paid model invocation.
+- The product-to-trade query is now narrower and bounded in code, but its live latency and match coverage still require observation against the actual read-only source.
+- No database migration, paid model call, paid external collection, deployment or public write occurred.
+
+### Next implementation focus
+
+1. Complete registration-vs-first-analysis source contract and activation denominator/maturity review.
+2. Verify the custom report and product-to-trade path against a real, already-authorized read-only source without initiating a paid model call.
+3. Build the operating activity timeline by reusing existing KOL, SEO, content/X and operation-task records.
