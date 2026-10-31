@@ -19,7 +19,18 @@ function factsFromValue(value,max=4){
  if(value==null)return [];
  if(valid(value))return [{metric:'value',value}];
  if(typeof value!=='object')return [];
- const matches=[],allowed=new Set([
+ const matches=[],registration=value?.cohorts?.registration,registrationMetrics=registration?.metrics;
+ if(registration?.available===true&&registrationMetrics&&typeof registrationMetrics==='object'){
+  const fields=[
+   ['registration_activation_rate','rate'],
+   ['registration_activation_activated','activated'],
+   ['registration_activation_eligible','eligible'],
+   ['registration_pending','pending']
+  ];
+  for(const [metric,key] of fields)if(valid(registrationMetrics[key]))
+   matches.push({metric,value:registrationMetrics[key]});
+ }
+ const allowed=new Set([
   'active_users','new_users','returning_users','activation_rate','registered_users','registration_activation_rate','activated',
   'users','visits','clicks','impressions','ctr','position','views','likes',
   'replies','retweets','reposts','posts','followers','followerChange',
