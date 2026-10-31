@@ -82,12 +82,15 @@ test('v5 surfaces positive growth signals in business-goal order without changin
  const legacy=modelContext(raw,{transportVersion:'v4'});
  assert.equal(legacy.growthOpportunities,undefined);
  const view=modelContext(raw,{transportVersion:'v5'});
- assert.equal(view.growthOpportunities[0].metricId,'new_users');
- assert.equal(view.growthOpportunities[0].goalRank,3);
+ assert.equal(view.growthOpportunities[0].metricId,'active_users',
+  'confirmed North Star unique viewers lead growth decisions');
+ assert.equal(view.growthOpportunities[0].goalRank,1);
  assert.equal(view.growthOpportunities[0].classification,'observed-increase;replicability-unverified');
- assert.deepEqual(view.growthOpportunities[0].evidenceIds,['new_users-current','new_users-previous']);
- assert.equal(view.growthOpportunities[0].affectedPopulationDelta,10);
- assert.equal(view.investigationFocus.metricId,'new_users');
+ assert.deepEqual(view.growthOpportunities[0].evidenceIds,['active_users-current','active_users-previous']);
+ assert.equal(view.growthOpportunities[0].affectedPopulationDelta,18);
+ assert.equal(view.growthOpportunities[1].metricId,'new_users',
+  'first-observed analysis remains a separate supporting growth signal');
+ assert.equal(view.investigationFocus.metricId,'active_users');
  assert.equal(view.investigationFocus.direction,'increase');
  assert.ok(view.investigationFocus.candidateTools.includes('get_channels'));
  assert.match(view.investigationFocus.instruction,/最少工具/);
