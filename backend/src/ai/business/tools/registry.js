@@ -63,13 +63,21 @@ function operationsTimelineSummary(payload){
    'memberCount','plannedMemberCount','assignments','scheduleChanges','outcome',
    'financeSource','costTotals','revenueTotals','collection'
   ]),...(row.id?{recordRef:opaqueRef(row.id)}:{ }),
+   ...(row.kolRef?{kolRef:opaqueRef(row.kolRef)}:{}),
    ...(relatedActivityRefs.length?{relatedRecordRefs:relatedActivityRefs,
     relationshipType:'explicit-crm-activity-link'}:{})};
  });
- const observations=(payload.channelObservations||[]).slice(0,20).map(row=>pick(row,[
-  'kind','layer','source','title','startAt','endAt','startDate','endDate','observedAt',
-  'metrics','samplePosts','coverage','scope','dateTimezone','attribution','warnings'
- ]));
+ const observations=(payload.channelObservations||[]).slice(0,20).map(row=>{
+  const base=pick(row,[
+   'kind','layer','source','title','startAt','endAt','startDate','endDate','observedAt',
+   'metrics','samplePosts','coverage','scope','dateTimezone','attribution','warnings','relationshipType'
+  ]);
+  const kolSummaries=(row.kolSummaries||[]).slice(0,8).map(k=>({
+   kolRef:opaqueRef(k.kolRef),label:k.label,stage:k.stage,metrics:k.metrics,
+   linkedCollaborationRefs:(k.linkedCollaborationRefs||[]).slice(0,4).map(opaqueRef)
+  }));
+  return {...base,...(kolSummaries.length?{kolSummaries}:{})};
+ });
  const ai=(payload.aiActions||[]).slice(0,20).map(row=>pick(row,[
   'kind','layer','source','title','reportTitle','priority','status','createdAt',
   'updatedAt','executedAt','review','firstSeenAt','lastSeenAt','occurrences','sourceKind'
