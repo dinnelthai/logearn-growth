@@ -688,3 +688,26 @@ These are **code-complete/CI-validated**, not a guarantee that an actual new v5 
 - **Regression:** `backend/test/growthCohorts.test.js` proves the exact day-seven boundary and excludes late users from engaged, eligible, trader and conversion rates; `backend/test/growthCohortTrades.test.js` confirms the remote trade lookup does not include out-of-window accounts.
 - **Validation:** source/test HEAD `a0a7f210ad28dc710062b5907255eacfa1ddceca`. [AI infrastructure 41191137847](https://github.com/dinnelthai/logearn-growth/actions/runs/41191137847) **success** for Contract, Integration and Frontend. This is fixture CI; real external Hologres, actual model reasoning and trade identity coverage were not exercised.
 - **Progress:** This fixes a correctness boundary within the recently completed registered-user-journey checkbox, not a distinct roadmap deliverable. Keep **40/48 = 83.3%, 8 open**. No DB migration, deployment, paid service/model call, external collection or branch merge.
+
+## 2026-10-31 — Phase 2 bounded observed-source cohorts (41/48)
+
+### Source contract / implementation
+
+- A new opt-in `query_metrics` dimension `['source']` is supported **only for** the single registered-user-journey metric. It groups already present `public.account_v2` registered accounts by their **observed analytics source association** in `registrationFacts`; it is not a historic first-touch channel or causal acquisition record.
+- `backend/src/analytics/growthCohorts.js`: ranks up to four safe named source labels, preserves an explicit `unknown` source, combines other/untrusted/overflow values into `other`. All group counts are from the same registration rows and reconcile with the overall account count and 24-hour / 7-day mature cohorts. Each group includes separate chip/Holder/strategy/signal/repeat activity, recognizing overlaps and preserving pending/unobserved vs true zero.
+- `backend/src/ai/business/metricRegistry.js`: only `registered_user_journey` now advertises supported source dimensions. Other metrics and unsupported device/version dimensions are rejected before running query work, instead of accepting and silently ignoring group dimensions.
+- `backend/src/ai/business/tools/registry.js`: validates exact single-metric/source dimensions and **records `dimensions` in the same archived query body and fingerprint used for execution**; this was caught by a new regression after an intermediate CI failure.
+- `backend/src/ai/business/tools/adapters.js`: only explicit source-grouped journeys project `registration.bySource`, with per-group maturity and product counts. No fabricated source-level transaction conversions; overall identity-verified trade outcome is unchanged.
+- `backend/src/ai/growth/weeklyCoverage.js`: source-grouped journey evidence reserves citeable numeric source facts under the 12-fact budget; overall ungrouped report evidence stays unchanged and does not surface group data unless requested. No identities or raw event/member records go to the model.
+
+### Regression / CI
+
+- Added or extended `backend/test/growthCohorts.test.js`, `backend/test/aiBusinessMetricsAdapter.test.js`, `backend/test/agentTools.test.js` and `backend/test/aiWeeklyCoverage.test.js` for mature denominators, overlapping source/product entries, unclassified/overflow bucket, no leaked raw labels/user IDs, unsupported dimensions, archival query fields, zero vs unknown and citeable bounded source facts.
+- Early intermediate CI failures were corrected: the test object had an extra closing bracket; its evidence assertion initially read `query.dimensions` rather than `query.body.dimensions`; the latter revealed a real missing field in the registry evidence body, now fixed.
+- **Final source/test HEAD:** `7044ef3859c551002f543c0d8d178cbd142877dc`. [AI infrastructure 41198640425](https://github.com/dinnelthai/logearn-growth/actions/runs/41198640425) **all jobs success** (AI Contract, Integration, Frontend).
+
+### Updated checklist
+
+- Checked Phase 2 `Add channel / product / cohort breakdowns only where the source supports them` at **code + fixture CI** level. This covers source-supported observed registration groups with existing per-product parallel entries and a mature registration cohort; it does not assert historical acquisition attribution, per-source trade identity coverage or live Hologres completeness.
+- Phase 2 **6/8**; roadmap **41/48 (85.4%)**, **7 open**. Remaining Phase 2: comprehensive per-module/source-contract audit and full source-specific freshness/coverage/definition metadata validation. Remaining cross-phase items require real operator acceptance, stable activity-to-outcome identifiers or measured query-cost metadata.
+- No paid AI/API call, schema migration, deployment, external sync/write, publication or `master` merge.
