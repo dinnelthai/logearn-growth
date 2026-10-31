@@ -274,6 +274,22 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
    historyComplete:raw.snapshot?.historyComplete===true},
   coreMetrics:core.map(({score,...rest})=>rest),
   priorityIssues:issues,
+  ...(includeDecisionSignals?{questionPriority:
+   (raw.growthPlan?.questionRanking?.questions||[]).slice(0,3).map(row=>({
+    metric:safeText(row.metric||'',60),priority:safeText(row.priority||'',6),
+    goalRelevant:row.goalRelevant===true,
+    affectedUsers:Number.isSafeInteger(row.affectedUsers)&&row.affectedUsers>=0?
+     row.affectedUsers:null,
+    observedChangeMagnitude:Number.isSafeInteger(row.observedChangeMagnitude)&&
+     row.observedChangeMagnitude>=0?row.observedChangeMagnitude:null,
+    evidenceConfidence:safeText(row.evidenceConfidence||'unknown',12),
+    authorizedTool:row.authorizedTool?safeText(row.authorizedTool,60):null,
+    observedMedianMs:Number.isSafeInteger(row.observedLatency?.medianMs)?
+     row.observedLatency.medianMs:null,
+    sampleCount:Number.isSafeInteger(row.observedLatency?.sampleCount)?
+     row.observedLatency.sampleCount:null,
+    monetaryQueryCost:'unknown'
+   }))}:{}),
   ...(growthOpportunities?{growthOpportunities}:{}),
   investigationFocus,
   weeklyCoverage:summaries,
@@ -309,6 +325,10 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
   out.weeklyCoverage=out.weeklyCoverage.map(x=>({id:x.id,status:x.status,
    ...(x.stats?{stats:x.stats.slice(0,2)}:{})}));
  }
+ // Core report metrics and module coverage have higher priority than
+ // optional query-economics hints when approaching the strict byte budget.
+ if(size()>CAP&&out.questionPriority?.length)out.questionPriority=out.questionPriority.slice(0,1);
+ if(size()>CAP&&out.questionPriority?.length)out.questionPriority=[];
  if(size()>CAP)throw Error('AI 周报精简统计上下文仍超出安全预算，尚未调用付费模型');
  return out;
 }
