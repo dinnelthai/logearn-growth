@@ -8,16 +8,22 @@ function fakeDb(){
  const calls=[]
  const db={calls,prepare(sql){return {all(...args){
   calls.push({sql,args})
-  if(sql.includes('FROM growth_activities'))return [{id:'act-1',name:'Launch campaign',start_at:start,cutoff_at:end,goal:'activation',target_metric:'new_users',target_value:20,schedule_state:'active',schedule_error:null,archived_at:null,settled_at:null,parent_id:null}]
+  if(sql.includes('FROM growth_activities'))return [{id:'act-1',name:'Launch campaign',start_at:start,cutoff_at:end,goal:'activation',target_metric:'new_users',target_value:20,schedule_state:'active',schedule_error:null,archived_at:null,settled_at:end,settled_result:JSON.stringify({
+   summary:{total:10,eligible:8,completed:4,conversion_rate:.5,prior:2,active:1,inactive:3,review:0},
+   performance:{total:{users:10,analysis_users:4,analysis_events:12,analysis_days:5,trade_users:2,transactions:3,volume_usd:99,missing_values:0,excluded_trades:0}},
+   target_progress:{metric:'first_analysis_users',target:20,actual:4,ratio:.2,status:'in_progress',partial:false},
+   performance_errors:{analysis:null,trade:null,account:null},rows:[{user_id:'user-123',analysis_events:99}]
+  }),parent_id:null}]
   if(sql.includes('FROM crm_activity_links'))return [{activity_id:'act-1',name:'KOL One'}]
   if(sql.includes('FROM growth_activity_members'))return [{activity_id:'act-1',count:10}]
   if(sql.includes('FROM growth_activity_planned_members'))return [{activity_id:'act-1',count:12}]
   if(sql.includes('FROM growth_activity_assignments'))return [
-   {activity_id:'act-1',group_key:'treatment',count:4},
-   {activity_id:'act-1',group_key:'control',count:3}
-  ]
-  if(sql.includes('FROM growth_activity_delivery_evidence'))return [
-   {activity_id:'act-1',kind:'delivered',channel:'telegram',count:5,first_at:start,last_at:end}
+   {activity_id:'act-1',group_key:'treatment',assigned:4,delivered:3,sent_unconfirmed:0,
+    not_delivered:0,delivery_unknown:1,cross_exposed:1,retrospective_records:1,
+    first_delivery_at:start,last_delivery_at:end},
+   {activity_id:'act-1',group_key:'control',assigned:3,delivered:1,sent_unconfirmed:1,
+    not_delivered:0,delivery_unknown:1,cross_exposed:0,retrospective_records:0,
+    first_delivery_at:start,last_delivery_at:end}
   ]
   if(sql.includes('FROM growth_activity_schedule_history'))return [
    {activity_id:'act-1',action:'rescheduled',count:2,first_at:start,last_at:end}
@@ -78,6 +84,11 @@ test('timeline merges existing owner-scoped records but keeps human, channel and
  assert.deepEqual(activity.linkedKols,['KOL One']);
  assert.equal(activity.memberCount,10);
  assert.equal(activity.plannedMemberCount,12);
+ assert.equal(activity.outcome.status,'settled');
+ assert.equal(activity.outcome.summary.completed,4);
+ assert.equal(activity.outcome.performance.trade_users,2);
+ assert.equal(activity.outcome.targetProgress.actual,4);
+ assert.deepEqual(activity.outcome.sourceCoverage,{analysis:'available',trade:'available',account:'available'});
  assert.deepEqual(activity.assignments.map(x=>[x.group,x.assigned]),[['treatment',4],['control',3]]);
  assert.deepEqual(activity.assignments.map(x=>[x.delivered,x.sentUnconfirmed,x.notDelivered,x.deliveryUnknown,x.crossExposed,x.retrospectiveRecords]),
   [[3,0,0,1,1,1],[0,1,1,1,0,0]]);
