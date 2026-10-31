@@ -22,7 +22,7 @@ function assertActionNovelty(suggestion,history){
  const duplicate=history.find(row=>
   row&&row.validation_metrics?.primary===metric&&
   (row.applicable_scope?.source||row.action_scope?.source||'all')===scope&&
-  normalizedAction(row.action)===action&&
+  [row.action,row.actual_action].some(value=>normalizedAction(value)===action)&&
   ['pending','adopted','executing','executed','rejected','invalid'].includes(row.user_status));
  if(duplicate)throw Error('建议与历史行动完全重复；必须提出不同的验证步骤或行动方案');
 }
