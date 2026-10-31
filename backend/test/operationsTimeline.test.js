@@ -4,11 +4,12 @@ const assert=require('node:assert/strict')
 const {createOperationsTimeline,dateInZone}=require('../src/ai/business/tools/operationsTimeline')
 const DAY=86400000,now=Date.parse('2026-10-31T00:00:00Z')
 const start=Date.parse('2026-10-01T00:00:00Z'),end=start+DAY
-function fakeDb(){
+function fakeDb({settledAt=end-1,snapshotAsOf=end-1,activityEnd=end-1,collaborationStart=start}={}){
  const calls=[]
  const db={calls,prepare(sql){return {all(...args){
   calls.push({sql,args})
-  if(sql.includes('FROM growth_activities'))return [{id:'act-1',name:'Launch campaign',start_at:start,cutoff_at:end,goal:'activation',target_metric:'new_users',target_value:20,schedule_state:'active',schedule_error:null,archived_at:null,settled_at:end,settled_result:JSON.stringify({
+  if(sql.includes('FROM growth_activities'))return [{id:'act-1',name:'Launch campaign',start_at:start,cutoff_at:activityEnd,goal:'activation',target_metric:'new_users',target_value:20,schedule_state:'active',schedule_error:null,archived_at:null,settled_at:settledAt,settled_result:JSON.stringify({
+   as_of:new Date(snapshotAsOf).toISOString(),
    summary:{total:10,eligible:8,completed:4,conversion_rate:.5,prior:2,active:1,inactive:3,review:0},
    performance:{total:{users:10,analysis_users:4,analysis_events:12,analysis_days:5,trade_users:2,transactions:3,volume_usd:99,missing_values:0,excluded_trades:0}},
    target_progress:{metric:'first_analysis_users',target:20,actual:4,ratio:.2,status:'in_progress',partial:false},
@@ -28,7 +29,7 @@ function fakeDb(){
   if(sql.includes('FROM growth_activity_schedule_history'))return [
    {activity_id:'act-1',action:'rescheduled',count:2,first_at:start,last_at:end}
   ]
-  if(sql.includes('FROM crm_collaborations c'))return [{id:'collab-1',kol_id:'kol-1',name:'KOL placement',start_at:start,end_at:end,goal:'reach',deliverables:'one post',assignee:'Alex',status:'completed',created_at:start,updated_at:end,kol_name:'KOL One'}]
+  if(sql.includes('FROM crm_collaborations c'))return [{id:'collab-1',kol_id:'kol-1',name:'KOL placement',start_at:collaborationStart,end_at:end,goal:'reach',deliverables:'one post',assignee:'Alex',status:'completed',created_at:start,updated_at:end,kol_name:'KOL One'}]
   if(sql.includes('FROM crm_collaboration_activities'))return [{collaboration_id:'collab-1',activity_id:'act-1'}]
   if(sql.includes('FROM content_growth_items'))return [{id:'content-1',platform:'x',title:'Launch thread',topic:'product',published_at:new Date(start+1000).toISOString(),created_at:new Date(start+1000).toISOString(),impressions:100,likes:5,comments:2,shares:3,audience_fit:4,actionability:5}]
   if(sql.includes('FROM operation_tasks'))return [{id:'task-1',title:'Review activation cohort',assignee:'Alex',priority:'P1',status:'done',due_at:end,created_at:start,updated_at:end,completed_at:end}]
@@ -119,6 +120,20 @@ test('timeline merges existing owner-scoped records but keeps human, channel and
  assert.ok(db.calls.some(c=>c.sql.includes('growth_activity_delivery_evidence')&&c.args[0]==='owner-1'));
  assert.match(result.warnings.join(' '),/AI 建议/);
  assert.match(result.warnings.join(' '),/社群与培训/);
+});
+
+test('historical report cannot read an activity settlement recorded after its period cutoff',async()=>{
+ for(const option of [
+  {settledAt:end+1},
+  {snapshotAsOf:end+1}
+ ]){
+  const result=await createOperationsTimeline({...sources(fakeDb(option)),clock:()=>now})
+   .collect({start,end,source:'all'},{ownerId:'owner-1'});
+  const activity=result.humanOperations.find(x=>x.kind==='growth_activity');
+  assert.notEqual(activity.outcome.status,'settled');
+  assert.equal(activity.outcome.performance,undefined);
+  assert.equal(activity.outcome.summary,undefined);
+ }
 });
 
 test('one source failure is isolated and does not erase the other operating records',async()=>{
