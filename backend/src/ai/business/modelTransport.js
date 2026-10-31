@@ -229,6 +229,17 @@ function modelEvidence(row){
    ...(row.watermarks?.followerScan?
     {followerScan:safeText(row.watermarks.followerScan,120)}:{})},
   coverage:statView(row.coverage||{status:'unknown'}),
+  ...(row.sourceMetadata?{sourceMetadata:{
+   sourceType:safeText(row.sourceMetadata.sourceType||'unknown',60),
+   clock:safeText(row.sourceMetadata.clock||'unknown',60),
+   scope:safeText(row.sourceMetadata.scope||'all',30),
+   coverageStatus:safeText(row.sourceMetadata.coverageStatus||'unknown',40),
+   freshness:{
+    status:safeText(row.sourceMetadata.freshness?.status||'unverified',30),
+    referenceAt:safeText(row.sourceMetadata.freshness?.referenceAt||'',40)||null,
+    reportedCompleteThrough:
+     safeText(row.sourceMetadata.freshness?.reportedCompleteThrough||'',40)||null}
+  }}:{}),
   warnings:(row.warnings||[]).slice(0,6).map(s=>safeText(s))
  };
 }
