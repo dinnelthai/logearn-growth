@@ -118,9 +118,11 @@ async function cohortTrades(s,rows,{start,end},registration={available:false,row
  const registered=registration?.available===true&&Array.isArray(registration.rows)?registration.rows:[];
  const candidates=[...entrants,...registered];
  const engaged=candidates.filter(r=>{
-  const anchor=r.registered_at!=null?Number(r.registered_at):Number(r.first_seen_at);
+  const registered=r.registered_at!=null;
+  const anchor=registered?Number(r.registered_at):Number(r.first_seen_at);
   return r.first_chip_at!=null&&Number.isFinite(Number(r.first_chip_at))&&
-   Number.isFinite(anchor)&&Number(r.first_chip_at)>=anchor&&Number(r.first_chip_at)<=asOf;
+   Number.isFinite(anchor)&&Number(r.first_chip_at)>=anchor&&Number(r.first_chip_at)<=asOf&&
+   (!registered||Number(r.first_chip_at)<anchor+7*DAY);
  });
  const mature=engaged.filter(r=>Number(r.first_chip_at)+7*DAY<=asOf+1);
  const uniqueWindows=new Map();
