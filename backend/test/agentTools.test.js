@@ -148,7 +148,7 @@ test('query_metrics enforces source-only journey grouping and archives allowlist
   assert.deepEqual(seen[0].dimensions,['source']);
   const e=result.evidence[0];
   assert.equal(e.query.body.source,'twitter');
-  assert.deepEqual(e.query.dimensions,['source']);
+  assert.deepEqual(e.query.body.dimensions,['source']);
   assert.equal(e.value.registration.bySource[0].activation.eligible,2);
   assert.equal(e.value.registration.bySource[1].engagement.holder_view_users,0);
   const model=require('../src/ai/business/modelTransport').modelEvidence(e);
