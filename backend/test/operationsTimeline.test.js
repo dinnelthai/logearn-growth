@@ -76,6 +76,8 @@ test('timeline merges existing owner-scoped records but keeps human, channel and
  assert.equal(x.metrics.impressions,100);
  assert.equal(x.metrics.samplePosts,1);
  assert.equal(x.samplePosts.length,1);
+ assert.deepEqual(result.coverage.xOfficial.accounts.map(x=>[x.account,x.status]),
+  [['中文账号','synced']]);
  assert.equal(JSON.stringify(result).includes('PRIVATE POST BODY'),false);
  assert.equal(JSON.stringify(result).includes('OUTSIDE'),false);
  const collab=result.humanOperations.find(x=>x.kind==='kol_collaboration');
