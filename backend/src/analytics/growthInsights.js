@@ -38,11 +38,12 @@ function growthInsights(rows, qualityRows, b, s, tradeFacts={known:null,trades:[
     return {eligible:put(prefix+':eligible',eligible),returned:put(prefix+':returned',returned),pending:put(prefix+':pending',rs.filter(r=>!eligibleIds.has(r.user_key))),
       rate:eligible.length?returned.length/eligible.length:null,interval:interval(returned.length,eligible.length),list_key:prefix}
   }
-  const summarizeTradeCohort=(cohortRows,anchorOf,prefix)=>{
+  const summarizeTradeCohort=(cohortRows,anchorOf,prefix,{registrationWindow=false}={})=>{
     const engaged=cohortRows.filter(r=>{
       const anchor=Number(anchorOf(r));
       return r.first_chip_at!=null&&Number.isFinite(Number(r.first_chip_at))&&
-        Number.isFinite(anchor)&&Number(r.first_chip_at)>=anchor&&Number(r.first_chip_at)<=asOf
+        Number.isFinite(anchor)&&Number(r.first_chip_at)>=anchor&&Number(r.first_chip_at)<=asOf&&
+        (!registrationWindow||Number(r.first_chip_at)<anchor+7*DAY)
     });
     const mature=engaged.filter(r=>Number(r.first_chip_at)+7*DAY<=asOf+1);
     const matched=tradeFacts.known===null?[]:mature.filter(r=>tradeFacts.known.has(r.user_key));
@@ -106,7 +107,7 @@ function growthInsights(rows, qualityRows, b, s, tradeFacts={known:null,trades:[
   for(const r of registration.rows)if(!members[r.user_key])members[r.user_key]={id:r.user_key,source:r.source||'未知'}
   const cohorts=require('./growthCohorts').growthCohorts(rows,registration,{start,end,asOf},put)
   if(registration.available)cohorts.registration.trade=summarizeTradeCohort(
-    registration.rows,r=>r.registered_at,'cohort:registered:trade')
+    registration.rows,r=>r.registered_at,'cohort:registered:trade',{registrationWindow:true})
   const coverage=evidence.coverage||{available:false,rows:[]}
   for(const f of families){const row=coverage.rows.find(r=>r.scope==='family'&&r.family===f.key);f.users=coverage.available?(row?.users||0):null}
   const events=qualityRows.reduce((n,r)=>n+Number(r.events),0),linked=qualityRows.reduce((n,r)=>n+Number(r.linked_events),0),missingSource=qualityRows.reduce((n,r)=>n+Number(r.missing_source_events),0)
