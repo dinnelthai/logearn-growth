@@ -144,6 +144,7 @@ jobs:
           node --check src/data/growthEvidence.js
           node --check src/data/growthInsights.js
           node --check src/analytics/growthInsights.js
+          node --check src/workers/remoteAnalysis.js
           node --check src/ai/business/metricRegistry.js
           node --check src/ai/business/businessBrain.js
           node --check src/ai/business/tools/adapters.js
@@ -174,7 +175,7 @@ jobs:
       - name: Run registration activation and post-analysis trade cohort tests
         env:
           NODE_ENV: test
-        run: node --test test/growthCohortTrades.test.js test/growthInsights.test.js test/growthCohorts.test.js
+        run: node --test test/growthCohortTrades.test.js test/growthInsights.test.js test/growthCohorts.test.js test/aiBusinessMetricsAdapter.test.js
 
       - name: Run registration evidence regression tests
         env:
