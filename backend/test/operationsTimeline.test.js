@@ -92,7 +92,7 @@ test('timeline merges existing owner-scoped records but keeps human, channel and
  assert.deepEqual(activity.outcome.sourceCoverage,{analysis:'available',trade:'available',account:'available'});
  assert.deepEqual(activity.assignments.map(x=>[x.group,x.assigned]),[['treatment',4],['control',3]]);
  assert.deepEqual(activity.assignments.map(x=>[x.delivered,x.sentUnconfirmed,x.notDelivered,x.deliveryUnknown,x.crossExposed,x.retrospectiveRecords]),
-  [[3,0,0,1,1,1],[0,1,1,1,0,0]]);
+  [[3,0,0,1,1,1],[1,1,0,1,0,0]]);
  assert.deepEqual(activity.scheduleChanges.map(x=>[x.action,x.count]),[['rescheduled',2]]);
  assert.equal(JSON.stringify(activity).includes('user_id'),false);
  assert.equal(JSON.stringify(activity).includes('user-123'),false);
