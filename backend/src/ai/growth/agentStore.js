@@ -138,7 +138,7 @@ function createAgentStore(db=pool){
   if(!GOALS.has(goal)||!ownerId)bad('策略查询参数无效');
   const r=await db.query(`SELECT version,policy,evidence,created_at,feedback_digest
    FROM ai_growth_agent_strategy WHERE owner_id=$1 AND goal=$2 AND source=$3
-    AND policy->>'version'='evidence-first-strategy-v3'
+    AND policy->>'version'='evidence-first-strategy-v4'
    ORDER BY version DESC LIMIT 1`,[ownerId,goal,source]);
   return r.rows[0]||null;
  }
