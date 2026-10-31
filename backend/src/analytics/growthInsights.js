@@ -45,17 +45,27 @@ function growthInsights(rows, qualityRows, b, s, tradeFacts={known:null,trades:[
     const mature=rs.filter(r=>r.first_seen_at+DAY<=asOf+1)
     const activated=mature.filter(r=>r.first_chip_at!=null&&r.first_chip_at>=r.first_seen_at&&r.first_chip_at<r.first_seen_at+DAY)
     const latencies=activated.map(r=>r.first_chip_at-r.first_seen_at).sort((a,b)=>a-b)
-    const tradeMature=rs.filter(r=>r.first_seen_at+7*DAY<=asOf+1),matched=tradeMature.filter(r=>tradeFacts.known?.has(r.user_key)),traders=[]
+    const engaged=rs.filter(r=>Number.isFinite(Number(r.first_chip_at))&&
+      Number(r.first_chip_at)>=Number(r.first_seen_at)&&Number(r.first_chip_at)<=asOf)
+    const tradeMature=engaged.filter(r=>Number(r.first_chip_at)+7*DAY<=asOf+1)
+    const matched=tradeMature.filter(r=>tradeFacts.known?.has(r.user_key)),traders=[]
     let volume=0,transactions=0,missingValues=0,excluded=0
     for(const r of matched){let traded=false;for(const t of tradesByUser.get(r.user_key)||[]){
-      const at=Date.parse(t.transaction_time);if(!inRange(at,r.first_seen_at,r.first_seen_at+7*DAY))continue
+      const at=Date.parse(t.transaction_time),anchor=Number(r.first_chip_at)
+      if(!inRange(at,anchor,anchor+7*DAY))continue
       if(!t.valid||!t.transaction_hash||t.chain==null){excluded++;continue}
       traded=true;transactions++;const amount=t.trade_value==null?null:Number(t.trade_value)
       if(amount==null||!Number.isFinite(amount))missingValues++;else volume+=Math.abs(amount)
     }if(traded)traders.push(r)}
-    const trade={available:tradeFacts.known!==null,error:tradeFacts.error,eligible:put(key+':trade:eligible',matched),unmatched:tradeMature.length-matched.length,pending:rs.length-tradeMature.length,
-      traders:tradeFacts.known===null?null:put(key+':trade:traders',traders),transactions:tradeFacts.known===null?null:transactions,
-      volume_usd:tradeFacts.known===null||!matched.length||transactions>0&&missingValues===transactions?null:volume,missing_values:missingValues,excluded_trades:excluded,list_key:key+':trade'}
+    const trade={available:tradeFacts.known!==null,error:tradeFacts.error,
+      association:'user-level-after-first-analysis',
+      eligible:put(key+':trade:eligible',matched),unmatched:tradeMature.length-matched.length,
+      pending:engaged.length-tradeMature.length,not_activated:rs.length-engaged.length,
+      traders:tradeFacts.known===null?null:put(key+':trade:traders',traders),
+      conversion_rate:tradeFacts.known===null||!matched.length?null:traders.length/matched.length,
+      transactions:tradeFacts.known===null?null:transactions,
+      volume_usd:tradeFacts.known===null||!matched.length||transactions>0&&missingValues===transactions?null:volume,
+      missing_values:missingValues,excluded_trades:excluded,list_key:key+':trade'}
     return {source,users:put(key+':users',rs),eligible:put(key+':eligible',mature),activated:put(key+':activated',activated),pending:rs.length-mature.length,trade,
       activation_rate:mature.length?activated.length/mature.length:null,activation_interval:interval(activated.length,mature.length),
       median_ms:latencies.length?latencies[Math.floor((latencies.length-1)/2)]:null,
