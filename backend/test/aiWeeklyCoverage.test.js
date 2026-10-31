@@ -54,7 +54,7 @@ test('operating timeline is a collected weekly module with separate aggregate la
    {status:'ok',evidence:[{id:'seo-for-timeline',metricId:'seo_search',
     value:{metrics:{clicks:8}},coverage:{periodMatched:true}}]}:
    {status:'ok',evidence:[{id:'operations-1',metricId:'activities',
-    value:{counts:{human_operations:2,channel_observations:1,ai_actions:3,total_records:6},
+    value:{counts:{human_operations_shown:2,channel_observations_shown:1,ai_actions_shown:3,total_records_shown:6},
      humanOperations:[{title:'Campaign'}],channelObservations:[],aiActions:[]},
     coverage:{status:'available'}}]}
  });
