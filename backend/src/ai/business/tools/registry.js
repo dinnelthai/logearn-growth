@@ -237,7 +237,7 @@ function createToolRegistry(deps){
    if(id==='get_retention')for(const k of ['initial','returning']){body[k]=input[k]||'chip';if(!['chip','drill','ai','trade','visit'].includes(body[k]))fail('留存事件无效');}
    if(id==='get_paths')body.details=false;
    if(id==='get_activity'&&!scope.activityId)fail('活动工具需要activityId');
-   const snapshot=['get_seo_performance','get_content_growth','get_follower_quality','get_operations_timeline'].includes(id)?{snapshot_id:null,as_of:new Date().toISOString()}:await deps.snapshot();
+   const snapshot=['get_seo_performance','get_content_growth','get_follower_quality','get_operations_timeline','get_channel_economics'].includes(id)?{snapshot_id:null,as_of:new Date().toISOString()}:await deps.snapshot();
    if(!Number.isFinite(Date.parse(snapshot.as_of))||end>Date.parse(snapshot.as_of)+1)fail('所选期间超出数据水位');
    const operation=async()=>{
     if(tool.adapter==='metrics')return deps.metrics(body,snapshot,input.metrics||['active_users','new_users','returning_users'],ctx);
