@@ -72,7 +72,7 @@ const categories=new Set(['source','device','version','app_version','user_stage'
 const notes=new Set(['definition','warnings','warning','reason','error','interpretation',
  'priorityExplanation','scoreExplanation','summary','note','description',
  'notAvailableReason','coverageNote','qualityNote','title','topic','kol','assignee','reportTitle','conclusion']);
-const groups=new Set(['totals','days','growth','change','dimensions','channels','associations',
+const groups=new Set(['total','totals','days','growth','change','dimensions','channels','associations',
  'groups','cohorts','families','versions','quality','coverage','diagnostic_coverage',
  'activation_interval','retention_interval','interval','stages','steps','drops',
  'product_chain','first_value','trade','d7','d30','registration','attribution',
