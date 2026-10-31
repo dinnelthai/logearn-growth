@@ -171,6 +171,11 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
   db.prepare('INSERT INTO gw_reports VALUES(?,?,?,?,?,?,?,?,?)').run(owner,id,kind,period.start,period.end,rev,publish?'published':'draft',JSON.stringify(snapshot),getNow());return report(owner,kind,{now,revision:rev});
  })}
  function reportList(owner,{kind=null,limit=30}={}){ownerId(owner);return all('SELECT * FROM gw_reports WHERE owner_id=? '+(kind?'AND kind=? ':'')+'ORDER BY period_end DESC,revision DESC LIMIT ?',...(kind?[owner,kind,limit]:[owner,limit])).map(r=>({...r,snapshot:safeJSON(r.snapshot_json)}))}
+ function suggestionOperationTasks(owner,suggestionId){
+  ownerId(owner);requiredString(suggestionId,'AI 建议 ID');
+  const rows=all("SELECT * FROM gw_problems WHERE owner_id=? AND type='user' AND subject=? ORDER BY first_seen DESC",owner,'ai-suggestion:'+suggestionId);
+  return rows.map(row=>{const p=problemRow(row);return {problemId:p.id,linkedOperationTasks:linkedOperationTasks(owner,p.id)}});
+ }
  function linkAcceptedSuggestionToTask(owner,suggestion,taskId){
   ownerId(owner);
   if(!suggestion||typeof suggestion!=='object'||typeof suggestion.id!=='string'||
@@ -241,6 +246,6 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
    reviewSampleSize:reviewed,uncertainReviews:byVerdict.uncertain||0,
    interpretation:'仅来自人工审阅样本，未审核问题不计入准确率；样本存在选择偏差'};
  }
- return {saveGoal,goalById,listGoals,saveEvidence,getEvidence,progress,observeProblem,problem,problems,problemEvents,setProblemStatus,startRun,run,ask,answer,cancelRun,finishRun,createAction,action,actions,updateAction,reviewAction,report,buildReport,reportList,linkOperationTask,linkedOperationTasks,linkAcceptedSuggestionToTask,reviewProblem,reconcileSource,qualitySummary};
+ return {saveGoal,goalById,listGoals,saveEvidence,getEvidence,progress,observeProblem,problem,problems,problemEvents,setProblemStatus,startRun,run,ask,answer,cancelRun,finishRun,createAction,action,actions,updateAction,reviewAction,report,buildReport,reportList,linkOperationTask,linkedOperationTasks,linkAcceptedSuggestionToTask,suggestionOperationTasks,reviewProblem,reconcileSource,qualitySummary};
 }
 module.exports={workspaceStore};
