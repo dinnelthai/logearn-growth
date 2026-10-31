@@ -2,18 +2,22 @@
 const {createHash}=require('node:crypto');
 const {definitions}=require('../../analytics/businessPriorities');
 const known=new Set(Object.keys(definitions));
+const {classifyRetrospectiveOutcome}=require('./retrospectiveOutcome');
 function judgeHistory(rows,{now=Date.now()}={}){
  if(!Array.isArray(rows)||!Number.isSafeInteger(now))throw Error('自评证据输入无效');
  const evaluated=[];
  for(const row of rows){
-  if(row.user_status!=='executed'||row.review_context_version!=='1'||!row.retrospective_id||
+  if(row.user_status!=='executed'||!['1','2'].includes(row.review_context_version)||!row.retrospective_id||
    !Number.isFinite(Number(row.executed_at))||
    Number(row.executed_at)>Number(row.reviewed_at)||
    Number(row.reviewed_at)>now)continue;
   const metric=row.validation_metrics?.primary;
   const metricChange=row.metric_changes?.[metric];
-  let assessment='insufficient',reason='no-verifiable-observed-effect';
-  if(known.has(metric)&&metricChange?.available===true&&
+  let assessment='insufficient',reason='no-verifiable-observed-effect',observedEvidence=null;
+  if(row.review_context_version==='2'){
+   observedEvidence=classifyRetrospectiveOutcome(row);
+   assessment=observedEvidence.assessment;reason=observedEvidence.reason;
+  }else if(known.has(metric)&&metricChange?.available===true&&
    Number.isFinite(metricChange.baseline)&&Number.isFinite(metricChange.effect)&&
    ['high','medium'].includes(row.confidence)){
     if(row.has_improvement===true&&metricChange.effect>metricChange.baseline){
@@ -29,10 +33,11 @@ function judgeHistory(rows,{now=Date.now()}={}){
    goal:row.filter_conditions?.focusGoal||'activation',
    source:row.action_scope?.source||row.applicable_scope?.source||row.business_scope?.source||'all',
    assessment,forecastCalibration,evidence:{
-    reason,primaryMetric:metric,change:metricChange||null,
-    hasImprovement:row.has_improvement,hasCausality:row.has_causality,
+    reason,primaryMetric:metric,change:observedEvidence||metricChange||null,
+    outcomeBasis:row.review_context_version==='2'?'fixed-cohort-observation':'legacy-business-observation',
+    hasImprovement:row.has_improvement,hasCausality:false,
     confidence:row.confidence,reviewedAt:Number(row.reviewed_at),forecastCalibration,
-    caveat:'回顾性观察不足以验证建议因果有效性；不证明模型预测准确'
+    caveat:'回顾性观察不足以验证建议因果有效性；不证明模型预测准确；v2仅使用固定人群证据，缺少直接可比指标时归为证据不足'
    }
   });
  }
