@@ -145,10 +145,10 @@ export function createGrowthAgentControl(ctx){
   const tabNav=document.createElement('nav')
   tabNav.className='ga-switcher'
   tabNav.setAttribute('aria-label','Growth Agent 页面视图')
-  tabNav.innerHTML=`<div class="ga-heading"><strong>工作区</strong></div>
+  tabNav.innerHTML=`<div class="ga-heading"><strong>增长大脑</strong><small>发现问题 · 决策 · 复盘</small></div>
   <div class="ga-tabs" role="tablist" aria-label="切换增长工作区">
-   <button class="ga-tab" role="tab" type="button" data-ga-tab="workspace" aria-controls="ga-panel-workspace">周报与决策</button>
-   <button class="ga-tab" role="tab" type="button" data-ga-tab="runtime" aria-controls="ga-panel-runtime">日报与运行</button>
+   <button class="ga-tab" role="tab" type="button" data-ga-tab="workspace" aria-controls="ga-panel-workspace">今日决策</button>
+   <button class="ga-tab" role="tab" type="button" data-ga-tab="runtime" aria-controls="ga-panel-runtime">运行与日报</button>
    <button class="ga-tab" role="tab" type="button" data-ga-tab="governance" aria-controls="ga-panel-governance">研究与治理</button>
   </div>`
   host().classList.add('ga-control-surface')

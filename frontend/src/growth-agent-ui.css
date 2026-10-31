@@ -406,3 +406,93 @@
 @media(max-width:800px){
  #la-studio .ai-weekly-quick-decision{grid-template-columns:minmax(0,1fr)}
 }
+
+
+/* Growth intelligence cockpit: decision first, details second.
+   Scoped to Growth Agent. Does not change source confidence or approval gates. */
+#la-studio .ga-workspace > section.ga-ws-executive {
+  grid-column: 1 / -1;
+  padding: 28px 32px;
+  border-radius: 16px;
+  border-color: var(--ga-border);
+  position: relative;
+  overflow: hidden;
+}
+#la-studio .ga-workspace > section.ga-ws-issues,
+#la-studio .ga-workspace > section.ga-ws-goals { grid-row: auto; }
+#la-studio .ga-ws-executive::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 3px;
+  background: var(--ga-blue);
+  opacity: .82;
+}
+#la-studio .ga-ws-executive .ga-ws-heading { display: grid; gap: 5px; }
+#la-studio .ga-ws-executive .ga-ws-kicker {
+  color: var(--ga-blue);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .15em;
+}
+#la-studio .ga-workspace .ga-ws-executive .ga-ws-section-title { margin-bottom: 10px; }
+#la-studio .ga-workspace .ga-ws-executive .ga-ws-section-title h2 {
+  font-size: 23px;
+  font-weight: 740;
+  line-height: 1.25;
+  letter-spacing: -.55px;
+}
+#la-studio .ga-workspace .ga-ws-executive .ga-ws-decision-intro {
+  max-width: 96ch;
+  margin: 0 0 17px;
+  font-size: 13px;
+  color: var(--ga-muted);
+}
+#la-studio .ga-workspace .ga-ws-decision-state {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  border: 1px solid var(--ga-border);
+  border-radius: 10px;
+  background: var(--ga-soft);
+  padding: 14px 16px;
+  margin: 0 0 20px;
+}
+#la-studio .ga-workspace .ga-ws-decision-state strong {
+  color: var(--ga-ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+#la-studio .ga-workspace .ga-ws-decision-state span {
+  color: var(--ga-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+#la-studio .ga-workspace .ga-ws-executive .ga-ws-stats {
+  border-radius: 10px;
+  background: transparent;
+}
+#la-studio .ga-workspace .ga-ws-executive .ga-ws-stats > div { min-height: 80px; }
+#la-studio .ga-workspace .ga-ws-executive h3 { margin-top: 21px; }
+#la-studio .ga-workspace .ga-ws-empty-note {
+  margin: 10px 0;
+  font-size: 13px;
+  color: var(--ga-muted);
+}
+#la-studio .ga-workspace > section.ga-ws-weekly { padding: 24px 28px; }
+#la-studio .ga-workspace .ga-ws-overview { opacity: .96; }
+#la-studio .ga-switcher .ga-heading small { font-size: 11px; }
+@media (max-width: 1100px) {
+  #la-studio .ga-workspace > section.ga-ws-issues,
+  #la-studio .ga-workspace > section.ga-ws-goals { grid-row: auto; }
+}
+@media (max-width: 680px) {
+  #la-studio .ga-workspace > section.ga-ws-executive { padding: 22px 18px; }
+  #la-studio .ga-workspace > section.ga-ws-weekly { padding: 18px; }
+  #la-studio .ga-workspace .ga-ws-executive .ga-ws-section-title h2 { font-size: 20px; }
+  #la-studio .ga-workspace .ga-ws-executive .ga-ws-stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  #la-studio .ga-workspace .ga-ws-executive .ga-ws-stats > div:nth-child(2) { border-right: 0; }
+  #la-studio .ga-workspace .ga-ws-executive .ga-ws-stats > div:nth-child(-n+2) { border-bottom: 1px solid var(--ga-border); }
+}

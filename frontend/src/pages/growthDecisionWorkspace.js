@@ -57,18 +57,18 @@ export function mountGrowthDecisionWorkspace(root,{navigate=null}={}){
    const topIssues=issues.filter(x=>['open','monitoring'].includes(x.status)).slice(0,3);
    const moreIssues=issues.filter(x=>!topIssues.includes(x));
    const business=moreIssues.filter(x=>x.type==='business'),data=moreIssues.filter(x=>x.type==='data-quality'),other=moreIssues.filter(x=>!['business','data-quality'].includes(x.type))
-   root.innerHTML=`<section class="a-card a-details ga-ws-weekly" aria-label="AI 运营周报"><div data-ai-weekly-report>正在加载 AI 周报…</div></section>
-   <section class="a-card a-details ga-ws-executive" aria-label="AI 增长执行官待办">
-    <div class="ga-ws-section-title"><h2>增长执行官 · 今日决策</h2><span>证据驱动 · 对外执行需批准</span></div>
-    <p>北极星：筹码峰查看/下钻去重用户；真实交易独立统计。月目标：${executive.northStar?.target==null?'未配置':fmt(executive.northStar.target)+' 人'}。</p>
+   root.innerHTML=`<section class="a-card a-details ga-ws-executive" aria-label="AI 增长执行官待办">
+    <div class="ga-ws-section-title"><div class="ga-ws-heading"><span class="ga-ws-kicker">GROWTH INTELLIGENCE</span><h2>增长大脑 · 今日判断</h2></div><span>证据优先 · 重要行动由你审批</span></div>
+    <p class="ga-ws-decision-intro">围绕筹码峰有效分析用户做增长判断；真实交易独立评价。月目标：${executive.northStar?.target==null?'未配置':fmt(executive.northStar.target)+' 人'}。</p>
+    <div class="ga-ws-decision-state ${north?'is-verified':'is-unverified'}" role="status"><strong>${north?'有可信指标观察':'关键数据尚未通过完整性核验'}</strong><span>${north?'优先审阅待批准行动、到期复盘与本轮问题；前后变化不等于因果。':'当前不能确认真实增长升降，也不能把没有新问题理解成业务正常；请先核验来源覆盖。'}</span></div>
     <div class="ga-ws-stats">
      <div><strong>最近可信日分析用户</strong><p>${north?fmt(north.value):'未知'}</p><small>${north?dateTime(north.period.end)+' 截止':'需完整水位与身份核验'}</small></div>
      <div><strong>待批准行动</strong><p>${fmt(executive.waitingApproval??0)}</p></div>
      <div><strong>到期待复盘</strong><p>${fmt(reviews.length)}</p></div>
      <div><strong>超期运营任务</strong><p>${fmt(executive.overdueTasks?.length??0)}</p></div>
     </div>
-    ${(executive.priorities||[]).length?'<h3>本轮优先问题</h3>'+executive.priorities.slice(0,3).map(p=>'<p><strong>'+safe(p.subject)+'</strong> · 优先级 '+safe(p.priority)+'/5 · '+safe(p.nextStep||'待调查')+'</p>').join(''):'<p>暂无可信新增问题；未知来源不代表经营正常。</p>'}
-    ${waiting.length?'<h3>待批准的内部行动</h3>'+waiting.map(a=>'<div class="ga-ws-action"><strong>'+safe(a.description)+'</strong><span>'+safe(a.assignee)+'</span><button class="a-button" data-executive-approve="'+safe(a.id)+'">采纳为待执行（不对外操作）</button></div>').join(''):'<p>暂无待批准的内部建议。</p>'}
+    ${(executive.priorities||[]).length?'<h3>本轮优先问题</h3>'+executive.priorities.slice(0,3).map(p=>'<p><strong>'+safe(p.subject)+'</strong> · 优先级 '+safe(p.priority)+'/5 · '+safe(p.nextStep||'待调查')+'</p>').join(''):'<p class="ga-ws-empty-note">尚无经过证据核验的优先问题。可从下方周报和问题池继续调查。</p>'}
+    ${waiting.length?'<h3>待批准的内部行动</h3>'+waiting.map(a=>'<div class="ga-ws-action"><strong>'+safe(a.description)+'</strong><span>'+safe(a.assignee)+'</span><button class="a-button" data-executive-approve="'+safe(a.id)+'">采纳为待执行（不对外操作）</button></div>').join(''):'<p class="ga-ws-empty-note">目前没有需要你审批的内部建议。</p>'}
     ${reviews.length?'<p role="status">有 '+reviews.length+' 项行动观察期已到；须提供匹配的后续证据后才能复盘，不会自动宣称改善。</p>':''}
     <details class="ga-ws-accordion"><summary>经营机会与调查队列（${portfolio.length}）</summary><div class="ga-ws-expand">
     ${portfolio.slice(0,8).map(p=>'<div class="ga-ws-action"><strong>'+safe(p.subject)+'</strong><span>'+safe(p.decision)+' · 影响人数未知 · 预计ROI未核验 · '+safe(p.evidenceStrength)+'</span></div>').join('')||'<p>暂无可比较的机会。</p>'}
@@ -77,11 +77,12 @@ export function mountGrowthDecisionWorkspace(root,{navigate=null}={}){
      <p>已复盘 ${fmt(executive.learning?.reviewed??0)}，观察改善 ${fmt(executive.learning?.observedImprovement??0)}，观察下降 ${fmt(executive.learning?.observedDecline??0)}。前后变化不代表因果。</p>
      <p>目标核对：${safe(executive.goalAlignment?.status||'未核验')}；不同周期目标不会相加或覆盖。</p>
     </div></details>
-    ${reminders.length?'<h3>站内待办提醒（'+reminders.length+'）</h3>'+reminders.slice(0,8).map(n=>'<div class="ga-ws-action"><strong>'+safe(n.kind)+'</strong><span>到期 '+safe(dateTime(n.dueAt))+'</span><button class="a-button" data-exec-notice="'+safe(n.id)+'">已知悉</button></div>').join(''):'<p>暂无新的站内提醒。</p>'}
-    ${work.length?'<h3>交付步骤（'+work.length+'）</h3>'+work.slice(0,10).map(w=>'<div class="ga-ws-action"><strong>'+safe(w.title)+'</strong><span>'+safe(w.assignee)+' · '+safe(w.status)+' · 截止 '+safe(dateTime(w.dueAt))+'</span>'+(w.status==='ready'?'<form data-exec-complete="'+safe(w.id)+'"><label>已存储指标证据 ID <input name="evidenceId" placeholder="证据 ID（核查或效果步骤必填）" '+(w.step==='prepare-execution'?'':'required')+'></label><label>交付摘要 <input name="note" placeholder="准备方案必填" '+(w.step==='prepare-execution'?'required':'')+'></label><button class="a-button" type="submit">完成此步骤</button></form>':'')+'</div>').join(''):'<p>批准内部行动后自动生成可追踪的交付步骤。</p>'}
+    ${reminders.length?'<h3>站内待办提醒（'+reminders.length+'）</h3>'+reminders.slice(0,8).map(n=>'<div class="ga-ws-action"><strong>'+safe(n.kind)+'</strong><span>到期 '+safe(dateTime(n.dueAt))+'</span><button class="a-button" data-exec-notice="'+safe(n.id)+'">已知悉</button></div>').join(''):''}
+    ${work.length?'<h3>交付步骤（'+work.length+'）</h3>'+work.slice(0,10).map(w=>'<div class="ga-ws-action"><strong>'+safe(w.title)+'</strong><span>'+safe(w.assignee)+' · '+safe(w.status)+' · 截止 '+safe(dateTime(w.dueAt))+'</span>'+(w.status==='ready'?'<form data-exec-complete="'+safe(w.id)+'"><label>已存储指标证据 ID <input name="evidenceId" placeholder="证据 ID（核查或效果步骤必填）" '+(w.step==='prepare-execution'?'':'required')+'></label><label>交付摘要 <input name="note" placeholder="准备方案必填" '+(w.step==='prepare-execution'?'required':'')+'></label><button class="a-button" type="submit">完成此步骤</button></form>':'')+'</div>').join(''):''}
     ${investigations.length?'<details class="ga-ws-accordion"><summary>自动调查记录（'+investigations.length+'）</summary><div class="ga-ws-expand">'+investigations.slice(0,6).map(x=>'<div class="ga-ws-action"><strong>调查 '+safe(x.state)+' · '+safe(dateTime(x.updatedAt))+'</strong><span>已验证引用 '+fmt(x.summary?.agentEvidenceIds?.length??0)+'；根因仍需独立确认</span>'+((x.summary?.hypotheses||[]).slice(0,3).map(h=>'<small>'+safe(h.kind)+' · '+safe(h.status)+' · 证据 '+fmt(h.agentEvidenceIds?.length??0)+'</small>').join(''))+'</div>').join('')+'</div></details>':''}
     <small>自动只读观察、问题追踪与内部建议；不会自动发布、付费或修改生产环境。数据不完整时不制造下降结论。</small>
-   </section><section class="a-card a-details ga-ws-overview"><div class="ga-ws-section-title"><h2>本月工作概览</h2><span>基于已保存的数据和人工记录</span></div>
+   </section><section class="a-card a-details ga-ws-weekly" aria-label="AI 运营周报"><div data-ai-weekly-report>正在加载 AI 周报…</div></section>
+   <section class="a-card a-details ga-ws-overview"><div class="ga-ws-section-title"><h2>本月工作概览</h2><span>基于已保存的数据和人工记录</span></div>
    <div class="ga-ws-stats">
     <div><strong>当前月</strong><p>${safe(new Date(d.month.start+25200000).toISOString().slice(0,7))}</p></div>
     <div><strong>未解决问题</strong><p>${issues.filter(x=>['open','monitoring'].includes(x.status)).length}</p></div>

@@ -46,7 +46,10 @@ describe('Growth UI review regressions',()=>{
    const dispose=mountGrowthDecisionWorkspace(root);
    for(let i=0;i<8;i++)await Promise.resolve();
    expect(root.innerHTML).toContain('ga-ws-weekly');
+   expect(root.innerHTML.indexOf('ga-ws-executive')).toBeLessThan(root.innerHTML.indexOf('ga-ws-weekly'));
    expect(root.innerHTML.indexOf('ga-ws-weekly')).toBeLessThan(root.innerHTML.indexOf('ga-ws-overview'));
+   expect(root.innerHTML).toContain('增长大脑 · 今日判断');
+   expect(root.innerHTML).toContain('关键数据尚未通过完整性核验');
    expect(root.innerHTML).toContain('未解决问题</strong><p>3');
    expect(root.innerHTML).toContain('数据质量问题</strong><p>1');
    expect(root.innerHTML).toContain('其他问题（1）');
