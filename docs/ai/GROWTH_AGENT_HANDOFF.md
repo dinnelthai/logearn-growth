@@ -145,3 +145,12 @@ Every handoff update must say:
 - whether a migration, paid call, deployment or external action occurred.
 
 Decision Engine update (2026-10-31): v5 now ranks positive and negative signals by goal relevance and evidence quality, includes affected-population deltas only for user-count metrics, and selects authorized investigation candidates. Analysis output can include 2–3 competing root-cause hypotheses; query tools must be in the task capability set and hypothesis evidence IDs are checked against the owner-scoped store. Numeric query-cost ranking remains open because trusted cost/latency metadata is not currently available. Latest CI: run 41175597697 passed all three jobs. No live-source acceptance or deployment.
+
+
+## 2026-10-31 — Action Engine / Learning Loop continuation
+
+- Code work: structured action execution brief rendered into the existing `ai_suggestions.action` field; no migration. Exact duplicate action guard uses owner-scoped memory, metric and source scope.
+- Learning policies now use `evidence-first-strategy-v4`, 30-day default validity, explicit goal/source scope, counter-evidence and rollback instructions. Expired/future/out-of-scope policies are ignored by the planner.
+- Tests added: `growthActionWorkflow.test.js`, `analysisCompetingHypotheses.test.js`, `growthPlanner.test.js`, and `agentLearningLifecycle.test.js`.
+- Known gaps: exact-text duplicate protection is not semantic; operation-task creation requires a fixed registered-user cohort cache and is not safe for generic recommendations; suggested observation days do not change the existing 3-business-day + watermark review gate; query-cost ranking remains unavailable without trusted cost/latency metadata.
+- No migration, deployment, paid model call, paid data collection or external action. Continue by checking latest CI, then review whether a recommendation has a valid existing cohort cache before considering a link into operation tasks.
