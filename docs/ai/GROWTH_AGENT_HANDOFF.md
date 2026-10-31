@@ -117,7 +117,7 @@ New v5 flags:
 
 ## 7. Validation / production boundary
 
-This upgrade has not been deployed or tested against the user's live API/Worker. Latest AI infrastructure run [41171641824](https://github.com/dinnelthai/logearn-growth/actions/runs/41171641824) passed all three jobs: AI Contract groups 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112 (the aggregate harness reported zero failures); AI Integration 17/17; AI Frontend succeeded. This includes regression coverage for hashed CRM activity references, KOL collaboration joins, and v5 goal-ranked positive growth signals. These are fixture/service-container checks, not a real-source acceptance test. Implementation code SHA verified by CI: `b801acbb5e0532d8e74d7f6ce979a803b3a27ff7`; subsequent commits in this handoff sequence update documentation only.
+This upgrade has not been deployed or tested against the user's live API/Worker. Latest AI infrastructure run [41175597697](https://github.com/dinnelthai/logearn-growth/actions/runs/41175597697) passed all three jobs: AI Contract groups 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112 (the aggregate harness reported zero failures); AI Integration 17/17; AI Frontend succeeded. This includes regression coverage for hashed CRM activity references, KOL collaboration joins, goal-ranked positive growth signals, impact-aware investigation focus, and competing hypotheses restricted to task-authorized tools. These are fixture/service-container checks, not a real-source acceptance test. Implementation code SHA verified by CI: `b801acbb5e0532d8e74d7f6ce979a803b3a27ff7`; subsequent commits in this handoff sequence update documentation only.
 
 Do not:
 - run paid model calls just to test projection;
@@ -143,3 +143,5 @@ Every handoff update must say:
 - real-source / mocked / isolated status;
 - known gaps and next task;
 - whether a migration, paid call, deployment or external action occurred.
+
+Decision Engine update (2026-10-31): v5 now ranks positive and negative signals by goal relevance and evidence quality, includes affected-population deltas only for user-count metrics, and selects authorized investigation candidates. Analysis output can include 2–3 competing root-cause hypotheses; query tools must be in the task capability set and hypothesis evidence IDs are checked against the owner-scoped store. Numeric query-cost ranking remains open because trusted cost/latency metadata is not currently available. Latest CI: run 41175597697 passed all three jobs. No live-source acceptance or deployment.
