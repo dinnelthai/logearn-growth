@@ -6,7 +6,7 @@ const DEFAULT_CAP=22000;
 const METRICS=[
  ['new_users','首次分析用户',5],['active_users','分析活跃用户',5],
  ['returning_users','回访分析用户',3],['activation_rate','激活率',5],
- ['registered_users','注册用户',3],['registration_activation_rate','注册后24小时激活率',3],['volume_usd','交易量',3]
+ ['registered_users','注册用户',3],['registration_activation_rate','注册后24小时激活率',3],['registered_trade_conversion_rate','注册用户分析后7日交易率',3],['volume_usd','交易量',3]
 ];
 const valid=n=>typeof n==='number'&&Number.isFinite(n);
 const compactPeriod=p=>({
@@ -30,8 +30,20 @@ function factsFromValue(value,max=4){
   for(const [metric,key] of fields)if(valid(registrationMetrics[key]))
    matches.push({metric,value:registrationMetrics[key]});
  }
+ const registrationTrade=registration?.trade;
+ if(registrationTrade?.available===true){
+  const fields=[
+   ['registered_trade_conversion_rate','conversion_rate'],
+   ['registered_trade_traders','traders'],
+   ['registered_trade_eligible','eligible'],
+   ['registered_trade_pending','pending'],
+   ['registered_trade_unmatched','unmatched']
+  ];
+  for(const [metric,key] of fields)if(valid(registrationTrade[key]))
+   matches.push({metric,value:registrationTrade[key]});
+ }
  const allowed=new Set([
-  'active_users','new_users','returning_users','activation_rate','registered_users','registration_activation_rate','activated',
+  'active_users','new_users','returning_users','activation_rate','registered_users','registration_activation_rate','registered_trade_conversion_rate','activated',
   'users','visits','clicks','impressions','ctr','position','views','likes',
   'replies','retweets','reposts','posts','followers','followerChange',
   'engagementRate','replyRate','repostRate','likeRate','h24Views','h48Views',
