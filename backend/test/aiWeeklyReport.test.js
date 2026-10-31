@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {weeklyPeriod,reportPeriod,weeklyKey,reportKey,weeklyOperations,validateWeeklyReport,ensureWeeklyReport}=require('../src/ai/growth/weeklyReport');
+const {weeklyPeriod,reportPeriod,weeklyKey,reportKey,weeklyOperations,customPeriodPromptV0,customPeriodPromptV1,validateWeeklyReport,ensureWeeklyReport}=require('../src/ai/growth/weeklyReport');
 
 test('weekly report uses last complete Monday-Sunday Bangkok week',()=>{
  const period=weeklyPeriod(Date.parse('2026-10-29T09:00:00+07:00'));
@@ -23,6 +23,18 @@ test('custom report periods use exact Bangkok timestamps and exclusive end',()=>
  assert.equal(period.timezone,'Asia/Bangkok');
  assert.equal(reportKey(period),'ai-report-custom-v1:'+start+':'+end);
  assert.notEqual(reportKey(period),weeklyKey({start,end}));
+});
+test('31-day custom period is valid and its prompt is not constrained to a natural week',()=>{
+ const now=Date.parse('2026-10-31T07:15:00+07:00');
+ const end=Date.parse('2026-10-31T06:45:00+07:00');
+ const start=end-31*86400000;
+ const period=reportPeriod({start:String(start),end:String(end)},now);
+ assert.equal(period.end-period.start,31*86400000);
+ assert.ok(customPeriodPromptV0.includes('自定义时间范围'));
+ assert.ok(customPeriodPromptV1.includes('Business Brain')===false);
+ assert.ok(customPeriodPromptV1.includes('紧邻前一段等长周期'));
+ assert.equal(customPeriodPromptV1.includes('完整自然周'),false);
+ assert.equal(customPeriodPromptV1.includes('本任务是 LogEarn 完整自然周'),false);
 });
 test('custom report periods reject incomplete, future, reversed and overlong ranges',()=>{
  const now=Date.parse('2026-10-31T07:15:00+07:00');
