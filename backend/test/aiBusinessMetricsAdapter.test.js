@@ -148,3 +148,84 @@ test('metric-specific coverage reports registration and trade uncertainty indepe
   assert.equal(out.coverage.trades,'unknown');
  }finally{evidence.fetchGrowthInsights=original}
 });
+
+test('registered user journey exposes 24h activation, parallel 7d product entries and separate trade conversion',async()=>{
+ const original=evidence.fetchGrowthInsights;
+ try{
+  evidence.fetchGrowthInsights=async()=>({cohorts:{registration:{
+   available:true,scope:'all',
+   metrics:{users:20,eligible:16,activated:8,pending:4,rate:.5},
+   engagement:{eligible:12,pending:5,chip_analysis_users:9,holder_view_users:6,
+    strategy_started_users:4,signal_view_users:7,repeat_analysis_users:3},
+   trade:{available:true,engaged:10,eligible:8,unmatched:2,traders:3,
+    conversion_rate:3/8,pending:2,not_engaged:6,
+    association:'user-level-after-first-analysis'}
+  }},quality:{history_complete:false}}});
+  const result=await metrics({start:100,end:200,source:'all'},
+   {snapshot_id:'events-v1',as_of:'2026-10-20T00:00:00Z'},
+   ['registered_user_journey'],{});
+  const row=result.metrics[0],journey=row.value.registration;
+  assert.equal(row.metricId,'registered_user_journey');
+  assert.equal(row.coverage.status,'partial');
+  assert.equal(journey.users,20);
+  assert.equal(journey.activation.eligible,16);
+  assert.equal(journey.activation.activated,8);
+  assert.equal(journey.activation.rate,.5);
+  assert.equal(journey.engagement.eligible,12);
+  assert.equal(journey.engagement.chip_analysis_users,9);
+  assert.equal(journey.engagement.chip_analysis_rate,.75);
+  assert.equal(journey.engagement.holder_view_rate,.5);
+  assert.equal(journey.engagement.strategy_started_rate,4/12);
+  assert.equal(journey.engagement.signal_view_rate,7/12);
+  assert.equal(journey.engagement.repeat_analysis_rate,.25);
+  assert.equal(journey.trade.eligible,8);
+  assert.equal(journey.trade.traders,3);
+  assert.equal(journey.trade.conversion_rate,3/8);
+  assert.match(journey.engagement.definition,/入口之间允许重叠/);
+  assert.match(journey.definition,/并行产品入口/);
+  assert.ok(row.warnings.some(x=>x.includes('不能相加或画成串行漏斗')));
+  assert.ok(row.warnings.some(x=>x.includes('真实环境验收')));
+ }finally{evidence.fetchGrowthInsights=original}
+});
+
+test('registered user journey keeps immature, unavailable and zero-denominator facts distinct',async()=>{
+ const original=evidence.fetchGrowthInsights;
+ try{
+  evidence.fetchGrowthInsights=async()=>({cohorts:{registration:{
+   available:true,scope:'all',
+   metrics:{users:3,eligible:0,activated:0,pending:3,rate:null},
+   engagement:{eligible:0,pending:3,chip_analysis_users:0,holder_view_users:0,
+    strategy_started_users:0,signal_view_users:0,repeat_analysis_users:0},
+   trade:{available:false,eligible:null,traders:null,conversion_rate:null,
+    pending:1,not_engaged:2,unmatched:null}
+  }}}});
+  const result=await metrics({start:100,end:200,source:'all'},
+   {snapshot_id:'events-v1'},['registered_user_journey'],{});
+  const value=result.metrics[0].value.registration;
+  assert.equal(value.users,3);
+  assert.equal(value.activation.rate,null);
+  assert.equal(value.activation.eligible,0);
+  assert.equal(value.engagement.eligible,0);
+  assert.equal(value.engagement.chip_analysis_users,0);
+  assert.equal(value.engagement.chip_analysis_rate,null);
+  assert.equal(value.trade.available,false);
+  assert.equal(value.trade.eligible,null);
+  assert.equal(value.trade.traders,null);
+  assert.equal(value.trade.conversion_rate,null);
+  assert.ok(result.metrics[0].warnings.some(x=>x.includes('交易转化未知而非零')));
+ }finally{evidence.fetchGrowthInsights=original}
+});
+
+test('registered user journey stays unavailable when registration facts cannot be read',async()=>{
+ const original=evidence.fetchGrowthInsights;
+ try{
+  evidence.fetchGrowthInsights=async()=>({cohorts:{registration:{
+   available:false,scope:'all',metrics:null,error:'offline'
+  }}});
+  const result=await metrics({start:100,end:200,source:'all'},
+   {snapshot_id:'events-v1'},['registered_user_journey'],{});
+  assert.equal(result.metrics[0].value.available,false);
+  assert.equal(result.metrics[0].value.registration.available,false);
+  assert.equal(result.metrics[0].coverage.status,'unavailable');
+ }finally{evidence.fetchGrowthInsights=original}
+});
