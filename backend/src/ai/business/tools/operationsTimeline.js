@@ -106,7 +106,7 @@ function createOperationsTimeline({
    LEFT JOIN cross_exposed c ON c.activity_id=x.activity_id AND c.user_id=x.user_id
    WHERE a.owner_id=? AND x.assigned_at<?
     AND x.activity_id IN (__IDS__)
-   GROUP BY x.activity_id,x.group_key`,ownerId,end,ownerId,end,ownerId,end);
+   GROUP BY x.activity_id,x.group_key`,ownerId,end,ownerId,end,ownerId,ownerId,end);
    const scheduleChanges=aggregate('SELECT h.activity_id,h.action,COUNT(*) AS count,MIN(h.created_at) AS first_at,MAX(h.created_at) AS last_at FROM growth_activity_schedule_history h JOIN growth_activities a ON a.id=h.activity_id WHERE a.owner_id=? AND h.created_at>=? AND h.created_at<? AND h.activity_id IN (__IDS__) GROUP BY h.activity_id,h.action',ownerId,start,end);
    const group=(values,key)=>{const map=new Map();for(const item of values){if(!map.has(item.activity_id))map.set(item.activity_id,[]);map.get(item.activity_id).push(key(item))}return map};
    const memberCounts=new Map(members.map(x=>[x.activity_id,x.count]));
