@@ -195,7 +195,7 @@ async function collectWeeklyCoverage({context,investigate,allowedTools,
  let used=0;
  // High-signal modules first; the remainder honestly stays not-investigated.
  const scheduledOrder=[
-  'operations-timeline','seo-organic','channel-growth','activation-funnel',
+  'seo-organic','operations-timeline','channel-growth','activation-funnel',
   'retention','trade-conversion','revenue','kol-impact',
   'content-growth','follower-quality','referral-and-invite','login-conversion'
  ];
