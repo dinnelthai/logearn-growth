@@ -49,7 +49,7 @@ const LABELS=Object.freeze({
 const METRIC_IDS=Object.freeze(Object.keys(LABELS));
 const CONTEXT_METRIC_IDS=Object.freeze([
  'registered_users','registration_activation_rate','registered_trade_conversion_rate','new_users','active_users','returning_users','activation_rate',
- 'd7','channels','seo_search','kol_performance','content_growth',
+ 'd7','channels','activities','seo_search','kol_performance','content_growth',
  'product_chain','trade_revenue','login_conversion','retention'
 ]);
 const GOAL_FOCUS=Object.freeze({
