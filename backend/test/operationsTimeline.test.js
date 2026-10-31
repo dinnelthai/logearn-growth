@@ -77,7 +77,7 @@ test('timeline merges existing owner-scoped records but keeps human, channel and
  assert.equal(x.metrics.samplePosts,1);
  assert.equal(x.samplePosts.length,1);
  assert.deepEqual(result.coverage.xOfficial.accounts.map(x=>[x.account,x.status]),
-  [['中文账号','synced']]);
+  [['中文账号','available']]);
  assert.equal(JSON.stringify(result).includes('PRIVATE POST BODY'),false);
  assert.equal(JSON.stringify(result).includes('OUTSIDE'),false);
  const collab=result.humanOperations.find(x=>x.kind==='kol_collaboration');
@@ -118,6 +118,16 @@ test('one source failure is isolated and does not erase the other operating reco
  assert.equal(result.aiActions.length,2);
 });
 
+test('successfully synced X accounts with no posts in the selected period are empty',async()=>{
+ const deps=sources(fakeDb());
+ deps.xMonitor.overview=()=>({configured:true,source:'twitterapi.io',attribution:'not-verified',accounts:[
+  {id:'logearn_cn',label:'中文账号',lastSynced:now,posts:[]}
+ ]});
+ const result=await createOperationsTimeline({...deps,clock:()=>now})
+  .collect({start,end,source:'all',limit:60},{ownerId:'owner-1'});
+ assert.equal(result.coverage.xOfficial.status,'empty');
+ assert.deepEqual(result.coverage.xOfficial.accounts.map(x=>x.status),['empty']);
+});
 test('configured X accounts with no successful sync are not reported as empty',async()=>{
  const deps=sources(fakeDb(),{xUnsynced:true});
  const result=await createOperationsTimeline({...deps,clock:()=>now})
