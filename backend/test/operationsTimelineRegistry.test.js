@@ -7,7 +7,7 @@ function createRegistry(){
  const saved=[],calls=[]
  const payload={
   period:{start,end,timezone:'Asia/Bangkok',endExclusive:true},asOf:now,
-  humanOperations:[{kind:'growth_activity',layer:'human_operation',source:'growth_activities',title:'Campaign',status:'active',memberCount:5,assignments:[{group:'treatment',count:3}],deliveryEvidence:[{kind:'delivered',channel:'telegram',count:2}]}],
+  humanOperations:[{kind:'growth_activity',layer:'human_operation',source:'growth_activities',title:'Campaign',status:'active',memberCount:5,assignments:[{group:'treatment',assigned:3,delivered:2,delivery_unknown:1}],outcome:{status:'settled',summary:{completed:2,eligible:5,conversion_rate:.4}}}],
   channelObservations:[{kind:'x_official_account',layer:'channel_observation',source:'twitterapi.io',title:'X account',metrics:{impressions:10}}],
   aiActions:[{kind:'ai_report_action',layer:'ai_suggestion_or_review',source:'business_analysis_actions',title:'Suggested test',status:'pending'}],
   coverage:{growthActivities:{status:'available',count:1},xOfficial:{status:'available',count:1}},
@@ -46,8 +46,8 @@ test('legacy tool discovery and execution expose the owner-scoped operating time
  assert.equal(value.counts.channel_observations_shown,1)
  assert.equal(value.counts.ai_actions_shown,1)
  assert.equal(value.humanOperations[0].memberCount,5)
- assert.equal(value.humanOperations[0].assignments[0].count,3)
- assert.equal(value.humanOperations[0].deliveryEvidence[0].count,2)
+ assert.equal(value.humanOperations[0].assignments[0].assigned,3)
+ assert.equal(value.humanOperations[0].outcome.summary.completed,2)
  assert.match(value.warnings.join(' '),/not completed human operations/)
 })
 test('timeline tool refuses unsupported source scopes and invalid periods before reading sources',async()=>{
