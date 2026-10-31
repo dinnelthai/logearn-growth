@@ -54,3 +54,31 @@ test('dashboard remains read-only and displays persisted owner evidence',async()
   assert.equal((await execute(handlers,'GET /dashboard',{owner:'bob'})).value.goals.length,0);
  }finally{db.close()}
 });
+
+test('only the owning operator can complete internal delivery work with authenticated evidence',async()=>{
+ const db=new DatabaseSync(':memory:');try{
+  const {workspaceStore}=require('../src/ai/growth/workspace/store');
+  const s=workspaceStore(db,{initialize:true});
+  const {createRouter,handlers}=mockRoutes();createRouter({db});
+  const p=s.observeProblem('alice',{type:'business',subject:'declining active users',scope:{source:'all'}});
+  const a=s.proposeActionOnce('alice',p.id,{description:'Check funnel',assignee:'growth'});
+  const ok=await execute(handlers,'POST /actions/:id/status',{params:{id:a.id},body:{status:'accepted'}});
+  assert.equal(ok.status,200);
+  const rows=(await execute(handlers,'GET /executive/work-items')).value.items;
+  assert.equal(rows.length,3);
+  const first=rows.find(x=>x.step==='verify-evidence');
+  assert.equal((await execute(handlers,'POST /executive/work-items/:id/complete',
+   {owner:'bob',params:{id:first.id},body:{evidenceId:'fake'}})).status,404);
+  assert.equal((await execute(handlers,'POST /executive/work-items/:id/complete',
+   {params:{id:first.id},body:{}})).status,503);
+  const now=Date.now();
+  s.saveEvidence('alice',{id:'valid-e',state:'verified',metricId:'active_users',
+   definitionVersion:'1',unit:'users',source:'test',scope:{source:'all'},value:7,
+   period:{start:now-2*86400000,end:now-86400000,timezone:'Asia/Bangkok'},observedAt:now});
+  const reply=await execute(handlers,'POST /executive/work-items/:id/complete',
+   {params:{id:first.id},body:{evidenceId:'valid-e'}});
+  assert.equal(reply.status,200);
+  assert.equal(reply.value.status,'completed');
+  assert.equal((await execute(handlers,'GET /executive/work-items',{owner:'bob'})).value.items.length,0);
+ }finally{db.close()}
+});
