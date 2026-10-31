@@ -1,5 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import {renderWeeklyDecisionReport,trustedMetrics,readOnlyGscMarkup} from '../aiWeeklyDecisionView.js';
+import {weeklyCoverageRows,weeklyCoverageSummary} from '../aiWeeklyCoverageView.js';
 
 const period={
  start:Date.parse('2026-10-19T00:00:00+07:00'),
@@ -133,3 +134,25 @@ describe('decision-first weekly view',()=>{
   expect(html).toContain('<details class="ai-weekly-details ai-weekly-coverage-details"');
   expect(html).toContain('id="weekly-coverage"');
  });
+
+it('shows all 13 source modules for v5 without fabricating a 13th historical module',()=>{
+ const historical=weeklyCoverageSummary(base);
+ expect(historical.total).toBe(12);
+ const data={...base,result:{...base.result,weeklyCoverage:{
+  version:'weekly-coverage-v1',
+  modules:[{id:'operations-timeline',label:'运营活动与执行记录',
+   status:'collected',reason:'已取数，但尚未形成数值结论',
+   facts:[],evidenceIds:['operations-evidence']}]}}};
+ const actual=weeklyCoverageSummary(data);
+ expect(actual.total).toBe(13);
+ expect(actual.collected).toBe(1);
+ expect(weeklyCoverageRows(data).find(row=>row.id==='operations-timeline')?.label)
+  .toBe('运营活动与执行记录');
+ const html=renderWeeklyDecisionReport({...options,data,record});
+ expect(html).toContain('模块覆盖与调查状态 · 13 个增长模块');
+ expect(html).toContain('13 个增长模块全部保留在归档');
+ expect(html).toContain('运营活动与执行记录');
+ const archived=renderWeeklyDecisionReport({...options,data:base,record});
+ expect(archived).toContain('模块覆盖与调查状态 · 12 个增长模块');
+ expect(archived).not.toContain('运营活动与执行记录');
+});
