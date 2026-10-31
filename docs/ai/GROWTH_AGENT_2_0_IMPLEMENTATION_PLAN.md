@@ -2,7 +2,7 @@
 
 Branch: `codex/ai-comprehensive-upgrade`  
 Scope: Business Brain, Growth Intelligence, Operating Memory, Decision Engine and Learning Loop.  
-Progress snapshot (2026-10-31): 13 / 44 implementation checklist items have code or documentation in place (about 30%); test and live-source acceptance are tracked separately.  
+Progress snapshot (2026-10-31): 18 / 45 implementation checklist items have code and CI coverage in place (40%); live-source acceptance is tracked separately.  
 Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace and storage.
 
 ## Product definition
@@ -41,8 +41,8 @@ Do not build a second analytics engine, CRM, operations task manager, metric reg
 - [x] Confirm target branch and current repository architecture.
 - [x] Inventory existing modules, metrics, evidence and action/review stores.
 - [x] Add durable architecture and handoff documents.
-- [ ] Run focused tests in a local checkout.
-- [ ] Record exact pre-existing test failures separately from regressions.
+- [x] Run focused Node tests on the target branch (CI or local checkout).
+- [x] Record exact pre-existing test failures separately from regressions.
 
 Acceptance: a new agent can start from the handoff document without asking for project history again.
 
@@ -55,7 +55,7 @@ Acceptance: a new agent can start from the handoff document without asking for p
 - [x] Bounded operating-memory projection from existing AI suggestions/reviews.
 - [x] New v5 context protocol for new analysis tasks; old v1-v4 prompts remain replayable.
 - [x] New weekly prompt framing around business outcomes rather than equal module coverage.
-- [ ] Run focused Node tests and validate the real worker context under the 22KB cap.
+- [x] Run focused Node tests and validate the model-context projection under the 22KB cap in CI/isolated fixtures.
 - [ ] Verify the new context on a real, already-authorized business report without starting an unnecessary paid model call.
 - [ ] Review the product map and North Star intent with the operator; do not invent formal KPI definitions.
 
@@ -69,7 +69,8 @@ Acceptance:
 ### Phase 2 — Growth Intelligence and source coverage
 
 - [ ] Audit all existing business modules and their source contracts.
-- [ ] Fix product-to-trade analysis to use authoritative transaction facts; report identity/visit association separately.
+- [x] Fix product-to-trade analysis to use authoritative transaction facts; report identity/visit association separately.
+- [x] Bound product-trade lookup to successful same-token analysis windows; cap result size and expose truncated/unknown coverage explicitly.
 - [ ] Establish the registration → activation → product engagement → trade funnel with verified denominators and maturity.
 - [ ] Validate SEO/GSC date semantics, X snapshot semantics, KOL CRM association and referral/invite contracts.
 - [ ] Add channel / product / cohort breakdowns only where the source supports them.
