@@ -86,6 +86,18 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,dateTime=n
  const observations=Array.isArray(w.channelFindings)?w.channelFindings:[];
  const actions=Array.isArray(w.nextWeek)?w.nextWeek.slice(0,5):[];
  const gaps=Array.isArray(w.dataGaps)?w.dataGaps:[];
+ const lifecycle=Array.isArray(w.lifecycle)?w.lifecycle:[];
+ const opportunities=Array.isArray(w.opportunities)?w.opportunities:[];
+ const previousActions=Array.isArray(w.previousActions)?w.previousActions:[];
+ const lifecycleLabels={acquisition:'获客',registration:'注册',activation:'首次激活',
+  engagement:'产品参与',retention:'留存',trading:'真实交易',economics:'商业经济'};
+ const lifecycleStatus={observed:'有证据',partial:'部分证据',unknown:'未知',
+  'not-investigated':'未调查'};
+ const previousStatus={executed:'已执行',executing:'执行中',accepted:'已采纳（未证明执行）',
+  rejected:'已拒绝'};
+ const reviewStatus={'observed-supported':'观察到正向变化',
+  'observed-contradicted':'观察到未改善',insufficient:'证据不足',
+  'not-reviewed':'尚未复盘','not-applicable':'不适用'};
  const operations=result.weeklyOperations||persistedContext(data)?.weeklyOperations||null;
  const calls=Array.isArray(result.calls)?result.calls:[];
  const callsTable=calls.length?
@@ -137,7 +149,35 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,dateTime=n
   '<span>同口径业务快照；历史覆盖限制详见底部</span></div>'+
   (metrics.length?'<div class="ai-weekly-kpis">'+metrics.map(kpi).join('')+'</div>':
    '<p class="ai-weekly-empty">暂无可信的本周/上周指标对照，不能替代为估算值。</p>')+'</section>'+
-  renderWeeklyCoverage(data,{safe,fmt,links})+
+  (lifecycle.length?'<section class="ai-weekly-section ai-weekly-lifecycle-section"><div class="ai-weekly-section-heading">'+
+    '<div><span class="ai-weekly-section-index">03 / LIFECYCLE</span><h4>经营生命周期</h4></div>'+
+    '<span>多入口观察，不强制串成单一漏斗</span></div>'+
+    '<div class="ai-weekly-lifecycle-grid">'+lifecycle.map(row=>
+     '<div class="ai-weekly-lifecycle-item" data-status="'+safe(row.status)+'">'+
+      '<div><strong>'+safe(lifecycleLabels[row.stage]||row.stage)+'</strong>'+
+       '<span>'+safe(lifecycleStatus[row.status]||'未知')+'</span></div>'+
+      '<p>'+safe(row.finding)+'</p>'+evidence(row.evidenceIds)+'</div>').join('')+
+    '</div></section>':'')+
+   (Array.isArray(w.opportunities)?'<section class="ai-weekly-section ai-weekly-opportunities-section">'+
+    '<div class="ai-weekly-section-heading"><div><span class="ai-weekly-section-index">04 / OPPORTUNITIES</span>'+
+    '<h4>增长机会</h4></div><span>正向观测仍需验证可持续性</span></div>'+
+    (opportunities.length?list(opportunities,x=>'<div class="ai-weekly-observation"><p>'+safe(x.text)+'</p>'+evidence(x.evidenceIds)+'</div>'):
+     '<p class="ai-weekly-empty">本期没有达到证据标准的正向机会；不代表没有增长潜力。</p>')+
+    '</section>':'')+
+   (Array.isArray(w.previousActions)?'<section class="ai-weekly-section ai-weekly-previous-actions-section">'+
+    '<div class="ai-weekly-section-heading"><div><span class="ai-weekly-section-index">05 / OPERATING MEMORY</span>'+
+    '<h4>历史行动与复盘</h4></div><span>采纳不等于执行，前后变化不等于因果</span></div>'+
+    (previousActions.length?list(previousActions,x=>
+     '<div class="ai-weekly-action" data-review="'+safe(x.review)+'">'+
+      '<div><strong>'+safe(x.action)+'</strong>'+
+      '<p>状态：'+safe(previousStatus[x.status]||'未知')+' · 复盘：'+safe(reviewStatus[x.review]||'未知')+'</p>'+
+      '<p>指标：'+safe(x.metric||'未知')+' · 结果：'+safe(x.outcome||'未知')+'</p>'+
+      evidence(x.evidenceIds)+'</div></div>'):
+     '<p class="ai-weekly-empty">没有可核对的历史行动/复盘记录；这不代表没有发生运营工作。</p>')+
+    '</section>':'')+
+   '<details class="ai-weekly-details ai-weekly-coverage-details" id="weekly-coverage-details">'+
+    '<summary>模块覆盖与调查状态 · 12 个增长模块（点击展开）</summary>'+
+    '<div class="ai-weekly-details-body">'+renderWeeklyCoverage(data,{safe,fmt,links})+'</div></details>'+
   '<section class="ai-weekly-section ai-weekly-channel-section"><div class="ai-weekly-section-heading">'+
    '<div><span class="ai-weekly-section-index">04 / ACQUISITION</span><h4>渠道、SEO 与获客</h4></div>'+
   '<span>来源和时间窗分开判断</span></div>'+
