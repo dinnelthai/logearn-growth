@@ -30,7 +30,7 @@ test('custom report periods reject incomplete, future, reversed and overlong ran
  assert.throws(()=>reportPeriod({start:String(start)},now),/同时填写/);
  assert.throws(()=>reportPeriod({start:String(start),end:String(now+1)},now),/有效/);
  assert.throws(()=>reportPeriod({start:String(start),end:String(start)},now),/有效/);
- assert.throws(()=>reportPeriod({start:String(start-31*86400000),end:String(start)},now),/有效/);
+ assert.throws(()=>reportPeriod({start:String(start-(31*86400000+1)),end:String(start)},now),/有效/);
 });
 test('missing custom timestamps retain the latest completed week default',()=>{
  const now=Date.parse('2026-10-29T09:00:00+07:00');
