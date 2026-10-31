@@ -2,7 +2,7 @@
 
 Branch: `codex/ai-comprehensive-upgrade`  
 Scope: Business Brain, Growth Intelligence, Operating Memory, Decision Engine and Learning Loop.  
-Progress snapshot (2026-10-31, latest source/test HEAD `0d3b508cb654e47352f8aa2926f1ba8b8b662e6c`): **47 / 48 implementation checklist items (97.9%)** have code/CI or operator-confirmed business-definition evidence; **1 remains open**. This is NOT live-source, platform-revenue availability or real-model acceptance.  
+Progress snapshot (2026-10-31, latest source/test HEAD `d678cf51af6257a250777c52708586448bba5ff0`): **47 / 48 implementation checklist items (97.9%)** have code/CI or operator-confirmed business-definition evidence; **1 remains open**. This is NOT live-source, platform-revenue availability or real-model acceptance.  
 Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace and storage.
 
 ### Continuation checkpoint — 2026-10-31 (saved v5 context, no-paid acceptance preparation)
@@ -18,6 +18,7 @@ Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace 
 - **Independent trading outcome:** verified transactions and volume are distinct supporting results. No North Star analysis→trade attribution window is required; the existing registered-cohort 7-day trade conversion keeps its own historic formal definition.
 - **Identity failures:** trades with no trustworthy user association do not qualify for verified user-linked trading counts. Surface missing identity as matching/coverage anomalies, not as evidence of zero real trades. No trading facts have been erased or SQL changed.
 - **Runtime alignment:** Business Brain's existing v2 context now carries a confirmed single-metric definition (while preserving the no-composite protocol status), and activation question relevance includes `active_users` and returning users. New focused regressions guard these rules.
+- **Code/CI checked:** `d678cf51af6257a250777c52708586448bba5ff0`, [AI infrastructure 41206755515](https://github.com/dinnelthai/logearn-growth/actions/runs/41206755515) completed successfully on all three jobs. The v5 weekly context reserve remains capped at 22KB and optional context yields first to North Star/aggregate KPI evidence.
 - **Progress 47/48 (97.9%), Phase 1 operator signoff closed.** The one remaining checkbox is genuine already-authorized read-only v5 context/source acceptance. This is not Worker, live model, production or external-source acceptance. CI on new code commit must be checked separately.
 ## Product definition
 
@@ -63,7 +64,7 @@ Do not build a second analytics engine, CRM, operations task manager, metric reg
 | 6 — Learning Loop | 6/6 | 0 | Frozen-cohort end-to-end acceptance pending; v2 direct cohort review currently maps only `active_users → analysis_users` |
 | **Total** | **47/48 (97.9%)** | **1** | **No real-source/Worker/paid-model acceptance implied** |
 
-**Latest verified checks:** AI infrastructure [run 41205481012](https://github.com/dinnelthai/logearn-growth/actions/runs/41205481012) passed **AI Contract (including `aiSavedContextAudit.test.js`), AI Integration and AI Frontend** on source/test HEAD `0d3b508cb654e47352f8aa2926f1ba8b8b662e6c`. No full real-source / Worker / paid-model acceptance was performed.
+**Latest verified checks:** [AI infrastructure run 41206755515](https://github.com/dinnelthai/logearn-growth/actions/runs/41206755515) **passed AI Contract, AI Integration and AI Frontend** on code/test commit `d678cf51af6257a250777c52708586448bba5ff0`; includes operator North Star definition, report priority, the existing source-contract regressions and v5 <=22KB context validation. Not real source/Worker/model acceptance. No full real-source / Worker / paid-model acceptance was performed.
 
 **Known code/UI debt, not counted as new roadmap checkboxes:**
 - **Resolved in subsequent code:** weekly UI now derives the count from the persisted manifest and retains the 13th `operations-timeline` module without inventing a 13th module for historical 12-module snapshots. Frontend regression [41184785074](https://github.com/dinnelthai/logearn-growth/actions/runs/41184785074) passed.

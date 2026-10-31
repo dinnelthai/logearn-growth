@@ -22,6 +22,14 @@ All dates use repository commit time / recorded work date. This log is append-on
 - Trades lacking reliable user identity are excluded from verified user-linked outcomes and recorded as matching anomalies / unknown association coverage, not described as zero trades.
 - Updated Business Brain v2 operator metadata, activation-oriented question priority, unit tests and handoff/source contracts. **47/48 (97.9%) roadmap**; only genuine read-only v5 context/source acceptance remains. New code CI result requires separate verification.
 - No paid calls, external source sync, migrations, deployment, or `master` merge.
+### Verified CI and correction trail
+
+- Initial North Star code CI (`72dd38a...`) failed one *stale priority-order test*, not the owner-approved business decision. Updated test to expect `active_users` first.
+- Next CI (`863e51b...`) exposed an existing explicit finance-guard assertion; restored `合作账本不是平台收入` wording rather than dropping the guard.
+- Third CI (`6ba4927...`) detected weekly v5 model context over 22KB after the new policy; raised reserved headroom for the pre-existing optional context compactor, not the hard model byte limit.
+- Subsequent CI (`dce6f48...`) detected a stale weekly-context priority expectation; changed the test to require `active_users` as the top goal-relevant positive signal while preserving `new_users` separately.
+- **Final source/test commit `d678cf51af6257a250777c52708586448bba5ff0`; [GitHub CI 41206755515](https://github.com/dinnelthai/logearn-growth/actions/runs/41206755515) passed AI Contract, AI Integration and AI Frontend. This is source/fixture validation, not live Hologres or paid model acceptance.
+- **Progress: 47/48 (97.9%)**, Phase 1 real source/context gate remains open. Existing unmatched-identity observations can be marked unknown/anomalous, but a complete source-verified anomaly count and event mapping have **not** been accepted.
 ## 2026-10-31 — Business Brain v1 foundation
 
 Branch: `codex/ai-comprehensive-upgrade`
