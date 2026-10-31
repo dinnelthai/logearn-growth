@@ -130,16 +130,36 @@ function factsFromEvidence(evidence){
   }else if(e.metricId==='registered_user_journey'){
    const registration=value?.registration||{},activation=registration.activation||{},
     engagement=registration.engagement||{},trade=registration.trade||{};
-   add('registration.activation.eligible',activation.eligible,e.id);
-   add('registration.activation.activated',activation.activated,e.id);
-   add('registration.activation.rate',activation.rate,e.id);
-   add('registration.engagement.eligible',engagement.eligible,e.id);
-   for(const key of ['chip_analysis_users','holder_view_users','strategy_started_users',
-    'signal_view_users','repeat_analysis_users'])
-    add('registration.engagement.'+key,engagement[key],e.id);
-   add('registration.trade.eligible',trade.eligible,e.id);
-   add('registration.trade.traders',trade.traders,e.id);
-   add('registration.trade.conversion_rate',trade.conversion_rate,e.id);
+   if(Array.isArray(registration.bySource)){
+    // A source-specific investigation gets citeable, bounded source facts
+    // before the 12-fact quota is exhausted by overall summary metrics.
+    add('registration.users',registration.users,e.id);
+    add('registration.activation.eligible',activation.eligible,e.id);
+    add('registration.engagement.eligible',engagement.eligible,e.id);
+    add('registration.trade.eligible',trade.eligible,e.id);
+    for(const row of registration.bySource.slice(0,2)){
+     const source=safeDimension(row?.source);
+     if(!source)continue;
+     add('registration.bySource.'+source+'.users',row.users,e.id);
+     add('registration.bySource.'+source+'.activation.activated',
+      row.activation?.activated,e.id);
+     add('registration.bySource.'+source+'.engagement.chip_analysis_users',
+      row.engagement?.chip_analysis_users,e.id);
+     add('registration.bySource.'+source+'.engagement.holder_view_users',
+      row.engagement?.holder_view_users,e.id);
+    }
+   }else{
+    add('registration.activation.eligible',activation.eligible,e.id);
+    add('registration.activation.activated',activation.activated,e.id);
+    add('registration.activation.rate',activation.rate,e.id);
+    add('registration.engagement.eligible',engagement.eligible,e.id);
+    for(const key of ['chip_analysis_users','holder_view_users','strategy_started_users',
+     'signal_view_users','repeat_analysis_users'])
+     add('registration.engagement.'+key,engagement[key],e.id);
+    add('registration.trade.eligible',trade.eligible,e.id);
+    add('registration.trade.traders',trade.traders,e.id);
+    add('registration.trade.conversion_rate',trade.conversion_rate,e.id);
+   }
   }else if(e.metricId==='activities'&&Array.isArray(value?.humanOperations)){
    // Prioritize settled outcomes, then aggregate delivery states by fixed group.
    const row=value.humanOperations.find(x=>x?.kind==='growth_activity');
