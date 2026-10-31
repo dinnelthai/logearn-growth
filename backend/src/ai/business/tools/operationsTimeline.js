@@ -242,7 +242,7 @@ function createOperationsTimeline({
    }
    const statuses=accountCoverage.map(row=>row.status);
    const overallStatus=!overview.configured?'not_configured':
-    statuses.includes('synced')?'available':
+    statuses.includes('available')?'available':
      statuses.includes('unavailable')?'unavailable':
       statuses.includes('not_synced')?'not_synced':'empty';
    coverage.xOfficial={status:overallStatus,count,accounts:accountCoverage,
