@@ -119,3 +119,18 @@ node --test test/growthExecutiveCycle.test.js test/growthExecutiveInvestigation.
 - Hologres `status()` 的未知值是明确的保守设计，不由最新事件时间推算完整性。只读元数据检查未发现可识别的采集完整性/水位或检查点表；尚无独立证据证明历史完整或事件完整截止时间。保持 `history_complete=false` 与 `events_complete_through=null`，不得将其强制设为通过。
 - API、AI Worker、前端与本地 Redis 在确认 AI 队列及待处理记录为空后重启；API `/health` 正常，Worker 已注册任务并就绪，进程启动于当前 checkout HEAD `574a1bd` 之后。该次测试修订仅涉及测试文件；运行进程未证明未来提交的 SHA，也不是部署验收。
 - 只读检查既有周报对应 owner，X 官方内容与快照存在，但数据存在不证明完整或归因；workspace action 数为零，尚无运营执行记忆可验证。无既存 v5 快照，真实 13 模块与模型 journal 签收仍未完成，47/48 不变。
+
+## 2026-10-31 数据可信度与 v5 端到端验收准备
+
+| 检查 | 状态 | 证据与边界 |
+| --- | --- | --- |
+| 上游采集、重试与回填 | BLOCKED | 产品端有批量传输及本地有界 outbox；接收服务、逐条持久化确认、死信/重试和回填证明不在本仓库或当前可见数据库。客户端可丢失事件，无法从目标表推断全量。详见 `GROWTH_INGESTION_CHECKPOINT_PLAN.md`。 |
+| 事件/到达/快照/完整水位 | PASS（定义）/ BLOCKED（完整水位） | 分别为 `client_ts`、`server_ts`、`snapshot_cutoff`、独立核实的全分区完整时间；前三者不证明第四者。可见元数据未发现增长采集检查点，当前源码保持 false/null。 |
+| 首次、回访、跨设备去重 | BLOCKED | 匿名 ID 为浏览器本地；SQL 仅将无冲突的匿名 ID 合并到账号。历史与跨设备关联无法独立确认，首次观测不能作为真实首次。 |
+| 检查点消费者的独立结构校验 | PASS（离线代码） | `ingestionCheckpointContract.js` 只检查结构并始终返回来源未验证；从未接入 Hologres 状态。分区不全、过期、失败或待重试均不生成候选水位。不能替代采集者提供的真实证明。 |
+| API / Worker / 前端版本 | PASS（代码等价） | 进程均在 `574a1bd` 后启动；`574a1bd..c7c5ba6` 对运行的后端源码、依赖和前端无差异，API 健康。进程无构建 SHA 自报，故证明源码等价，不是进程自报完整 SHA。 |
+| 13 模块真实 v5 和 journal | BLOCKED | 当前 owner 没有已保存 v5；最新可用旧存档仅 12 模块：增长、SEO、渠道、激活、留存、推荐和登录标为 collected；交易、合作账本、X 内容及粉丝质量为 insufficient；KOL 为 not-investigated，运营时间线不存在。旧状态不代表实时来源通过。无 v5 journal 或真实 v5 22KB 投影可审计；旧原始存档字节数不等于投影字节数。 |
+| 单独来源只读检查 | PARTIAL | 既存 owner：GSC 设置和 API 快照各 1，KOL 快照、CRM KOL、运营行动均为 0，X 内容及快照分别 21/20。仅是存在性计数，不证明期间匹配、采集完整、关联或因果。未发起采集或付费模型调用。 |
+| CI | PASS（基线 SHA） | `c7c5ba65fe8c5d9cbeb2fa728c707ea2fb3c5c71` 的 [AI infrastructure](https://github.com/dinnelthai/logearn-growth/actions/runs/41219608758) 成功。后续提交的 CI 状态须以对应 SHA 的运行结果为准。 |
+
+真实来源与真实 v5 验收均未通过，原进度仍为 47/48。对外信息仅记录聚合状态，不记录 owner、凭据或事件明细。

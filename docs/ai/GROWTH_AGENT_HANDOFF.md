@@ -463,3 +463,5 @@ Final validation update: run [41177187712](https://github.com/dinnelthai/logearn
 用户随后确认仅有一个环境并授权操作：该环境 SQLite 已于备份及完整性检查后执行两次幂等迁移，六张表均存在；备份保留本机 `backend/data/backups/`。Hologres 只读连接可用，但 `history_complete=false` 且事件完整水位未知，真实 v5 与人机闭环仍不能签收。API 和 Worker 进程启动时间早于分支同步，尚未确认运行最新代码。详见剩余验收清单最新记录。
 
 后续回归：后端全量 1089 通过、0 失败、16 跳过；原 17 个失败为测试夹具和旧断言与现行契约不一致，费用门禁未放宽。空闲时已重启 API/Worker 并通过健康检查；Hologres 未发现可验证的上游完整性水位，真实 v5 签收仍未完成。具体分类见剩余验收清单。
+
+2026-10-31 数据可信度调查：产品浏览器批量发送并有限重试，接收服务和回填/死信检查点不在当前仓库；未找到可验证完整水位。新增独立结构校验器仅提供未验证候选，未连接真实 Hologres 状态；上游协议及身份风险见 `GROWTH_INGESTION_CHECKPOINT_PLAN.md`。当前可查既存周报仍为旧 12 模块，无真实 v5 或 v5 journal；13 模块、22KB 与真实来源签收仍阻塞，47/48 不变。具体 PASS/PARTIAL/BLOCKED 及基线 CI 见剩余验收清单。
