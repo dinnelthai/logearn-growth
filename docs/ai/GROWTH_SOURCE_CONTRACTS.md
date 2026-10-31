@@ -1,6 +1,6 @@
 # Growth Agent 2.0 — Channel source and historical-period contracts
 
-> Branch: `codex/ai-comprehensive-upgrade`. Latest audited source/test HEAD: `81bc9a06fba358c484eed9bb620ab303110d8ed5`; [AI infrastructure CI 41201630015](https://github.com/dinnelthai/logearn-growth/actions/runs/41201630015) passed Contract, Integration and Frontend.
+> Branch: `codex/ai-comprehensive-upgrade`. Latest audited source/test HEAD: `6540a7a353b5fadb080f016afa2aa2b8795ece0f`; [AI infrastructure CI 41204481078](https://github.com/dinnelthai/logearn-growth/actions/runs/41204481078) passed Contract, Integration and Frontend.
 >
 > This is a **code + fixture/CI contract audit**, not an assertion that real X, Search Console, Hologres, CRM or referral data have been connected, are current, or passed a paid-model end-to-end test. Unknown is not zero. No source here authorizes automatic external collection or paid calls.
 
@@ -147,3 +147,21 @@ All other apparent similarities (shared channel label, same day, coincidental to
 The timeline reader also hides **post-report settlements and future settlement snapshots** in historical reports. The positive allowlist transmits only aggregated outcome metrics and opaque `record:[hash]` refs, not raw CRM IDs, members, wallets, posts or user-level records. The link arrays are supplementary associations; original source observations remain separate with their own coverage/freshness.
 
 **Acceptance boundary:** all checks here are source-contract fixtures. Actual production cross-source time alignment, incomplete sampling, historical mutations and causal lift remain independently unverified.
+
+## 2026-10-31 — Owner-scoped measured tool latency and decision cost semantics
+
+The Decision Engine now uses only **successful operation wall-clock observations** from the authorized legacy tool registry. Time is measured monotonically after the tool is authorized, snapshot and budget checks pass. This is an execution observation, **not** the full API request duration, database read bytes, USD charge, provider token cost or guaranteed future service latency. Monetary query cost **always remains unknown** in this contract.
+
+| Dimension | Trust boundary |
+| --- | --- |
+| Source | `agent_evidence` rows already saved by `createEvidenceStore` under the same authenticated owner; no new collector, paid probe, migration or source of prices |
+| Sample eligibility | Valid integer elapsed milliseconds of a successful tool operation, generated in the prior 30 days; same `filters.scope` source/activity/cohort and period duration within 20% of requested period |
+| Multiple metrics | One measured sample for a `query_metrics` invocation, not one per returned metric; each legacy single-tool invocation contributes at most one |
+| Minimum comparable estimate | Three matching successful records; use median rather than a single optimistic execution; fail closed to unknown if a tool has fewer or incomparable records |
+| Ranking | First retain operator priority and goal relevance, then explicitly observed affected users, same-metric user-count change and evidence-backed confidence; historical elapsed milliseconds may distinguish authorized comparable query alternatives |
+| Root-cause discriminators | The 2–3 distinct hypotheses and proposed queries must pass the existing strict tool authorization, input schema, source, period and evidence checks **before** measured-latency comparison. No new action is authorized by the ranking. If any candidate timing or tool price gate is unknown, no winner is asserted |
+| Model | Ordinary and 13-module weekly v5 contexts contain only a small, sanitized ranking list; strict 22KB budget keeps core KPI evidence first. No raw account/member/user IDs, unrelated private owner details or fabricated query prices |
+
+**Current limitations:** historical elapsed time may be influenced by storage load, parameter cardinality, upstream variance and retries. Same scope/period is a useful comparability guard but not an identical SQL shape guarantee. Not even a complete wall-time sample proves which query yields greater information gain. Hologres physical scan bytes and real financial charge are not collected by this new code. The label `bestObservedLatencyTool` means **lowest measured median among the compared authorized candidates only when all have sample support**; it must never be presented as a verified lowest dollar-cost query.
+
+**Source/test HEAD:** `6540a7a353b5fadb080f016afa2aa2b8795ece0f`; [AI CI 41204481078](https://github.com/dinnelthai/logearn-growth/actions/runs/41204481078) passed Contract, Integration and Frontend. The remaining roadmap items require an **already-authorized real context** check without unapproved paid-model calls and **human** confirmation of product-map / North Star semantics.
