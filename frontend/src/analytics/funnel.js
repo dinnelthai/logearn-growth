@@ -100,6 +100,7 @@ export function computeFunnel(users, {
     const totalEligible=rows.filter(r=>!r.pending&&(r.incompleteAt==null||r.incompleteAt>i))
     const totalConverted=totalEligible.filter(r=>r.times.length>i)
     return {key,users:stepCounts[i],eligible:eligibleRows.length,converted:convertedRows.length,
+      total_converted:totalConverted.length,
       pending,unknown,
       previous_conversion_rate:eligibleRows.length?convertedRows.length/eligibleRows.length:null,
       total_eligible:totalEligible.length,
@@ -108,6 +109,7 @@ export function computeFunnel(users, {
   })
 
   const complete = rows.filter(r => r.times.length === steps.length)
+  const finalStep=funnelSteps.at(-1)
   const conversionTimes = complete.map(r => r.times[r.times.length - 1] - r.times[0])
 
   return {
@@ -117,6 +119,9 @@ export function computeFunnel(users, {
     rows,
     total_entered: rows.length,
     total_converted: complete.length,
+    mature_entered:finalStep?.total_eligible??0,
+    mature_converted:finalStep?.total_converted??0,
+    mature_conversion_rate:finalStep?.total_conversion_rate??null,
     pending_count: rows.filter(r => r.pending).length,
     median_conversion_ms: medianMs(conversionTimes),
   }
