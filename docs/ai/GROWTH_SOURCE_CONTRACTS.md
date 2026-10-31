@@ -108,3 +108,25 @@ Source/test HEAD `7044ef3859c551002f543c0d8d178cbd142877dc`; [AI CI 41198640425]
 **Audited implementation/test HEAD:** `1f6ca609ac864cb3877208136e8e9c8dae29ddae`. [AI infrastructure run 41199595293](https://github.com/dinnelthai/logearn-growth/actions/runs/41199595293) is the final code/test CI run; check its final conclusion before claiming all jobs passed.
 
 **Remaining independent acceptance:** read-only reconciliation of actual events/registrations/trades, real source freshness and late-arrival coverage for each metric, GSC PT-day completeness, X/KOL retention, invite binding history, operator-confirmed attribution definitions and measured integration latency. These are not proven by the offline catalog audit; the separate Phase 2 independent-watermark/freshness checklist stays open.
+
+## 2026-10-31 — Universal per-metric provenance / freshness envelope
+
+Implementation source/test SHA: `e5a08a39d4668d2895c23bc5997946885292a9a0`. [AI CI run 41200563427](https://github.com/dinnelthai/logearn-growth/actions/runs/41200563427) is the final regression run.
+
+Every **new internal metric evidence** produced through `makeEvidence()` now records a small, immutable `sourceMetadata` alongside its existing formal `definitionVersion`, `filters.scope`, authorized Bangkok `period`, `sourceVersions`, `watermarks`, `coverage` and immutable `queryFingerprint`. Legacy archived evidence is not rewritten; absence of new metadata on historical evidence remains unknown.
+
+| Field | Meaning | Explicit safety boundary |
+| --- | --- | --- |
+| `sourceMetadata.sourceType` | Audited tool's source type; `query_metrics` additionally distinguishes event-only, registered-account, registration + events, and registration + events + trade metrics | Names components, **not** their availability or causal attribution |
+| `sourceMetadata.clock` | Expected source clock: event snapshot, independent registration/trade clocks, GSC PT day, post sample, cumulative referral or manual ledger | Observation clocks are not interchangeable; composite sources do not inherit a single complete-through clock |
+| `sourceMetadata.scope` | `all`, `observed_source` or `fixed_audience`, derived from authorized scope plus specific per-channel evidence filters | Does not claim first-touch channel attribution or unlock a wider audience |
+| `sourceMetadata.coverageStatus` | Explicit bounded status from existing source coverage, default `unknown` | No inferred `verified` or `empty` status from successful reads |
+| `sourceMetadata.freshness.status` | `unknown` when no usable source reference timestamp; `unverified` if a source reference timestamp or reported complete-through exists | **Never** `fresh` or `verified` merely because a query ran |
+| `sourceMetadata.freshness.referenceAt` | Actual available source time: event `as_of` for event-only metrics, GSC `syncedAt/importedAt`, X bounded post observation, KOL snapshot timestamp or follower scan update | Import, collection and event snapshot reference times are **not complete-through dates**; composite/CRM-only evidence retains `null` |
+| `sourceMetadata.freshness.reportedCompleteThrough` | Only the event source's explicitly reported `events_complete_through` when present and valid | It is **reported**, not live-verified; never synthesized from `as_of`, report `end` or current time |
+
+The positive-allowlist model projection exposes only this compact metadata and no source rows, accounts or identities. `forModelV4` retains the clock/status during bounded compaction; missing source versions and timestamps are projected as `null`, never an empty string that could be mistaken for a data value. `query_metrics` carries `eventsCompleteThrough` only when actually supplied by the snapshot; registration and trade independent watermarks continue to be null unless separately measured.
+
+**Tests:** `backend/test/businessModuleCatalog.test.js` tests every one of the 18 audited tool IDs, plus effective channel-specific source scope. `backend/test/agentTools.test.js` checks mixed account/registration/trade/event metrics, GSC, CRM and model projection. `backend/test/modelEvidenceCompact.test.js` asserts the compact model view keeps unverified source metadata under its byte budget. These are offline contract tests, not source freshness verification.
+
+**Real acceptance still outstanding:** independently read actual Hologres event completeness, account creation watermark, verified transaction enrichment and identity coverage; check stored GSC PT-day completion, X sampling and KOL CRM link completeness; validate operator metric definitions and a real already-authorized v5 report. This implementation explicitly represents unknowns and does not substitute code/CI for real external data acceptance.
