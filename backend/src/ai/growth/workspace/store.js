@@ -376,8 +376,10 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
   ownerId(owner);
   if(!Number.isSafeInteger(at)||at<0)throw Error('经营看板时间无效');
   const month=currentMonth(at);
-  const northStar=listGoals(owner,{asOf:at,start:month.start,end:month.end})
-   .find(g=>g.metric_id==='active_users'&&g.definition_version==='1'&&g.kind==='north'&&g.scope?.source==='all');
+  const northGoals=listGoals(owner,{asOf:at,start:month.start,end:month.end})
+   .filter(g=>g.metric_id==='active_users'&&g.definition_version==='1'&&
+    g.kind==='north'&&g.scope?.source==='all');
+  const northStar=northGoals.length===1?northGoals[0]:null;
   const open=problems(owner,{limit:200}).filter(p=>['open','monitoring'].includes(p.status));
   const acts=actions(owner,{limit:200});
   const observations=all('SELECT payload FROM gw_evidence WHERE owner_id=? ORDER BY observed_at DESC LIMIT 200',owner)
@@ -399,7 +401,7 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
   return {version:'growth-executive-queue-v1',
    northStar:{metricId:'active_users',unit:'users',definitionVersion:'1',
     goalId:northStar?.id||null,target:northStar?.target_value??null,
-    targetStatus:northStar?'workspace-configured':'not-configured',
+    targetStatus:northGoals.length>1?'conflicting-monthly-goals':northStar?'workspace-configured':'not-configured',
     note:'只统计报告期筹码峰查看/下钻的去重用户；交易是独立结果'},
    latestVerifiedNorthStar:mostRecent?{value:mostRecent.value,period:mostRecent.period,evidenceId:mostRecent.id}:null,
    priorities,unresolvedProblems:open.length,waitingApproval:awaiting.length,

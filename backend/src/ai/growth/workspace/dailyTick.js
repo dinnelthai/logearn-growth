@@ -42,12 +42,18 @@ async function dailyWorkspaceTickWithMetrics({db,ownerId,now=Date.now(),metricPr
    ...(executiveObservation?{load:executiveObservation}:{})}):{status:'disabled',modelCalls:0,externalActions:0};
  let investigation={status:'disabled',paidCalls:0,externalActions:0};
  if(cycle.status==='verified'&&process.env.GROWTH_EXECUTIVE_RESEARCH_ENABLED==='1'){
-  const dbEvidence=require('../../business/evidence').createEvidenceStore(db);
-  const registry=require('../../business/tools/registry').defaultRegistry();
-  investigation=await require('./executiveInvestigation').investigateOwner({store,ownerId,now,registry,
-   verifyExternalEvidence:(owner,id,ctx)=>{
-    try{return !!dbEvidence.get(id,ctx)}catch{return false}
-   }});
+  // Research connectors are optional; a missing plugin must not suppress
+  // the free daily Executive report or durable owner reminders.
+  try{
+   const dbEvidence=require('../../business/evidence').createEvidenceStore(db);
+   const registry=require('../../business/tools/registry').defaultRegistry();
+   investigation=await require('./executiveInvestigation').investigateOwner({store,ownerId,now,registry,
+    verifyExternalEvidence:(owner,id,ctx)=>{
+     try{return !!dbEvidence.get(id,ctx)}catch{return false}
+    }});
+  }catch{
+   investigation={status:'registry-unavailable',paidCalls:0,modelCalls:0,externalActions:0};
+  }
  }
  // All reminders are internal and idempotently persisted; external delivery
  // remains separately authorized by the existing notifier.

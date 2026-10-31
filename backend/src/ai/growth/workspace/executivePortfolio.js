@@ -23,15 +23,24 @@ function rankOpportunity(problem,observedEvidence,learning){
  const dataGap=problem.type==='data-quality';
  const executed=learning?.lessons||[];
  const negative=executed.filter(x=>x.metricId==='active_users'&&x.outcome==='observed-decline').length;
- const evidence=observedEvidence.filter(e=>e?.state==='verified'&&e.scope?.source==='all'&&e.value!==null);
+ const evidence=observedEvidence.filter(e=>e?.state==='verified'&&e.scope?.source==='all'&&
+  typeof e.value==='number'&&Number.isFinite(e.value));
+ const comparable=evidence.length===2&&evidence[0].metricId===evidence[1].metricId&&
+  evidence[0].definitionVersion===evidence[1].definitionVersion&&
+  evidence[0].unit===evidence[1].unit&&evidence[0].source===evidence[1].source&&
+  JSON.stringify(evidence[0].scope)===JSON.stringify(evidence[1].scope)&&
+  evidence[0].period?.timezone==='Asia/Bangkok'&&
+  evidence[1].period?.timezone==='Asia/Bangkok'&&
+  (evidence[0].period.end<=evidence[1].period.start||
+   evidence[1].period.end<=evidence[0].period.start);
  // Population actually affected and incremental ROI are unknown unless measured
  // by a compatible, attributable cohort. Count deltas are NOT affected users.
  return {problemId:problem.id,subject:problem.subject,kind:problem.type,
   priority:problem.priority,firstSeenAt:problem.first_seen,
   decision:dataGap?'verify-coverage':primary?'investigate-north-star':'investigate',
-  evidenceStrength:evidence.length>=2?'two-period-observation':'insufficient',
+  evidenceStrength:comparable?'comparable-two-period-observation':'insufficient',
   affectedUsers:null,incrementalUsers:null,expectedROI:null,estimatedEffortHours:null,
-  knownCountDifference:evidence.length===2&&evidence[0].metricId===evidence[1].metricId?
+  knownCountDifference:comparable?
    Math.abs(evidence[0].value-evidence[1].value):null,
   priorAdverseReviews:primary?negative:0,
   nextStep:problem.next_step||'先核对证据与来源质量',

@@ -38,3 +38,17 @@ test('repeated negative outcomes only suppress the SAME action, not every experi
  assert.equal(shouldRepeatCandidate('active_users',{lessons},'Investigate a new hypothesis').propose,true);
  assert.equal(shouldRepeatCandidate('active_users',{lessons},'').propose,true);
 });
+
+test('mixed or overlapping business sources cannot produce a fabricated comparable opportunity delta',()=>{
+ const {rankOpportunity}=require('../src/ai/growth/workspace/executivePortfolio');
+ const p={id:'p',subject:'active_users:decline',type:'business',priority:5,first_seen:0};
+ const mk=(source,start,end)=>({state:'verified',value:100,metricId:'active_users',
+  definitionVersion:'1',unit:'users',source,scope:{source:'all'},
+  period:{start,end,timezone:'Asia/Bangkok'}});
+ const mismatch=rankOpportunity(p,[mk('events',0,100),mk('gsc',100,200)],{lessons:[]});
+ assert.equal(mismatch.knownCountDifference,null);
+ assert.equal(mismatch.evidenceStrength,'insufficient');
+ const overlapping=rankOpportunity(p,[mk('events',0,150),mk('events',100,250)],{lessons:[]});
+ assert.equal(overlapping.knownCountDifference,null);
+ assert.equal(overlapping.evidenceStrength,'insufficient');
+});

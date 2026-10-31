@@ -107,3 +107,20 @@ test('leased workspace tick integrates the trusted Executive observation without
   assert.equal(f.store.actions('alice').length,1);
  }finally{f.close()}
 });
+
+test('two conflicting North Star goals are surfaced as ambiguity, not an arbitrary selected target',async()=>{
+ const f=fixture();try{
+  const month=currentMonth(now);
+  const base={metricId:'active_users',definitionVersion:'1',target:50,unit:'users',
+   kind:'north',aggregation:'rolling-distinct',periodStart:month.start,periodEnd:month.end,
+   scope:{source:'all'}};
+  f.store.saveGoal('alice',base);
+  f.store.saveGoal('alice',{...base,target:100});
+  const status=f.store.executiveQueue('alice',{at:now}).northStar;
+  assert.equal(status.targetStatus,'conflicting-monthly-goals');
+  assert.equal(status.target,null);
+  const cycle=await runExecutiveCycle({ownerId:'alice',store:f.store,now,load:async()=>snapshot()});
+  assert.equal(cycle.northStarTargetConfigured,false);
+  assert.equal(f.store.problems('alice').find(p=>p.subject.startsWith('active_users:')).goal_id,null);
+ }finally{f.close()}
+});
