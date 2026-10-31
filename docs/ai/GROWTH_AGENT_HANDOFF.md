@@ -6,9 +6,9 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
-- Last code-validation commit: `24c4351af8e58bdab9793ebe6a7ccbe45dee5a57` (all AI infrastructure CI jobs green).
+- Last code-validation commit: `2b7badebad6400a533af18ebd595eff4fca7cba2` (all AI infrastructure CI jobs green).
 - Documentation baseline before this handoff refresh: `409791810e6d0a6a9c2f2885f8c648541d7fa6ee`; fetch the live branch HEAD before every new edit.
-- Latest successful CI: AI infrastructure run [41168785078](https://github.com/dinnelthai/logearn-growth/actions/runs/41168785078) — AI Contract, AI Frontend and AI Integration all succeeded.
+- Latest successful CI: AI infrastructure run [41169098472](https://github.com/dinnelthai/logearn-growth/actions/runs/41169098472) — AI Contract, AI Frontend and AI Integration all succeeded.
 - Checklist progress: 22 / 45 implementation items (49%); live-source acceptance is not included in that percentage.
 - Do not switch to or commit to `master`.
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
@@ -87,6 +87,7 @@ New v5 flags:
 - [ ] Validate actual Hologres latency, trade match rate and identity coverage using the already-authorized read-only source.
 - [ ] Finish the registration → activation → product engagement → trade source-contract review, including registered_users versus first-observed new_users and mature denominators.
   - Code review confirms separate mature registration → first-analysis (24h) and first-analysis → verified user-level trade (7d) cohort metrics. Growth Overview now requests these metrics explicitly; the unified product-engagement funnel and live-source contract remain open.
+  - These three metrics now have formal shared definitions and are valid reviewed-learning focus metrics; Business Brain context remains within the 22KB budget in CI.
 - [ ] Review SEO/GSC PT date alignment, X snapshot freshness and KOL observation windows against live source watermarks.
 - [ ] Add cross-channel activity links only when stable identifiers and comparable windows exist; temporal overlap is not attribution.
 
