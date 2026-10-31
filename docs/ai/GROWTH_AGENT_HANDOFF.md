@@ -176,3 +176,12 @@ Final validation update: run [41177187712](https://github.com/dinnelthai/logearn
 - Tests cover acceptance gate, task existence, owner isolation, scope matching, idempotency and retrieval.
 - Limitation: linking does not auto-transition the AI suggestion when the task is executed. Operator still records actual execution in the existing AI suggestion workflow. Automatic status sync and task baseline/after-evidence handoff into retrospective remain open.
 - Latest successful CI: [41177929631](https://github.com/dinnelthai/logearn-growth/actions/runs/41177929631), code head `6a96a5c064a78ea08d9580260de18da9c3ffed6e`; all three AI jobs passed.
+
+
+### Operation task execution synchronization (2026-10-31)
+
+- PATCH `/operation-tasks/:id` (existing task route) now syncs linked suggestions after the SQLite task update: `in_progress` advances adopted suggestions to executing; `done` with a non-empty result note advances executing suggestions to executed, recording actual action and task completion time.
+- Retry endpoint: `POST /operation-tasks/:id/sync-ai-suggestions`; reads the most recent task history note by default.
+- Cross-database SQLite/PostgreSQL updates are not atomic. Response contains `suggestionSync.status` and per-suggestion results; retry partial failures explicitly. If optional workspace link tables are absent, this remains a no-op and does not break existing task updates.
+- CI [41178355922](https://github.com/dinnelthai/logearn-growth/actions/runs/41178355922) passed all AI Contract, Integration and Frontend jobs at code head `1f0ab05f71b0fd5fef90b77282411102ebb3c5a2`.
+- Still open: transfer the fixed-cohort operation-task baseline and after-period review evidence into the AI retrospective record. Current retrospective continues to use the existing business metric review service; no cohort-level causal claims.
