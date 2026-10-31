@@ -160,6 +160,9 @@ jobs:
           node --check src/analytics/growthInsights.js
           node --check src/workers/remoteAnalysis.js
           node --check src/ai/business/metricRegistry.js
+          node --check src/ai/growth/reviewMetrics.js
+          node --check src/ai/business/analysisContract.js
+          node --check src/queues/jobs/retrospective.js
           node --check src/ai/business/businessBrain.js
           node --check src/ai/business/tools/adapters.js
           node --check src/ai/business/weeklyContextV4.js
@@ -180,6 +183,11 @@ jobs:
         env:
           NODE_ENV: test
         run: node --test test/operationTaskEvidence.test.js test/operationTasks.test.js test/agentLearningLifecycle.test.js test/growthExperience.test.js
+
+      - name: Run review metric and action contract tests
+        env:
+          NODE_ENV: test
+        run: node --test test/reviewMetrics.test.js test/analysisCompetingHypotheses.test.js
 
       - name: Run operating timeline and module discovery tests
         env:
