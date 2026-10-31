@@ -6,10 +6,10 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
-- Latest successful implementation/CI head: `c46073497ab41dfd67c44249e34d341b8063689e` (strict discriminating-query schema, source and period validation; CI run 41183309528 passed). Fetch the live branch before editing.
+- Latest **code** HEAD inspected on 2026-10-31: `030c0ed8993a049485f4a064d48cef1f661dfa05` (v5 lifecycle/opportunity/previous-action report UI; see latest branch ref before new edits). Subsequent documentation-only commits do not constitute new code validation.
 - Fetch the live branch HEAD before every new edit; do not rely on this document's historical commit reference.
-- Latest successful CI: AI infrastructure run [41183309528](https://github.com/dinnelthai/logearn-growth/actions/runs/41183309528) — AI Contract, AI Frontend and AI Integration all passed.
-- Checklist progress: 35 / 48 implementation items (73%); live-source acceptance is not included in that percentage.
+- Latest observed successful CI at audit: AI infrastructure [41184069508](https://github.com/dinnelthai/logearn-growth/actions/runs/41184069508), code `76ec311df688860f93b72b930641cf1c3cd3ef03`, success; Growth desktop UI [41184123727](https://github.com/dinnelthai/logearn-growth/actions/runs/41184123727), exact code HEAD `030c0ed8993a049485f4a064d48cef1f661dfa05`, success. These are CI checks, not live Hologres/Worker/model acceptance.
+- Checklist progress reconciled: **37 / 48 (77.1%) code/CI checkboxes; 11 open**. Phase 5 two stale unchecked items are now checked based on inspected code/tests. This is not production or live-source acceptance.
 - Do not switch to or commit to `master`.
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
 - Always verify the branch HEAD before editing and fetch each target file from this branch.
@@ -39,10 +39,12 @@ New model protocol:
 - `backend/src/workers/remoteAnalysis.js` — passes validated request-analysis rows into the trade lookup.
 - `backend/src/ai/business/runner.js` — v5 marker, prompt rules, replay detection and bounded tool replies.
 - `backend/src/queues/jobs/businessAnalysis.js` — new analyses opt into v5; archived tasks keep their stored prompt/transport.
-- `backend/src/ai/growth/weeklyReport.js` — new v5 weekly prompt, including operating-layer and non-causal activity rules.
+- `backend/src/ai/growth/weeklyReport.js` — v5 `weekly-report-v2` contract: seven lifecycle stages, evidence-backed growth opportunities and previous-action reviews; strict validation and explicitly partial fallback rather than automatic paid retry.
 - `backend/src/ai/business/tools/operationsTimeline.js` — owner-scoped read-only operating timeline over existing activities, KOL collaborations, manual content, operation tasks, X/GSC/KOL observations and AI actions; includes aggregate delivery states and frozen settled outcomes only.
 - `backend/src/ai/growth/weeklyCoverage.js` — 13th weekly module, with outcome-first aggregate facts and per-source coverage.
-- Tests: `backend/test/aiBusinessBrain.test.js`, `aiWeeklyContextV4.test.js`, `aiWeeklyCoverage.test.js`, `operationsTimeline.test.js`, `operationsTimelineRegistry.test.js`, `aiWeeklyReport.test.js`.
+- `frontend/src/pages/aiWeeklyDecisionView.js` — lifecycle, positive opportunities, operating-memory reviews, and collapsed technical/coverage sections. Note known hardcoded '12 modules' summary despite a 13-module v5 manifest.
+- `backend/src/queues/jobs/businessAnalysis.js` — new v5 weekly snapshots pin `weeklyReportContractVersion='weekly-report-v2'`; archived v1-v4 reports remain replayable and may not display the new report sections.
+- Tests: `backend/test/aiBusinessBrain.test.js`, `aiWeeklyContextV4.test.js`, `aiWeeklyCoverage.test.js`, `operationsTimeline.test.js`, `operationsTimelineRegistry.test.js`, `aiWeeklyReport.test.js`, `frontend/src/pages/__tests__/aiWeeklyDecisionView.test.js`.
 
 New v5 flags:
 - `AI_BUSINESS_BRAIN_V5_ENABLED` — defaults enabled when the existing v2/v3 context path is enabled; set to `0` to use the prior generic v3 context for newly created analyses.
@@ -74,9 +76,9 @@ New v5 flags:
 
 ## 6. Immediate next tasks
 
-### P0 — Live-source acceptance (not yet performed)
+### P0 — Live-source acceptance (not yet performed; do not infer from checked Phase 5)
 
-- Validate the custom-period report and product-to-trade path against an already-authorized read-only Hologres source.
+- Validate the custom-period report, v5 13-module coverage, registration-to-engagement-to-trade path and product-to-trade matching against an already-authorized read-only Hologres source. Check actual v5 context/report schema without unnecessary paid model calls; viewing an archived v4 report is not a new-v5 test.
 - Check operating timeline source freshness, per-source coverage, settled activity outcomes and query latency against real data.
 - Do not call paid models, paid SEO research, or paid external collectors for acceptance. No live-source acceptance is implied by CI.
 
@@ -109,15 +111,15 @@ New v5 flags:
 
 ### P2 — Decision Engine and Learning Loop
 
-- Rank problems by business objective, impact, evidence strength and query cost.
-- Produce competing hypotheses and the smallest authorized investigation that distinguishes them.
-- Validate every proposed action's primary metric against the registry and retrospective service.
-- Record execution and mature outcome using the existing workspace.
-- Do not call an adopted suggestion successful until reviewed evidence supports it.
+- Existing code ranks by goal relevance, observed magnitude and evidence strength and validates competing hypotheses against authorized capability schemas, source and date scope; **numeric cheapest-query/cost ranking is still unimplemented** without trusted tool latency/resource metadata.
+- The `analysis-contract-v2` enforces only reviewable metrics and a complete execution plan; exact action duplicates are rejected, but semantic-equivalent actions are not automatically blocked.
+- Suggested actions can link to an existing owner-scoped fixed-cohort operation task, execution status can sync, and observational outcome can feed planner memory. **Live end-to-end fixed-cohort acceptance is open**.
+- The existing retrospective service can read `active_users`, `new_users`, `returning_users`, `activation_rate`, `d7`; the **fixed-cohort v2 classifier only directly compares `active_users → analysis_users`**. Other primary metrics remain `insufficient` until directly comparable cohort evidence exists.
+- Do not call an adopted suggestion successful until mature evidence supports an observational label; never claim causal impact from a simple before/after comparison.
 
 ## 7. Validation / production boundary
 
-This upgrade has not been deployed or tested against the user's live API/Worker. Latest AI infrastructure run [41175597697](https://github.com/dinnelthai/logearn-growth/actions/runs/41175597697) passed all three jobs: AI Contract groups 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112 (the aggregate harness reported zero failures); AI Integration 17/17; AI Frontend succeeded. This includes regression coverage for hashed CRM activity references, KOL collaboration joins, goal-ranked positive growth signals, impact-aware investigation focus, and competing hypotheses restricted to task-authorized tools. These are fixture/service-container checks, not a real-source acceptance test. Implementation code SHA verified by CI: `8d53c76ffe5ae33ab913ebb1a625d1690d5b8399`; subsequent commits in this handoff sequence update documentation only.
+This upgrade has **not** been deployed or accepted end-to-end against the user's live API, Hologres, Worker or an actual paid model request. The latest audit-confirmed AI CI is [41184069508](https://github.com/dinnelthai/logearn-growth/actions/runs/41184069508) (success on `76ec311df688860f93b72b930641cf1c3cd3ef03`); exact code HEAD UI CI [41184123727](https://github.com/dinnelthai/logearn-growth/actions/runs/41184123727) passed on `030c0ed8993a049485f4a064d48cef1f661dfa05`. Intermediate failed runs were followed by corrective commits; do not infer all historical runs passed. CI uses fixtures or service containers, not live business-source acceptance. No paid model call, production migration, deployment, or external write was authorized in this documentation reconciliation.
 
 Do not:
 - run paid model calls just to test projection;
@@ -258,3 +260,13 @@ Final validation update: run [41177187712](https://github.com/dinnelthai/logearn
 - The stricter input/schema validation is gated to v2 snapshots. Archived contexts retain the previous authorization behavior so older finalization/recovery is not retroactively broken.
 - CI [41183309528](https://github.com/dinnelthai/logearn-growth/actions/runs/41183309528) passed all AI Contract, Frontend and Integration jobs. Contract groups: 177 (176 pass, 0 fail, 1 skipped), plus 26/26, 19/19, 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112.
 - Query-cost ranking remains open: legacy tool resource/latency costs are not measured. Do not label a query “cheapest” or invent cost estimates; prefer the smallest necessary authorized query and state cost as unknown.
+
+## 2026-10-31 — Reconciled progress handoff (documentation-only)
+
+- Audited source code HEAD: `030c0ed8993a049485f4a064d48cef1f661dfa05`; update/verify actual branch ref before any further work.
+- Canonical roadmap: `docs/ai/GROWTH_AGENT_2_0_IMPLEMENTATION_PLAN.md` now records **37/48 code/CI checked, 11 open**; phase allocation: 0=5/5, 1=8/10, 2=2/8, 3=7/8, 4=4/6, 5=5/5, 6=6/6.
+- What changed in completion accounting: two Phase 5 items for business-first lifecycle/opportunity/previous-action report and collapsible source/audit UI have actual implementation, strict schema tests and successful CI. This was a **documentation status update**, not a new code feature or live source test.
+- Priority unresolved roadmap work: Phase 2 source contracts (6 items), Phase 1 real-v5 context verification and operator North Star review (2), Phase 3 stable activity/outcome linkage (1), Phase 4 numeric query-cost ranking and discriminating-query cost choice (2).
+- Outside checkbox count: confirm new v5 report output with authorized sources, real Hologres trade matching/latency, genuine mature fixed-cohort review and owner-scoped Operating Memory freshness. Fix hardcoded “12 modules” UI label against the v5 13-module manifest when code editing is authorized.
+- The last saved report viewed in the browser was `aggregated-business-v4`; **do not use that archived report** to assert new v5 weekly contract production acceptance.
+- No application code, database, deployment, paid model, paid collector or external campaigns changed during the documentation pass; GitHub documentation updates only.
