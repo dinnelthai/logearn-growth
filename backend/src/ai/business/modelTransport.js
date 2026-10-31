@@ -607,6 +607,22 @@ function modelContext(raw,{transportVersion='v1',reviewRevision=0,reserveBytes=0
   }:null,
   candidates:candidates.slice(0,12).map(x=>statView(x)),
   candidatesMeta:{total:candidates.length,shown:Math.min(candidates.length,12)},
+  questionPriority:Array.isArray(raw.growthPlan?.questionRanking?.questions)?
+   raw.growthPlan.questionRanking.questions.slice(0,5).map(row=>({
+    metric:safeText(row.metric||'',70),priority:safeText(row.priority||'',6),
+    goalRelevant:row.goalRelevant===true,
+    affectedUsers:Number.isSafeInteger(row.affectedUsers)&&row.affectedUsers>=0?
+     row.affectedUsers:null,
+    observedChangeMagnitude:Number.isSafeInteger(row.observedChangeMagnitude)&&
+     row.observedChangeMagnitude>=0?row.observedChangeMagnitude:null,
+    evidenceConfidence:safeText(row.evidenceConfidence||'unknown',12),
+    authorizedTool:row.authorizedTool?safeText(row.authorizedTool,70):null,
+    observedMedianMs:Number.isSafeInteger(row.observedLatency?.medianMs)?
+     row.observedLatency.medianMs:null,
+    sampleCount:Number.isSafeInteger(row.observedLatency?.sampleCount)?
+     row.observedLatency.sampleCount:null,
+    monetaryQueryCost:'unknown'
+   })):[],
   evidence:evidence.slice(0,40).map(modelEvidence),
   evidenceMeta:{total:evidence.length,shown:Math.min(evidence.length,40)},
   warnings:(raw.warnings||[]).slice(0,12).map(x=>safeText(x)),
