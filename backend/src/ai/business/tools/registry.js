@@ -209,6 +209,7 @@ function createToolRegistry(deps){
   const period={start,end,timezone:'Asia/Bangkok'},body={start,end,source:scope.source};
   if(input.filters&&Object.keys(input.filters).length)fail('不支持 filters 自定义筛选；来源请用 scope.source，例如 {"scope":{"source":"direct"}}；固定人群请用 scope.activityId 或 scope.cohortId');
   if(input.dimensions!=null&&(!Array.isArray(input.dimensions)||input.dimensions.some(d=>!['source','device','version'].includes(d))))fail('未知分组维度');
+  if(id==='query_metrics'&&input.dimensions?.length&&input.metrics?.includes('registered_user_journey'))fail('注册旅程目前仅支持总体统计与来源范围筛选，不支持设备/版本分组；产品入口为并行口径');
   if(input.metrics!=null&&(!Array.isArray(input.metrics)||!input.metrics.length||input.metrics.length>10))fail('指标列表无效');
   for(const m of input.metrics||[])describeMetric(m);
   if(input.cursor){
