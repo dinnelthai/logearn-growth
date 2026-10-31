@@ -47,7 +47,7 @@ test('registered cohort reports parallel product engagement within a mature seve
  const registrations={available:true,scope:'all',rows:[
   {user_key:'user:10',registered_at:start,first_chip_at:start+1000,
    first_holder_at:start+2000,first_strategy_at:start+3000,first_signal_at:start+4000,
-   first_repeat_chip_at:start+DAY+500},
+   first_repeat_chip_at:start+DAY+1500},
   {user_key:'user:11',registered_at:start,first_chip_at:start+DAY,
    first_holder_at:null,first_strategy_at:start+2*DAY,first_signal_at:null,
    first_repeat_chip_at:null},
