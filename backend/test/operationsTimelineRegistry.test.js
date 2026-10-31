@@ -8,8 +8,12 @@ function createRegistry(){
  const payload={
   period:{start,end,timezone:'Asia/Bangkok',endExclusive:true},asOf:now,
   humanOperations:[
-   {id:'activity:activity-uuid',kind:'growth_activity',layer:'human_operation',source:'growth_activities',title:'Campaign',status:'active',memberCount:5,assignments:[{group:'treatment',assigned:3,delivered:2,delivery_unknown:1}],outcome:{status:'settled',summary:{completed:2,eligible:5,conversion_rate:.4}}},
-   {id:'kol-collaboration:collab-uuid',kolRef:'kol:kol-1',kind:'kol_collaboration',layer:'human_operation',source:'crm_collaborations',title:'KOL campaign',linkedActivityIds:['activity-uuid']}
+   {id:'activity:activity-uuid',kind:'growth_activity',layer:'human_operation',source:'growth_activities',title:'Campaign',status:'active',memberCount:5,assignments:[{group:'treatment',assigned:3,delivered:2,delivery_unknown:1}],startAt:start,endAt:end-3600000,settledAt:end-1000,
+    outcome:{status:'settled',asOf:new Date(end-2000).toISOString(),
+     summary:{completed:2,eligible:5,conversion_rate:.4},
+     performance:{analysis_users:4,trade_users:1,transactions:2},
+     sourceCoverage:{account:'available',analysis:'available',trade:'available'}}},
+   {id:'kol-collaboration:collab-uuid',kolRef:'kol:kol-1',kind:'kol_collaboration',layer:'human_operation',source:'crm_collaborations',title:'KOL campaign',startAt:start,endAt:end,linkedActivityIds:['activity-uuid']}
   ],
   channelObservations:[{kind:'x_official_account',layer:'channel_observation',source:'twitterapi.io',title:'X account',metrics:{impressions:10}},
    {kind:'kol_period_observation',layer:'channel_observation',source:'kol-crm-observed-behavior',title:'KOL period',relationshipType:'crm-kol-id-match',kolSummaries:[{kolRef:'kol:kol-1',label:'KOL One',stage:'active',metrics:{observedUsers:5,analysis_events:10},linkedCollaborationRefs:['kol-collaboration:collab-uuid']}]}],
@@ -62,8 +66,45 @@ test('legacy tool discovery and execution expose the owner-scoped operating time
  assert.equal(value.humanOperations[0].memberCount,5)
  assert.equal(value.humanOperations[0].assignments[0].assigned,3)
  assert.equal(value.humanOperations[0].outcome.summary.completed,2)
+ assert.equal(value.outcomeLinks.length,1);
+ const linked=value.outcomeLinks[0];
+ assert.equal(linked.collaborationRef,value.humanOperations[1].recordRef);
+ assert.equal(linked.activityRef,value.humanOperations[0].recordRef);
+ assert.equal(linked.relationshipType,'explicit-crm-activity-link');
+ assert.equal(linked.attribution,'observed-non-causal');
+ assert.equal(linked.window.start,start);
+ assert.equal(linked.window.end,end-3600000);
+ assert.equal(linked.observed.completed,2);
+ assert.equal(linked.observed.analysis_users,4);
+ assert.equal(linked.observed.trade_users,1);
+ assert.equal(linked.observed.transactions,2);
+ assert.equal(linked.coverage.trade,'available');
+ assert.equal(JSON.stringify(linked).includes('activity-uuid'),false);
  assert.match(value.warnings.join(' '),/not completed human operations/)
 })
+test('only explicit CRM keys and comparable mature windows connect outcomes; never time-only attribution',async()=>{
+ const cases=[
+  payload=>{payload.humanOperations[1].linkedActivityIds=[];},
+  payload=>{payload.humanOperations[1].startAt=start+3600000;},
+  payload=>{payload.humanOperations[0].outcome.asOf=new Date(end+1000).toISOString();},
+  payload=>{payload.humanOperations[0].settledAt=end+1000;},
+  payload=>{payload.humanOperations[0].outcome.sourceCoverage={
+   account:'unavailable',analysis:'unavailable',trade:'unavailable'};},
+  payload=>{payload.humanOperations[0].endAt=end+1000;}
+ ];
+ for(const modify of cases){
+  const {registry,payload}=createRegistry();
+  modify(payload);
+  const context={ownerId:'owner-1',runId:'test',scope:{source:'all'},
+   period:{start,end,timezone:'Asia/Bangkok'}};
+  const result=await registry.executeTool('get_operations_timeline',{start,end},context);
+  assert.equal(result.status,'ok');
+  assert.deepEqual(result.evidence[0].value.outcomeLinks,[]);
+  // The independent KOL observation itself never becomes an attributed outcome.
+  assert.equal(result.evidence[0].value.channelObservations[1].kolSummaries[0].metrics.analysis_events,10);
+ }
+});
+
 test('timeline tool refuses unsupported source scopes and invalid periods before reading sources',async()=>{
  const {registry,calls}=createRegistry()
  const context={ownerId:'owner-1',runId:'test',scope:{source:'direct'},period:{start,end,timezone:'Asia/Bangkok'}}
