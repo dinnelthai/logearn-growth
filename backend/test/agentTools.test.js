@@ -38,6 +38,11 @@ test('collaboration economics evidence never becomes platform revenue or trade v
   assert.equal(result.status,'ok');
   const ev=result.evidence[0];
   assert.equal(ev.metricId,'collaboration_economics');
+  assert.equal(ev.sourceVersions.events,null);
+  assert.equal(ev.sourceVersions.operatorRecords,'crm-manual-collaboration-ledger');
+  assert.equal(ev.watermarks.events,null);
+  assert.equal(ev.watermarks.operatorRecords,null);
+  assert.ok(ev.warnings.some(x=>x.includes('no-authoritative-period-complete-watermark')));
   assert.equal(ev.definitionVersion,'1');
   assert.equal(ev.value.economics.receivedEntries,2);
   assert.equal(ev.value.economics.currencyCount,1);
