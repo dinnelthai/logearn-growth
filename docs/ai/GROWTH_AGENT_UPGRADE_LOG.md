@@ -99,3 +99,42 @@ The first CI runs exposed and led to fixes for a registry-unknown metric referen
 1. Complete registration-vs-first-analysis source contract and activation denominator/maturity review.
 2. Verify the custom report and product-to-trade path against a real, already-authorized read-only source without initiating a paid model call.
 3. Build the operating activity timeline by reusing existing KOL, SEO, content/X and operation-task records.
+
+
+## 2026-10-31 — Operating Memory v1 timeline and settled activity outcomes
+
+Branch: codex/ai-comprehensive-upgrade
+
+### Added / changed
+
+- backend/src/ai/business/tools/operationsTimeline.js
+  - Added an owner-scoped, period-bounded read-only timeline that reuses existing growth activities, KOL collaborations, manual content records, operation tasks, X official-account snapshots, Search Console snapshots, KOL observations, AI report actions and specialist signals.
+  - Keeps human operations, channel observations and AI suggestions/reviews as separate layers; each source reports available/empty/not-configured/unavailable/truncated coverage.
+  - Reads only aggregate activity assignment/delivery states. The latest sent/delivered/not-delivered record is evaluated as of the selected period end; cross-exposure is an independent aggregate.
+  - Includes frozen settled activity summary, performance totals and target progress only when settled_result exists. User rows, IDs and delivery evidence text are not projected.
+- backend/src/ai/business/tools/registry.js and modelTransport.js
+  - Added an allowlisted projection for activity group outcomes and frozen settlement aggregates; source coverage and unknown values remain explicit.
+- backend/src/ai/growth/weeklyCoverage.js and backend/src/ai/business/weeklyContextV4.js
+  - Added the operations-timeline weekly module and prioritized settled activity outcomes plus treatment/control delivery aggregates in bounded evidence facts.
+  - Preserved the existing query cap and 22KB context limit.
+- backend/src/ai/business/businessBrain.js and backend/src/ai/growth/weeklyReport.js
+  - Defined the three operating layers and instructed reports that unsettled/missing results are unknown, manually assigned treatment/control groups are not randomized, and observed group differences are not causal proof.
+
+### Regression coverage
+
+- Added/updated operationsTimeline.test.js, operationsTimelineRegistry.test.js, aiWeeklyCoverage.test.js, aiWeeklyContextV4.test.js, aiBusinessBrain.test.js and aiWeeklyReport.test.js.
+- Verified source failure isolation, owner scope, Search Console PT date conversion, no user-ID/member-row projection, frozen activity outcomes, both manual groups, weekly facts and Business Brain rules.
+
+### CI validation
+
+- AI infrastructure run [41164982501](https://github.com/dinnelthai/logearn-growth/actions/runs/41164982501) — **success** across AI Contract, AI Frontend and AI Integration.
+- AI Contract: 167 total / 166 passed / 0 failed / 1 skipped; targeted timeline/module discovery 37/37; Business Brain/custom report regression 32/32; additional suites 13/13, 22/22, 2/2 and 112/112.
+- AI Integration: 17/17 passed. AI Frontend job succeeded.
+- These are CI fixture/service-container checks. Live Hologres, GSC/X providers, local API/Worker and real paid model execution were not invoked.
+
+### Remaining limitations
+
+- No stable post/campaign identifier currently joins all manual activities to X/GSC observations; do not infer channel attribution from temporal overlap.
+- Community/training platforms have no dedicated connector; only existing growth activity/task records can represent them.
+- Live source freshness, settled activity match coverage and latency still require read-only validation on an already-authorized source.
+- No migration, paid model call, paid collection, deployment, public posting or external action occurred.
