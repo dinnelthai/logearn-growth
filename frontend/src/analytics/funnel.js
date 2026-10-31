@@ -55,6 +55,7 @@ export function computeFunnel(users, {
     if(field&&!validId(step0[field])){quality.missingStartUserIds.push(u.id);continue}
     const matchesAssociation=e=>!field||(validId(e[field])&&e[field]===step0[field]&&(association!=='token_visit'||(!step0.token_address||!e.token_address||step0.token_address===e.token_address)&&(!step0.chain||!e.chain||step0.chain===e.chain)))
     let dataIncomplete=false
+    let incompleteAt=null
 
     const times = [step0.t]
     let lastT = step0.t
@@ -66,6 +67,7 @@ export function computeFunnel(users, {
       if (!next) {
         // An observed candidate without an ID cannot be classified as dropout.
         dataIncomplete=!!field&&candidates.some(e=>!validId(e[field]))
+        if(dataIncomplete)incompleteAt=i
         break
       }
       times.push(next.t)
@@ -78,28 +80,32 @@ export function computeFunnel(users, {
       source: u.source,
       association_id:field?step0[field]:null,
       dataIncomplete,
+      incompleteAt,
       times,
-      // pending: window hasn't closed yet AND user hasn't fully converted
-      pending: times.length < steps.length && windowEnd > (asOf ?? Date.now()),
+      // Pending is distinct from an observed association gap.
+      pending: !dataIncomplete && times.length < steps.length && windowEnd > (asOf ?? Date.now()),
     })
   }
 
   // Compute per-step reach counts
   const stepCounts = steps.map((_, i) => rows.filter(r => r.times.length > i).length)
-
-  // Confirmed drop-offs at each step (not pending)
-  const dropOffs = steps.slice(1).map((_, i) =>
-    rows.filter(r => r.times.length === i + 1 && !r.pending && !r.dataIncomplete).length
-  )
-
-  // Build FunnelStep result array
-  const funnelSteps = steps.map((key, i) => ({
-    key,
-    users: stepCounts[i],
-    previous_conversion_rate: i === 0 ? 1 : stepCounts[i - 1] > 0 ? stepCounts[i] / stepCounts[i - 1] : 0,
-    total_conversion_rate: stepCounts[0] > 0 ? stepCounts[i] / stepCounts[0] : 0,
-    drop_off_users: i < steps.length - 1 ? dropOffs[i] : 0,
-  }))
+  // Conversion denominators exclude immature users and unknown association gaps.
+  const funnelSteps = steps.map((key, i) => {
+    const previousRows=i===0?rows:rows.filter(r=>r.times.length>=i)
+    const unknown=i===0?0:previousRows.filter(r=>r.incompleteAt===i).length
+    const pending=i===0?rows.filter(r=>r.pending).length:
+      previousRows.filter(r=>r.times.length===i&&r.pending&&r.incompleteAt!==i).length
+    const eligibleRows=previousRows.filter(r=>!r.pending&&(i===0||r.incompleteAt!==i))
+    const convertedRows=eligibleRows.filter(r=>r.times.length>i)
+    const totalEligible=rows.filter(r=>!r.pending&&(r.incompleteAt==null||r.incompleteAt>i))
+    const totalConverted=totalEligible.filter(r=>r.times.length>i)
+    return {key,users:stepCounts[i],eligible:eligibleRows.length,converted:convertedRows.length,
+      pending,unknown,
+      previous_conversion_rate:eligibleRows.length?convertedRows.length/eligibleRows.length:null,
+      total_eligible:totalEligible.length,
+      total_conversion_rate:totalEligible.length?totalConverted.length/totalEligible.length:null,
+      drop_off_users:i<steps.length-1?eligibleRows.length-convertedRows.length:0}
+  })
 
   const complete = rows.filter(r => r.times.length === steps.length)
   const conversionTimes = complete.map(r => r.times[r.times.length - 1] - r.times[0])
