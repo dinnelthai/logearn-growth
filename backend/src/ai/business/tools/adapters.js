@@ -54,9 +54,30 @@ async function metrics(body,snapshot,ids,context){
   return {metricId:m.id,value:denominator>0?numerator/denominator:null,numerator,denominator,sampleSize:denominator,warnings:denominator>0?[]:['没有成熟分母或成熟覆盖未知']};
  });
  const registration=growth?.cohorts?.registration;
- return {metrics:entries,coverage:{events:'partial',
-  registrations:registration?.available===true?(registration.scope||'partial'):'unknown',
-  trades:growth?.cohorts?.registration?.trade?.available===true?'post_analysis_user_level':'unknown'}};
+ const registrationStatus=registration?.available===true?(registration.scope||'partial'):'unknown';
+ const tradeStatus=registration?.trade?.available===true?'post_analysis_user_level':'unknown';
+ // Per-metric coverage is deliberately conservative. A shared event snapshot
+ // is NOT an independently validated registration or transaction watermark.
+ const coverageFor=id=>{
+  if(id==='registered_users')return {status:registration?.available===true?'partial':'unavailable',
+   reason:registrationStatus==='observed_source'?
+    '注册来自账号事实；来源仅覆盖已观测归因，注册水位仍待独立验证':
+    registrationStatus==='unknown'?'注册来源不可用，人数未知':
+    '注册来自账号事实；注册水位与历史完整性仍待独立验证'};
+  if(id==='registration_activation_rate')return {
+   status:registration?.available===true?'partial':'unavailable',
+   reason:registrationStatus==='unknown'?'注册队列或事件来源不可用':
+    '注册后24小时成熟队列；事件覆盖和注册水位尚未完整验证'};
+  if(id==='registered_trade_conversion_rate')return {
+   status:tradeStatus==='unknown'?'unavailable':'partial',
+   reason:tradeStatus==='unknown'?'真实交易或身份关联未知，不能解释为零':
+    '注册后首次分析的成熟用户级交易关联；非同Token归因，独立交易水位待核验'};
+  if(id==='weekly_core')return {status:weekly?.available===true?'partial':'unavailable',
+   reason:weekly?.available===true?'周核心指标为已有观测；事件完整性未确认':'周核心来源不可用'};
+  return {status:'partial',reason:'当前为已观测事件指标；历史覆盖与采集完整性未确认'};
+ };
+ return {metrics:entries.map(entry=>({...entry,coverage:coverageFor(entry.metricId)})),
+  coverage:{events:'partial',registrations:registrationStatus,trades:tradeStatus}};
 }
 async function economics(body,context){
  const db=require('../../../db/connection');
