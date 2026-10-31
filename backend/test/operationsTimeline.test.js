@@ -1,0 +1,94 @@
+'use strict'
+const {test}=require('node:test')
+const assert=require('node:assert/strict')
+const {createOperationsTimeline,dateInZone}=require('../src/ai/business/tools/operationsTimeline')
+const DAY=86400000,now=Date.parse('2026-10-31T00:00:00Z')
+const start=Date.parse('2026-10-01T00:00:00Z'),end=start+DAY
+function fakeDb(){
+ const calls=[]
+ const db={calls,prepare(sql){return {all(...args){
+  calls.push({sql,args})
+  if(sql.includes('FROM growth_activities'))return [{id:'act-1',name:'Launch campaign',start_at:start,cutoff_at:end,goal:'activation',target_metric:'new_users',target_value:20,schedule_state:'active',schedule_error:null,archived_at:null,settled_at:null,parent_id:null}]
+  if(sql.includes('FROM crm_activity_links'))return [{activity_id:'act-1',name:'KOL One'}]
+  if(sql.includes('FROM crm_collaborations c'))return [{id:'collab-1',kol_id:'kol-1',name:'KOL placement',start_at:start,end_at:end,goal:'reach',deliverables:'one post',assignee:'Alex',status:'completed',created_at:start,updated_at:end,kol_name:'KOL One'}]
+  if(sql.includes('FROM crm_collaboration_activities'))return [{collaboration_id:'collab-1',activity_id:'act-1'}]
+  if(sql.includes('FROM content_growth_items'))return [{id:'content-1',platform:'x',title:'Launch thread',topic:'product',published_at:new Date(start+1000).toISOString(),created_at:new Date(start+1000).toISOString(),impressions:100,likes:5,comments:2,shares:3,audience_fit:4,actionability:5}]
+  if(sql.includes('FROM operation_tasks'))return [{id:'task-1',title:'Review activation cohort',assignee:'Alex',priority:'P1',status:'done',due_at:end,created_at:start,updated_at:end,completed_at:end}]
+  if(sql.includes('FROM business_analysis_actions'))return [{id:'ai-action-1',title:'Test onboarding',priority:'P1',status:'executed',executed_at:end,created_at:start,updated_at:end,review_json:JSON.stringify({conclusion:'improved',warnings:[]}),report_title:'Weekly growth report'}]
+  return []
+ }} }};
+ return db
+}
+function sources(db,{xError=false}={}){
+ return {
+  db,
+  kolOperations:{
+   collaborations:async()=>[{collaborationId:'collab-1',financeSource:'manual-ledger',costTotals:[{currency:'USD',actual_cost:100}],revenueTotals:[{currency:'USD',net_revenue:120}]}],
+   list:async()=>[{id:'kol-snap-1',start_at:start,end_at:end,evidence:JSON.stringify({scope:'tagged',rows:[{observedUsers:5,analysisEvents:10}]}),coverage:{status:'partial'},source_watermark:new Date(end).toISOString(),captured_at:end}]
+  },
+  xMonitor:{overview:()=>{if(xError)throw Error('provider down');return {configured:true,source:'twitterapi.io',attribution:'not-verified',accounts:[{
+   id:'logearn_cn',label:'中文账号',lastSynced:now,metrics:{samplePosts:99,impressions:9999},
+   posts:[
+    {post_id:'p1',published_at:new Date(start+1000).toISOString(),body:'PRIVATE POST BODY',impressions:100,likes:5,replies:2,reposts:3,quotes:1,observed_at:now},
+    {post_id:'old',published_at:new Date(start-1000).toISOString(),body:'OUTSIDE',impressions:500,likes:1,replies:1,reposts:1,quotes:0,observed_at:now}
+   ]
+  }]}}},
+  gscService:{
+   setting:async()=>({site_url:'sc-domain:logearn.com'}),
+   latestOverlapping:async(owner,args)=>{assert.equal(owner,'owner-1');assert.equal(args.startDate,'2026-09-30');assert.equal(args.endDate,'2026-10-01');return {id:'gsc-1',site_url:'sc-domain:logearn.com',fetched_at:now}}
+  },
+  summarizeGscWindow:()=>({startDate:'2026-09-30',endDate:'2026-10-01',syncedAt:now,metrics:{clicks:10,impressions:100,ctr:.1,position:5},coverage:{status:'partial',periodMatched:false},warnings:['PT date range']}),
+  specialistStore:{list:async(owner,args)=>{assert.equal(owner,'owner-1');assert.equal(args.includeClosed,true);return [{id:'signal-1',kind:'seo',title:'Improve landing page',priority:'P1',status:'open',first_seen_at:start,last_seen_at:end,occurrences:2}]}}
+ }
+}
+test('timeline merges existing owner-scoped records but keeps human, channel and AI layers separate',async()=>{
+ const db=fakeDb(),deps=sources(db);
+ const timeline=createOperationsTimeline({...deps,clock:()=>now});
+ const result=await timeline.collect({start,end,source:'all',limit:60},{ownerId:'owner-1'});
+ assert.deepEqual(result.period,{start,end,timezone:'Asia/Bangkok',endExclusive:true});
+ assert.equal(result.humanOperations.length,4);
+ assert.equal(result.channelObservations.length,3);
+ assert.equal(result.aiActions.length,2);
+ assert.equal(result.timeline.length,9);
+ assert.ok(result.humanOperations.every(x=>['human_operation','human_managed_task'].includes(x.layer)));
+ assert.ok(result.channelObservations.every(x=>x.layer==='channel_observation'));
+ assert.ok(result.aiActions.every(x=>x.layer==='ai_suggestion_or_review'));
+ const x=result.channelObservations.find(x=>x.kind==='x_official_account');
+ assert.equal(x.metrics.impressions,100);
+ assert.equal(x.metrics.samplePosts,1);
+ assert.equal(x.samplePosts.length,1);
+ assert.equal(JSON.stringify(result).includes('PRIVATE POST BODY'),false);
+ assert.equal(JSON.stringify(result).includes('OUTSIDE'),false);
+ const collab=result.humanOperations.find(x=>x.kind==='kol_collaboration');
+ assert.equal(collab.costTotals[0].currency,'USD');
+ assert.deepEqual(collab.linkedActivityIds,['act-1']);
+ const activity=result.humanOperations.find(x=>x.kind==='growth_activity');
+ assert.deepEqual(activity.linkedKols,['KOL One']);
+ assert.equal(result.coverage.searchConsole.periodMatched,false);
+ assert.equal(result.coverage.contentRecords.collection,'manual');
+ assert.ok(db.calls.every(c=>c.args[0]==='owner-1'||c.sql.includes('crm_collaboration_activities')));
+ assert.match(result.warnings.join(' '),/AI建议/);
+});
+
+test('one source failure is isolated and does not erase the other operating records',async()=>{
+ const db=fakeDb(),deps=sources(db,{xError:true});
+ const result=await createOperationsTimeline({...deps,clock:()=>now})
+  .collect({start,end,source:'all',limit:60},{ownerId:'owner-1'});
+ assert.equal(result.coverage.xOfficial.status,'unavailable');
+ assert.equal(result.humanOperations.length,4);
+ assert.equal(result.channelObservations.length,2);
+ assert.equal(result.aiActions.length,2);
+});
+
+test('date conversion uses Pacific dates for Search Console rather than Bangkok calendar labels',()=>{
+ assert.equal(dateInZone(start,'America/Los_Angeles'),'2026-09-30');
+ assert.equal(dateInZone(end-1,'America/Los_Angeles'),'2026-10-01');
+});
+
+test('timeline rejects invalid periods, unsupported source filters and unauthenticated owners',async()=>{
+ const service=createOperationsTimeline({...sources(fakeDb()),clock:()=>now});
+ await assert.rejects(service.collect({start,end:start,source:'all'},{ownerId:'owner-1'}),e=>e.status===400);
+ await assert.rejects(service.collect({start,end,source:'direct'},{ownerId:'owner-1'}),e=>e.status===400);
+ await assert.rejects(service.collect({start,end,source:'all'},{}),e=>e.status===401);
+ await assert.rejects(service.collect({start,end: start+32*DAY,source:'all'},{ownerId:'owner-1'}),e=>e.status===400);
+});
