@@ -169,7 +169,7 @@ jobs:
       - name: Run operating timeline and module discovery tests
         env:
           NODE_ENV: test
-        run: node --test test/operationsTimeline.test.js test/operationsTimelineRegistry.test.js test/businessModuleCatalog.test.js test/aiBusinessBrain.test.js
+        run: node --test test/operationsTimeline.test.js test/operationsTimelineRegistry.test.js test/businessModuleCatalog.test.js test/aiBusinessBrain.test.js test/aiWeeklyCoverage.test.js test/aiWeeklyCapabilities.test.js
 
       - name: Run Business Brain and custom report regression tests
         env:
