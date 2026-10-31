@@ -15,6 +15,7 @@ const definitions={
  get_channels:{metric:'channels',adapter:'channels',description:'来源渠道分解'},
  get_segments:{metric:'segments',adapter:'segments',description:'固定人群的现有分群分析'},
  get_activity:{metric:'activities',adapter:'activities',description:'活动固定名单和既有成员事实'},
+ get_operations_timeline:{metric:'activities',adapter:'operations-timeline',scopes:['source'],description:'只读汇总人工活动、KOL合作、手工内容、任务、X/GSC/KOL观察与AI建议；不同来源分层，不建立平行CRM'},
  get_channel_economics:{metric:'trade_revenue',adapter:'economics',scopes:['source'],description:'owner合作账本，按币种分别统计，未记录收入为未知'},
  check_data_quality:{metric:'quality',adapter:'tracking-audit',scopes:['source'],description:'埋点覆盖诊断，不将水位ID解释成强一致快照'},
  get_seo_performance:{metric:'seo_search',adapter:'seo-performance',scopes:['source'],description:'只读读取已同步的 Search Console 最终聚合快照或有限手动导入；日期可能不匹配、查询覆盖不完整'},
@@ -48,6 +49,26 @@ function productChainSummary(payload){
     .map(row=>pick(row,['day','eligible','returned','pending','rate'])),
   coverage:payload.coverage,definition:payload.definition,
   warnings:['产品链路仅提供总体统计；维度和用户级明细未发送给模型']};
+}
+function operationsTimelineSummary(payload){
+ const pick=(row,keys)=>Object.fromEntries(keys.filter(k=>row?.[k]!==undefined).map(k=>[k,row[k]]));
+ const human=(payload.humanOperations||[]).slice(0,30).map(row=>pick(row,[
+  'kind','layer','source','title','channel','topic','kol','startAt','endAt','eventAt',
+  'status','goal','targetMetric','targetValue','assignee','dueAt','createdAt','updatedAt',
+  'completedAt','settledAt','linkedKols','linkedActivityIds','metrics','evaluation',
+  'financeSource','costTotals','revenueTotals','collection'
+ ]));
+ const observations=(payload.channelObservations||[]).slice(0,20).map(row=>pick(row,[
+  'kind','layer','source','title','startAt','endAt','startDate','endDate','observedAt',
+  'metrics','samplePosts','coverage','scope','dateTimezone','attribution','warnings'
+ ]));
+ const ai=(payload.aiActions||[]).slice(0,20).map(row=>pick(row,[
+  'kind','layer','source','title','reportTitle','priority','status','createdAt',
+  'updatedAt','executedAt','review','firstSeenAt','lastSeenAt','occurrences','sourceKind'
+ ]));
+ return {period:payload.period,humanOperations:human,channelObservations:observations,
+  aiActions:ai,coverage:payload.coverage||{},asOf:payload.asOf,
+  warnings:payload.warnings||['各来源独立记录，未提供的数据保持未知']};
 }
 function referralSummary(payload){
  const pick=(o,keys)=>Object.fromEntries(keys.filter(k=>o?.[k]!==undefined).map(k=>[k,o[k]]));
@@ -110,7 +131,7 @@ function createToolRegistry(deps){
   const limit=input.limit??20;if(!Number.isSafeInteger(limit)||limit<1||limit>100)fail('分页大小无效');
   const {scope,audience}=await resolveScope(input.scope||context.scope||{},context,deps.lookups);
   if(tool.scopes&&Object.keys(scope).some(k=>!tool.scopes.includes(k)))fail('该工具不支持活动或人群范围');
-  if(['check_data_quality','get_activity','get_channel_economics','get_seo_performance','get_kol_performance','get_content_growth','get_follower_quality'].includes(id)&&scope.source!=='all')fail('该工具当前仅支持全来源范围，不会忽略来源筛选');
+  if(['check_data_quality','get_activity','get_operations_timeline','get_channel_economics','get_seo_performance','get_kol_performance','get_content_growth','get_follower_quality'].includes(id)&&scope.source!=='all')fail('该工具当前仅支持全来源范围，不会忽略来源筛选');
   const ctx={...context,scope},start=input.start??context.period.start,end=input.end??context.period.end;
   validateRange(start,end);if(start<context.period.start-(context.period.end-context.period.start)||end>context.period.end)fail('查询时间超出授权范围',403);
   const period={start,end,timezone:'Asia/Bangkok'},body={start,end,source:scope.source};
@@ -144,7 +165,7 @@ function createToolRegistry(deps){
    if(id==='get_retention')for(const k of ['initial','returning']){body[k]=input[k]||'chip';if(!['chip','drill','ai','trade','visit'].includes(body[k]))fail('留存事件无效');}
    if(id==='get_paths')body.details=false;
    if(id==='get_activity'&&!scope.activityId)fail('活动工具需要activityId');
-   const snapshot=['get_seo_performance','get_content_growth','get_follower_quality'].includes(id)?{snapshot_id:null,as_of:new Date().toISOString()}:await deps.snapshot();
+   const snapshot=['get_seo_performance','get_content_growth','get_follower_quality','get_operations_timeline'].includes(id)?{snapshot_id:null,as_of:new Date().toISOString()}:await deps.snapshot();
    if(!Number.isFinite(Date.parse(snapshot.as_of))||end>Date.parse(snapshot.as_of)+1)fail('所选期间超出数据水位');
    const operation=async()=>{
     if(tool.adapter==='metrics')return deps.metrics(body,snapshot,input.metrics||['active_users','new_users','returning_users'],ctx);
@@ -153,6 +174,7 @@ function createToolRegistry(deps){
     if(tool.adapter==='seo-performance')return deps.seoPerformance({...body,limit,siteUrl:input.siteUrl},ctx);
     if(tool.adapter==='kol-performance')return deps.kolPerformance({...body,limit},ctx,snapshot);
     if(tool.adapter==='content-growth')return deps.contentGrowth(body,ctx);
+    if(tool.adapter==='operations-timeline')return deps.operationsTimeline({...body,limit},ctx);
     if(tool.adapter==='follower-quality')return deps.followerQuality(body,ctx);
     return deps.runAnalysis(tool.adapter,body,snapshot,audience,owner(ctx));
    };
@@ -172,7 +194,8 @@ function createToolRegistry(deps){
     id==='get_channel_economics'?economicsSummary(rawPayload):
     id==='get_kol_performance'?kolSummary(rawPayload):
     id==='get_content_growth'?contentSummary(rawPayload):
-    id==='get_follower_quality'?followerSummary(rawPayload):rawPayload;
+    id==='get_follower_quality'?followerSummary(rawPayload):
+    id==='get_operations_timeline'?operationsTimelineSummary(rawPayload):rawPayload;
    const safe=statView(payload);
    if(Buffer.byteLength(JSON.stringify(safe))>maxResultBytes)
      fail('统计摘要超出大小预算，请缩小查询范围',422);
@@ -180,7 +203,7 @@ function createToolRegistry(deps){
     const entries=(safe.metrics||[]).map(m=>makeEvidence({...m,query:{tool:id,body},sourceVersions:{events:snapshot.snapshot_id},watermarks:{events:snapshot.as_of,trades:null,registrations:null},coverage:safe.coverage||{status:'unknown'},warnings:safe.warnings||[]},{...ctx,period}));
     for(const e of entries)deps.evidenceStore.save(e,ctx);return {status:'ok',evidence:entries,warnings:safe.warnings||[]};
    }
-   const e=makeEvidence({metricId:tool.metric,value:safe,query:{tool:id,body,metrics:input.metrics||null,dimensions:input.dimensions||null,audienceFingerprint:audience===null?null:fingerprint(audience)},sourceVersions:['seo-performance','content-growth','follower-quality'].includes(tool.adapter)?{events:null,searchConsole:tool.adapter==='seo-performance'?safe.snapshotId||null:null,operatorRecords:tool.adapter==='content-growth'?(payload.xOfficial?.available?'manual+twitterapi.io':'manual'):null,followerScan:tool.adapter==='follower-quality'?'partial':null}:{events:snapshot.snapshot_id},watermarks:{events:['seo-performance','content-growth','follower-quality'].includes(tool.adapter)?null:snapshot.as_of,trades:payload.trade_watermark??null,registrations:payload.registration_watermark??null,searchConsole:tool.adapter==='seo-performance'?safe.importedAt||null:null},coverage:payload.coverage||payload.quality||{status:'unknown'},warnings:payload.warnings||['各源水位独立；未提供的交易及注册覆盖为未知'],reportLocator:{page:tool.adapter,period,scope}}, {...ctx,period});
+   const e=makeEvidence({metricId:tool.metric,value:safe,query:{tool:id,body,metrics:input.metrics||null,dimensions:input.dimensions||null,audienceFingerprint:audience===null?null:fingerprint(audience)},sourceVersions:tool.adapter==='operations-timeline'?{operatorRecords:'multi-source-v1',searchConsole:null,x:null,kol:null}:['seo-performance','content-growth','follower-quality'].includes(tool.adapter)?{events:null,searchConsole:tool.adapter==='seo-performance'?safe.snapshotId||null:null,operatorRecords:tool.adapter==='content-growth'?(payload.xOfficial?.available?'manual+twitterapi.io':'manual'):null,followerScan:tool.adapter==='follower-quality'?'partial':null}:{events:snapshot.snapshot_id},watermarks:tool.adapter==='operations-timeline'?{events:null,trades:null,registrations:null,operatorRecords:null,searchConsole:null}: {events:['seo-performance','content-growth','follower-quality'].includes(tool.adapter)?null:snapshot.as_of,trades:payload.trade_watermark??null,registrations:payload.registration_watermark??null,searchConsole:tool.adapter==='seo-performance'?safe.importedAt||null:null},coverage:payload.coverage||payload.quality||{status:'unknown'},warnings:payload.warnings||['各源水位独立；未提供的交易及注册覆盖为未知'],reportLocator:{page:tool.adapter,period,scope}}, {...ctx,period});
    deps.evidenceStore.save(e,ctx);return page(e,id,0,limit,ctx);
   }catch(error){if(error.status&&error.status<500)throw error;return {status:'unavailable',evidence:[],warnings:['数据获取失败，不得将缺失解释为0'],error:{type:'data_unavailable'}};}
   finally{clearTimeout(timer);if(!operationStarted)budget.active--;}
@@ -203,7 +226,7 @@ function createToolRegistry(deps){
 function defaultRegistry(){
  const db=require('../../../db/connection'),remote=require('../../../data/hologres');
  const {createEvidenceStore}=require('../evidence'),{sqliteLookups}=require('../scope');
- return createToolRegistry({evidenceStore:createEvidenceStore(db),lookups:sqliteLookups(db),snapshot:()=>remote.status(),runAnalysis:require('./adapters').runAnalysis,metrics:require('./adapters').metrics,economics:require('./adapters').economics,activities:require('./adapters').activities,seoPerformance:require('./adapters').seoPerformance,kolPerformance:require('./adapters').kolPerformance,contentGrowth:require('./contentAdapters').contentGrowth,followerQuality:require('./contentAdapters').followerQuality,
+ return createToolRegistry({evidenceStore:createEvidenceStore(db),lookups:sqliteLookups(db),snapshot:()=>remote.status(),runAnalysis:require('./adapters').runAnalysis,metrics:require('./adapters').metrics,economics:require('./adapters').economics,activities:require('./adapters').activities,seoPerformance:require('./adapters').seoPerformance,kolPerformance:require('./adapters').kolPerformance,contentGrowth:require('./contentAdapters').contentGrowth,followerQuality:require('./contentAdapters').followerQuality,operationsTimeline:require('./operationsTimeline').defaultOperationsTimeline(),
   extensions:require('./openseoConnector').getExtensions()});
 }
 module.exports={createToolRegistry,defaultRegistry,listMetrics,listToolIds:()=>Object.keys(definitions),retentionSummary};
