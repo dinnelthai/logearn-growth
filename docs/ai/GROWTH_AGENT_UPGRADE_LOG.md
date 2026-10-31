@@ -582,3 +582,26 @@ These are **code-complete/CI-validated**, not a guarantee that an actual new v5 
 - **Checked 37/48 (77.1%); open 11; Phase 2 2/8.** Do not inflate the completion score for passing a subset of a broader requirement.
 - Next: audit remaining data source contracts for authentic watermarks, time zones, coverage and mature denominators; align source-safe registration→parallel product engagement→verified trade cohort views and keep revenue/partner ledger separate.
 - No database migration, schema change, deployment, paid collection, external publishing, production configuration change or model request.
+
+## 2026-10-31 — Phase 2 platform revenue vs CRM/KOL collaboration ledger (38/48)
+
+### Source/contract correction
+
+- The previous `get_channel_economics` evidence ID `trade_revenue` represented manual CRM collaboration costs and receipts rather than verified platform trading income. That semantic collision could mislead v5 reports and finance analyses.
+- The current tool now issues **`collaboration_economics` v1** evidence, with the existing owner-scoped CRM/KOL ledger and per-currency limited summary. The `revenue` weekly coverage module remains addressable for old reports but now labels the new source “合作账本（非平台收入）”.
+- **`trade_revenue` v2** is a distinct formally registered `platform-revenue-unavailable` metric. No direct platform fee/income data source has been integrated. Historical v1 `trade_revenue` evidence is not migrated, overwritten, or silently reclassified.
+- Business Brain incremented from `logearn-business-brain-v1` to **`logearn-business-brain-v2`** and metric dictionary version `2`. The revenue goal, metric labels, lifecycle and concise operating rules explicitly separate platform income (unknown), manual cooperation ledger and real trade amount/volume. Archived v1-v4 transport contexts are unaffected; new v5 inputs still respect **22KB**.
+- Implementation files: `backend/src/ai/business/metricRegistry.js`, `backend/src/ai/business/tools/registry.js`, `backend/src/ai/business/tools/businessModuleCatalog.js`, `backend/src/ai/business/businessBrain.js`, `backend/src/ai/growth/weeklyCoverage.js`.
+- Regression tests: `backend/test/agentTools.test.js`, `backend/test/aiBusinessBrain.test.js`, `backend/test/aiWeeklyModuleSummaries.test.js`, `backend/test/aiWeeklyContextV4.test.js`. Tests cover independent metric identity and version, ledger-only evidence, suppressed decimal money conversion, absence of invented platform fees, schema/authorization, historical v4 boundaries and 22KB context size.
+
+### CI evidence and correction sequence
+
+- Initial intermediate builds failed when Business Brain v2 expanded past the 22KB limit, then when a test referenced the pre-compression wording of an operating rule. Both were corrected by shortening repeated dictionary excerpts/operating rules and updating the version/semantic assertions. **The context byte cap was not increased and raw data/evidence was not dropped.**
+- Final source/test HEAD: `ac7b5a410211bb257033943a729ad852e0d16fb8`.
+- [AI infrastructure CI run 41185478559](https://github.com/dinnelthai/logearn-growth/actions/runs/41185478559): **success** for AI Contract, AI Integration and AI Frontend. This is GitHub CI with fixtures/service containers, not a live source or paid model end-to-end acceptance.
+- No migration, deployment, new paid model invocation, external sync/write, production configuration change or platform revenue ingestion.
+
+### Updated task accounting
+
+- Phase 2 checkbox “Separate platform revenue from trade volume and partner/collaboration ledger records”: **completed at code/CI contract level**. It does NOT mean verified platform revenue data is available; that data remains unknown until a direct source is designed, connected and accepted.
+- Phase 2 now **3/8**; entire 48-item roadmap **38/48 = 79.2%**, **10 unchecked**. Remaining Phase 2: module source-contract audit; mature funnel/event completeness; GSC/X/KOL/referral time semantics; supported channel/product/cohort splits; per-metric source watermarks/freshness across all skills. Cross-source real Hologres/Worker/model acceptance remains separate.
