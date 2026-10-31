@@ -3,7 +3,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const {DEFINITIONS,initialCoverage,collectWeeklyCoverage,finalizeWeeklyCoverage,
  modelCoverage,factsFromEvidence}=require('../src/ai/growth/weeklyCoverage');
-const skills=require('../src/ai/growth/skills').listGrowthSkills();
+const skills=require('../src/ai/growth/skills').listSkills();
 
 const period={start:1000,end:2000,previousStart:0,previousEnd:1000,timezone:'Asia/Bangkok'};
 const baseline={id:'base-1',metricId:'active_users',value:71,
