@@ -45,8 +45,8 @@ function growthInsights(rows, qualityRows, b, s, tradeFacts={known:null,trades:[
     const mature=rs.filter(r=>r.first_seen_at+DAY<=asOf+1)
     const activated=mature.filter(r=>r.first_chip_at!=null&&r.first_chip_at>=r.first_seen_at&&r.first_chip_at<r.first_seen_at+DAY)
     const latencies=activated.map(r=>r.first_chip_at-r.first_seen_at).sort((a,b)=>a-b)
-    const engaged=rs.filter(r=>Number.isFinite(Number(r.first_chip_at))&&
-      Number(r.first_chip_at)>=Number(r.first_seen_at)&&Number(r.first_chip_at)<=asOf)
+    const engaged=rs.filter(r=>r.first_chip_at!=null&&Number.isFinite(Number(r.first_chip_at))&&
+      Number.isFinite(Number(r.first_seen_at))&&Number(r.first_chip_at)>=Number(r.first_seen_at)&&Number(r.first_chip_at)<=asOf)
     const tradeMature=engaged.filter(r=>Number(r.first_chip_at)+7*DAY<=asOf+1)
     const matched=tradeMature.filter(r=>tradeFacts.known?.has(r.user_key)),traders=[]
     let volume=0,transactions=0,missingValues=0,excluded=0
