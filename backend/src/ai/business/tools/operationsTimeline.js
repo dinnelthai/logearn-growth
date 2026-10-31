@@ -132,19 +132,23 @@ function createOperationsTimeline({
     const posts=(account.posts||[]).filter(p=>{
      const at=Date.parse(p.published_at);return Number.isFinite(at)&&at>=start&&at<end;
     });
+    const measured=posts.filter(p=>Number(p.impressions)>0&&
+     [p.likes,p.replies,p.reposts].every(v=>v!=null));
+    const views=measured.reduce((n,p)=>n+Number(p.impressions),0);
+    const interactions=measured.reduce((n,p)=>n+Number(p.likes)+Number(p.replies)+Number(p.reposts)+(Number(p.quotes)||0),0);
     count+=posts.length;
     channelObservations.push({
      id:'x-account:'+account.id,kind:'x_official_account',layer:'channel_observation',
      source:overview.source||'twitterapi.io',title:text(account.label,80)+' X 账号',
-     observedAt:account.lastSynced??overview.at??null,
-     metrics:account.metrics||null,
+     observedAt:account.lastSynced??null,
+     metrics:{samplePosts:posts.length,measuredPosts:measured.length,
+      impressions:views||null,engagementRate:views?Math.round(interactions/views*10000)/100:null},
      samplePosts:posts.slice(0,10).map(p=>({
       publishedAt:p.published_at,observedAt:p.observed_at??null,
       impressions:p.impressions??null,likes:p.likes??null,
       replies:p.replies??null,reposts:p.reposts??null,quotes:p.quotes??null
      })),
      coverage:{samplePosts:posts.length,accountPostCap:20,
-      measuredPosts:account.metrics?.measuredPosts??null,
       attribution:overview.attribution||'not-verified'}
     });
    }
