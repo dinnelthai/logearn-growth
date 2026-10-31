@@ -10,8 +10,8 @@ const analysisPrompt=`analysis-contract-v1。你是LogEarn业务增长分析师�
 每条建议可以增加可选 forecast 字段，包含 metric（必须等于 validationMetrics.primary）、direction（increase/decrease）、horizonDays（3–14整数）、minRelativeChangePct（0–100）、confidence（low/medium/high）以及 evidenceIds（已引用的证据ID）。预测不是必要字段；没有足够证据就不要提供数字预测，绝不宣称行动的因果收益。可不提出建议，但必须解释原因；指标不存在时不能自行造数。不得自行承诺收益。`;
 
 function normalizedAction(value){
- return String(value||'').split(/\\n执行计划\\n/)[0]
-  .normalize('NFKC').toLocaleLowerCase().replace(/[\\s\\p{P}\\p{S}]+/gu,'');
+ return String(value||'').split(/\n执行计划\n/)[0]
+  .normalize('NFKC').toLocaleLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
 }
 function assertActionNovelty(suggestion,history){
  if(!Array.isArray(history))return;
