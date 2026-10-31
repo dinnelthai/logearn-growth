@@ -5,14 +5,14 @@ import {renderWeeklyDecisionReport,readOnlyGscMarkup} from './aiWeeklyDecisionVi
 
 const DAY=86400000, BANGKOK=7*3600000;
 const date=ms=>Number.isFinite(Number(ms))?new Date(Number(ms)+BANGKOK).toISOString().slice(0,10):'未知';
-const today=date(Date.now());
-const defaultRange=()=>({start:date(Date.now()-7*DAY),end:today});
+const localDateTime=ms=>new Date(ms+BANGKOK).toISOString().slice(0,16);
+const defaultRange=()=>({start:localDateTime(Date.now()-7*DAY),end:localDateTime(Date.now())});
 const rangeBounds=range=>{
- const start=Date.parse(range.start+'T00:00:00+07:00');
- const next=Date.parse(range.end+'T00:00:00+07:00')+DAY;
- const end=Math.min(next,Date.now());
- if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start)throw Error('请选择有效的开始和结束日期');
+ const start=Date.parse(range.start+':00+07:00');
+ const end=Date.parse(range.end+':00+07:00');
+ if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start)throw Error('请选择有效的开始和结束时间');
  if(end-start>31*DAY)throw Error('单次报告最多支持31天，请缩小时间范围');
+ if(end>Date.now())throw Error('结束时间不能晚于当前时间');
  return {start,end};
 };
 const fmt=x=>typeof x==='number'&&Number.isFinite(x)?x.toLocaleString('zh-CN',{maximumFractionDigits:2}):'未知';
@@ -254,10 +254,10 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
      '<button type="button" class="a-button a-primary" data-weekly-regenerate-submit>确认重新生成（可能收费）</button>'+
      '</div></div>':'')+
     '<div class="ai-weekly-range-picker">'+
-     '<label>开始日期 <input type="date" data-weekly-start value="'+safe(range.start)+'"></label>'+
-     '<label>结束日期（包含） <input type="date" data-weekly-end value="'+safe(range.end)+'"></label>'+
+     '<label>开始时间 · UTC+7 <input type="datetime-local" data-weekly-start value="'+safe(range.start)+'"></label>'+
+     '<label>结束时间（不含）· UTC+7 <input type="datetime-local" data-weekly-end value="'+safe(range.end)+'"></label>'+
      '<button type="button" class="a-button" data-weekly-apply-range>应用时间范围</button>'+
-     '<span class="a-muted">自定义1–31天；与紧邻前一段等长周期比较</span></div>'+
+     '<span class="a-muted">精确到分钟，最长31天；与紧邻前一段等长周期比较</span></div>'+
     (regenerateArchived?
      '<p>上一份失败报告已移出列表。重新生成会创建独立付费任务，原调用和费用保留。</p>':
      '<p>选择任意日期范围生成运营报告；数据按 Asia/Bangkok 时间统计，并与紧邻前一段等长周期比较。生成会调用可能收费的模型。</p>')+
