@@ -650,3 +650,33 @@ These are **code-complete/CI-validated**, not a guarantee that an actual new v5 
 - `docs/ai/GROWTH_SOURCE_CONTRACTS.md` documents the per-tool metadata contract and limits.
 - Next: inspect every remaining compound module against independent source watermarks, preserve scope and mature cohort denominators end-to-end, accept source-supported channel/product/cohort dimensions, then use only authorized real read-only data for acceptance.
 - No deployment, schema migration, paid AI/API call, external sync or posting, or merge to another branch.
+
+## 2026-10-31 — Registration → activation → parallel product engagement → trade journey (40/48)
+
+### Implemented
+
+- Added formal `registered_user_journey` aggregate metric to `backend/src/ai/business/metricRegistry.js` and its business definition to `backend/src/analytics/businessPriorities.js`. The existing `growth-overview` skill now requests it through `query_metrics`; no new analytics engine, event collector or parallel funnel SQL was introduced.
+- `backend/src/ai/business/tools/adapters.js` builds one bounded, statistics-only journey from the existing `growthInsights` payload:
+  1. **Registration:** owner-scoped `account_v2.created_at` cohort.
+  2. **Activation:** first chip analysis within 24 hours; only mature registration accounts enter denominator, pending accounts remain separate.
+  3. **Parallel product engagement:** chip analysis, Holder view, strategy start, signal view and repeat analysis in the first seven days after registration. Every entry shares the same mature seven-day registration denominator; entries can overlap and are never summed as a serial funnel.
+  4. **Trade conversion:** separate 168-hour window after first chip analysis; only mature users with verified account identity enter denominator; unmatched identities remain separately counted. This is user-level any-token trade observation, not same-token attribution or causal proof.
+- Source completeness is explicit: event `historyComplete` and `eventsCompleteThrough` pass through when supplied. Registration and trade watermarks remain null until independently measured. The evidence's event snapshot applies only to event behavior, not as a substitute registration/trade watermark.
+- `registered_user_journey` does not advertise device/version group-by; registry rejects unsupported dimension requests. Existing source and fixed-audience scopes remain governed by existing authorization.
+- `backend/src/ai/business/modelTransport.js` allowlists the nested registration/activation/engagement/trade aggregate and preserves it in compact weekly evidence without exposing user rows or identifiers. `backend/src/ai/growth/weeklyCoverage.js` prioritizes activation, the parallel product entries and trade facts.
+- No new schema, SQL collector, external service or paid integration.
+
+### Regression and CI
+
+- Added cases in `backend/test/aiBusinessMetricsAdapter.test.js` for 24h/7d maturity, parallel rates, true zero vs null, unknown trade and registration unavailability.
+- Added `backend/test/agentTools.test.js` for immutable evidence projection, independent source watermarks and rejection of unsupported dimensions.
+- Added `backend/test/aiWeeklyCoverage.test.js` for safe model projection and the twelve bounded journey facts.
+- Existing `backend/test/growthInsights.test.js` and `backend/test/growthCohortTrades.test.js` cover underlying cohort windows, identity mapping, maturity and transaction boundaries.
+- **Source/test HEAD:** `a4f421400160d1a895e5032d7614062946e6f731`. [AI infrastructure CI 41187724624](https://github.com/dinnelthai/logearn-growth/actions/runs/41187724624) passed **AI Contract, AI Integration and AI Frontend**.
+
+### Checklist and remaining limits
+
+- Phase 2 registration journey checkbox is now complete at code/fixture level. **Overall 40/48 (83.3%), 8 open; Phase 2 5/8.**
+- This is not live-source acceptance. Event-history completeness may be false; the flag is surfaced, not asserted. Independent registration/trade freshness, complete identity mapping and actual production Hologres coverage still require authorized read-only verification.
+- Remaining Phase 2: audit every business module/source contract; add only source-supported channel/product/cohort breakdowns; finish independent per-metric watermark/coverage/freshness/scope/definition-version coverage.
+- No paid model/API calls, migrations, production deployment, external collection, posts or writes.
