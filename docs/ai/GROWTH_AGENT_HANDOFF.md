@@ -6,9 +6,9 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
-- Last code-validation commit: `8e5a9d4ca378e2030a9765f960fc7e67f63153be` (all AI infrastructure CI jobs green).
+- Last code-validation commit: `82059ee940680fba40a7f49a3cffeec09368cda5` (all AI infrastructure CI jobs green).
 - Documentation baseline before this handoff refresh: `409791810e6d0a6a9c2f2885f8c648541d7fa6ee`; fetch the live branch HEAD before every new edit.
-- Latest successful CI: AI infrastructure run [41169268207](https://github.com/dinnelthai/logearn-growth/actions/runs/41169268207) — AI Contract, AI Frontend and AI Integration all succeeded.
+- Latest successful CI: AI infrastructure run [41169637765](https://github.com/dinnelthai/logearn-growth/actions/runs/41169637765) — AI Contract, AI Frontend and AI Integration all succeeded.
 - Checklist progress: 22 / 45 implementation items (49%); live-source acceptance is not included in that percentage.
 - Do not switch to or commit to `master`.
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
@@ -89,6 +89,7 @@ New v5 flags:
   - Code review confirms separate mature registration → first-analysis (24h) and first-analysis → verified user-level trade (7d) cohort metrics. Growth Overview now requests these metrics explicitly; the unified product-engagement funnel and live-source contract remain open.
   - These three metrics now have formal shared definitions and are valid reviewed-learning focus metrics; Business Brain context remains within the 22KB budget in CI.
   - Deterministic triage recognizes the registration cohort rates as investigation signals while preserving the no-causal-claim rule.
+  - The registration cohort also reports mature 7-day counts for chip analysis, Holder view, strategy start, signal view and repeat analysis. These are parallel overlapping entry metrics, not a forced sequential funnel.
 - [ ] Review SEO/GSC PT date alignment, X snapshot freshness and KOL observation windows against live source watermarks.
 - [ ] Add cross-channel activity links only when stable identifiers and comparable windows exist; temporal overlap is not attribution.
 
