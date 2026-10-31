@@ -27,6 +27,32 @@ test('tool budgets stop before queries and data faults are unavailable rather th
 test('unsupported source-only tools reject activity scopes and unknown finance never turns into revenue zero',async()=>{
  const t=setup();try{await assert.rejects(()=>t.registry.executeTool('get_channel_economics',{scope:{cohortId:'c'}},t.context),/支持/);}finally{t.db.close()}
 });
+test('collaboration economics evidence never becomes platform revenue or trade volume',async()=>{
+ const t=setup({economics:async()=>({byCurrency:[
+  {currency:'USD',income_entries:2,roi:.5,net_revenue:'250.00',actual_cost:'100.00'}
+ ],coverage:{finance:'manual_records_only',revenue:'recorded'},
+ warnings:['仅合作账本，非平台收入']})});
+ try{
+  const context={...t.context,scope:{source:'all'}};
+  const result=await t.registry.executeTool('get_channel_economics',{},context);
+  assert.equal(result.status,'ok');
+  const ev=result.evidence[0];
+  assert.equal(ev.metricId,'collaboration_economics');
+  assert.equal(ev.definitionVersion,'1');
+  assert.equal(ev.value.economics.receivedEntries,2);
+  assert.equal(ev.value.economics.currencyCount,1);
+  assert.equal(ev.value.groups[0].source,'usd');
+  assert.equal(ev.value.groups[0].roi,.5);
+  assert.equal(ev.value.platformRevenue,undefined);
+  assert.equal(ev.value.tradeVolume,undefined);
+  assert.doesNotMatch(JSON.stringify(ev.value),/250\\.00|100\\.00/);
+  assert.match(ev.warnings.join(' '),/非平台收入/);
+  const {describeMetric}=require('../src/ai/business/metricRegistry');
+  assert.equal(describeMetric('trade_revenue').queryAdapter,'platform-revenue-unavailable');
+  assert.equal(describeMetric('collaboration_economics').queryAdapter,'economics');
+  assert.notEqual(describeMetric('trade_revenue').definition,describeMetric('collaboration_economics').definition);
+ }finally{t.db.close()}
+});
 test('global diagnostic tools cannot pretend to honor a source filter and unused parameters are rejected',async()=>{
  const t=setup();try{
  await assert.rejects(()=>t.registry.executeTool('check_data_quality',{},t.context),/来源|全来源/);
