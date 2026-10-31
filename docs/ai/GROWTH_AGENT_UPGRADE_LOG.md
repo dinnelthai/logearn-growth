@@ -512,3 +512,47 @@ Branch: `codex/ai-comprehensive-upgrade`
 - Validation is strict-v2 only; archived contexts without the v2 marker preserve legacy recovery compatibility.
 - CI [41183309528](https://github.com/dinnelthai/logearn-growth/actions/runs/41183309528) passed all three AI jobs. Contract groups: 177 (176 pass, 0 fail, 1 skipped), plus 26/26, 19/19, 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112.
 - The "cheapest query" ranking remains intentionally open because trusted per-tool scan/latency cost metadata does not exist; do not invent estimates or claim cheapest. No paid call, migration, deployment, live-source collection or external write.
+
+## 2026-10-31 — Implementation-status reconciliation at code HEAD 030c0ed
+
+### Scope / source of truth
+
+- Branch only: `codex/ai-comprehensive-upgrade`; no comparison, merge or commit to `master`.
+- Audited code HEAD before documentation changes: `030c0ed8993a049485f4a064d48cef1f661dfa05` (weekly UI finishing commit). Read the live branch ref before future work because documentation updates advance HEAD independently.
+- Canonical checklist remains `docs/ai/GROWTH_AGENT_2_0_IMPLEMENTATION_PLAN.md`: **37 of 48 implementation items checked (77.1%); 11 open**. Previous `35/48` was stale. This count covers code with test/CI evidence, **not** production or real-model acceptance.
+- Phase counts: Phase 0 5/5; Phase 1 8/10; Phase 2 2/8; Phase 3 7/8; Phase 4 4/6; Phase 5 5/5; Phase 6 6/6.
+
+### Why Phase 5 changed from 3/5 to 5/5
+
+1. **Business-first weekly report contract and display.** `backend/src/ai/growth/weeklyReport.js` defines a new v5 `weeklyReportContractVersion='weekly-report-v2'` schema covering seven lifecycle stages, evidence-linked positive growth opportunities, prior-action states/reviews and partial fallback. `backend/src/queues/jobs/businessAnalysis.js` pins that schema for newly created v5 weekly snapshots. `frontend/src/pages/aiWeeklyDecisionView.js` renders lifecycle/opportunities/previousActions alongside priority, metrics, acquisition, next steps and gaps. `backend/test/aiWeeklyReport.test.js` covers required stages, evidence checks and explicit partial fallback, and frontend tests cover UI ordering.
+2. **Secondary/collapsible module audit.** `frontend/src/pages/aiWeeklyDecisionView.js` renders module coverage, data completeness and technical evidence under `<details>`; `frontend/src/pages/aiWeeklyReportPanel.js` opens the relevant collapsed area for jump navigation. UI regression tests cover these surfaces.
+
+These are **code-complete/CI-validated**, not a guarantee that an actual new v5 report has been generated and accepted from live sources. An archived v4 report is not a v5 regression test. Strict v5 malformed model sections become an explicitly partial saved report; no blind second paid request.
+
+### CI evidence and checks not performed
+
+- Latest observed successful AI infrastructure run: [41184069508](https://github.com/dinnelthai/logearn-growth/actions/runs/41184069508), code HEAD `76ec311df688860f93b72b930641cf1c3cd3ef03`, successful after intermediate failed attempts at earlier commits.
+- Latest observed successful Growth desktop UI regression: [41184123727](https://github.com/dinnelthai/logearn-growth/actions/runs/41184123727), exact audited code HEAD `030c0ed8993a049485f4a064d48cef1f661dfa05`.
+- This was a **remote code/document inspection and GitHub CI-history review**. No new tests were run locally in this documentation pass, and there was no live Hologres/Worker/API acceptance, new paid model invocation or live collector verification.
+
+### 11 remaining roadmap items (original checklist IDs by phase)
+
+- **Phase 1 (2):** read-only real v5 context verification; operator confirmation of product map and formal North Star.
+- **Phase 2 (6):** complete business module source-contract audit; registration/activation/product engagement/trade journey with verified denominators; GSC/X/KOL/referral time and source contracts; supported channel/product/cohort splits; per-metric watermark/freshness/coverage/definition version; platform revenue vs trade volume/partner ledger.
+- **Phase 3 (1):** stable identity-and-window activity-to-channel/mature-outcome links; existing KOL record links are operational associations, not proven incremental acquisition.
+- **Phase 4 (2):** objective/impact/evidence/confidence **and measured query-cost** ranking; competing-hypothesis cheapest authorized discriminating query. Query safety/schema checks are implemented, but trustworthy tool scan/latency cost metadata is missing. No costs should be invented.
+- **Phase 5 (0 checked open):** real model/business-quality signoff still pending *outside checklist*, regardless of 5/5 code status.
+- **Phase 6 (0 checked open):** real fixed-cohort end-to-end signoff still pending *outside checklist*; only `active_users → analysis_users` is directly comparable in cohort v2 learning.
+
+### Identified source debt (not added as unchecked roadmap item)
+
+- `frontend/src/pages/aiWeeklyDecisionView.js` has a hardcoded “12 个增长模块” label, while the new v5 coverage catalog has **13** with operations-timeline. UI label should read a manifest-backed count in a future code-only patch. Avoid equating archived 12-module reports with the new manifest.
+- Full model truthfulness and quality, real transaction match rates/latency, mature funnel event coverage, GSC Pacific-Time window alignment, X/KOL freshness and verified revenue are not established by unit/integration fixtures.
+- The retrospective service can calculate `active_users`, `new_users`, `returning_users`, `activation_rate` and `d7`, but the fixed-cohort v2 observational outcome mapper only supports `active_users → analysis_users`; the others must not be counted as proven cohort learning.
+
+### Files changed / operational safety
+
+- Documentation-only paths: `docs/ai/GROWTH_AGENT_2_0_IMPLEMENTATION_PLAN.md`, `docs/ai/GROWTH_AGENT_HANDOFF.md`, `docs/ai/LOGEARN_BUSINESS_BRAIN.md`, `docs/ai/GROWTH_AGENT_UPGRADE_LOG.md`.
+- No application source or tests were changed; no database migration, deployment, paid AI call, paid SEO collection, external posting, or external campaign occurred.
+- Next priority: Phase 2 source-contract completion with authorized read-only fixtures/live acceptance, then Phase 3 stable outcome associations, then cost-aware Decision Engine only when trusted cost metadata exists. Keep all real paid operations approval-gated.
+
