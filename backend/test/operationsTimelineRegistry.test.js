@@ -42,6 +42,9 @@ test('legacy tool discovery and execution expose the owner-scoped operating time
  assert.equal(value.channelObservations[0].metrics.impressions,10)
  assert.equal(value.aiActions[0].status,'pending')
  assert.equal(value.coverage.growthActivities.count,1)
+ assert.equal(value.counts.human_operations,1)
+ assert.equal(value.counts.channel_observations,1)
+ assert.equal(value.counts.ai_actions,1)
  assert.match(value.warnings.join(' '),/not completed human operations/)
 })
 test('timeline tool refuses unsupported source scopes and invalid periods before reading sources',async()=>{
