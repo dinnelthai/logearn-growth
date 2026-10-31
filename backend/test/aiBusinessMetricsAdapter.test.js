@@ -231,3 +231,40 @@ test('registered user journey stays unavailable when registration facts cannot b
   assert.equal(result.metrics[0].coverage.status,'unavailable');
  }finally{evidence.fetchGrowthInsights=original}
 });
+
+test('registered journey source dimension only projects bounded observed-attributed cohorts, not trade attribution',async()=>{
+ const original=evidence.fetchGrowthInsights;
+ try{
+  evidence.fetchGrowthInsights=async()=>({cohorts:{registration:{
+   available:true,scope:'all',
+   metrics:{users:3,eligible:3,activated:1,pending:0,rate:1/3},
+   engagement:{eligible:2,pending:1,chip_analysis_users:1,
+    holder_view_users:1,strategy_started_users:1,signal_view_users:0,
+    repeat_analysis_users:0},
+   trade:{available:true,engaged:1,eligible:1,traders:1,conversion_rate:1},
+   bySource:[{source:'x',users:2,activation:{eligible:2,activated:1,pending:0,rate:.5},
+    engagement:{eligible:1,pending:1,chip_analysis_users:1,
+     holder_view_users:1,strategy_started_users:0,signal_view_users:0,
+     repeat_analysis_users:0}},
+    {source:'unknown',users:1,activation:{eligible:1,activated:0,pending:0,rate:0},
+     engagement:{eligible:1,pending:0,chip_analysis_users:0,
+      holder_view_users:0,strategy_started_users:1,signal_view_users:0,
+      repeat_analysis_users:0}}]
+  }}});
+  const base={start:100,end:200,source:'all'};
+  const grouped=await metrics({...base,dimensions:['source']},{snapshot_id:'s'},['registered_user_journey'],{});
+  const value=grouped.metrics[0].value.registration;
+  assert.equal(value.bySource.length,2);
+  assert.equal(value.bySource[0].users,2);
+  assert.equal(value.bySource[0].engagement.eligible,1);
+  assert.equal(value.bySource[0].engagement.holder_view_rate,1);
+  assert.equal(value.bySource[1].engagement.strategy_started_rate,1);
+  assert.equal(value.bySource[1].activation.rate,0);
+  assert.ok(value.bySource.every(row=>!Object.hasOwn(row,'trade')));
+  assert.equal(value.trade.conversion_rate,1);
+  assert.ok(grouped.metrics[0].warnings.some(x=>x.includes('不证明渠道真实获客')));
+  assert.ok(grouped.metrics[0].warnings.some(x=>x.includes('不输出来源交易率')));
+  const ungrouped=await metrics(base,{snapshot_id:'s'},['registered_user_journey'],{});
+  assert.equal(Object.hasOwn(ungrouped.metrics[0].value.registration,'bySource'),false);
+ }finally{evidence.fetchGrowthInsights=original;}
+});
