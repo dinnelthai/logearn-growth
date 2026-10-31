@@ -24,7 +24,7 @@ function findLinkedTask(db,ownerId,suggestionId){
  const task=db.prepare('SELECT * FROM operation_tasks WHERE id=? AND owner_id=?').get(links[0].id,String(ownerId));
  return task?{status:'linked',task}:{status:'unavailable',reason:'linked-task-not-found'};
 }
-async function loadLinkedTaskEvidence({db,ownerId,suggestionId,executedAt,snapshot,now,dependencies={}}){
+async function loadLinkedTaskEvidence({db,ownerId,suggestionId,executedAt,expectedSource,snapshot,now,dependencies={}}){
  const linked=findLinkedTask(db,ownerId,suggestionId);
  if(linked.status!=='linked')return linked;
  const task=linked.task;
@@ -33,7 +33,9 @@ async function loadLinkedTaskEvidence({db,ownerId,suggestionId,executedAt,snapsh
  if(task.completed_at!==executedAt)
   return {status:'unavailable',reason:'task-and-suggestion-execution-time-mismatch',taskId:task.id};
  const source=json(task.source_json),members=json(task.members_json);
- if(!source||typeof source.source!=='string'||!Array.isArray(members)||
+ if(!source||typeof source.source!=='string'||(expectedSource&&source.source!==expectedSource))
+  return {status:'unavailable',reason:'task-and-suggestion-source-mismatch',taskId:task.id};
+ if(!Array.isArray(members)||
   !members.length||members.length>5000||members.some(id=>typeof id!=='string'||!/^\\d{1,20}$/.test(id))||
   new Set(members).size!==members.length)
   return {status:'unavailable',reason:'invalid-fixed-cohort-snapshot',taskId:task.id};
