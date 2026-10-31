@@ -47,7 +47,7 @@ it.skip('Mock JSON data has been removed - association validation moved to integ
 it('calculates step conversion only from mature known users, not pending or association-unknown users',()=>{
  const asOf=base+DAY+500,window=DAY;
  const users=[
-  u([e('token_click',1,{token_visit_id:'v1'}),e('token',2,{token_visit_id:'v1'})]), // pending at chip
+  u([e('token_click',1000,{token_visit_id:'v1'}),e('token',1001,{token_visit_id:'v1'})]), // pending at chip
   u([e('token_click',10,{token_visit_id:'v2'}),e('token',20,{token_visit_id:'v2'}),e('chip',30,{token_visit_id:'v2'})]),
   u([e('token_click',100,{token_visit_id:'v3'}),e('token',200,{token_visit_id:'v3'})]), // mature drop-off
  ];
