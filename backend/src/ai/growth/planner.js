@@ -27,7 +27,7 @@ function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[
   throw Error('能力集合必须由可信任务入口提供');
  const supportedTools=new Set(availableCapabilityIds||listToolIds());
  const hints=strategy?.policy?.focusMetrics||[];
- if(!Array.isArray(hints)||hints.length>3||hints.some(x=>!['active_users','new_users','returning_users','activation_rate','d7','weekly_core'].includes(x)))
+ if(!Array.isArray(hints)||hints.length>3||hints.some(x=>!['active_users','new_users','returning_users','activation_rate','d7','weekly_core','registered_users','registration_activation_rate','registered_trade_conversion_rate'].includes(x)))
   throw Object.assign(Error('学习策略包含未授权的调查指标'),{status:409});
  const focus=new Set(hints);
  const triage=require('./triage').detectGrowthSignals(report);
