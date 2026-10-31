@@ -137,6 +137,56 @@ function conversionSummary(payload){
    reason:'仅已观测的转化事件；无法由未观测推导未使用'},
   warnings:['登录或邀请的未成熟/无关联事件不当作失败；事实、估算与来源分开']};
 }
+// Preserve only independently observed source timestamps and bounded IDs.
+// Query completion and the event-store snapshot are NOT evidence that GSC,
+// X, KOL or CRM data was refreshed to the same point in time.
+function specialtyProvenance(id,raw,snapshot){
+ const observedTime=value=>Number.isSafeInteger(value)&&value>0&&
+  Number.isFinite(new Date(value).getTime())?new Date(value).toISOString():null;
+ const reportedTime=value=>typeof value==='string'&&Number.isFinite(Date.parse(value))?
+  new Date(value).toISOString():null;
+ const snapshotId=value=>typeof value==='string'&&value.length>0&&value.length<=120?value:null;
+ if(id==='get_seo_performance'){
+  const source=raw?.source==='gsc-api'?'gsc-api':
+   raw?.source==='gsc-manual-export'?'gsc-manual-export':null;
+  return {sourceVersions:{events:null,searchConsole:snapshotId(raw?.snapshotId)},
+   watermarks:{events:null,searchConsole:source==='gsc-api'?
+    observedTime(raw?.syncedAt):source==='gsc-manual-export'?
+    observedTime(raw?.importedAt):null,trades:null,registrations:null},
+   provenanceNote:source==='gsc-manual-export'?'manual-import-time-not-google-freshness':
+    'gsc-collection-time-not-pt-day-completeness'};
+ }
+ if(id==='get_content_growth'){
+  const observed=(raw?.xOfficial?.accounts||[]).map(a=>observedTime(a?.lastSynced))
+   .filter(Boolean).sort();
+  return {sourceVersions:{events:null,operatorRecords:'manual-content',
+    x:raw?.xOfficial?.available===true?'twitterapi.io':null},
+   watermarks:{events:null,x:observed.at(-1)||null,trades:null,registrations:null},
+   provenanceNote:'x-latest-bounded-post-observation-not-all-account-freshness'};
+ }
+ if(id==='get_follower_quality'){
+  const observed=(raw?.progress||[]).map(r=>observedTime(r?.updated_at))
+   .filter(Boolean).sort();
+  return {sourceVersions:{events:null,followerScan:'mutable-scan-progress'},
+   watermarks:{events:null,followerScan:observed.at(-1)||null,
+    trades:null,registrations:null},
+   provenanceNote:'latest-observed-progress-not-historical-audit-completeness'};
+ }
+ if(id==='get_kol_performance'){
+  return {sourceVersions:{events:null,kol:raw?.available===true?
+   snapshotId(raw?.snapshotId):null},
+   watermarks:{events:null,kol:raw?.available===true?
+    reportedTime(raw?.asOf):null,trades:null,registrations:null},
+   provenanceNote:'hologres-snapshot-does-not-verify-crm-tagging-completeness'};
+ }
+ if(id==='get_operations_timeline')
+  return {sourceVersions:{operatorRecords:'multi-source-v1'},
+   watermarks:{events:null,trades:null,registrations:null,operatorRecords:null,
+    searchConsole:null},provenanceNote:'multi-source-observation-not-a-shared-watermark'};
+ return {sourceVersions:{events:snapshot?.snapshot_id??null},
+  watermarks:{events:snapshot?.as_of??null,trades:raw?.trade_watermark??null,
+   registrations:raw?.registration_watermark??null}};
+}
 const allowedFields=id=>['scope','start','end','filters','limit','cursor',...(id==='get_funnel'?['steps','hours']:id==='get_retention'?['initial','returning']:id==='query_metrics'?['metrics','dimensions']:id==='get_seo_performance'?['siteUrl']:['get_login_conversion','get_invite_conversion'].includes(id)?['hours']:[])];
 function createToolRegistry(deps){
  const budgets=new Map(),maxQueries=deps.maxQueries??20,maxConcurrent=deps.maxConcurrent??2,maxResultBytes=deps.maxResultBytes??200000,timeoutMs=deps.timeoutMs??35000;
@@ -232,7 +282,16 @@ function createToolRegistry(deps){
     });
     for(const e of entries)deps.evidenceStore.save(e,ctx);return {status:'ok',evidence:entries,warnings:safe.warnings||[]};
    }
-   const e=makeEvidence({metricId:tool.metric,value:safe,query:{tool:id,body,metrics:input.metrics||null,dimensions:input.dimensions||null,audienceFingerprint:audience===null?null:fingerprint(audience)},sourceVersions:tool.adapter==='operations-timeline'?{operatorRecords:'multi-source-v1',searchConsole:null,x:null,kol:null}:['seo-performance','content-growth','follower-quality'].includes(tool.adapter)?{events:null,searchConsole:tool.adapter==='seo-performance'?safe.snapshotId||null:null,operatorRecords:tool.adapter==='content-growth'?(payload.xOfficial?.available?'manual+twitterapi.io':'manual'):null,followerScan:tool.adapter==='follower-quality'?'partial':null}:{events:snapshot.snapshot_id},watermarks:tool.adapter==='operations-timeline'?{events:null,trades:null,registrations:null,operatorRecords:null,searchConsole:null}: {events:['seo-performance','content-growth','follower-quality'].includes(tool.adapter)?null:snapshot.as_of,trades:payload.trade_watermark??null,registrations:payload.registration_watermark??null,searchConsole:tool.adapter==='seo-performance'?safe.importedAt||null:null},coverage:payload.coverage||payload.quality||{status:'unknown'},warnings:payload.warnings||['各源水位独立；未提供的交易及注册覆盖为未知'],reportLocator:{page:tool.adapter,period,scope}}, {...ctx,period});
+   const provenance=specialtyProvenance(id,rawPayload,snapshot);
+   const e=makeEvidence({metricId:tool.metric,value:safe,
+    query:{tool:id,body,metrics:input.metrics||null,dimensions:input.dimensions||null,
+     audienceFingerprint:audience===null?null:fingerprint(audience)},
+    sourceVersions:provenance.sourceVersions,
+    watermarks:provenance.watermarks,
+    coverage:payload.coverage||payload.quality||{status:'unknown'},
+    warnings:[...(payload.warnings||['各源水位独立；缺失源保持未知']),
+     ...(provenance.provenanceNote?[provenance.provenanceNote]:[])],
+    reportLocator:{page:tool.adapter,period,scope}}, {...ctx,period});
    deps.evidenceStore.save(e,ctx);return page(e,id,0,limit,ctx);
   }catch(error){if(error.status&&error.status<500)throw error;return {status:'unavailable',evidence:[],warnings:['数据获取失败，不得将缺失解释为0'],error:{type:'data_unavailable'}};}
   finally{clearTimeout(timer);if(!operationStarted)budget.active--;}
