@@ -17,9 +17,10 @@ test('decision problem can link only to owned existing operations, never invent 
 
 test('adopted AI suggestions link idempotently to existing owner-scoped cohort tasks only',()=>{
  const db=new DatabaseSync(':memory:');try{
-  db.exec('CREATE TABLE operation_tasks(id TEXT,owner_id TEXT,title TEXT,status TEXT)');
-  db.prepare('INSERT INTO operation_tasks VALUES(?,?,?,?)').run('task-1','alice','已固定名单的激活任务','open');
-  db.prepare('INSERT INTO operation_tasks VALUES(?,?,?,?)').run('task-2','bob','其他用户任务','open');
+  db.exec('CREATE TABLE operation_tasks(id TEXT,owner_id TEXT,title TEXT,status TEXT,source_json TEXT)');
+  db.prepare('INSERT INTO operation_tasks VALUES(?,?,?,?,?)').run('task-1','alice','已固定名单的激活任务','open',JSON.stringify({source:'all'}));
+  db.prepare('INSERT INTO operation_tasks VALUES(?,?,?,?,?)').run('task-2','bob','其他用户任务','open',JSON.stringify({source:'all'}));
+  db.prepare('INSERT INTO operation_tasks VALUES(?,?,?,?,?)').run('task-direct','alice','指定来源任务','open',JSON.stringify({source:'direct'}));
   const s=workspaceStore(db,{initialize:true});
   const suggestion={id:'suggestion-1',user_status:'adopted',
    business_problem:'注册后首次分析转化偏低',
@@ -28,6 +29,7 @@ test('adopted AI suggestions link idempotently to existing owner-scoped cohort t
   assert.throws(()=>s.linkAcceptedSuggestionToTask('alice',{...suggestion,user_status:'pending'},'task-1'),/已采纳/);
   assert.throws(()=>s.linkAcceptedSuggestionToTask('alice',suggestion,'missing'),/不存在或无权访问/);
   assert.throws(()=>s.linkAcceptedSuggestionToTask('alice',suggestion,'task-2'),/不存在或无权访问/);
+  assert.throws(()=>s.linkAcceptedSuggestionToTask('alice',suggestion,'task-direct'),/来源范围不一致/);
   const first=s.linkAcceptedSuggestionToTask('alice',suggestion,'task-1');
   assert.equal(first.taskId,'task-1');assert.equal(first.taskTitle,'已固定名单的激活任务');
   assert.equal(first.reused,false);
