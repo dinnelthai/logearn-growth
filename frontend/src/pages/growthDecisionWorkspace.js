@@ -47,10 +47,27 @@ export function mountGrowthDecisionWorkspace(root,{navigate=null}={}){
    const d=await api('/dashboard','GET',undefined,controller.signal)
    if(disposed||version!==seq)return
    const goals=d.goals||[],issues=d.problems||[],actions=d.actions||[],reports=d.reports||[]
+   const executive=d.executive||{},north=executive.latestVerifiedNorthStar||null
+   const waiting=Array.isArray(executive.awaitingApproval)?executive.awaitingApproval:[]
+   const reviews=Array.isArray(executive.reviewsDue)?executive.reviewsDue:[]
    const topIssues=issues.filter(x=>['open','monitoring'].includes(x.status)).slice(0,3);
    const moreIssues=issues.filter(x=>!topIssues.includes(x));
    const business=moreIssues.filter(x=>x.type==='business'),data=moreIssues.filter(x=>x.type==='data-quality'),other=moreIssues.filter(x=>!['business','data-quality'].includes(x.type))
-   root.innerHTML=`<section class="a-card a-details ga-ws-weekly" aria-label="AI 运营周报"><div data-ai-weekly-report>正在加载 AI 周报…</div></section><section class="a-card a-details ga-ws-overview"><div class="ga-ws-section-title"><h2>本月工作概览</h2><span>基于已保存的数据和人工记录</span></div>
+   root.innerHTML=`<section class="a-card a-details ga-ws-weekly" aria-label="AI 运营周报"><div data-ai-weekly-report>正在加载 AI 周报…</div></section>
+   <section class="a-card a-details ga-ws-executive" aria-label="AI 增长执行官待办">
+    <div class="ga-ws-section-title"><h2>增长执行官 · 今日决策</h2><span>证据驱动 · 对外执行需批准</span></div>
+    <p>北极星：筹码峰查看/下钻去重用户；真实交易独立统计。月目标：${executive.northStar?.target==null?'未配置':fmt(executive.northStar.target)+' 人'}。</p>
+    <div class="ga-ws-stats">
+     <div><strong>最近可信日分析用户</strong><p>${north?fmt(north.value):'未知'}</p><small>${north?dateTime(north.period.end)+' 截止':'需完整水位与身份核验'}</small></div>
+     <div><strong>待批准行动</strong><p>${fmt(executive.waitingApproval??0)}</p></div>
+     <div><strong>到期待复盘</strong><p>${fmt(reviews.length)}</p></div>
+     <div><strong>超期运营任务</strong><p>${fmt(executive.overdueTasks?.length??0)}</p></div>
+    </div>
+    ${(executive.priorities||[]).length?'<h3>本轮优先问题</h3>'+executive.priorities.slice(0,3).map(p=>'<p><strong>'+safe(p.subject)+'</strong> · 优先级 '+safe(p.priority)+'/5 · '+safe(p.nextStep||'待调查')+'</p>').join(''):'<p>暂无可信新增问题；未知来源不代表经营正常。</p>'}
+    ${waiting.length?'<h3>待批准的内部行动</h3>'+waiting.map(a=>'<div class="ga-ws-action"><strong>'+safe(a.description)+'</strong><span>'+safe(a.assignee)+'</span><button class="a-button" data-executive-approve="'+safe(a.id)+'">采纳为待执行（不对外操作）</button></div>').join(''):'<p>暂无待批准的内部建议。</p>'}
+    ${reviews.length?'<p role="status">有 '+reviews.length+' 项行动观察期已到；须提供匹配的后续证据后才能复盘，不会自动宣称改善。</p>':''}
+    <small>自动只读观察、问题追踪与内部建议；不会自动发布、付费或修改生产环境。数据不完整时不制造下降结论。</small>
+   </section><section class="a-card a-details ga-ws-overview"><div class="ga-ws-section-title"><h2>本月工作概览</h2><span>基于已保存的数据和人工记录</span></div>
    <div class="ga-ws-stats">
     <div><strong>当前月</strong><p>${safe(new Date(d.month.start+25200000).toISOString().slice(0,7))}</p></div>
     <div><strong>未解决问题</strong><p>${issues.filter(x=>['open','monitoring'].includes(x.status)).length}</p></div>
@@ -91,6 +108,17 @@ export function mountGrowthDecisionWorkspace(root,{navigate=null}={}){
     ${reports.slice(0,20).map(r=>`<p>${safe(r.kind)} · ${safe(new Date(r.period_start+25200000).toISOString().slice(0,10))} · 修订 v${r.revision} · ${safe(r.status)} · 问题 ${r.snapshot?.problemIds?.length??'未知'} 项</p>`).join('')||'<p>尚无业务快照。</p>'}
    </details></section>`
    bind(d)
+   root.querySelectorAll('[data-executive-approve]').forEach(btn=>btn.addEventListener('click',async()=>{
+    btn.disabled=true
+    try{
+     await api('/actions/'+encodeURIComponent(btn.dataset.executiveApprove)+'/status','POST',{status:'accepted'})
+     await draw()
+    }catch(error){
+     const message=root.querySelector('[data-workspace-message]')
+     if(message)message.textContent=error.message
+     btn.disabled=false
+    }
+   }))
    const weeklyRoot=root.querySelector('[data-ai-weekly-report]');
    if(weeklyRoot)disposeWeekly=mountAIWeeklyReport(weeklyRoot,{api,safe,navigate,
     onCreateProblem:async ({subject,description})=>{
