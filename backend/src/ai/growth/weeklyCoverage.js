@@ -158,7 +158,7 @@ function insufficientReason(result){
   const safe=raw.slice(0,120).replace(/https?:\/\/\S+|[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi,'[隐藏]');
   return '来源未提供可用指标：'+safe;
  }
- return '本周没有足够的可核对聚合指标，不能视作零';
+ return '所选周期没有足够的可核对聚合指标，不能视作零';
 }
 function packModule(def,{status,reason,evidence=[],source='read-only',tool=def.tool}={}){
  return {id:def.id,label:def.label,status,reason:cleanText(reason||'',180),
