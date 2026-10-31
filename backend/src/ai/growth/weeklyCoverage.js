@@ -123,6 +123,10 @@ function factsFromEvidence(evidence){
     for(const key of ['users','previous_conversion_rate','drop_off_users'])
      add('steps.'+step+'.'+key,row?.[key],e.id);
    }
+  }else if(e.metricId==='activities'&&Array.isArray(value?.humanOperations)){
+   // Activity delivery status is more decision-relevant than a count of records.
+   // Put the two fixed experiment groups first; all values remain aggregate-only.
+   visit({humanOperations:value.humanOperations,counts:value.counts},e.id);
   }else visit(value,e?.id);
  }
  return facts;
