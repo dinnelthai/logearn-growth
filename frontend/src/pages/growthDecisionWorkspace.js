@@ -52,6 +52,7 @@ export function mountGrowthDecisionWorkspace(root,{navigate=null}={}){
    const reviews=Array.isArray(executive.reviewsDue)?executive.reviewsDue:[]
    const reminders=Array.isArray(executive.reminders?.pending)?executive.reminders.pending:[]
    const portfolio=Array.isArray(executive.portfolio?.items)?executive.portfolio.items:[]
+   const work=Array.isArray(executive.workItems)?executive.workItems:[]
    const topIssues=issues.filter(x=>['open','monitoring'].includes(x.status)).slice(0,3);
    const moreIssues=issues.filter(x=>!topIssues.includes(x));
    const business=moreIssues.filter(x=>x.type==='business'),data=moreIssues.filter(x=>x.type==='data-quality'),other=moreIssues.filter(x=>!['business','data-quality'].includes(x.type))
@@ -76,6 +77,7 @@ export function mountGrowthDecisionWorkspace(root,{navigate=null}={}){
      <p>目标核对：${safe(executive.goalAlignment?.status||'未核验')}；不同周期目标不会相加或覆盖。</p>
     </div></details>
     ${reminders.length?'<h3>站内待办提醒（'+reminders.length+'）</h3>'+reminders.slice(0,8).map(n=>'<div class="ga-ws-action"><strong>'+safe(n.kind)+'</strong><span>到期 '+safe(dateTime(n.dueAt))+'</span><button class="a-button" data-exec-notice="'+safe(n.id)+'">已知悉</button></div>').join(''):'<p>暂无新的站内提醒。</p>'}
+    ${work.length?'<h3>交付步骤（'+work.length+'）</h3>'+work.slice(0,10).map(w=>'<div class="ga-ws-action"><strong>'+safe(w.title)+'</strong><span>'+safe(w.assignee)+' · '+safe(w.status)+' · 截止 '+safe(dateTime(w.dueAt))+'</span></div>').join(''):'<p>批准内部行动后自动生成可追踪的交付步骤。</p>'}
     <small>自动只读观察、问题追踪与内部建议；不会自动发布、付费或修改生产环境。数据不完整时不制造下降结论。</small>
    </section><section class="a-card a-details ga-ws-overview"><div class="ga-ws-section-title"><h2>本月工作概览</h2><span>基于已保存的数据和人工记录</span></div>
    <div class="ga-ws-stats">
