@@ -14,6 +14,14 @@ All dates use repository commit time / recorded work date. This log is append-on
 
 - `0d3b508cb654e47352f8aa2926f1ba8b8b662e6c`: [AI infrastructure run 41205481012](https://github.com/dinnelthai/logearn-growth/actions/runs/41205481012) **passed** all three jobs — Contract (including the new saved v5 audit), Integration and Frontend.
 - This is an isolated contract/regression and service-container result. The 46/48 checklist remains unchanged; live-source validation and operator signoff remain open.
+## 2026-10-31 — North Star operator signoff and Business Brain alignment
+
+- Confirmed directly with operator: a viewer of Chip Distribution counts as an effective analysis user; each observed user counts once per reporting interval regardless of repeated analyses.
+- Existing source mapping (`chip_analysis_viewed`, `chip_analysis_drilldown` → `active_users` distinct `user_key`) is preserved. No changes to historical SQL, metric registry, previously billed tasks or saved reports. Live source coverage remains unverified.
+- Real trading metrics are supporting outcome indicators, not North Star components; no North Star analysis→trade window is specified. Retain independent historical registered-user 7-day trade-conversion semantics.
+- Trades lacking reliable user identity are excluded from verified user-linked outcomes and recorded as matching anomalies / unknown association coverage, not described as zero trades.
+- Updated Business Brain v2 operator metadata, activation-oriented question priority, unit tests and handoff/source contracts. **47/48 (97.9%) roadmap**; only genuine read-only v5 context/source acceptance remains. New code CI result requires separate verification.
+- No paid calls, external source sync, migrations, deployment, or `master` merge.
 ## 2026-10-31 — Business Brain v1 foundation
 
 Branch: `codex/ai-comprehensive-upgrade`

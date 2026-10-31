@@ -9,16 +9,23 @@
 - Latest **source/test** HEAD validated on 2026-10-31: `0d3b508cb654e47352f8aa2926f1ba8b8b662e6c` (owner-scoped actual tool wall timings, conservative goal/question ranking, permitted discriminator latency comparison, v5 regular/weekly model projection). Fetch live branch HEAD before every edit.
 - Fetch the live branch HEAD before every new edit; do not rely on this document's historical commit reference.
 - Latest successful AI CI: [41205481012](https://github.com/dinnelthai/logearn-growth/actions/runs/41205481012) — **AI Contract (including saved v5 audit), AI Integration and AI Frontend passed** on source/test HEAD `0d3b508cb654e47352f8aa2926f1ba8b8b662e6c`. Includes persisted owner-scoped latency and ranking/discriminator privacy regression. No live Hologres, X, GSC, Worker, real-model or paid-model acceptance implied.
-- Latest canonical checklist: **46 / 48 (95.8%) code/CI checkboxes; 2 open**, Phase 2 **8/8**, Phase 3 **8/8**, Phase 4 **6/6**. Last two are Phase 1 already-authorized genuine context acceptance and operator product-map/North Star signoff; neither can be auto-certified by CI.
+- Latest canonical checklist: **47 / 48 (97.9%) code/CI or operator-approved semantics; 1 open**, Phase 2 **8/8**, Phase 3 **8/8**, Phase 4 **6/6**. Remaining: already-authorized genuine v5 business context/source acceptance; operator North Star definition confirmed 2026-10-31. CI is not live source acceptance.
 - **Current continuation (post-`5b957a1`):** `backend/src/ai/business/savedContextAudit.js`, `backend/scripts/auditSavedWeeklyContext.js`, `backend/test/aiSavedContextAudit.test.js` and `docs/ai/GROWTH_V5_SAVED_CONTEXT_AUDIT.md` add an offline, non-paying *saved v5 snapshot* audit. **Not** live source or paid-model acceptance. A current local browser view displays an archived `aggregated-business-v4` report with 12 modules, not new v5. Recheck branch HEAD and CI after this documentation commit.
 - **CI inclusion:** The offline saved-context audit test is explicitly included in the AI Contract GitHub workflow (`backend/test/aiSavedContextAudit.test.js`). Check the workflow run on the exact newest SHA before calling it green.
-- **Do not retroactively claim operator signoff:** the current four-product map is a provisional documented operating baseline, while a formal effective-analysis/North Star composite definition remains pending explicit approval. The two Phase 1 checklist gates stay open.
+- **Operator signoff recorded 2026-10-31:** North Star is single `active_users` unique Chip Distribution viewers in a reporting period, not a composite. Trades are separate outcomes without a new North Star attribution window; unmatched identity is a verified-linkage exclusion and quality anomaly. User confirmed counting rules; click event fidelity remains a source-validation task.
 - Do not switch to or commit to `master`.
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
 - Always verify the branch HEAD before editing and fetch each target file from this branch.
 
 The branch existed before this upgrade and already contained a substantial Growth Agent implementation. Do not rebuild the analytics, tool registry, evidence layer, Growth Workspace, KOL/SEO operations or review system.
 
+## Operator-confirmed North Star (2026-10-31)
+
+- `active_users` is the single primary North Star: observed `chip_analysis_viewed` or `chip_analysis_drilldown`, count distinct `user_key` for the selected reporting period; N views by the same key count one user. A successful analysis result is not required.
+- This event union is the current tracking *proxy* for clicking/opening Chip Distribution, not independently verified complete click coverage or stable cross-device identity.
+- Trading is a separate outcome, not part of the North Star. The operator does not define a North Star analysis-to-trade window. Keep the independently defined historical `registered_trade_conversion_rate` seven-day metric separate.
+- Transactions with unmatchable identity are excluded from verified user-linked trading but must be flagged as matching anomalies/unknown coverage; never equate these with zero actual trades.
+- Operator decision closes the semantic signoff checkbox only. Authentic v5 context and source acceptance is the remaining gate. Follow `GROWTH_V5_SAVED_CONTEXT_AUDIT.md` without unnecessary paid calls.
 ## 2. Read these documents in order
 
 1. `docs/ai/GROWTH_AGENT_HANDOFF.md` — this handoff.

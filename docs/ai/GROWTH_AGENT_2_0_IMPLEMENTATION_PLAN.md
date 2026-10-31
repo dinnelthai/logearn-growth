@@ -2,7 +2,7 @@
 
 Branch: `codex/ai-comprehensive-upgrade`  
 Scope: Business Brain, Growth Intelligence, Operating Memory, Decision Engine and Learning Loop.  
-Progress snapshot (2026-10-31, latest source/test HEAD `0d3b508cb654e47352f8aa2926f1ba8b8b662e6c`): **46 / 48 implementation checklist items (95.8%)** have code and focused CI-contract evidence; **2 remain open**. This is NOT live-source, platform-revenue availability or real-model acceptance.  
+Progress snapshot (2026-10-31, latest source/test HEAD `0d3b508cb654e47352f8aa2926f1ba8b8b662e6c`): **47 / 48 implementation checklist items (97.9%)** have code/CI or operator-confirmed business-definition evidence; **1 remains open**. This is NOT live-source, platform-revenue availability or real-model acceptance.  
 Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace and storage.
 
 ### Continuation checkpoint — 2026-10-31 (saved v5 context, no-paid acceptance preparation)
@@ -12,6 +12,13 @@ Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace 
 - **CI inclusion:** `aiSavedContextAudit.test.js` is added to the AI Contract workflow, so pass/fail is traceable to the post-gate commit, not inferred from a prior unrelated CI run.
 - **Checklist unchanged:** **46/48 (95.8%)** code/CI evidence; the two unchecked Phase 1 gates still require genuine source observations and operator product/North Star confirmation. The new checker is a **pre-acceptance aid**, not a third gate or a shortcut to accepting either open checkbox. The follow-up CI-gate commit `0d3b508cb654e47352f8aa2926f1ba8b8b662e6c` passed [AI Contract, Integration and Frontend](https://github.com/dinnelthai/logearn-growth/actions/runs/41205481012); this is fixture/CI evidence only.
 - No paid model call, GSC/X/KOL sync, production migration, deployment or `master` modification.
+### Continuation checkpoint — 2026-10-31 (operator-approved North Star)
+
+- **Operator:** North Star is the number of *distinct users viewing/clicking Chip Distribution within the reporting period*, not the number of analyses, successful model requests or trades. One `user_key` with N chip view/drilldown events counts once per period. Current `active_users` event union is `chip_analysis_viewed` / `chip_analysis_drilldown`; exact click-to-event coverage and cross-device/user-key stability still require live validation.
+- **Independent trading outcome:** verified transactions and volume are distinct supporting results. No North Star analysis→trade attribution window is required; the existing registered-cohort 7-day trade conversion keeps its own historic formal definition.
+- **Identity failures:** trades with no trustworthy user association do not qualify for verified user-linked trading counts. Surface missing identity as matching/coverage anomalies, not as evidence of zero real trades. No trading facts have been erased or SQL changed.
+- **Runtime alignment:** Business Brain's existing v2 context now carries a confirmed single-metric definition (while preserving the no-composite protocol status), and activation question relevance includes `active_users` and returning users. New focused regressions guard these rules.
+- **Progress 47/48 (97.9%), Phase 1 operator signoff closed.** The one remaining checkbox is genuine already-authorized read-only v5 context/source acceptance. This is not Worker, live model, production or external-source acceptance. CI on new code commit must be checked separately.
 ## Product definition
 
 The goal is not “write a weekly report”. The goal is a virtual Head of Growth that can explain:
@@ -48,13 +55,13 @@ Do not build a second analytics engine, CRM, operations task manager, metric reg
 | Phase | Code/CI checked | Open | Remaining boundary |
 |---|---:|---:|---|
 | 0 — Baseline/handoff | 5/5 | 0 | Maintain handoff after changes |
-| 1 — Business Brain | 8/10 | 2 | Real authorized context check; operator approval of North Star/product map |
+| 1 — Business Brain | 9/10 | 1 | Real authorized context check; operator-approved North Star semantics recorded on 2026-10-31 |
 | 2 — Growth Intelligence | 8/8 | 0 | Contract complete; independent **live** source freshness still unverified |
 | 3 — Operating Memory | 8/8 | 0 | Bounded links code-complete; real source/outcome causal acceptance still pending |
 | 4 — Decision Engine | 6/6 | 0 | Conditional measured-latency ranking implemented; real USD query cost remains unknown |
 | 5 — Operating Report | 5/5 | 0 | New v5 report contract/UI exist, **live model and report-quality acceptance pending** |
 | 6 — Learning Loop | 6/6 | 0 | Frozen-cohort end-to-end acceptance pending; v2 direct cohort review currently maps only `active_users → analysis_users` |
-| **Total** | **46/48 (95.8%)** | **2** | **No real-source/Worker/paid-model acceptance implied** |
+| **Total** | **47/48 (97.9%)** | **1** | **No real-source/Worker/paid-model acceptance implied** |
 
 **Latest verified checks:** AI infrastructure [run 41205481012](https://github.com/dinnelthai/logearn-growth/actions/runs/41205481012) passed **AI Contract (including `aiSavedContextAudit.test.js`), AI Integration and AI Frontend** on source/test HEAD `0d3b508cb654e47352f8aa2926f1ba8b8b662e6c`. No full real-source / Worker / paid-model acceptance was performed.
 
@@ -154,7 +161,7 @@ Acceptance: a new agent can start from the handoff document without asking for p
 - [x] New weekly prompt framing around business outcomes rather than equal module coverage.
 - [x] Run focused Node tests and validate the model-context projection under the 22KB cap in CI/isolated fixtures.
 - [ ] Verify the new context on a real, already-authorized business report without starting an unnecessary paid model call.
-- [ ] Review the product map and North Star intent with the operator; do not invent formal KPI definitions.
+- [x] Review existing product map and North Star with operator (2026-10-31): `active_users` = period-distinct users triggering chip view/drilldown; repeated analysis counts one user, trades are separate results, no North Star trade window; unmatched trade identity is excluded from verified user-linked trade counts and flagged as an anomaly. **Business definition approved; real event/identity source acceptance pending.**
 
 Acceptance:
 - model can explain product roles and lifecycle stages;

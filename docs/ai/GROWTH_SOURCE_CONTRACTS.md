@@ -1,5 +1,7 @@
 # Growth Agent 2.0 — Channel source and historical-period contracts
 
+> Operator decision 2026-10-31: `active_users` is the North Star (unique observed `user_key` in a reporting period for chip-view/drilldown events), not event count. Trades remain separate outcomes with no new North Star attribution window; failed identity matching excludes a trade from verified user-linked outcomes and flags quality anomalies. Existing 7-day registered-trade conversion is a separate metric. Real event collection/identity stability remains unverified.
+
 > 2026-10-31 continuation: `GROWTH_V5_SAVED_CONTEXT_AUDIT.md` adds a **saved v5 snapshot-only** offline check. It does not alter source identity, freshness, watermark or attribution contracts. The existing archived v4 local report is not live v5 acceptance; actual source verification remains open.
 
 > Branch: `codex/ai-comprehensive-upgrade`. Latest audited source/test HEAD: `6540a7a353b5fadb080f016afa2aa2b8795ece0f`; [AI infrastructure CI 41204481078](https://github.com/dinnelthai/logearn-growth/actions/runs/41204481078) passed Contract, Integration and Frontend.

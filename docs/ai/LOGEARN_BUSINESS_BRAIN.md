@@ -39,18 +39,17 @@ The model receives seven connected business stages:
 
 This is a reasoning map, not a mandatory linear funnel. A user may enter through different product features. Only a measured, ordered, identity-linked path may be described as a funnel.
 
-## 4. North-star direction vs. formal KPI
+## 4. Operator-confirmed North Star (2026-10-31)
 
-Current strategic direction: **有效分析用户，并关注其带来的真实交易量**.
+**北极星：有效分析用户数，即统计期内至少一次点击/打开筹码峰的去重用户数。** One user viewing/using the feature N times in a period counts **one unique user**, not N analyses. The numerator is people, not requests or successful executions.
 
-This is deliberately marked `operator-direction-not-a-validated-composite-kpi`. It is not yet a single computable metric. Before promoting it to a formal KPI, confirm:
-- definition of an effective analysis user;
-- the identity join between analysis and authoritative business trades;
-- the trade observation window;
-- source coverage and missing-identity treatment;
-- whether trade volume is a supporting outcome or part of the numerator/denominator.
+**Observable source mapping:** the existing formal `active_users` metric counts observed `chip_analysis_viewed` or `chip_analysis_drilldown`, deduplicated by `user_key` for the reporting interval. Opening/clicking Chip Distribution is the operator's requirement; these are the current instrumented event proxies. Their **coverage of all actual clicks**, historical completeness and key stability across devices still require a real-source check. A successful analysis result is not a prerequisite.
 
-Do not invent a combined score or imply causal contribution before these contracts are verified.
+**Trading outcome separate:** actual completed transactions, verified linked traders and trading volume are *independent outcome metrics*, not part of the North Star. The operator is **not defining a North Star analysis-to-trade attribution window** at this stage. The already implemented `registered_trade_conversion_rate` still has its **separate 7-day registered-cohort observation contract**; it is not the North Star and is not silently changed.
+
+**Unmatchable trading identity:** if a trade cannot be reliably linked to a user, exclude it from **verified user-linked trade metrics** and flag the lack of identity linkage as an anomaly/coverage gap. Do not classify unlinked events as verified zero economic transactions. Independent source-confirmed transaction totals remain business facts if available.
+
+The operator has confirmed the **single-metric** definition, not an unsupported composite. For compatibility the Business Brain transport retains the old `operator-direction-not-a-validated-composite-kpi` protocol value, adds explicit `operator-confirmed` definition metadata and continues to use the formal `active_users` registry. This is not proof of live-source completeness.
 
 ## 5. Metric dictionary
 
