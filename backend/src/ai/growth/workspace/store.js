@@ -398,6 +398,10 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
   const after=getEvidence(owner,afterEvidenceId),base=a.baseline?.evidence;
   let outcome='insufficient-evidence',delta=null;
   if(after&&base&&after.state==='verified'&&base.state==='verified'&&after.definitionVersion===base.definitionVersion&&
+   after.metricId===base.metricId&&after.unit===base.unit&&
+   scopeKey(after.scope)===scopeKey(base.scope)&&
+   after.period.timezone===base.period.timezone&&
+   after.period.start>=base.period.end&&after.period.end<=getNow()&&
    typeof after.value==='number'&&typeof base.value==='number'){
    delta=after.value-base.value;
    const improved=a.direction==='decrease'?delta<0:delta>0;

@@ -63,7 +63,8 @@ test('human action requires execution evidence and maturity, negative directiona
   s.saveEvidence('alice',evidence('before','verified',40));
   s.updateAction('alice',a.id,'executed',{actualAction:'上线新引导',baselineEvidenceId:'before',observeUntil:now+86400000});
   assert.equal(s.reviewAction('alice',a.id,{afterEvidenceId:'before'}).status,'immature');
-  now+=2*86400000;s.saveEvidence('alice',evidence('after','verified',25));
+  now+=2*86400000;s.saveEvidence('alice',{...evidence('after','verified',25),
+   period:{start:atBangkok(2026,9,20),end:atBangkok(2026,9,22),timezone:'Asia/Bangkok'}});
   const result=s.reviewAction('alice',a.id,{afterEvidenceId:'after',confounders:['同期推广变化']});
   assert.equal(result.outcome,'observed-improvement');assert.equal(result.causalityEstablished,false);
  }finally{close()}
@@ -146,5 +147,21 @@ test('daily North Star evidence is not silently substituted for monthly distinct
    period:{start:atBangkok(2026,9,19),end:atBangkok(2026,9,20),timezone:'Asia/Bangkok'}});
   assert.equal(s.progress('alice',monthly.id).progress.status,'unknown');
   assert.equal(s.progress('alice',monthly.id).progress.observed,null);
+ }finally{close()}
+});
+
+test('review rejects cross-metric or overlapping after evidence as insufficient rather than learning false improvement',()=>{
+ const {s,close}=setup();try{
+  const p=s.observeProblem('alice',{type:'business',subject:'Cohort analysis',scope:{source:'all'}});
+  const a=s.createAction('alice',p.id,{description:'Review funnel',assignee:'growth',metricId:'four_day_core',direction:'increase'});
+  s.saveEvidence('alice',evidence('before-review','verified',100));
+  s.updateAction('alice',a.id,'accepted');s.updateAction('alice',a.id,'executing');
+  s.updateAction('alice',a.id,'executed',{actualAction:'Done',baselineEvidenceId:'before-review',observeUntil:now+86400000});
+  now+=2*86400000;
+  s.saveEvidence('alice',{...evidence('after-other','verified',150),metricId:'other-metric',
+   period:{start:atBangkok(2026,9,20),end:atBangkok(2026,9,22),timezone:'Asia/Bangkok'}});
+  const review=s.reviewAction('alice',a.id,{afterEvidenceId:'after-other'});
+  assert.equal(review.outcome,'insufficient-evidence');
+  assert.equal(review.causalityEstablished,false);
  }finally{close()}
 });
