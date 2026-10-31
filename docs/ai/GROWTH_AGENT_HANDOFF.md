@@ -1,5 +1,18 @@
 # Growth Agent 2.0 — Agent Handoff
 
+### 2026-10-31 — Structure/function review remediations (branch-only; no paid production validation)
+
+- **Code commits:** `de35592f92437454663fb1c453047cfde2ea2b19` (paid preflight), `20ba691da469c776a3b92bac2633fa41ffd4e214` (v5 evidence/weekly ordering), `76f5c1566b5b0202f54aa07efddf9cc24e891c21` (decision-first UI).
+- **Token budget:** The runner stops *new* paid rounds before the provider/ledger when estimated input plus reserved output exceeds the task's remaining token allowance. Already-paid overruns retain their response, warning and ledger; no subsequent paid round. A provider's actual token usage may still exceed requested output caps, so this is not a hard provider-side guarantee.
+- **Autonomous paid analyses:** the scheduler now defaults to a signal preflight, and paid-enabled deployment configuration rejects `AI_AUTONOMY_SIGNAL_GATE_ENABLED=0`. Unreliable/missing metric sources defer rather than dispatch paid work.
+- **Model source facts:** new `weekly-report-v2` manifests promote collected→analyzed only when a factual claim matches the cited aggregate field path and exact numeric value. The prompt specifies `values[].path`; archived v4 reports retain their original semantics. Goal- and trustworthy question-driven prioritization adjusts prefetch order without increasing its 10-query cap or granting permissions.
+- **Operator report:** headline highlights the top evidence-verified risk. An immediate action appears only when the saved action explicitly cites at least one of that risk's evidence IDs; otherwise the UI asks for evidence review.
+- **CI:** AI infrastructure workflows for `de35592f` ([run 41210895328](https://github.com/dinnelthai/logearn-growth/actions/runs/41210895328)) and `20ba691d` ([run 41211012875](https://github.com/dinnelthai/logearn-growth/actions/runs/41211012875)) passed. Frontend UI for `76f5c156` has a separate workflow; verify its result at that exact SHA before approval.
+- **Unresolved acceptance:** actual already-authorized v5 context + live source/journal/Worker/ledger, click-event coverage, GSC/X/KOL watermarks, real trade identity/fees, and fixed-cohort reviews beyond the semantically equivalent `active_users` must be checked in the real environment. This work does **not** change the 47/48 (97.9%) code/CI checklist to 48/48.
+- **No unsafe cleanup:** tracked `backend_副本`, archives and historic `output` were not deleted without evidence that no deployment/retention process depends on them. Legacy transport splits should wait for a tested compatibility migration.
+- No paid model calls, live external collectors, migrations, deployments, outward publishing or `master` changes were authorized/performed in this patch set.
+
+
 ### 2026-10-31 — Code Review fixes and CI (branch-only, no paid validation)
 
 - **Source/test HEAD:** `5c3f8dbbc7e234eac26e3763ef24ae692b6e3009` (P1 fix commit `acd5105fa79f82cc0806ef1425a668199a3144b4`).
