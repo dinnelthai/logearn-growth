@@ -20,7 +20,7 @@ function validateExecutionPlan(plan){
   !clean(plan.target,180)||!clean(plan.successCriteria,300)||
   !Array.isArray(plan.stopConditions)||plan.stopConditions.length<1||
   plan.stopConditions.length>3||plan.stopConditions.some(x=>!clean(x,180))||
-  !Number.isSafeInteger(plan.observeDays)||plan.observeDays<3||plan.observeDays>30)
+  !Number.isSafeInteger(plan.suggestedObservationDays)||plan.suggestedObservationDays<3||plan.suggestedObservationDays>30)
   throw Object.assign(Error('建议执行计划缺少负责人角色、工作量、资源、步骤或复盘条件'),{status:400});
  return plan;
 }
@@ -40,7 +40,7 @@ function formatActionExecutionPlan(action,plan){
   ...plan.steps.map((step,i)=>(i+1)+'. '+step),
   '目标：'+plan.target,
   '成功判据：'+plan.successCriteria,
-  '观察窗口：'+plan.observeDays+'天',
+  '建议观察窗口：'+plan.suggestedObservationDays+'天（复盘仍须等待指标成熟和数据水位确认）',
   '停止/回滚条件：'+plan.stopConditions.join('；')
  ];
  return lines.join('\n');
