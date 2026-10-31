@@ -1,4 +1,7 @@
-const remote=require('./hologres'),{ANALYSIS_SQL}=require('./analysisUsers')
+const remote=require('./hologres'),{ANALYSIS_SQL}=require('./analysisUsers');
+const {TYPE_TO_RAWS}=require('../analytics/eventMap');
+const eventSql=type=>(TYPE_TO_RAWS[type]||[]).map(name=>`'${name}'`).join(',');
+const HOLDER_SQL=eventSql('holders'),STRATEGY_SQL=eventSql('ai'),SIGNAL_SQL=eventSql('signal_view');
 function budget(rows,max,message){if(rows.length>max||Buffer.byteLength(JSON.stringify(rows))>8*1024*1024)throw Object.assign(Error(message),{status:422});return rows}
 async function registrationFacts(s,{start,end,source='all'},audience){
  try{
@@ -9,13 +12,29 @@ async function registrationFacts(s,{start,end,source='all'},audience){
    WHERE a.created_at>=TO_TIMESTAMP($2::double precision/1000.0) AND a.created_at<TO_TIMESTAMP($3::double precision/1000.0)
     AND a.created_at<=$1::timestamptz AND ($5::text='all' OR COALESCE(NULLIF(BTRIM(f.source),''),'未知')=$5)
     AND ($6::text[] IS NULL OR 'user:'||a.account_id::text=ANY($6))
-  ) SELECT r.user_key,r.registered_at,r.source,MIN(e.client_ts) AS first_chip_at
+  ), registration_activity AS (
+   SELECT r.user_key,r.registered_at,r.source,
+    MIN(e.client_ts) FILTER(WHERE e.event_name IN(${ANALYSIS_SQL})) AS first_chip_at,
+    MIN(e.client_ts) FILTER(WHERE e.event_name IN(${HOLDER_SQL})) AS first_holder_at,
+    MIN(e.client_ts) FILTER(WHERE e.event_name IN(${STRATEGY_SQL})) AS first_strategy_at,
+    MIN(e.client_ts) FILTER(WHERE e.event_name IN(${SIGNAL_SQL})) AS first_signal_at
    FROM registrations r LEFT JOIN e ON e.user_key=r.user_key
     AND e.client_ts>=r.registered_at AND e.client_ts<=$4
-    AND e.event_name IN(${ANALYSIS_SQL})
-   GROUP BY r.user_key,r.registered_at,r.source ORDER BY r.user_key LIMIT 50001`,
+    AND e.event_name IN(${ANALYSIS_SQL},${HOLDER_SQL},${STRATEGY_SQL},${SIGNAL_SQL})
+   GROUP BY r.user_key,r.registered_at,r.source
+  ) SELECT a.*,
+   (SELECT MIN(e.client_ts) FROM e WHERE e.user_key=a.user_key
+    AND e.event_name IN(${ANALYSIS_SQL}) AND a.first_chip_at IS NOT NULL
+    AND e.client_ts>=a.first_chip_at+86400000
+    AND e.client_ts<a.first_chip_at+604800000 AND e.client_ts<=$4) AS first_repeat_chip_at
+   FROM registration_activity a ORDER BY a.user_key LIMIT 50001`,
    [s.snapshot_cutoff,start,Math.min(end,Date.parse(s.as_of)+1),Date.parse(s.as_of),source,audience]),50000,'注册批次超过预算，请缩小范围')
-  return {available:true,rows:rows.map(r=>({...r,registered_at:Number(r.registered_at),first_chip_at:r.first_chip_at==null?null:Number(r.first_chip_at)})),scope:source==='all'?'all':'observed_source',error:null}
+  return {available:true,rows:rows.map(r=>({...r,registered_at:Number(r.registered_at),
+   first_chip_at:r.first_chip_at==null?null:Number(r.first_chip_at),
+   first_holder_at:r.first_holder_at==null?null:Number(r.first_holder_at),
+   first_strategy_at:r.first_strategy_at==null?null:Number(r.first_strategy_at),
+   first_signal_at:r.first_signal_at==null?null:Number(r.first_signal_at),
+   first_repeat_chip_at:r.first_repeat_chip_at==null?null:Number(r.first_repeat_chip_at)})),scope:source==='all'?'all':'observed_source',error:null}
  }catch(e){if(e.status===422)throw e;return {available:false,rows:[],scope:source==='all'?'all':'observed_source',error:'注册事实暂不可用，未将缺失解释为零'}}
 }
 async function diagnosticCoverage(s,{start,end,source='all'},audience){
