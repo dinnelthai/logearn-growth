@@ -403,3 +403,13 @@ Branch: `codex/ai-comprehensive-upgrade`
 ### Validation
 - Latest successful CI: [41177929631](https://github.com/dinnelthai/logearn-growth/actions/runs/41177929631), code head `6a96a5c064a78ea08d9580260de18da9c3ffed6e`; AI Contract, AI Integration and AI Frontend all passed.
 - AI Contract groups: 172 tests (171 pass, 0 fail, 1 skipped), plus 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112. AI Integration: 17/17. AI Frontend: success.
+
+
+### Execution-state synchronization follow-up — 2026-10-31
+
+- Operation task PATCH now synchronizes linked AI suggestions: task `in_progress` advances `adopted → executing`; task `done` with a non-empty `result_note` advances `executing → executed`, recording the actual-action note and task completion timestamp.
+- Added `POST /:id/sync-ai-suggestions` for retry; it uses the latest task-history note unless a new result note is supplied.
+- Cross-database writes are not atomic. Per-suggestion failures are returned as a partial sync result, and link-lookup failures are retryable. Missing optional Growth Workspace link tables safely produce a no-op.
+- Added tests for lifecycle transitions, actual-action capture, missing completion notes, retryable link lookup failure and compatibility when workspace tables are not migrated.
+- Latest successful CI: [41178355922](https://github.com/dinnelthai/logearn-growth/actions/runs/41178355922), code head `1f0ab05f71b0fd5fef90b77282411102ebb3c5a2`; all three jobs passed. AI Contract: 172 (171 pass, 0 fail, 1 skipped) plus regression groups 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112; Integration 17/17; Frontend success.
+- Remaining: the operation-task review's cohort baseline/after-period evidence is not yet projected into the AI retrospective evidence record. The retrospective still uses its existing business-metric review pipeline; do not claim cohort-level causal attribution.
