@@ -2,7 +2,7 @@
 
 Branch: `codex/ai-comprehensive-upgrade`  
 Scope: Business Brain, Growth Intelligence, Operating Memory, Decision Engine and Learning Loop.  
-Progress snapshot (2026-10-31, latest source/test HEAD `6540a7a353b5fadb080f016afa2aa2b8795ece0f`): **46 / 48 implementation checklist items (95.8%)** have code and focused CI-contract evidence; **2 remain open**. This is NOT live-source, platform-revenue availability or real-model acceptance.  
+Progress snapshot (2026-10-31, latest source/test HEAD `0d3b508cb654e47352f8aa2926f1ba8b8b662e6c`): **46 / 48 implementation checklist items (95.8%)** have code and focused CI-contract evidence; **2 remain open**. This is NOT live-source, platform-revenue availability or real-model acceptance.  
 Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace and storage.
 
 ### Continuation checkpoint — 2026-10-31 (saved v5 context, no-paid acceptance preparation)
@@ -10,7 +10,7 @@ Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace 
 - **Starting branch HEAD:** `5b957a1b10e27fb5f648b01c9e08622e046d3791`. Added a zero-network, read-only `savedContextAudit` + stdin CLI and focused Node regressions. It refuses to reinterpret an archived 12-module/v4 report as a saved 13-module/v5 weekly context. The CLI returns only booleans, never evidence text, owner identifiers, business numbers or model prompts.
 - **Observed operator page (read-only):** existing selected weekly report is `aggregated-business-v4` with 12 historical modules and unknown source completeness; this is **not** new v5 report or real-model acceptance. Detailed secure steps: `docs/ai/GROWTH_V5_SAVED_CONTEXT_AUDIT.md`.
 - **CI inclusion:** `aiSavedContextAudit.test.js` is added to the AI Contract workflow, so pass/fail is traceable to the post-gate commit, not inferred from a prior unrelated CI run.
-- **Checklist unchanged:** **46/48 (95.8%)** code/CI evidence; the two unchecked Phase 1 gates still require genuine source observations and operator product/North Star confirmation. The new checker is a **pre-acceptance aid**, not a third gate or a shortcut to accepting either open checkbox. New test/CI status must be verified on this commit; no claim of green CI in advance.
+- **Checklist unchanged:** **46/48 (95.8%)** code/CI evidence; the two unchecked Phase 1 gates still require genuine source observations and operator product/North Star confirmation. The new checker is a **pre-acceptance aid**, not a third gate or a shortcut to accepting either open checkbox. The follow-up CI-gate commit `0d3b508cb654e47352f8aa2926f1ba8b8b662e6c` passed [AI Contract, Integration and Frontend](https://github.com/dinnelthai/logearn-growth/actions/runs/41205481012); this is fixture/CI evidence only.
 - No paid model call, GSC/X/KOL sync, production migration, deployment or `master` modification.
 ## Product definition
 
@@ -56,7 +56,7 @@ Do not build a second analytics engine, CRM, operations task manager, metric reg
 | 6 — Learning Loop | 6/6 | 0 | Frozen-cohort end-to-end acceptance pending; v2 direct cohort review currently maps only `active_users → analysis_users` |
 | **Total** | **46/48 (95.8%)** | **2** | **No real-source/Worker/paid-model acceptance implied** |
 
-**Latest verified checks:** AI infrastructure [run 41204481078](https://github.com/dinnelthai/logearn-growth/actions/runs/41204481078) passed **AI Contract, AI Integration and AI Frontend** on source/test HEAD `6540a7a353b5fadb080f016afa2aa2b8795ece0f`. No full real-source / Worker / paid-model acceptance was performed.
+**Latest verified checks:** AI infrastructure [run 41205481012](https://github.com/dinnelthai/logearn-growth/actions/runs/41205481012) passed **AI Contract (including `aiSavedContextAudit.test.js`), AI Integration and AI Frontend** on source/test HEAD `0d3b508cb654e47352f8aa2926f1ba8b8b662e6c`. No full real-source / Worker / paid-model acceptance was performed.
 
 **Known code/UI debt, not counted as new roadmap checkboxes:**
 - **Resolved in subsequent code:** weekly UI now derives the count from the persisted manifest and retains the 13th `operations-timeline` module without inventing a 13th module for historical 12-module snapshots. Frontend regression [41184785074](https://github.com/dinnelthai/logearn-growth/actions/runs/41184785074) passed.

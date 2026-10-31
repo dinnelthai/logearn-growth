@@ -35,3 +35,7 @@ node backend/scripts/auditSavedWeeklyContext.js < /path/to/private-v5-context.js
 在选中的本地 AI Growth Agent 页可见一条**归档的** 2026-10-19 至 2026-10-25 周报，标识 `aggregated-business-v4`，覆盖清单 12 模块，历史覆盖未验证，产品到交易只读查询失败或超时。这证明页面能展示既存历史分析，不证明 v5 13 模块上下文 / 当前真实来源健康。这里不复制账号、证据 ID 或业务数值入仓库。
 
 参见 `GROWTH_AGENT_HANDOFF.md`、`GROWTH_SOURCE_CONTRACTS.md`、`LOGEARN_BUSINESS_BRAIN.md`。
+
+## 自动化回归证据
+
+在代码提交 `0d3b508cb654e47352f8aa2926f1ba8b8b662e6c` 上，[AI Contract / Integration / Frontend CI](https://github.com/dinnelthai/logearn-growth/actions/runs/41205481012) 均通过。新测试覆盖 v5 正例、旧 v4 拒绝、重复模块/错误时间窗拒绝、异常输入不泄露内容。此结果仍不替代真实数据与负责人验收。
