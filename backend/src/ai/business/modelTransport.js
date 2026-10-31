@@ -22,6 +22,7 @@ const numeric=new Set([
  'conversion_rate','previous_conversion_rate','total_conversion_rate',
  'actual_cost','net_revenue','targetValue','dueAt','createdAt','updatedAt','completedAt','settledAt','startAt','endAt','eventAt',
  'samplePosts','profiles','observedUsers','analysisEvents','accountPostCap','audienceFit','actionability','warningCount','occurrences','quotes',
+ 'human_operations','channel_observations','ai_actions','total_records',
  'activation_rate','activation_interval','median_age_days','retention_rate',
  'registeredUsers','clicks','impressions','ctr','position','likes','shares','comments',
  'duration_ms','value_usd','daily_count','day_count','sample_size','size',
