@@ -41,6 +41,20 @@ function factsFromValue(value,max=4){
   for(const [metric,key] of fields)if(valid(registrationMetrics[key]))
    matches.push({metric,value:registrationMetrics[key]});
  }
+ const engagement=registration?.engagement;
+ if(engagement&&typeof engagement==='object'){
+  const fields=[
+   ['registered_engagement_eligible','eligible'],
+   ['registered_engagement_pending','pending'],
+   ['registered_chip_analysis_users','chip_analysis_users'],
+   ['registered_holder_view_users','holder_view_users'],
+   ['registered_strategy_started_users','strategy_started_users'],
+   ['registered_signal_view_users','signal_view_users'],
+   ['registered_repeat_analysis_users','repeat_analysis_users']
+  ];
+  for(const [metric,key] of fields)if(valid(engagement[key]))
+   matches.push({metric,value:engagement[key]});
+ }
  const registrationTrade=registration?.trade;
  if(registrationTrade?.available===true){
   const fields=[
@@ -55,6 +69,7 @@ function factsFromValue(value,max=4){
  }
  const allowed=new Set([
   'active_users','new_users','returning_users','activation_rate','registered_users','registration_activation_rate','registered_trade_conversion_rate','activated',
+  'chip_analysis_users','holder_view_users','strategy_started_users','signal_view_users','repeat_analysis_users',
   'users','visits','clicks','impressions','ctr','position','views','likes',
   'replies','retweets','reposts','posts','followers','followerChange',
   'engagementRate','replyRate','repostRate','likeRate','h24Views','h48Views',
