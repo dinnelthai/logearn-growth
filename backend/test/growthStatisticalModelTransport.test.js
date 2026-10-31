@@ -191,3 +191,33 @@ test('malformed evidence metric metadata cannot smuggle an identifier in numeric
  assert.ok(!JSON.stringify(x).includes(forbidden));
  assert.ok(!JSON.stringify(x).includes(wallet));
 });
+
+test('v5 model context receives only bounded authorized question priority and unknown monetary costs',()=>{
+ const {modelContext}=require('../src/ai/business/modelTransport');
+ const p={metric:'new_users',priority:'P1',goalRelevant:true,
+  affectedUsers:22,observedChangeMagnitude:17,evidenceConfidence:'medium',
+  authorizedTool:'query_metrics',observedLatency:{sampleCount:4,medianMs:13},
+  queryMonetaryCost:'unknown',secretEmail:forbidden,accountId:'user:123'};
+ const raw={business:{scope:{source:'all'}},focusGoal:'activation',
+  period:{start:1000,end:2000,timezone:'Asia/Bangkok'},
+  snapshot:{id:'s',asOf:'2026-10-30T00:00:00Z',historyComplete:false},
+  current:{totals:{active_users:50}},previous:{totals:{active_users:60}},
+  growth:{channels:[],quality:{history_complete:false}},
+  candidates:[],evidence:[],capabilities:[{id:'query_metrics',
+   inputSchema:{type:'object',properties:{}},description:'metrics'}],
+  growthPlan:{steps:[],questionRanking:{questions:[p,p,p,p,p,p,p,p]}}};
+ const before=JSON.stringify(raw);
+ const context=modelContext(raw,{transportVersion:'v5'});
+ const out=JSON.stringify(context);
+ assert.equal(JSON.stringify(raw),before);
+ assert.equal(context.questionPriority.length,5);
+ assert.equal(context.questionPriority[0].affectedUsers,22);
+ assert.equal(context.questionPriority[0].observedChangeMagnitude,17);
+ assert.equal(context.questionPriority[0].observedMedianMs,13);
+ assert.equal(context.questionPriority[0].sampleCount,4);
+ assert.equal(context.questionPriority[0].monetaryQueryCost,'unknown');
+ assert.equal(context.questionPriority[0].secretEmail,undefined);
+ assert.ok(!out.includes(forbidden));
+ assert.ok(!out.includes('user:123'));
+ assert.ok(Buffer.byteLength(out,'utf8')<=22000);
+});
