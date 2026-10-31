@@ -96,7 +96,7 @@ const groups=new Set(['total','totals','days','growth','change','dimensions','ch
  'growthActivities','kolCollaborations','contentRecords','operationTasks','accounts',
  'xOfficial','searchConsole','kolObservations','aiReportActions','specialistSignals']);
 const ids=new Set(['recordRef','kolRef','snapshot_id','snapshotId','as_of','eventsCompleteThrough',
- 'events_complete_through','cutoff','asOf','queryFingerprint']);
+ 'events_complete_through','cutoff','asOf','factsAsOf','queryFingerprint']);
 const privacy=/\b(?:user|session|wallet|account|token_visit|strategy_run|user_id|session_id|cookie|email|phone)[:=][^\s,;]+|[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}|\b0x[a-fA-F0-9]{35,}\b|\b(?:[0-9a-fA-F]{8}-){4}[0-9a-fA-F]{12}\b|https?:\/\/\S+|\b(?:\d[\s-]?){12,}\b/gi;
 const safeText=(x,max=MAX_TEXT)=>typeof x==='string'
  ? x.slice(0,max).replace(privacy,'[detail withheld]') : null;
