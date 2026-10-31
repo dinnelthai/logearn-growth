@@ -70,16 +70,68 @@ async function growthQuality(s, {start, end, source = 'all'}, audience) {
   if(rows.length > 2000)throw Object.assign(new Error('采集版本分组超过预算，请缩小范围'),{status:422})
   return rows
 }
-async function cohortTrades(s,rows,{start,end}){
- const entrants=rows.filter(r=>r.first_seen_at>=start&&r.first_seen_at<Math.min(end,Date.parse(s.as_of)+1))
- const targets=entrants.filter(r=>/^user:[1-9]\d{0,19}$/.test(r.user_key)).map(r=>r.user_key.slice(5))
- if(!targets.length)return {trades:[],known:new Set(),error:null}
- if(targets.length>5000)return {trades:[],known:null,error:'渠道交易账号超过5000人预算，请缩小统计期'}
- try{
-  const {tradeSql,budget}=require('./memberMetrics')
-  const trades=budget(await remote.query(tradeSql(),[s.snapshot_cutoff,start,Date.parse(s.as_of)+1,targets]),150000,'渠道交易')
-  const known=await remote.query('SELECT account_id::text AS account_id FROM public.account_v2 WHERE account_id::text=ANY($2::text[]) AND created_at<=$1::timestamptz',[s.snapshot_cutoff,targets])
-  return {trades,known:new Set(known.map(r=>'user:'+r.account_id)),error:null}
- }catch(e){return {trades:[],known:null,error:e.status===422?e.message:'渠道交易事实暂不可用，未将缺失解释为零'}}
+function cohortTradeSql(){
+ const scope=[
+  'SELECT DISTINCT t.user_id',
+  'FROM public.trading_transaction t',
+  'LEFT JOIN public.user_account ua ON ua.id=t.user_id AND ua.created_time<=$1::timestamptz',
+  "LEFT JOIN wallet_map wm ON wm.address=CASE WHEN ua.login_address ~ '^0x[0-9a-fA-F]{40}$' THEN LOWER(ua.login_address) ELSE ua.login_address END",
+  'LEFT JOIN public.account_v2 av ON av.account_id=t.user_id AND av.created_at<=$1::timestamptz',
+  'JOIN UNNEST($5::text[],$6::double precision[],$7::double precision[]) AS win(account_id,window_start,window_end)',
+  ' ON win.account_id=(CASE WHEN ua.id IS NOT NULL THEN wm.account_id ELSE av.account_id END)::text',
+  ' AND t.transaction_time>=TO_TIMESTAMP(win.window_start/1000.0)',
+  ' AND t.transaction_time<TO_TIMESTAMP(win.window_end/1000.0)',
+  'WHERE t.created_time<=$1::timestamptz AND t.transaction_time<=$1::timestamptz',
+  ' AND t.transaction_time>=TO_TIMESTAMP($2::double precision/1000)',
+  ' AND t.transaction_time<TO_TIMESTAMP($3::double precision/1000)',
+  ' AND (CASE WHEN ua.id IS NOT NULL THEN wm.account_id ELSE av.account_id END)::text=ANY($4::text[])'
+ ].join('\n');
+ const {tradeIdentityCte}=require('./tradeIdentity');
+ const groups=[
+  'trade_groups AS (',
+  ' SELECT t.chain,t.transaction_hash,MIN(t.user_id) AS user_id,',
+  '  MIN(t.transaction_time) AS transaction_time,MIN(t.trade_value) AS trade_value,',
+  '  COUNT(DISTINCT t.user_id)=1 AND COUNT(DISTINCT t.transaction_time)=1',
+  '   AND COUNT(DISTINCT t.trade_value)<=1',
+  '   AND (COUNT(t.trade_value)=0 OR COUNT(t.trade_value)=COUNT(*)) AS valid',
+  ' FROM public.trading_transaction t JOIN valid_map v ON v.user_id=t.user_id',
+  ' JOIN UNNEST($5::text[],$6::double precision[],$7::double precision[])',
+  '  AS win(account_id,window_start,window_end)',
+  '  ON win.account_id=v.account_id::text',
+  '  AND t.transaction_time>=TO_TIMESTAMP(win.window_start/1000.0)',
+  '  AND t.transaction_time<TO_TIMESTAMP(win.window_end/1000.0)',
+  ' WHERE t.created_time<=$1::timestamptz AND t.transaction_time<=$1::timestamptz',
+  '  AND t.transaction_time>=TO_TIMESTAMP($2::double precision/1000)',
+  '  AND t.transaction_time<TO_TIMESTAMP($3::double precision/1000)',
+  '  AND v.account_id::text=ANY($4::text[])',
+  "  AND NULLIF(BTRIM(t.transaction_hash),'') IS NOT NULL",
+  ' GROUP BY t.chain,t.transaction_hash',
+  ') SELECT t.*,v.account_id::text AS account_id',
+  ' FROM trade_groups t JOIN valid_map v ON v.user_id=t.user_id',
+  ' ORDER BY t.transaction_time DESC,t.transaction_hash LIMIT 20001'
+ ].join('\n');
+ return tradeIdentityCte(scope)+', '+groups;
 }
-module.exports = {growthFacts, growthQuality, cohortTrades, DAY}
+async function cohortTrades(s,rows,{start,end}){
+ const asOf=Date.parse(s.as_of),effectiveEnd=Math.min(end,asOf+1);
+ const entrants=rows.filter(r=>r.first_seen_at>=start&&r.first_seen_at<effectiveEnd);
+ const activated=entrants.filter(r=>Number.isFinite(Number(r.first_chip_at))&&Number(r.first_chip_at)>=Number(r.first_seen_at)&&Number(r.first_chip_at)<=asOf);
+ const mature=activated.filter(r=>Number(r.first_chip_at)+7*DAY<=asOf+1);
+ const windows=mature.filter(r=>/^user:[1-9]\d{0,19}$/.test(r.user_key)).map(r=>({accountId:r.user_key.slice(5),start:Number(r.first_chip_at),end:Number(r.first_chip_at)+7*DAY}));
+ const targets=[...new Set(windows.map(w=>w.accountId))];
+ if(!targets.length)return {trades:[],known:new Set(),error:null,windows:0,association:'user-level-after-first-analysis'};
+ if(windows.length>5000)return {trades:[],known:null,error:'成熟首次分析用户超过5000人预算，结果未知',windows:windows.length};
+ try{
+  const {budget}=require('./memberMetrics');
+  const minStart=Math.min(...windows.map(w=>w.start)),maxEnd=Math.min(Math.max(...windows.map(w=>w.end)),asOf+1);
+  const params=[s.snapshot_cutoff,minStart,maxEnd,targets,windows.map(w=>w.accountId),windows.map(w=>w.start),windows.map(w=>w.end)];
+  const [trades,known]=await Promise.all([
+   remote.query(cohortTradeSql(),params).then(r=>budget(r,20000,'首次分析后交易记录')),
+   remote.query('SELECT account_id::text AS account_id FROM public.account_v2 WHERE account_id::text=ANY($2::text[]) AND created_at<=$1::timestamptz',[s.snapshot_cutoff,targets])
+  ]);
+  return {trades,known:new Set(known.map(r=>'user:'+r.account_id)),error:null,windows:windows.length,association:'user-level-after-first-analysis'};
+ }catch(e){
+  return {trades:[],known:null,error:e.status===422?e.message:'首次分析后交易事实暂不可用，未将缺失解释为零',windows:windows.length,association:'user-level-after-first-analysis'};
+ }
+}
+module.exports = {growthFacts, growthQuality, cohortTrades, cohortTradeSql, DAY}
