@@ -7,7 +7,7 @@ const vm=require('node:vm');
 
 const period={start:Date.parse('2026-10-19T00:00:00+07:00'),
  end:Date.parse('2026-10-26T00:00:00+07:00')};
-function setup({observedThrough='2026-10-31T00:00:00Z'}={}){
+function setup({observedThrough='2026-10-31T00:00:00Z',withoutExisting=false}={}){
  const handlers=new Map(),queued=[],created=new Map();
  let hidden=false;
  const existing={id:'weekly-failed',owner_id:'owner',status:'failed',
@@ -15,7 +15,7 @@ function setup({observedThrough='2026-10-31T00:00:00Z'}={}){
   filter_conditions:{weeklyReport:'v1'}};
  const records={
   listWeeklyReportRecords:async owner=>owner==='owner'?
-    (created.size?[...created.values()]:hidden?[]:[existing]):[],
+    (created.size?[...created.values()]:hidden||withoutExisting?[]:[existing]):[],
   hasHiddenWeeklyReport:async(owner,p)=>owner==='owner'&&hidden&&
     p.start===period.start&&p.end===period.end,
   getArchivedFailedWeeklyReport:async(owner,p)=>owner==='owner'&&hidden&&
@@ -113,5 +113,22 @@ test('late observed source blocks archived regeneration before persistence or pa
  const refused=await f.request('POST','/ai-weekly-reports','owner',{regenerateArchivedFailed:true});
  assert.equal(refused.status,409);
  assert.match(refused.json.error,/未创建付费任务/);
+ assert.equal(f.queued.length,0);
+});
+
+test('first creation rejects an end beyond observed source data before saving or billing',async()=>{
+ const f=setup({observedThrough:'2026-10-20T00:00:00Z',withoutExisting:true});
+ const failed=await f.request('POST','/ai-weekly-reports');
+ assert.equal(failed.status,409);
+ assert.match(failed.json.error,/未创建付费任务/);
+ assert.equal(f.queued.length,0);
+ const list=await f.request('GET','/ai-weekly-reports');
+ assert.equal(list.json.reports.length,0);
+});
+test('missing observation time does not permit a paid report',async()=>{
+ const f=setup({observedThrough:null,withoutExisting:true});
+ const response=await f.request('POST','/ai-weekly-reports');
+ assert.equal(response.status,409);
+ assert.match(response.json.error,/无法核验/);
  assert.equal(f.queued.length,0);
 });
