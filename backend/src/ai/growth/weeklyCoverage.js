@@ -15,7 +15,8 @@ const DEFINITIONS=Object.freeze([
  ['login-conversion','登录转化','get_login_conversion','login_conversion'],
  ['kol-impact','KOL 效果','get_kol_performance','kol_performance'],
  ['content-growth','X 内容增长','get_content_growth','content_growth'],
- ['follower-quality','X 粉丝质量','get_follower_quality','follower_quality']
+ ['follower-quality','X 粉丝质量','get_follower_quality','follower_quality'],
+ ['operations-timeline','运营活动与执行记录','get_operations_timeline','activities']
 ].map(([id,label,tool,metric])=>Object.freeze({id,label,tool,metric})));
 // Only observed aggregate metrics may enter the weekly model. Do not traverse
 // arbitrary rows, events, identities or raw payloads just to find a number.
@@ -41,7 +42,7 @@ const ALLOWED_NUMBERS=new Set([
  'measuredProfiles','profilesWithObservedUsers','profilesWithAnalysis',
  'profilesWithTrade','maxObservedUsers','observedAccounts','measuredPosts',
  'measuredImpressions','measuredEngagementRate','sampledPosts',
- 'scannedRecords','analyzedRecords','reviewedRecords','records','reviewed','analyzed'
+ 'scannedRecords','analyzedRecords','reviewedRecords','records','reviewed','analyzed','human_operations','channel_observations','ai_actions','total_records'
 ]);
 const AGGREGATE_OBJECTS=new Set([
  'metrics','summary','totals','global','conversion','product_chain',
@@ -193,17 +194,15 @@ async function collectWeeklyCoverage({context,investigate,allowedTools,
  const byId=new Map(DEFINITIONS.map(def=>[def.id,def]));
  let used=0;
  // High-signal modules first; the remainder honestly stays not-investigated.
- const scheduled=[
-  ...manifest.modules.filter(x=>!['content-growth','follower-quality'].includes(x.id)),
-  ...manifest.modules.filter(x=>['content-growth','follower-quality'].includes(x.id))
+ const scheduledOrder=[
+  'operations-timeline','seo-organic','channel-growth','activation-funnel',
+  'retention','trade-conversion','revenue','kol-impact',
+  'content-growth','follower-quality','referral-and-invite','login-conversion'
  ];
- // Specialists are elevated when owner-owned X data exists, without
- // increasing the fixed query cap.
- if(availableSpecialties.length){
-  const special=scheduled.filter(x=>availableSpecialties.includes(x.id));
-  const first=scheduled.findIndex(x=>x.id==='revenue');
-  scheduled.splice(first,0,...special);
- }
+ const byModuleId=new Map(manifest.modules.map(row=>[row.id,row]));
+ const scheduled=scheduledOrder.map(id=>byModuleId.get(id)).filter(Boolean);
+ // Owner-owned X specialists are ordered before optional referral/login
+ // modules. The fixed 10-query cap remains unchanged.
  const seen=new Set();
  for(const row of scheduled){
   if(seen.has(row.id))continue;
