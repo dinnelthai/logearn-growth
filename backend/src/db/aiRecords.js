@@ -163,7 +163,8 @@ async function listWeeklyReportRecords(ownerId,{limit=20}={}){
  const safeLimit=Number.isSafeInteger(limit)?Math.max(1,Math.min(50,limit)):20;
  const result=await read(`SELECT id,title,status,created_at,completed_at,error_message,
    date_range_start,date_range_end,cost_usd,model_name,
-   filter_conditions->>'weeklyReissueOf' AS weekly_reissue_of
+   filter_conditions->>'weeklyReissueOf' AS weekly_reissue_of,
+   filter_conditions->>'reportPeriod' AS report_period
    FROM ai_analysis_records
    WHERE owner_id=$1 AND filter_conditions->>'weeklyReport'='v1'
      AND COALESCE(filter_conditions->>'hiddenFromHistory','false')<>'true'
