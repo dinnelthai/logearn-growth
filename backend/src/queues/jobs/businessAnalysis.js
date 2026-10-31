@@ -11,9 +11,10 @@ const {analysisPrompt:prompt}=require('../../ai/business/analysisContract');
 async function persistValidatedResult({job,analysisId,ownerId,token,compact,result}) {
   const source=compact.business.scope.source;
   const {analysis}=result;
+    const {formatActionExecutionPlan}=require('../../ai/growth/actionWorkflow');
     await job.progress(85);
     const suggestions=analysis.suggestions.map(s=>({analysisId,ownerId,businessProblem:s.problem,dataEvidence:s.evidence,
-      hypothesis:s.hypothesis,uncertainties:s.uncertainties,action:s.action,priority:s.priority,priorityReason:s.priorityReason,
+      hypothesis:s.hypothesis,uncertainties:s.uncertainties,action:formatActionExecutionPlan(s.action,s.executionPlan),priority:s.priority,priorityReason:s.priorityReason,
       applicableScope:{...s.scope,source},expectedImpact:s.expectedImpact,impactBasis:s.impactBasis,validationMetrics:s.validationMetrics,reviewConditions:s.reviewConditions,forecast:s.forecast||null}));
     const saved={summary:analysis.summary,keyFindings:analysis.keyFindings,suggestionsCount:analysis.suggestions.length,
       claims:analysis.claims,
@@ -203,7 +204,7 @@ async function businessAnalysis(job) {
             :records.beginAnalysisPaidCall(analysisId,ownerId,token,round),
         finish:(round,status)=>records.finishAnalysisPaidCall(analysisId,ownerId,token,round,status)
       },
-      validate:value=>{validateAnalysis(value);session.validate(value);if(isWeeklyReport)weeklyReport.ensureWeeklyReport(value,{context:compact});}});
+      validate:value=>{validateAnalysis(value,compact);session.validate(value);if(isWeeklyReport)weeklyReport.ensureWeeklyReport(value,{context:compact});}});
     await beforeStep();
     return await persistValidatedResult({job,analysisId,ownerId,token,compact,result});
   }catch(error){await records.failClaimedAnalysis(analysisId,ownerId,token,error.message);throw error;}
@@ -239,7 +240,7 @@ async function recoverValidatedAnalysis(job) {
   const analysis=finalRow?.result?.validatedAnalysis;
   if(!analysis||finalRow.result.followup||finalRow.result.investigations?.length)
     throw Error('没有经过验证的最终输出，禁止重新调用模型');
-  validateAnalysis(analysis);
+  validateAnalysis(analysis,compact);
   const token=require('node:crypto').randomUUID();
   const claimed=await records.claimExpiredFinalization(analysisId,ownerId,token);
   if(!claimed)throw Error('恢复执行权已被其他 Worker 领取');
@@ -332,7 +333,7 @@ async function resumeIncompleteAnalysis(job){
             :records.beginAnalysisPaidCall(analysisId,ownerId,token,round),
         finish:(round,status)=>records.finishAnalysisPaidCall(analysisId,ownerId,token,round,status)
       },validate:value=>{
-        validateAnalysis(value);session.validate(value);
+        validateAnalysis(value,compact);session.validate(value);
         if(record.filter_conditions?.weeklyReport==='v1')weeklyReport.ensureWeeklyReport(value,{context:compact});
       }});
     await beforeStep();
