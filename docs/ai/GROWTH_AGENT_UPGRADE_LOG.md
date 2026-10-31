@@ -472,3 +472,19 @@ Branch: `codex/ai-comprehensive-upgrade`
 - The learning projection includes bounded business-problem/action labels, metric and aggregate evidence; it never returns frozen cohort member IDs.
 - Growth Agent Control now renders the latest operation, metric, observational label, baseline → effect and fixed audience count, with all dynamic text escaped.
 - Backend CI [41180441759](https://github.com/dinnelthai/logearn-growth/actions/runs/41180441759) passed all AI Contract, Integration and Frontend jobs. Frontend UI CI [41180467339](https://github.com/dinnelthai/logearn-growth/actions/runs/41180467339) passed.
+
+
+## 2026-10-31 — Action anti-repeat and insufficient-review learning
+
+### Implemented
+- `experienceFeedback.summarizeExperience` now preserves recent action-level lessons (up to three per metric), including bounded business problem, actual action, observational label and reason.
+- v2 `insufficient` reviews are retained in the learning feedback rather than silently omitted. This allows the planner to ask for missing evidence without treating the action as disproved.
+- Planner experience checks carry the prior action details. Contradicted actions are not to be repeated as-is; any revisit requires a changed hypothesis/mechanism and new evidence. Insufficient reviews require evidence completion or a materially changed intervention.
+- Investigation attention weights contradicted reviews more strongly than insufficient reviews.
+- The analysis contract rejects exact normalized action duplicates against both the original proposal and recorded actual action, scoped to primary metric and source. Fuzzy matching is intentionally avoided to prevent false positives.
+- Tests cover action-level prompt guidance, insufficient review behavior and exact duplicate rejection against actual executed action.
+
+### Validation
+- CI [41181045783](https://github.com/dinnelthai/logearn-growth/actions/runs/41181045783) completed successfully: AI Contract, AI Frontend and AI Integration all passed.
+- Contract test groups: 177 tests (176 pass, 0 fail, 1 skipped), plus 26/26, 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112.
+- No schema migration, deployment, production collection, paid call or external write.
