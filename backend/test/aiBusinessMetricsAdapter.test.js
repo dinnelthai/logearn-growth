@@ -198,7 +198,7 @@ test('registered user journey keeps immature, unavailable and zero-denominator f
     strategy_started_users:0,signal_view_users:0,repeat_analysis_users:0},
    trade:{available:false,eligible:null,traders:null,conversion_rate:null,
     pending:1,not_engaged:2,unmatched:null}
-  }}}});
+  }}});
   const result=await metrics({start:100,end:200,source:'all'},
    {snapshot_id:'events-v1'},['registered_user_journey'],{});
   const value=result.metrics[0].value.registration;
