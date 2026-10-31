@@ -367,3 +367,11 @@ Branch: `codex/ai-comprehensive-upgrade`
 - No database migration, production change, deployment, paid model call, paid collection or external action.
 - Existing operation-task workflow is cohort-bound to a cached segment/growth-insights job and a fixed registered-user audience. A generic Growth Agent recommendation cannot safely be converted into that task without an eligible audience snapshot; this bridge remains open rather than fabricating a cohort or creating a parallel task manager.
 - Review scheduling still uses its existing three-complete-business-day plus watermark gate; the new suggested observation window is descriptive and does not alter scheduler timing.
+
+
+### Validation update — 2026-10-31
+
+- Latest successful AI infrastructure run: [41177009626](https://github.com/dinnelthai/logearn-growth/actions/runs/41177009626), head `55494b02cb9f4f298ad615f96fad069b1e15ac6a`.
+- AI Contract passed all groups (172 tests, 171 pass, 0 fail; one skipped), and existing groups 41/41, 34/34, 13/13, 23/23, 2/2, 112/112. AI Integration passed 17/17 with real PostgreSQL and Redis service containers. AI Frontend passed.
+- The first integration run exposed a legacy v3 strategy fixture; updated it to prove a v4 strategy upgrades from v3 even when the feedback digest is unchanged. Latest run passes.
+- Validation is still fixture/service-container validation, not a live LogEarn API/Worker acceptance test.
