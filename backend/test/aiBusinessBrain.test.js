@@ -31,7 +31,7 @@ test('Business Brain exposes the four LogEarn product roles and complete lifecyc
   assert.ok(value.lifecycle.find(x=>x.id==='economics').metricIds.includes('collaboration_economics'));
   assert.match(value.metricDictionary.find(x=>x.id==='trade_revenue').meaning,/平台|未接入|不能用/);
   assert.match(value.metricDictionary.find(x=>x.id==='collaboration_economics').meaning,/CRM|合作/);
-  assert.ok(value.operatingRules.some(x=>x.includes('非平台收入')||x.includes('不能代替平台收入')));
+  assert.ok(value.operatingRules.some(x=>x.includes('合作账本不是平台收入')));
  assert.ok(value.metricDictionary.some(x=>x.id==='activities'));
  assert.equal(value.operatingModel.capability,'get_operations_timeline');
  assert.match(value.operatingModel.experimentRule,/不代表随机实验/);
