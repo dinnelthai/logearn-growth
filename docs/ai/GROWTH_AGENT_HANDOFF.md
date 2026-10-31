@@ -6,10 +6,10 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
-- Latest code-validation commit: `27604c06ef103880350743723f5351c78d938d90`; subsequent commits in this handoff sequence update documentation only.
+- Latest successful implementation/CI head: `94ef62b9f001b147a46964c89c4cff6b8503b492` (includes fixed-cohort retrospective evidence and operation-task route coverage). Fetch the live branch before editing.
 - Fetch the live branch HEAD before every new edit; do not rely on this document's historical commit reference.
-- Latest successful CI: AI infrastructure run [41177187712](https://github.com/dinnelthai/logearn-growth/actions/runs/41177187712) — AI Contract, AI Frontend and AI Integration all succeeded.
-- Checklist progress: 29 / 48 implementation items (60%); live-source acceptance is not included in that percentage.
+- Latest successful CI: AI infrastructure run [41179371875](https://github.com/dinnelthai/logearn-growth/actions/runs/41179371875) — AI Contract, AI Frontend and AI Integration all succeeded; includes 10/10 operation-task/evidence tests.
+- Checklist progress: 31 / 48 implementation items (65%); live-source acceptance is not included in that percentage.
 - Do not switch to or commit to `master`.
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
 - Always verify the branch HEAD before editing and fetch each target file from this branch.
@@ -185,3 +185,17 @@ Final validation update: run [41177187712](https://github.com/dinnelthai/logearn
 - Cross-database SQLite/PostgreSQL updates are not atomic. Response contains `suggestionSync.status` and per-suggestion results; retry partial failures explicitly. If optional workspace link tables are absent, this remains a no-op and does not break existing task updates.
 - CI [41178355922](https://github.com/dinnelthai/logearn-growth/actions/runs/41178355922) passed all AI Contract, Integration and Frontend jobs at code head `1f0ab05f71b0fd5fef90b77282411102ebb3c5a2`.
 - Still open: transfer the fixed-cohort operation-task baseline and after-period review evidence into the AI retrospective record. Current retrospective continues to use the existing business metric review service; no cohort-level causal claims.
+
+
+## 2026-10-31 — Fixed-cohort retrospective evidence bridge
+
+- New service: `backend/src/ai/growth/operationTaskEvidence.js`.
+- The retrospective resolves the unique owner-scoped operation task linked to an executed AI suggestion. It revalidates source scope and exact equality of task completion time and suggestion executed_at.
+- Requires exactly one linked task, task status `done`, a valid frozen audience (1–5,000 registered account IDs), complete source reads and a valid Hologres snapshot. Multiple links, mismatched scope/timestamp, missing links and incomplete reads are not silently treated as zero.
+- Baseline window: 3–14 complete Bangkok business days ending before the operation task was created. Post-completion observation: the same number of complete business days beginning the day after task completion. The execution interval is excluded. Both windows are queried against the same Hologres snapshot and same fixed audience.
+- Model projection includes aggregate metrics only (analysis users/events/days, trade users/transactions/volume, coverage and unmatched counts); member IDs and user-level rows are not included.
+- `observeUntil` is retained in the cohort review periods. At least three complete post-completion business days are required. The AI prompt distinguishes this cohort evidence from whole-business/channel metrics and explicitly forbids causal claims from observational data.
+- Retrospective persistence stores the cohort baseline, post-completion metrics, metric changes, snapshot and period anchors inside existing retrospective JSON fields; no schema migration.
+- Tests: `operationTaskEvidence.test.js` covers equal-length windows, pre-task/post-completion anchors, maturity, owner isolation, execution timestamp match and source-scope drift. `operationTasks.test.js` covers task lifecycle sync.
+- CI [41179371875](https://github.com/dinnelthai/logearn-growth/actions/runs/41179371875): Contract, Integration and Frontend all passed; dedicated task/evidence tests 10/10.
+- Remaining: classify observational outcomes as observed-supported / observed-contradicted / insufficient independently from causal effectiveness; connect those classifications to the existing learning index without treating correlation as causality. Live-source acceptance remains separate.
