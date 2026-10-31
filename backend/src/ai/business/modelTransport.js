@@ -340,6 +340,19 @@ function compactWeeklyValue(value){
   if(typeof registration.available==='boolean')compactRegistration.available=registration.available;
   if(Object.keys(compactRegistration).length)result.registration=compactRegistration;
  }
+ if(value.registration&&typeof value.registration==='object'){
+  const registration=value.registration,compactRegistration={};
+  const users=extract(registration,4);
+  if(users)Object.assign(compactRegistration,users);
+  for(const name of ['activation','engagement','trade']){
+   const numbers=extract(registration[name],name==='engagement'?12:8);
+   if(numbers)compactRegistration[name]=numbers;
+   if(name==='trade'&&typeof registration.trade?.available==='boolean')
+    compactRegistration.trade={...(compactRegistration.trade||{}),available:registration.trade.available};
+  }
+  if(typeof registration.available==='boolean')compactRegistration.available=registration.available;
+  if(Object.keys(compactRegistration).length)result.registration=compactRegistration;
+ }
  const own=extract(value,8);
  if(own)Object.assign(result,own);
  if(typeof value.available==='boolean')result.available=value.available;
