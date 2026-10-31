@@ -2,9 +2,10 @@
 const {listSkills,getSkill}=require('./skills');
 const {listToolIds}=require('../business/tools/registry');
 const {summarizeExperience}=require('./experienceFeedback');
+const {rankBusinessQuestions}=require('./questionPriority');
 // Tool availability is computed per trusted task; no module-load snapshot.
 const goalMap={activation:['growth-overview','activation-funnel'],retention:['growth-overview','retention'],conversion:['growth-overview','channel-growth','trade-conversion','referral-and-invite','login-conversion'],revenue:['growth-overview','revenue']};
-function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[],focusSkillId=null,strategy=null,availableSpecialties=[],availableCapabilityIds=null,includeWeeklySpecialties=false}={}){
+function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[],focusSkillId=null,strategy=null,availableSpecialties=[],availableCapabilityIds=null,includeWeeklySpecialties=false,observedTimingRegistry=null,ownerId=null}={}){
  if(!Object.hasOwn(goalMap,goal))throw Object.assign(Error('未知增长目标'),{status:400});
  if(!Number.isInteger(maxSkills)||maxSkills<1||maxSkills>(includeWeeklySpecialties?12:6))throw Error('技能数量限制无效');
  if(!report||typeof report!=='object'||!report.business?.scope||!report.period)
@@ -26,6 +27,11 @@ function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[
     availableCapabilityIds.length>40||availableCapabilityIds.some(x=>typeof x!=='string')))
   throw Error('能力集合必须由可信任务入口提供');
  const supportedTools=new Set(availableCapabilityIds||listToolIds());
+ const observedTimings=observedTimingRegistry&&typeof observedTimingRegistry.observedToolTimings==='function'&&
+  typeof ownerId==='string'&&ownerId.trim()?
+  observedTimingRegistry.observedToolTimings({ownerId,period:report.period,scope:report.business.scope}):{};
+ const questionRanking=rankBusinessQuestions({goal,candidates:report.candidates||[],
+  capabilityIds:[...supportedTools],observedTimings});
  let selectedStrategy=strategy,strategyExpired=false;
  if(strategy?.policy?.version==='evidence-first-strategy-v4'){
   const policy=strategy.policy,scope=policy.scope||{};
@@ -75,7 +81,7 @@ function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[
   :ordered.slice(0,maxSkills);
  return {
   version:'growth-plan-v1',goal,focusSkillId,scope:report.business.scope,period:report.period,
-  triage,experienceFeedback:experience,
+  triage,questionRanking,experienceFeedback:experience,
   learningStrategy:selectedStrategy?{version:selectedStrategy.version,focusMetrics:[...hints],
     validUntil:selectedStrategy.policy?.validUntil??null,
     rollback:selectedStrategy.policy?.rollback??null,
@@ -122,6 +128,15 @@ function formatPlanForPrompt(plan){
   (plan.learningStrategy?'\n历史策略版本 '+plan.learningStrategy.version+'，优先核查指标：'+
     plan.learningStrategy.focusMetrics.join(',')+'。'+plan.learningStrategy.instructions:
     '')+
+  '\n可核验业务问题优先级（缺失影响人数或查询实际耗时保持未知）：'+
+  (plan.questionRanking?.questions||[]).slice(0,3).map(q=>
+   q.metric+' '+q.priority+' 目标相关='+q.goalRelevant+
+   ' 受影响人数='+(q.affectedUsers??'未知')+
+   ' 观测变化人数='+(q.observedChangeMagnitude??'未知')+
+   ' 证据可信度='+q.evidenceConfidence+
+   ' 授权调查工具='+(q.authorizedTool||'无')+
+   ' 历史耗时中位数='+(q.observedLatency?.medianMs??'未知')+'ms'+
+   ' 货币查询费用=未知').join('；')+
   '\n每条结论必须引用已有证据；不执行外部修改。';
 }
 module.exports={planGrowthInvestigation,formatPlanForPrompt,listSkills};
