@@ -16,7 +16,7 @@ const definitions={
  get_segments:{metric:'segments',adapter:'segments',description:'固定人群的现有分群分析'},
  get_activity:{metric:'activities',adapter:'activities',description:'活动固定名单和既有成员事实'},
  get_operations_timeline:{metric:'activities',adapter:'operations-timeline',scopes:['source'],description:'只读汇总人工活动、KOL合作、手工内容、任务、X/GSC/KOL观察与AI建议；不同来源分层，不建立平行CRM'},
- get_channel_economics:{metric:'trade_revenue',adapter:'economics',scopes:['source'],description:'owner合作账本，按币种分别统计，未记录收入为未知'},
+ get_channel_economics:{metric:'collaboration_economics',adapter:'economics',scopes:['source'],description:'仅owner CRM/KOL合作账本收支，按币种列示；不是平台交易手续费或全平台收入，未记录金额保持未知'},
  check_data_quality:{metric:'quality',adapter:'tracking-audit',scopes:['source'],description:'埋点覆盖诊断，不将水位ID解释成强一致快照'},
  get_seo_performance:{metric:'seo_search',adapter:'seo-performance',scopes:['source'],description:'只读读取已同步的 Search Console 最终聚合快照或有限手动导入；日期可能不匹配、查询覆盖不完整'},
  get_kol_performance:{metric:'kol_performance',adapter:'kol-performance',scopes:['source'],description:'复用已有 KOL CRM 归组和真实观察行为；不等于因果归因'},
