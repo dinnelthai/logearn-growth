@@ -1,5 +1,6 @@
 'use strict';
 // Versioned model-facing analysis contract and its structural validation.
+const {assertReviewMetrics,REVIEWABLE_METRIC_IDS}=require('../growth/reviewMetrics');
 const ANALYSIS_CONTRACT_VERSION='analysis-contract-v2';
 const analysisPrompt=`analysis-contract-v2。你是LogEarn业务增长分析师。依据业务目标和真实观测证据排序任务，先比较目标相关性，再比较可验证的影响人数、同单位变化幅度、证据完整度和调查成本；不同单位的绝对值不能直接比较。
 筹码查看/下钻是行为代理，不代表成功、理解或付费；未观测不等于流失。历史及采集覆盖未知时降低结论强度。
@@ -27,6 +28,7 @@ function assertActionNovelty(suggestion,history){
  if(duplicate)throw Error('建议与历史行动完全重复；必须提出不同的验证步骤或行动方案');
 }
 function validateAnalysis(a,context={}) {
+  const strictContract=context?.analysisContractVersion===ANALYSIS_CONTRACT_VERSION;
   if (typeof a.summary !== 'string' || !Array.isArray(a.keyFindings) || !Array.isArray(a.suggestions)) throw Error('分析结果缺少摘要、发现或建议');
   const allowedTools=new Set((Array.isArray(context?.capabilities)?context.capabilities:[])
     .map(item=>item?.id).filter(id=>typeof id==='string'));
