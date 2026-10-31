@@ -61,8 +61,8 @@ test('operating timeline is a collected weekly module with separate aggregate la
  const row=out.modules.find(x=>x.id==='operations-timeline');
  assert.equal(row.status,'collected');
  assert.ok(row.evidenceIds.includes('operations-1'));
- assert.ok(row.facts.some(x=>x.metric==='counts.human_operations'&&x.value===2));
- assert.ok(row.facts.some(x=>x.metric==='counts.ai_actions'&&x.value===3));
+ assert.ok(row.facts.some(x=>x.metric==='counts.human_operations_shown'&&x.value===2));
+ assert.ok(row.facts.some(x=>x.metric==='counts.ai_actions_shown'&&x.value===3));
  assert.equal(out.queries,2);
 });
 test('unmatched SEO source stays insufficient, not falsely counted as weekly analyzed',async()=>{
