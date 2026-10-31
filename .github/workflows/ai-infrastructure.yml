@@ -79,6 +79,7 @@ jobs:
           node --check src/ai/business/tools/operationsTimeline.js
           node --check src/ai/business/tools/businessModuleCatalog.js
           node --check test/operationsTimeline.test.js
+          node --check test/operationsTimelineRegistry.test.js
           node --check src/ai/business/runner.js
           node --check src/ai/business/tokenBudget.js
           node --check src/ai/business/checkpointState.js
@@ -168,7 +169,7 @@ jobs:
       - name: Run operating timeline and module discovery tests
         env:
           NODE_ENV: test
-        run: node --test test/operationsTimeline.test.js test/businessModuleCatalog.test.js
+        run: node --test test/operationsTimeline.test.js test/operationsTimelineRegistry.test.js test/businessModuleCatalog.test.js test/aiBusinessBrain.test.js
 
       - name: Run Business Brain and custom report regression tests
         env:
