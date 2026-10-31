@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - codex/uiux-rebuild
+      - codex/ai-comprehensive-upgrade
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-uiux.yml'
@@ -40,6 +41,8 @@ jobs:
           node --check src/workspaceQuickJump.js
           node --check src/pages/aiTaskStatus.js
           node --check src/pages/aiAnalysis.js
+          node --check src/pages/aiWeeklyReportPanel.js
+          node --check src/pages/aiWeeklyDecisionView.js
       - name: Run all frontend unit tests
         run: npm test
       - name: Build desktop workspace
