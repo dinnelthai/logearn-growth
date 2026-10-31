@@ -53,7 +53,7 @@ async function loadLinkedTaskEvidence({db,ownerId,suggestionId,executedAt,expect
  if(!source||typeof source.source!=='string'||(expectedSource&&source.source!==expectedSource))
   return {status:'unavailable',reason:'task-and-suggestion-source-mismatch',taskId:task.id};
  if(!Array.isArray(members)||
-  !members.length||members.length>5000||members.some(id=>typeof id!=='string'||!/^\\d{1,20}$/.test(id))||
+  !members.length||members.length>5000||members.some(id=>typeof id!=='string'||!/^\d{1,20}$/.test(id))||
   new Set(members).size!==members.length)
   return {status:'unavailable',reason:'invalid-fixed-cohort-snapshot',taskId:task.id};
  const cutoff=Math.min(now,Date.parse(snapshot?.as_of)+1);
