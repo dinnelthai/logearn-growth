@@ -84,7 +84,9 @@ test('timeline merges existing owner-scoped records but keeps human, channel and
  assert.equal(db.calls.some(c=>c.sql.includes('growth_activity_delivery_evidence')&&/user_id|evidence/.test(c.sql)),false);
  assert.equal(result.coverage.searchConsole.periodMatched,false);
  assert.equal(result.coverage.contentRecords.collection,'manual');
- assert.ok(db.calls.every(c=>c.args[0]==='owner-1'||c.sql.includes('crm_collaboration_activities')));
+ assert.ok(db.calls.some(c=>c.sql.includes('FROM growth_activities')&&c.args[0]==='owner-1'));
+ assert.ok(db.calls.some(c=>c.sql.includes('growth_activity_assignments')&&c.args[0]==='owner-1'));
+ assert.ok(db.calls.some(c=>c.sql.includes('growth_activity_delivery_evidence')&&c.args[0]==='owner-1'));
  assert.match(result.warnings.join(' '),/AI 建议/);
 });
 
