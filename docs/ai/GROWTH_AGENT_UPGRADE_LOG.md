@@ -382,3 +382,24 @@ Branch: `codex/ai-comprehensive-upgrade`
 - Latest successful run: [41177187712](https://github.com/dinnelthai/logearn-growth/actions/runs/41177187712), code head `27604c06ef103880350743723f5351c78d938d90`; all three jobs passed.
 - AI Contract: 172 tests, 171 pass, 0 fail, 1 skipped; regression groups 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112. AI Integration: 17/17 with PostgreSQL/Redis containers. AI Frontend: success.
 - No live LogEarn source acceptance, migration, deployment, paid model call, paid collection or external action.
+
+
+## 2026-10-31 — Accepted AI suggestion → existing operation task bridge
+
+### Implemented
+- Added owner-scoped `POST /suggestions/:id/link-operation-task`. Only `adopted`, `executing` or `executed` AI suggestions can be linked.
+- Added `GET /suggestions/:id/operation-tasks` to retrieve the linked task records.
+- The bridge reuses existing SQLite Growth Workspace problem records and `gw_operation_links`; no new table or migration.
+- Requires a real existing `operation_tasks` row owned by the same account and an exact match between suggestion source scope and task source scope.
+- No cohort, user list, baseline or task is fabricated. Missing task, wrong owner, unaccepted suggestion and scope mismatch are rejected.
+- Growth Workspace problem detail now returns linked operation tasks.
+- Added tests for idempotency, owner isolation, unaccepted suggestions, nonexistent/wrong-owner tasks, source mismatch and link retrieval.
+
+### Explicit remaining boundary
+- The task's fixed audience, baseline, execution history and review endpoint remain canonical in the existing operation-task workflow.
+- Linking does not automatically change the AI suggestion to `executed`; the operator must record the actual execution using the existing suggestion status endpoint. Automatic state synchronization and baseline/after-evidence handoff into AI retrospective remain open.
+- No database migration, deployment, paid model call, paid collection or external action.
+
+### Validation
+- Latest successful CI: [41177929631](https://github.com/dinnelthai/logearn-growth/actions/runs/41177929631), code head `6a96a5c064a78ea08d9580260de18da9c3ffed6e`; AI Contract, AI Integration and AI Frontend all passed.
+- AI Contract groups: 172 tests (171 pass, 0 fail, 1 skipped), plus 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112. AI Integration: 17/17. AI Frontend: success.
