@@ -119,7 +119,7 @@ function factsFromEvidence(evidence){
      add('groups.'+source+'.'+key,row?.[key],e.id);
    }
   }else if(e.metricId==='funnel'&&Array.isArray(value?.steps)){
-   for(const key of ['total_entered','total_converted','pending_count'])
+   for(const key of ['mature_entered','mature_converted','mature_conversion_rate','pending_count'])
     add(key,value[key],e.id);
    const selected=value.steps.length>2?[value.steps[0],value.steps.at(-1)]:value.steps;
    for(const [i,row] of selected.entries()){
@@ -127,9 +127,6 @@ function factsFromEvidence(evidence){
     for(const key of ['users','eligible','previous_conversion_rate','unknown'])
      add('steps.'+step+'.'+key,row?.[key],e.id);
    }
-   const finalStep=value.steps.at(-1);
-   if(finalStep)add('steps.'+(safeDimension(finalStep.key)||'final')+'.total_conversion_rate',
-    finalStep.total_conversion_rate,e.id);
   }else if(e.metricId==='registered_user_journey'){
    const registration=value?.registration||{},activation=registration.activation||{},
     engagement=registration.engagement||{},trade=registration.trade||{};
