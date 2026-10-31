@@ -74,6 +74,29 @@ test('registered user journey survives safe model projection with separate paral
  assert.equal(JSON.stringify(projected).includes('并行入口'),true);
 });
 
+test('source-grouped journey has citeable safe source facts without inventing attributed trades',()=>{
+ const {statView,modelEvidence}=require('../src/ai/business/modelTransport');
+ const input={available:true,registration:{users:3,
+  activation:{eligible:3,activated:2,rate:2/3},
+  engagement:{eligible:3},
+  trade:{available:false,eligible:null,traders:null},
+  bySource:[{source:'x',users:2,activation:{eligible:2,activated:2},
+   engagement:{eligible:2,chip_analysis_users:1,holder_view_users:0}},
+   {source:'unknown',users:1,activation:{eligible:1,activated:0},
+    engagement:{eligible:1,chip_analysis_users:0,holder_view_users:1}}]
+ }};
+ const model=modelEvidence({id:'source-fact',metricId:'registered_user_journey',
+  value:statView(input),coverage:{status:'partial'},warnings:[]});
+ assert.equal(model.value.registration.bySource[1].source,'unknown');
+ const facts=factsFromEvidence([model]);
+ assert.ok(facts.some(f=>f.metric==='registration.bySource.x.users'&&f.value===2));
+ assert.ok(facts.some(f=>f.metric==='registration.bySource.x.activation.activated'&&f.value===2));
+ assert.ok(facts.some(f=>f.metric==='registration.bySource.unknown.engagement.holder_view_users'&&f.value===1));
+ assert.ok(facts.some(f=>f.metric==='registration.bySource.x.engagement.holder_view_users'&&f.value===0));
+ assert.ok(facts.every(f=>f.evidenceId==='source-fact'));
+ assert.equal(facts.length,11,'missing platform trade evidence must not become zero or an invented fact');
+ assert.equal(facts.some(f=>f.metric.includes('bySource')&&f.metric.includes('trade')),false);
+});
 test('all thirteen modules are represented, missing sources are never marked analyzed',()=>{
  const result=initialCoverage(context(),{allowedTools:toolIds,availableSpecialties:[]});
  assert.equal(result.modules.length,13);
