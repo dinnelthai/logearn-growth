@@ -100,12 +100,12 @@ function contentSummary(payload){
   return {available:false,
    reason:historicalGap?
     '已有 X 官方内容及较晚采集的累计指标'+dates+
-    '，但缺少报告截止前的指标快照，不能还原当周浏览或互动':
-    '当前窗口没有可核验的X内容历史指标',
+    '，但缺少报告截止前的指标快照，不能还原所选周期内浏览或互动':
+    '所选周期没有可核验的X内容历史指标',
    coverage:payload?.coverage||{status:'unavailable'},
    warnings:[historicalGap?
-    '已保存的X数据晚于报告期，可用于当前内容诊断，不可倒填历史周报':
-    '没有报告期内已保存的X内容指标，不能按零曝光处理']};
+    '已保存的X数据晚于报告截止时间，不可倒填所选周期的历史指标':
+    '没有所选周期内已保存的X内容指标，不能按零曝光处理']};
  }
 
  const manual=payload.summary?.x||{};
@@ -125,7 +125,7 @@ function contentSummary(payload){
     {measuredImpressions:sum(groups.filter(a=>number(a.measuredImpressions))
      .map(a=>a.measuredImpressions))}:{})},
   groups,coverage:payload.coverage||{status:'partial'},
-  warnings:['官方X帖文的观看和互动为最近30天样本的累计快照，不是当周新增曝光',
+  warnings:['官方X帖文的观看和互动为所选发布周期内样本的累计快照，不是周期新增曝光',
    '人工登记与官方抓取来源分开；不发送推文正文或原始账号行',
    ...(payload.warnings||[]).slice(0,2)]};
 }
