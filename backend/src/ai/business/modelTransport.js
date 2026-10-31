@@ -27,6 +27,7 @@ const numeric=new Set([
  'memberCount','plannedMemberCount','firstAt','lastAt','assigned','delivered','sent_unconfirmed','not_delivered','delivery_unknown','cross_exposed','retrospective_records','firstDeliveryAt','lastDeliveryAt',
  'completed','prior','active','inactive','review','analysis_users','analysis_events','analysis_days','returning_analysis_users','multi_day_users','trade_users','actual','ratio','target','limit','limitPerAccount',
  'activation_rate','activation_interval','median_age_days','retention_rate',
+ 'chip_analysis_rate','holder_view_rate','strategy_started_rate','signal_view_rate','repeat_analysis_rate',
  'registeredUsers','clicks','impressions','ctr','position','likes','shares','comments',
  'duration_ms','value_usd','daily_count','day_count','sample_size','size',
  'periodStart','periodEnd','baseline','observed','target','changePct','percentage',
@@ -77,7 +78,7 @@ const notes=new Set(['definition','warnings','warning','reason','error','interpr
  'notAvailableReason','coverageNote','qualityNote','title','topic','kol','assignee','reportTitle','conclusion']);
 const groups=new Set(['total','totals','days','growth','change','dimensions','channels','associations',
  'groups','cohorts','families','versions','quality','coverage','diagnostic_coverage',
- 'activation_interval','retention_interval','interval','stages','steps','drops',
+ 'activation','engagement','activation_interval','retention_interval','interval','stages','steps','drops',
  'product_chain','first_value','trade','d7','d30','registration','attribution',
  'exposure','entrance','entrance_breakdown','page_clicks_summary','retention_summary',
  'funnels','paths','pages','summary','sample','byCurrency','trends','rates','counts',
@@ -325,6 +326,19 @@ function compactWeeklyValue(value){
  for(const name of allowed){
   const numbers=extract(value[name],name==='metrics'?10:6);
   if(numbers)result[name]=numbers;
+ }
+ if(value.registration&&typeof value.registration==='object'){
+  const registration=value.registration,compactRegistration={};
+  const users=extract(registration,4);
+  if(users)Object.assign(compactRegistration,users);
+  for(const name of ['activation','engagement','trade']){
+   const numbers=extract(registration[name],name==='engagement'?12:8);
+   if(numbers)compactRegistration[name]=numbers;
+   if(name==='trade'&&typeof registration.trade?.available==='boolean')
+    compactRegistration.trade={...(compactRegistration.trade||{}),available:registration.trade.available};
+  }
+  if(typeof registration.available==='boolean')compactRegistration.available=registration.available;
+  if(Object.keys(compactRegistration).length)result.registration=compactRegistration;
  }
  const own=extract(value,8);
  if(own)Object.assign(result,own);
