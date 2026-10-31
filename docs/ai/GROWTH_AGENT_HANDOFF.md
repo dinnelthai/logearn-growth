@@ -6,9 +6,9 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
-- Last code-validation commit: `942185ab52c206aef679d932c60fc41ce0f32d53` (all AI infrastructure CI jobs green).
+- Last code-validation commit: `575a149859d3c195e57201367d2e66d49647736b` (all AI infrastructure CI jobs green).
 - Documentation baseline before this handoff refresh: `409791810e6d0a6a9c2f2885f8c648541d7fa6ee`; fetch the live branch HEAD before every new edit.
-- Latest successful CI: AI infrastructure run [41164982501](https://github.com/dinnelthai/logearn-growth/actions/runs/41164982501) — AI Contract, AI Frontend and AI Integration all succeeded.
+- Latest successful CI: AI infrastructure run [41168249767](https://github.com/dinnelthai/logearn-growth/actions/runs/41168249767) — AI Contract, AI Frontend and AI Integration all succeeded.
 - Checklist progress: 22 / 45 implementation items (49%); live-source acceptance is not included in that percentage.
 - Do not switch to or commit to `master`.
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
@@ -95,6 +95,7 @@ New v5 flags:
 - [x] Keep human activity, channel observation and AI action/review layers separate.
 - [x] Include aggregate activity delivery state and frozen settled outcomes without member rows or IDs.
 - [x] Expose per-source coverage, freshness limitations and truncated samples.
+- [x] Distinguish X per-account available/empty/not-synced/unavailable/not-configured states and preserve them in the safe model projection.
 - [ ] Link campaign/content activity to channel metrics and mature outcomes where stable identifiers and windows allow.
 - [ ] Add dedicated community/training connectors only if an existing source and business need are confirmed; do not infer absence from missing records.
 
@@ -108,7 +109,7 @@ New v5 flags:
 
 ## 7. Validation / production boundary
 
-This upgrade has not been deployed or tested against the user's live API/Worker. Latest AI infrastructure run [41164982501](https://github.com/dinnelthai/logearn-growth/actions/runs/41164982501) passed all three jobs: AI Contract (167 total / 166 passed / 0 failed / 1 skipped; targeted groups 37/37, 32/32, 13/13, 22/22, 2/2 and 112/112), AI Integration (17/17), and AI Frontend (success). These are fixture/service-container checks, not a real-source acceptance test.
+This upgrade has not been deployed or tested against the user's live API/Worker. Latest AI infrastructure run [41168249767](https://github.com/dinnelthai/logearn-growth/actions/runs/41168249767) passed all three jobs: AI Contract groups 32/32, 13/13, 22/22, 2/2 and 112/112; AI Integration 17/17; AI Frontend succeeded. These are fixture/service-container checks, not a real-source acceptance test.
 
 Do not:
 - run paid model calls just to test projection;
