@@ -204,8 +204,11 @@ function createOperationsTimeline({
    const rows=db.prepare(`SELECT a.id,a.title,a.priority,a.status,a.executed_at,a.created_at,a.updated_at,
     a.review_json,r.title AS report_title
     FROM business_analysis_actions a JOIN business_analysis_reports r ON r.id=a.report_id
-    WHERE a.owner_id=? AND r.owner_id=? AND a.created_at<? AND a.updated_at>=?
-    ORDER BY a.updated_at DESC,a.id LIMIT ?`).all(ownerId,ownerId,end,start,limit);
+    WHERE a.owner_id=? AND r.owner_id=? AND (
+     (a.created_at>=? AND a.created_at<?) OR
+     (a.updated_at>=? AND a.updated_at<?) OR
+     (a.executed_at>=? AND a.executed_at<?))
+    ORDER BY a.updated_at DESC,a.id LIMIT ?`).all(ownerId,ownerId,start,end,start,end,start,end,limit);
    for(const r of rows){
     const review=safeJson(r.review_json);
     aiActions.push({
