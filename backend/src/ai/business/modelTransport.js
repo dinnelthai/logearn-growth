@@ -81,7 +81,7 @@ const groups=new Set(['total','totals','days','growth','change','dimensions','ch
  'exposure','entrance','entrance_breakdown','page_clicks_summary','retention_summary',
  'funnels','paths','pages','summary','sample','byCurrency','trends','rates','counts',
  'humanOperations','channelObservations','aiActions','timeline','warnings','samplePosts',
- 'humanOperations','assignments','scheduleChanges',
+ 'assignments','scheduleChanges',
  'linkedKols','linkedActivityIds','costTotals','revenueTotals','evaluation','review',
  'metrics','series','distribution','sources','bySource','period','filters',
  'sourceVersions','watermarks','goal','current','previous','weekly','northStar',
