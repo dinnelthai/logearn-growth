@@ -43,3 +43,30 @@ it.skip('Mock JSON data has been removed - association validation moved to integ
  const cfg={mode:'funnel',steps:['token_click','token','chip'],range:14,hours:24,source:'all',strategy:'all',initial:'chip',returning:'chip'}
  let saved;const storage={setItem:(k,v)=>{saved=v},getItem:()=>saved};saveConfig(storage,{...cfg,association:'token_visit'});expect(loadConfig(storage).association).toBe('token_visit');expect(validConfig({...cfg,association:'token_visit'})).toBe(true);expect(validConfig(cfg)).toBe(true);expect(validConfig({...cfg,association:'invented'})).toBe(false)
 })
+
+it('calculates step conversion only from mature known users, not pending or association-unknown users',()=>{
+ const asOf=base+DAY+500,window=DAY;
+ const users=[
+  u([e('token_click',1,{token_visit_id:'v1'}),e('token',2,{token_visit_id:'v1'})]), // pending at chip
+  u([e('token_click',10,{token_visit_id:'v2'}),e('token',20,{token_visit_id:'v2'}),e('chip',30,{token_visit_id:'v2'})]),
+  u([e('token_click',100,{token_visit_id:'v3'}),e('token',200,{token_visit_id:'v3'})]), // mature drop-off
+ ];
+ const r=computeFunnel(users,{...opts,asOf,conversionWindowMs:window});
+ expect(r.steps[2]).toMatchObject({eligible:2,converted:1,pending:1,unknown:0,
+  previous_conversion_rate:.5,total_conversion_rate:.5,drop_off_users:1});
+});
+it('excludes missing association IDs from known drop-off denominators',()=>{
+ const users=[
+  u([e('token_click',1,{token_visit_id:'v1'}),e('token',2)]),
+  u([e('token_click',10,{token_visit_id:'v2'})]),
+ ];
+ const r=computeFunnel(users,{...opts,asOf:base+2*DAY});
+ expect(r.steps[1]).toMatchObject({eligible:1,converted:0,unknown:1,pending:0,
+  previous_conversion_rate:0,drop_off_users:1});
+ expect(r.steps[2].previous_conversion_rate).toBeNull();
+});
+it('returns null conversion rates when a mature denominator is empty',()=>{
+ const r=computeFunnel([],{...opts,asOf:base+2*DAY});
+ expect(r.steps[0]).toMatchObject({eligible:0,previous_conversion_rate:null,total_eligible:0,total_conversion_rate:null});
+ expect(r.steps[1]).toMatchObject({eligible:0,previous_conversion_rate:null,total_eligible:0,total_conversion_rate:null});
+});
