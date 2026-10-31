@@ -42,6 +42,8 @@ async function businessAnalysis(job) {
   if(executionClaim.action==='completed')return executionClaim.result;
   const token=executionClaim.token;
   const isWeeklyReport=executionClaim.record.filter_conditions?.weeklyReport==='v1';
+  const isCustomReport=isWeeklyReport&&
+    executionClaim.record.filter_conditions?.reportPeriod==='custom-v1';
   // Only NEW business analyses opt into v2. Archived checkpoints select their
   // version from the saved system prompt, so deployment cannot rewrite replay.
   // New tasks use v3 to reduce repeated tool plans/evidence. Either
@@ -89,6 +91,9 @@ async function businessAnalysis(job) {
        executionClaim.record,{start,end,source,goal:focusGoal});
       compact=seeded||await reportsService.build({start,end,businessScope:scope,
        focusGoal,question:userQuestion});
+    }
+    if(isWeeklyReport&&compact?.period){
+      compact.period={...compact.period,kind:isCustomReport?'custom':'weekly'};
     }
     // Ranked business candidates stay untouched; plan adds explainable
     // anomaly triage and permitted investigations for the existing runner.
@@ -179,8 +184,12 @@ async function businessAnalysis(job) {
     const currentPrompt=require('../../ai/optimization/promptRegistry')
       .createPromptRegistry(require('../../db/connection'))
       .resolve(ownerId,'analysis',prompt,{runId:analysisId});
-    const result=await runTask({context:compact,prompt:isWeeklyReport?currentPrompt+'\n'+
-      (useWeeklyV5?weeklyReport.weeklyPromptV3:useContextV3?weeklyReport.weeklyPromptV2:weeklyReport.weeklyPrompt):currentPrompt,
+    const reportPrompt=isWeeklyReport?
+      (isCustomReport?
+       (useWeeklyV5?weeklyReport.customPeriodPromptV1:weeklyReport.customPeriodPromptV0):
+       (useWeeklyV5?weeklyReport.weeklyPromptV3:useContextV3?weeklyReport.weeklyPromptV2:weeklyReport.weeklyPrompt)):
+      currentPrompt;
+    const result=await runTask({context:compact,prompt:isWeeklyReport?currentPrompt+'\\n'+reportPrompt:currentPrompt,
       ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
       contextVersion:useWeeklyV5?'v5':useWeeklyV4?'v4':useBusinessBrainV5?'v5':useContextV3?'v3':'v1',
       ...(isWeeklyReport?{modelTimeoutMs:weeklyReport.weeklyModelTimeoutMs()}:{}),
