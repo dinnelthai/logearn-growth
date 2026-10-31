@@ -84,6 +84,7 @@ router.get('/growth-agent/learning',handle(async(req,res)=>{
   const goals=['activation','retention','conversion','revenue'];
   const policies=await Promise.all(goals.map(goal=>store.getStrategy(ownerId,goal,source)));
   res.json({assessment:require('../ai/growth/agentLearning').summarizeJudgements(judgements),
+    judgements:judgements.slice(0,10),
     strategies:Object.fromEntries(goals.map((goal,i)=>[goal,policies[i]])),
     interpretation:'历史成熟复盘的观测符合率，不是预测准确率或因果效果'});
 }));
