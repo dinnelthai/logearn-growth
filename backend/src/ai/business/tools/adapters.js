@@ -13,6 +13,67 @@ async function metrics(body,snapshot,ids,context){
  const entries=metrics.map(m=>{
   if(m.queryAdapter==='north')return {metricId:m.id,value:north.totals[m.id]??null};
   if(m.queryAdapter==='weekly')return {metricId:m.id,value:weekly.available?weekly.users:null,warnings:weekly.available?[]:['周核心指标不可用']};
+  if(m.id==='registered_user_journey'){
+   const registration=growth?.cohorts?.registration;
+   if(registration?.available!==true)return {metricId:m.id,
+    value:{available:false,registration:{available:false,
+     reason:'注册事实不可用；完整业务旅程未知'}},
+    warnings:['注册队列不可用，不能把缺失解释为零']};
+   const activation=registration.metrics||{},engagement=registration.engagement;
+   const trade=registration.trade||{available:false};
+   const finite=value=>typeof value==='number'&&Number.isFinite(value);
+   const denominator=finite(engagement?.eligible)?engagement.eligible:null;
+   const entry=field=>finite(engagement?.[field])?engagement[field]:null;
+   const rate=field=>denominator>0&&entry(field)!==null?entry(field)/denominator:null;
+   const productEngagement=engagement?{
+    eligible:denominator,pending:finite(engagement.pending)?engagement.pending:null,
+    chip_analysis_users:entry('chip_analysis_users'),
+    chip_analysis_rate:rate('chip_analysis_users'),
+    holder_view_users:entry('holder_view_users'),
+    holder_view_rate:rate('holder_view_users'),
+    strategy_started_users:entry('strategy_started_users'),
+    strategy_started_rate:rate('strategy_started_users'),
+    signal_view_users:entry('signal_view_users'),
+    signal_view_rate:rate('signal_view_users'),
+    repeat_analysis_users:entry('repeat_analysis_users'),
+    repeat_analysis_rate:rate('repeat_analysis_users'),
+    window_ms:7*86400000,
+    definition:'筹码、Holder、策略、信号及复访分别统计注册后7日内至少一次观测；共享已成熟注册账户分母，入口之间允许重叠，不是连续漏斗'
+   }:null;
+   const tradeAvailable=trade.available===true;
+   const tradeConversion={
+    available:tradeAvailable,engaged:finite(trade.engaged)?trade.engaged:null,
+    eligible:tradeAvailable&&finite(trade.eligible)?trade.eligible:null,
+    unmatched:tradeAvailable&&finite(trade.unmatched)?trade.unmatched:null,
+    traders:tradeAvailable&&finite(trade.traders)?trade.traders:null,
+    conversion_rate:tradeAvailable&&finite(trade.conversion_rate)?trade.conversion_rate:null,
+    pending:finite(trade.pending)?trade.pending:null,
+    not_engaged:finite(trade.not_engaged)?trade.not_engaged:null,
+    association:'user-level-after-first-analysis',window_ms:7*86400000,
+    definition:'首次筹码分析后168小时内任意已验证交易；分母仅身份可验证且满168小时用户；不是同Token归因或因果证明'
+   };
+   const warnings=[
+    '注册账户来自 account_v2.created_at；首次筹码分析激活使用独立事件事实',
+    '产品入口均为注册后7日并行观测，共享成熟注册账户分母，彼此可重叠，不能相加或画成串行漏斗',
+    '交易转化以首次筹码分析为锚点，使用身份可验证的成熟账户；不代表同Token归因或因果关系',
+    '事件历史完整性、注册源独立水位及交易源完整性尚未在真实环境验收'
+   ];
+   if(!productEngagement)warnings.push('注册后7日产品入口事实不可用，保持未知');
+   if(!tradeAvailable)warnings.push('真实交易或账号身份关联不可用，交易转化未知而非零');
+   if(registration.scope==='observed_source')
+    warnings.push('来源归因仅覆盖已观测来源；未归因账户不会计入该来源');
+   return {metricId:m.id,value:{available:true,registration:{
+    users:finite(activation.users)?activation.users:null,
+    activation:{eligible:finite(activation.eligible)?activation.eligible:null,
+     activated:finite(activation.activated)?activation.activated:null,
+     pending:finite(activation.pending)?activation.pending:null,
+     rate:finite(activation.rate)?activation.rate:null,window_ms:86400000},
+    engagement:productEngagement,trade:tradeConversion,
+    coverage:{status:'partial',
+     reason:'账号创建、行为事件和交易来自不同事实源；来源完整性与独立水位仍待验证'},
+    definition:'按真实注册账号建立队列。先观察注册后24小时筹码分析激活；再分别观察注册后7日内各产品入口；交易另按首次分析后7日统计。并行产品入口不构成线性漏斗。'
+   }},warnings};
+  }
   if(m.id==='registered_users'){
    const registration=growth?.cohorts?.registration;
    const available=registration?.available===true;
@@ -59,7 +120,9 @@ async function metrics(body,snapshot,ids,context){
  // Per-metric coverage is deliberately conservative. A shared event snapshot
  // is NOT an independently validated registration or transaction watermark.
  const coverageFor=id=>{
-  if(id==='registered_users')return {status:registration?.available===true?'partial':'unavailable',
+  if(id==='registered_user_journey')return {status:registration?.available===true?'partial':'unavailable',
+    reason:registration?.available===true?'注册、行为与交易来自不同事实源；成熟窗口已区分，但完整性和独立水位仍待验证':'注册事实不可用，完整业务旅程未知'};
+   if(id==='registered_users')return {status:registration?.available===true?'partial':'unavailable',
    reason:registrationStatus==='observed_source'?
     '注册来自账号事实；来源仅覆盖已观测归因，注册水位仍待独立验证':
     registrationStatus==='unknown'?'注册来源不可用，人数未知':
