@@ -72,6 +72,7 @@ Acceptance:
 - [x] Fix product-to-trade analysis to use authoritative transaction facts; report identity/visit association separately.
 - [x] Bound product-trade lookup to successful same-token analysis windows; cap result size and expose truncated/unknown coverage explicitly.
 - [ ] Establish the registration → activation → product engagement → trade funnel with verified denominators and maturity.
+  - Implemented supporting contracts: real `account_v2.created_at` registration cohort, mature 24-hour first-analysis activation, separate mature 7-day product-entry counts (chip/Holder/strategy/signal/repeat analysis), and identity-verified user-level trade conversion. Still open: prove event completeness and connect these as a valid business journey without forcing parallel product entries into one linear funnel; live-source acceptance remains separate.
 - [ ] Validate SEO/GSC date semantics, X snapshot semantics, KOL CRM association and referral/invite contracts.
 - [ ] Add channel / product / cohort breakdowns only where the source supports them.
 - [ ] Keep source watermark, coverage, freshness, scope and definition version with each metric.
