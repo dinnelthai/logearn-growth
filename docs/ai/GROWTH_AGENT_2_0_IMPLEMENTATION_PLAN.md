@@ -2,7 +2,7 @@
 
 Branch: `codex/ai-comprehensive-upgrade`  
 Scope: Business Brain, Growth Intelligence, Operating Memory, Decision Engine and Learning Loop.  
-Progress snapshot (2026-10-31, audited against code HEAD `030c0ed8993a049485f4a064d48cef1f661dfa05`): **37 / 48 implementation checklist items (77.1%)** have code/CI evidence; **11 remain open**. This is NOT the live-source or model-acceptance rate.  
+Progress snapshot (2026-10-31, latest source-contract/UI test HEAD `f9de3abb5eae27be99ba9129ee92c8b57a318a03`): **37 / 48 implementation checklist items (77.1%)** have code/CI evidence; **11 remain open**. This is NOT the live-source or model-acceptance rate.  
 Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace and storage.
 
 ## Product definition
@@ -52,12 +52,19 @@ Do not build a second analytics engine, CRM, operations task manager, metric reg
 **Latest verified checks:** AI infrastructure [run 41184069508](https://github.com/dinnelthai/logearn-growth/actions/runs/41184069508) passed on `76ec311df688860f93b72b930641cf1c3cd3ef03` (strict v5 weekly partial-report fallback); frontend [run 41184123727](https://github.com/dinnelthai/logearn-growth/actions/runs/41184123727) passed on exact audited HEAD `030c0ed8993a049485f4a064d48cef1f661dfa05`. Earlier intermediate AI CI runs failed before corrective commits; do not cite them as final failures. No full real-source / Worker / paid-model acceptance was performed in this review.
 
 **Known code/UI debt, not counted as new roadmap checkboxes:**
-- `frontend/src/pages/aiWeeklyDecisionView.js` hardcodes “12 个增长模块” in its collapsed summary, while the v5 `weeklyCoverage.js` catalog includes a 13th operations-timeline module. Correct the label from the real manifest count in a future code change; do not change business logic as part of documentation reconciliation.
+- **Resolved in subsequent code:** weekly UI now derives the count from the persisted manifest and retains the 13th `operations-timeline` module without inventing a 13th module for historical 12-module snapshots. Frontend regression [41184785074](https://github.com/dinnelthai/logearn-growth/actions/runs/41184785074) passed.
 - New v5 reports require seven lifecycle stages and evidence-linked opportunity/previous-action blocks. Invalid new-model sections are saved as an explicitly **partial** report, not silently accepted as fully validated, and not automatically re-billed; an archived v4 weekly report viewed in the browser is not evidence that v5 ran successfully.
 - `reviewMetrics.js` permits `active_users`, `new_users`, `returning_users`, `activation_rate` and `d7` in the existing retrospective service, but the separate fixed-cohort v2 observational classifier currently makes a direct semantic comparison only for `active_users`. Do not claim cohort learning for registration/trade/retention metrics.
 - Read-only source acceptance must establish data freshness, identity/match coverage, mature denominators, real Hologres query latency, GSC PT-day alignment and X/KOL/invite snapshots. Missing data is unknown, never zero.
 
 **Execution order:** (1) Phase 2 audit and source-safe funnel/economics, (2) Phase 3 stable operational outcome links, (3) Phase 4 query-cost ranking only after measured metadata exists, (4) already-authorized read-only v5/Operating Memory/fixed-cohort acceptance plus operator confirmation. Keep paid calls, deployments, migrations and external writes separately approval-gated.
+
+### Continuation checkpoint — 2026-10-31 (Phase 2 source contract + weekly UI)
+
+- **Completed code/test increments:** preserve per-metric warnings and conservative registration/trade coverage in `backend/src/ai/business/tools/adapters.js` and `backend/src/ai/business/tools/registry.js`; add `backend/test/aiBusinessMetricsAdapter.test.js` and `backend/test/agentTools.test.js` regressions. Restore versioned 13-module weekly audit in `frontend/src/pages/aiWeeklyCoverageView.js`, `aiWeeklyDecisionView.js` and corresponding frontend tests; historical v4 remains 12.
+- **CI observed:** [AI infrastructure 41184881554](https://github.com/dinnelthai/logearn-growth/actions/runs/41184881554) on `f9de3abb5eae27be99ba9129ee92c8b57a318a03` passed all three jobs; [Growth desktop UI 41184785074](https://github.com/dinnelthai/logearn-growth/actions/runs/41184785074) on `82f801864ff1cf4c6d114b77411adbfdb5527911` passed.
+- **Progress rule:** this closes concrete sub-issues but does **not** complete the six broad Phase 2 checkboxes, and no full real-source acceptance was run. Checklist remains **37/48, 77.1%; Phase 2 remains 2/8**. Do not count new documentation commits as additional implementation milestones.
+- **Next:** verify source-specific freshness/coverage from authorized read-only Hologres and the existing channel/SEO/X/KOL/referral adapters; pursue the mature registration→parallel product entry→trade journey without turning a multi-entry behavior map into an invented sequential funnel.
 
 ## Phases and acceptance
 
@@ -101,6 +108,7 @@ Acceptance:
 - [ ] Validate SEO/GSC date semantics, X snapshot semantics, KOL CRM association and referral/invite contracts.
 - [ ] Add channel / product / cohort breakdowns only where the source supports them.
 - [ ] Keep source watermark, coverage, freshness, scope and definition version with each metric.
+  - **Incremental code milestone (2026-10-31):** `query_metrics` now archives per-metric coverage/limits and keeps metric-specific warnings (registration scope, mature cohort, trade identity) alongside common warnings. The event snapshot no longer masquerades as a separate registration watermark; registration/trade watermarks remain explicitly `null` pending measured source freshness. `makeEvidence` already pins definition version, owner scope and period. Still open: standardize independent source watermarks/freshness across every non-metric specialty and validate against live sources. AI CI [41184881554](https://github.com/dinnelthai/logearn-growth/actions/runs/41184881554) passed (Contract, Integration, Frontend).
 - [ ] Separate platform revenue from trade volume and partner/collaboration ledger records.
 
 Acceptance:
