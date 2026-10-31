@@ -22,7 +22,7 @@ const fmt=x=>typeof x==='number'&&Number.isFinite(x)?x.toLocaleString('zh-CN',{m
 const statuses={pending:'排队中',processing:'AI 正在分析',completed:'已完成',failed:'生成失败',cancelled:'已取消'};
 export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null}){
  let disposed=false,seq=0,poll=null,selected=null,busy=false,recoveryQueued=false,notice='',lastSnapshot=null,
-  customPeriod=false,range={start:'',end:''};
+  customPeriod=false,initialized=false,range={start:'',end:''};
  const clear=()=>{if(poll){clearTimeout(poll);poll=null}};
  const schedule=(rows,token)=>{
   if(!disposed&&token===seq&&(recoveryQueued||
@@ -219,11 +219,14 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
    if(disposed||token!==seq)return;
    if(!customPeriod)range={start:localDateTime(d.period.start),end:localDateTime(d.period.end)};
    const rows=Array.isArray(d.reports)?d.reports:[];
-   if(!rows.some(x=>x.id===selected))selected=rows[0]?.id||null;
    const current=rows.find(x=>Number(x.date_range_start)===Number(d.period.start)&&Number(x.date_range_end)===Number(d.period.end));
+   if(!rows.some(x=>x.id===selected))
+    selected=current?.id||(!initialized?(rows[0]?.id||null):null);
+   initialized=true;
    const row=rows.find(x=>x.id===selected);
-   const regenerateArchived=!current&&d.canRegenerateArchivedFailed===true;
-   const canRegenerateCurrent=!!current&&['completed','failed','cancelled'].includes(current.status);
+   const canRegenerateSelected=!!row&&['completed','failed','cancelled'].includes(row.status)&&
+    (row.report_period==='custom-v1'||row.id===current?.id);
+   const regenerateArchived=!row&&!current&&d.canRegenerateArchivedFailed===true;
    const nextSnapshot=JSON.stringify({
     period:d.period,customPeriod,range,archivedCurrentWeek:d.archivedCurrentWeek,
     canRegenerateArchivedFailed:d.canRegenerateArchivedFailed,selected,
@@ -244,24 +247,27 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
    const shownCustom=shownPeriod.kind==='custom';
    const shownRange=shownCustom?
     safe(dateTime(shownPeriod.start)+' → '+dateTime(shownPeriod.end)+'（结束不含）'):
-    safe(date(shownPeriod.start)+' — '+date(Number(shownPeriod.end)-1)+' · 最近完整周');
+    safe(date(shownPeriod.start)+' — '+date(Number(shownPeriod.end)-1)+' · 完整周');
+   const rangeForPicker=row?{
+    start:localDateTime(Number(row.date_range_start)),
+    end:localDateTime(Number(row.date_range_end))
+   }:range;
    const rangePicker='<div class="ai-weekly-range-picker">'+
-    '<label>开始时间 · UTC+7 <input type="datetime-local" data-weekly-start value="'+safe(range.start)+'"></label>'+
-    '<label>结束时间（不含）· UTC+7 <input type="datetime-local" data-weekly-end value="'+safe(range.end)+'"></label>'+
+    '<label>开始时间 · UTC+7 <input type="datetime-local" data-weekly-start value="'+safe(rangeForPicker.start)+'"></label>'+
+    '<label>结束时间（不含）· UTC+7 <input type="datetime-local" data-weekly-end value="'+safe(rangeForPicker.end)+'"></label>'+
     '<button type="button" class="a-button" data-weekly-apply-range>应用时间范围</button>'+
     '<button type="button" class="a-button" data-weekly-reset-range>最近完整周</button>'+
     '<span>自定义1–31天；与紧邻前一段等长周期比较</span></div>';
    root.innerHTML='<div class="ai-weekly-heading"><div><h3>'+(shownCustom?'AI 运营报告':'AI 运营周报')+'</h3><p class="a-muted">'+
     (row?'当前查看：':'统计范围：')+shownRange+'</p></div>'+
-    (current?'<div class="ai-weekly-toolbar">'+
-      '<span class="ai-weekly-status">'+safe(row?'正在查看 · '+(statuses[row.status]||row.status):
-       '本期 · '+(statuses[current.status]||current.status))+'</span>'+
-      '<button type="button" class="a-button ai-weekly-regenerate-trigger" data-weekly-regenerate '+
-       (canRegenerateCurrent?'':'disabled title="本期报告正在生成中"')+'>'+
-       (customPeriod?'重新生成所选时间范围报告':'重新生成 AI 运营周报')+'</button></div>':
-     regenerateArchived?'<button type="button" class="a-button a-primary" data-weekly-confirm>重新生成 AI 周报</button>':
+    (canRegenerateSelected?'<div class="ai-weekly-toolbar">'+
+      '<span class="ai-weekly-status">'+safe('正在查看 · '+(statuses[row.status]||row.status))+'</span>'+
+      '<button type="button" class="a-button ai-weekly-regenerate-trigger" data-weekly-regenerate>'+
+       (row.report_period==='custom-v1'?'重新生成所选时间范围报告':'重新生成 AI 运营周报')+'</button></div>':
+     row?'<span class="ai-weekly-status">历史报告 · '+safe(statuses[row.status]||row.status)+'</span>':
+     regenerateArchived?'<button type="button" class="a-button a-primary" data-weekly-confirm>'+(customPeriod?'重新生成所选时间范围报告':'重新生成 AI 周报')+'</button>':
      d.archivedCurrentWeek?'<span class="ai-weekly-status">本期记录已移除</span>':
-     '<button type="button" class="a-button a-primary" data-weekly-confirm>'+(customPeriod?'生成所选时间范围报告':'生成 AI 周报')+'</button>')+'</div>'+
+     '<button type="button" class="a-button a-primary" data-weekly-confirm>'+(customPeriod?'生成所选时间范围报告':'生成最近完整周报告')+'</button>')+'</div>'+
     rangePicker+
     (canRegenerateCurrent?
      '<div class="ai-weekly-regenerate-confirm" data-weekly-regenerate-confirm hidden>'+
@@ -297,7 +303,16 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
    root.querySelector('[data-weekly-reset-range]')?.addEventListener('click',()=>{
     customPeriod=false;selected=null;notice='已恢复最近完整周。';load();
    });
-   root.querySelector('[data-weekly-select]')?.addEventListener('change',e=>{selected=e.target.value;load()});
+   root.querySelector('[data-weekly-select]')?.addEventListener('change',e=>{
+    const target=rows.find(x=>x.id===e.target.value);
+    selected=target?.id||null;
+    if(target){
+     range={start:localDateTime(Number(target.date_range_start)),
+      end:localDateTime(Number(target.date_range_end))};
+     customPeriod=target.report_period==='custom-v1';
+    }
+    load();
+   });
    root.querySelector('[data-weekly-inspect]')?.addEventListener('click',()=>{
     if(!row||typeof navigate!=='function')return;
     queueAnalysisLaunch({kind:'analysis',analysisId:row.id});
@@ -305,7 +320,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
    });
    const regeneration=root.querySelector('[data-weekly-regenerate-confirm]');
    root.querySelector('[data-weekly-regenerate]')?.addEventListener('click',()=>{
-    if(busy||!canRegenerateCurrent||!regeneration)return;
+    if(busy||!canRegenerateSelected||!regeneration)return;
     regeneration.hidden=false;
     regeneration.querySelector('[data-weekly-regenerate-cancel]')?.focus();
    });
@@ -314,12 +329,12 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
     root.querySelector('[data-weekly-regenerate]')?.focus();
    });
    root.querySelector('[data-weekly-regenerate-submit]')?.addEventListener('click',async event=>{
-    if(busy||!current||!canRegenerateCurrent)return;
+    if(busy||!row||!canRegenerateSelected||!regeneration)return;
     busy=true;
     const button=event.currentTarget;
     button.disabled=true;button.textContent='正在创建新周报…';
     try{
-     const result=await api('/ai-weekly-reports/'+encodeURIComponent(current.id)+'/regenerate',
+     const result=await api('/ai-weekly-reports/'+encodeURIComponent(row.id)+'/regenerate',
       'POST',{acceptPotentialDuplicateCharge:true});
      if(disposed)return;
      selected=result.analysisId;
@@ -384,7 +399,8 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
      }
     }finally{busy=false}
    });
-   if(row)await showReport(row,token,d.period);
+   if(row)await showReport(row,token,row.report_period==='custom-v1'?
+    {start:Number(row.date_range_start),end:Number(row.date_range_end)}:d.period);
    schedule(rows,token);
   }catch(error){
    if(!disposed&&token===seq){
