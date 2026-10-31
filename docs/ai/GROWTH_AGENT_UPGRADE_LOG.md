@@ -783,3 +783,34 @@ These are **code-complete/CI-validated**, not a guarantee that an actual new v5 
 - **Final code/test HEAD:** `81bc9a06fba358c484eed9bb620ab303110d8ed5`; [AI infrastructure 41201630015](https://github.com/dinnelthai/logearn-growth/actions/runs/41201630015) **passed AI Contract, AI Integration, AI Frontend**. Several earlier intermediate commits ran before their corresponding regression fixtures were adjusted; final full run is the acceptance point. These are offline and integration-container fixtures, not live KOL, Worker or paid model verification.
 - Phase 3 last checkbox checked **at code/CI level only**. **Total 44/48 (91.7%); 4 open; Phase 3 8/8**. This still does not demonstrate actual incremental conversion, true attribution or guaranteed external freshness. Remaining roadmap: Phase 1 two real-context/operator product definition gates, Phase 4 two measured-query-cost/hypothesis-planning gates.
 - No model/paid provider calls, external collectors, deployments, migrations, production writes, or `master` changes.
+
+## 2026-10-31 — Phase 4 cost-aware decisions with measured owner-local tool latency (46/48)
+
+### Initial gap and measured implementation
+
+- The growth ranking previously sorted goal-relevant candidate metrics and suggested 2–3 competing root-cause checks but lacked **trusted per-tool execution timing**; the previous query-cost field was therefore unknowable. We did **not** introduce guessed SQL costs, provider charges, or proxy USD prices.
+- `backend/src/ai/business/tools/registry.js` now measures monotonic wall time of the successful tool operation, after scope and budget authorization, and records it once per authorized invocation into `executionTiming` on a new immutable evidence item. Multi-metric `query_metrics` calls produce one timing sample only; failed/timeout tool calls do not contribute successful samples. Wall time excludes unrelated work such as earlier snapshot lookup; it is **not** the cost of physical scan bytes or billing.
+- `backend/src/ai/business/evidence.js` reuses existing owner-isolated `agent_evidence` rows to read recent successful timings. A tool gets an observed median only from **3 or more** bounded records in the prior 30 days with **the same owner, same authorized source/fixed audience scope, and a period within 20% of requested duration**. Old/invalid/mismatched records are excluded. Missing values do not equal zero cost. No migration or separate telemetry service was created.
+- `backend/src/ai/growth/queryEconomics.js` checks this trusted sample contract; it identifies a candidate with lowest **observed median latency** only when *every* alternative is comparable. Otherwise it reports an explicit unavailable ranking. This must **never** be called "lowest actual dollar cost", "lowest information gain cost" or "guaranteed fastest next query"; `monetaryCost='unknown'`.
+
+### Connection to actual decisions
+
+- `backend/src/ai/growth/questionPriority.js` ranks only existing, verifiable business candidates by goal relevance, existing priority, explicitly reported affected users, same-metric user count change, evidence-backed confidence and actual observed tool timing (when available). Rate movement is not converted into a made-up affected-user population.
+- `backend/src/ai/growth/planner.js` adds bounded question attention ranking to normal task planning. `backend/src/queues/jobs/businessAnalysis.js` is the **real Worker entrypoint**: it reads local, owner-scoped evidence, matches the final authorized capability list, pins a small timing snapshot in the saved context for exact replay and leaves unknown when data are missing. This makes the ranking effective for ordinary worker tasks without paid probes.
+- `backend/src/ai/growth/modulePlanner.js` uses comparable observed latency to choose the faster **existing read-only alternative in the same authorized module**, otherwise preserves its reviewed default order; no extra query is run by the selection itself.
+- `backend/src/ai/business/analysisContract.js` keeps strict distinct-hypothesis/evidence/schema/period/source checks and annotates the verified candidate discriminating queries with `discriminatingQueryEfficiency`, using only pinned evidence. Paid or unknown-cost capability stops any best-query claim; no model suggestion may extend permission.
+- `backend/src/ai/business/modelTransport.js` (ordinary v5) and `backend/src/ai/business/weeklyContextV4.js` (13-module weekly v5) pass only a few source-verified ranking rows to the model, reducing/removing them before business KPI evidence if over the strict 22KB budget.
+
+### Regression and CI
+
+- `backend/test/agentEvidence.test.js`: owner-based isolation, minimum samples, scope/period contamination, missing currency costs, immutable evidence.
+- `backend/test/growthPlanner.test.js`: goal relevance, observed population vs count change, evidence IDs, authorized tools, unknown money.
+- `backend/test/modulePlanner.test.js`: same-module selection from observed latency with explicit unknown fallback and no paid calls.
+- `backend/test/analysisCompetingHypotheses.test.js`: validated authorized competing reasons, known and missing timings, paid/unknown-cost capabilities.
+- `backend/test/growthStatisticalModelTransport.test.js` and `backend/test/aiWeeklyContextBudget.test.js`: bounded, privacy-safe v5 ordinary and weekly hints, strict byte budgets, core statistics preserved.
+- **Final source/test SHA** `6540a7a353b5fadb080f016afa2aa2b8795ece0f`; [AI infrastructure run 41204481078](https://github.com/dinnelthai/logearn-growth/actions/runs/41204481078) **passed Contract, Integration, Frontend**. Earlier intermediate CI results are not the final acceptance source.
+
+### Checklist, remaining scope and execution boundaries
+
+- Both Phase 4 code/CI checklist items are checked as **conditional measured-server-latency comparisons**, not monetary query cost optimization or validated root-cause information gain. Phase 4 **6/6**; overall **46/48 = 95.8%**, two Phase 1 checkboxes open for authorized real-context verification and operator product-map/North Star signoff.
+- This does not validate real live Hologres/X/GSC/CRM freshness, production Worker runs, live paid model report quality, causal attribution or financial query costs. No paid provider probes, schema migrations, deployments, external posting/collection or `master` changes.
