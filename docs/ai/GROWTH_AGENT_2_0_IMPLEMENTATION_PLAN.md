@@ -27,6 +27,18 @@ Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace 
 - **Separate full UI CI:** [run 41207439672](https://github.com/dinnelthai/logearn-growth/actions/runs/41207439672) **failed** in unchanged `funnelAssociation.test.js` (expected drop_off_users 1, received 0). This run is not a green full-UI claim; baseline status was not independently established and the unrelated funnel code was not modified here.
 - **Observed local page:** selected historical report remains **v4 / 12 modules**, older incomplete source coverage and failed trade read. No confirmed existing v5 report or live source acceptance available through the read-only browser view. Neither code/CI nor read-only on-page status may close the live-source checkbox.
 - **Progress unchanged: 47/48 (97.9%), Phase 1 one real-source and original-v5-context validation gate open.** Full steps and source boundaries: `docs/ai/GROWTH_V5_SAVED_CONTEXT_AUDIT.md`.
+
+### 2026-10-31 — Code Review fixes and CI (branch-only, no paid validation)
+
+- **Source/test HEAD:** `5c3f8dbbc7e234eac26e3763ef24ae692b6e3009` (P1 fix commit `acd5105fa79f82cc0806ef1425a668199a3144b4`).
+- **CP-12 regression fix:** `frontend/src/analytics/funnel.js` now calculates the terminal transition's mature `drop_off_users` instead of unconditionally returning zero. Pending observations and incomplete association IDs stay outside confirmed loss. The additional terminal-step regression is included.
+- **CP-05/09 contract alignment:** New v5 natural-week and custom-period prompts reference **13 modules**, while archived v4 prompts keep historical 12-module wording. The operator-confirmed `active_users` unique chip-view definition is now distinguished explicitly from **unverified live event coverage and cross-device identity**.
+- **CP-09 frontend decision:** the risk panel prefers the pinned owner-scoped `growthPlan.questionRanking`; when unavailable, confirmed North Star `active_users` is ahead of supporting `new_users`. A trusted snapshot change requires *both* period-matched numeric evidence IDs; an incomplete comparison shows the snapshot with an explicit caveat and **no risk trend**. Existing historical data is not rewritten.
+- **CP-08/09 Learning Loop:** contradictory v2 model-vs-fixed-cohort directions retain `assessment=insufficient`, but now carry `judgementConflict=true`, observed direction and a distinct reason into judgements and planner lessons. No causal claims or new review metrics were added.
+- **Validation:** [AI infrastructure #41209778423](https://github.com/dinnelthai/logearn-growth/actions/runs/41209778423) and [Growth desktop UI #41209778387](https://github.com/dinnelthai/logearn-growth/actions/runs/41209778387) **passed** on P1 source/test commit `acd5105`. [AI infrastructure #41209843200](https://github.com/dinnelthai/logearn-growth/actions/runs/41209843200) **passed Contract, Integration and Frontend** on final code/test commit `5c3f8db`. The full desktop UI workflow did not rerun on the backend-only follow-up; it had passed on the unchanged frontend source `acd5105`.
+- **Progress stays 47/48 (97.9%) code/CI, 1 real-source gate open.** This fixes code/regressions, **not** live LogEarn Hologres, GSC/X/KOL, saved v5 model-journal, Worker execution, cost ledger, actual click coverage or CP-01..12 production acceptance. Do not mark any production CP as PASS from CI alone.
+- No paid AI/model calls, external collectors, data migrations, production deployment, external posting or `master` changes in these commits.
+
 ## Product definition
 
 The goal is not “write a weekly report”. The goal is a virtual Head of Growth that can explain:
