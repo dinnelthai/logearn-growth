@@ -84,7 +84,9 @@ const groups=new Set(['totals','days','growth','change','dimensions','channels',
  'contentSignals',
  'referral','conversion','global','window','retention',
  'candidate','candidates','result','data','snapshots','snapshot',
- 'manual','official','economics']);
+ 'manual','official','economics',
+ 'growthActivities','kolCollaborations','contentRecords','operationTasks',
+ 'xOfficial','searchConsole','kolObservations','aiReportActions','specialistSignals']);
 const ids=new Set(['snapshot_id','snapshotId','as_of','eventsCompleteThrough',
  'events_complete_through','cutoff','asOf','queryFingerprint']);
 const privacy=/\b(?:user|session|wallet|account|token_visit|strategy_run|user_id|session_id|cookie|email|phone)[:=][^\s,;]+|[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}|\b0x[a-fA-F0-9]{35,}\b|\b(?:[0-9a-fA-F]{8}-){4}[0-9a-fA-F]{12}\b|https?:\/\/\S+|\b(?:\d[\s-]?){12,}\b/gi;
