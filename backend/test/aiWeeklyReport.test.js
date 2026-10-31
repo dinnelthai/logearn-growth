@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {weeklyPeriod,weeklyKey,weeklyOperations,validateWeeklyReport,ensureWeeklyReport}=require('../src/ai/growth/weeklyReport');
+const {weeklyPeriod,reportPeriod,weeklyKey,reportKey,weeklyOperations,validateWeeklyReport,ensureWeeklyReport}=require('../src/ai/growth/weeklyReport');
 
 test('weekly report uses last complete Monday-Sunday Bangkok week',()=>{
  const period=weeklyPeriod(Date.parse('2026-10-29T09:00:00+07:00'));
@@ -9,6 +9,35 @@ test('weekly report uses last complete Monday-Sunday Bangkok week',()=>{
  assert.equal(period.end,Date.parse('2026-10-26T00:00:00+07:00'));
  assert.equal(period.timezone,'Asia/Bangkok');
  assert.equal(weeklyKey(period),weeklyKey({...period}));
+});
+test('custom report periods use exact Bangkok timestamps and exclusive end',()=>{
+ const now=Date.parse('2026-10-31T07:15:00+07:00');
+ const start=Date.parse('2026-10-24T09:30:00+07:00');
+ const end=Date.parse('2026-10-31T06:45:00+07:00');
+ const period=reportPeriod({start:String(start),end:String(end)},now);
+ assert.equal(period.kind,'custom');
+ assert.equal(period.start,start);
+ assert.equal(period.end,end);
+ assert.equal(period.previousStart,start-(end-start));
+ assert.equal(period.previousEnd,start);
+ assert.equal(period.timezone,'Asia/Bangkok');
+ assert.equal(reportKey(period),'ai-report-custom-v1:'+start+':'+end);
+ assert.notEqual(reportKey(period),weeklyKey({start,end}));
+});
+test('custom report periods reject incomplete, future, reversed and overlong ranges',()=>{
+ const now=Date.parse('2026-10-31T07:15:00+07:00');
+ const start=Date.parse('2026-10-24T09:30:00+07:00');
+ assert.throws(()=>reportPeriod({start:String(start)},now),/同时填写/);
+ assert.throws(()=>reportPeriod({start:String(start),end:String(now+1)},now),/有效/);
+ assert.throws(()=>reportPeriod({start:String(start),end:String(start)},now),/有效/);
+ assert.throws(()=>reportPeriod({start:String(start-31*86400000),end:String(start)},now),/有效/);
+});
+test('missing custom timestamps retain the latest completed week default',()=>{
+ const now=Date.parse('2026-10-29T09:00:00+07:00');
+ const period=reportPeriod({},now);
+ assert.equal(period.kind,'weekly');
+ assert.equal(period.start,Date.parse('2026-10-19T00:00:00+07:00'));
+ assert.equal(period.end,Date.parse('2026-10-26T00:00:00+07:00'));
 });
 test('report evidence must occur in already validated claims',()=>{
  const report={claims:[{evidenceIds:['observed-1']}],weeklyReport:{
