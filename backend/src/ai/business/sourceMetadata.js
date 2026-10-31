@@ -11,7 +11,7 @@ const COMPOUND_METRICS=new Set(['registered_trade_conversion_rate','registered_u
 const validTime=v=>typeof v==='string'&&Number.isFinite(Date.parse(v))?
  new Date(v).toISOString():null;
 function metricContract(metricId,tool){
- if(tool!=='query_metrics'){
+ if(tool!=='query_metrics'&&tool!==null){
   const contract=SOURCE_CONTRACTS[tool];
   return contract?{sourceType:contract.sourceType,clock:contract.clock}:{
    sourceType:'unknown',clock:'unknown'};
@@ -49,7 +49,7 @@ function buildSourceMetadata({metricId,query,watermarks,coverage,scope}={}){
   scope:source.activityId||source.cohortId?'fixed_audience':
    source.source&&source.source!=='all'?'observed_source':'all',
   freshness:{
-   status:'unverified',
+   status:referenceAt||reportedCompleteThrough?'unverified':'unknown',
    referenceAt,
    reportedCompleteThrough
   },
