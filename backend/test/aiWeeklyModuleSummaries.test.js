@@ -77,6 +77,21 @@ test('follower rows are aggregated by category, never user identities',()=>{
  assertMetric(e,'groups.active.records',10);
  assert.doesNotMatch(JSON.stringify(e),/private-follower/);
 });
+test('follower summary does not invent zero historical manual-review counts',()=>{
+ const view=followerSummary({available:true,segments:[
+  {account:'logearn_cn',category:'crypto',n:3,analyzed:2,reviewed:null},
+  {account:'logearn_cn',category:'unknown',n:4,analyzed:0,reviewed:null}
+ ],coverage:{reviewedHistoricalStatus:'unknown-no-review-timestamp'}});
+ assert.equal(view.available,true);
+ assert.equal(view.summary.scannedRecords,7);
+ assert.equal(view.summary.analyzedRecords,2);
+ assert.equal('reviewedRecords' in view.summary,false);
+ assert.ok(view.groups.every(x=>!Object.hasOwn(x,'reviewed')));
+ assert.ok(view.warnings.some(x=>x.includes('未知而非零')));
+ const evidence=make('follower_quality',view);
+ assertMetric(evidence,'summary.scannedRecords',7);
+ assert.equal(factsFromEvidence([evidence]).some(x=>x.metric.includes('reviewed')),false);
+});
 test('the five projected modules are model-visible but never imply success without a claim',()=>{
  const entries=[
   ['login-conversion',make('login_conversion',loginSummary({
