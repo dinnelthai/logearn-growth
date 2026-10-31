@@ -16,6 +16,44 @@ function fields(input,old={}){
 }
 function tx(fn){db.exec('BEGIN');try{const value=fn();db.exec('COMMIT');return value}catch(e){db.exec('ROLLBACK');throw e}}
 const summary=t=>({title:t.title,assignee:t.assignee,priority:t.priority,status:t.status,next_step:t.next_step,due_at:t.due_at})
+async function syncLinkedAISuggestions(task,owner,resultNote='',deps={}){
+ const workspace=deps.workspace||require('../ai/growth/workspace/store').workspaceStore(db);
+ const records=deps.records||require('../db/aiRecords');
+ const ids=workspace.suggestionIdsForOperationTask(owner,task.id);
+ if(!ids.length)return {status:'not-linked',linked:0,updated:0,items:[]};
+ const items=[];
+ for(const id of ids){
+  try{
+   let suggestion=await records.getSuggestion(id,owner);
+   if(!suggestion){items.push({suggestionId:id,status:'missing'});continue;}
+   if(task.status==='in_progress'&&suggestion.user_status==='adopted'){
+    suggestion=await records.transitionSuggestionStatus(id,owner,'adopted','executing',{})||
+     await records.getSuggestion(id,owner);
+   }
+   if(task.status==='done'&&['adopted','executing'].includes(suggestion.user_status)){
+    if(!String(resultNote||'').trim()){
+     items.push({suggestionId:id,status:'needs-execution-note'});continue;
+    }
+    if(suggestion.user_status==='adopted'){
+     suggestion=await records.transitionSuggestionStatus(id,owner,'adopted','executing',{})||
+      await records.getSuggestion(id,owner);
+    }
+    if(suggestion?.user_status==='executing'){
+     suggestion=await records.transitionSuggestionStatus(id,owner,'executing','executed',{
+      actualAction:String(resultNote).trim().slice(0,5000),
+      executedAt:Number.isSafeInteger(task.completed_at)?task.completed_at:Date.now(),
+      actionScope:suggestion.action_scope||suggestion.applicable_scope
+     })||await records.getSuggestion(id,owner);
+    }
+   }
+   items.push({suggestionId:id,status:suggestion?.user_status||'unknown'});
+  }catch(error){items.push({suggestionId:id,status:'sync-failed',error:error.message.slice(0,240)});}
+ }
+ const failed=items.some(x=>['missing','needs-execution-note','sync-failed'].includes(x.status));
+ return {status:failed?'partial':'complete',linked:ids.length,
+  updated:items.filter(x=>['executing','executed'].includes(x.status)).length,items};
+}
+
 function history(t,before,note,at){db.prepare('INSERT INTO operation_task_history(id,task_id,note,before_json,after_json,created_at) VALUES(?,?,?,?,?,?)').run('oth_'+randomUUID(),t.id,note,before?JSON.stringify(summary(before)):null,JSON.stringify(summary(t)),at)}
 router.post('/',wrap(async(req,res)=>{
  if(process.env.ANALYTICS_STORAGE!=='hologres')fail('人群任务需要真实远程数据源',501)
@@ -48,8 +86,17 @@ router.patch('/:id',(req,res,next)=>{try{
  if(input.status==='done'&&t.status!=='done'&&!note.trim())fail('完成任务前请记录处理结果')
  const at=Math.max(Date.now(),t.updated_at+1)
  const saved=tx(()=>{const r=db.prepare('UPDATE operation_tasks SET title=?,assignee=?,priority=?,status=?,next_step=?,due_at=?,completed_at=?,updated_at=? WHERE id=? AND owner_id=? AND updated_at=?').run(input.title,input.assignee,input.priority,input.status,input.next_step,input.due_at,input.status==='done'?(t.completed_at??at):null,at,t.id,t.owner_id,t.updated_at);if(!r.changes)fail('任务已被更新，请刷新后重试',409);const current=get(t.id,t.owner_id);history(current,t,note.trim(),at);return current})
- res.json({task:expose(saved)})
+ const suggestionSync=await syncLinkedAISuggestions(saved,t.owner_id,note.trim());
+ res.json({task:expose(saved),suggestionSync})
  }catch(e){next(e)}})
+
+router.post('/:id/sync-ai-suggestions',wrap(async(req,res)=>{
+ const task=get(req.params.id,req.user.user_id);
+ const latest=db.prepare('SELECT note FROM operation_task_history WHERE task_id=? ORDER BY created_at DESC,id DESC LIMIT 1').get(task.id);
+ const note=typeof req.body?.result_note==='string'?req.body.result_note:(latest?.note||'');
+ const suggestionSync=await syncLinkedAISuggestions(task,String(req.user.user_id),note);
+ res.json({task:expose(task),suggestionSync});
+}));
 router.get('/:id/audience',wrap(async(req,res)=>{
  const t=get(req.params.id,req.user.user_id),source=JSON.parse(t.source_json),s=await remote.status(),ids=JSON.parse(t.members_json).map(id=>'user:'+id)
  res.json({ids,count:ids.length,title:t.title,description:'运营任务固定名单 · 原始统计期，使用当前数据快照',start:source.start,end:source.end,source:source.source,snapshot_id:s.snapshot_id,as_of:s.as_of,fixed_at:new Date(t.created_at).toISOString(),origin:'operation-task'})
