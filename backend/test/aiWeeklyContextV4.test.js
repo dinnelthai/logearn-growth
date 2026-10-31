@@ -139,7 +139,7 @@ test('v5 adds LogEarn business knowledge and bounded reviewed operating memory',
  const before=JSON.stringify(raw);
  const view=modelContext(raw,{transportVersion:'v5'});
  assert.equal(view.transportVersion,'aggregated-business-v5');
- assert.equal(view.businessBrain.version,'logearn-business-brain-v1');
+ assert.equal(view.businessBrain.version,'logearn-business-brain-v2');
  assert.equal(view.businessBrain.business.northStarIntent.status,
   'operator-direction-not-a-validated-composite-kpi');
  assert.ok(view.businessBrain.productMap.products.some(x=>x.id==='chip_distribution'));
