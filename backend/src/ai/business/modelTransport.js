@@ -339,18 +339,14 @@ function compactWeeklyValue(value){
    if(name==='trade'&&typeof registration.trade?.available==='boolean')
     compactRegistration.trade={...(compactRegistration.trade||{}),available:registration.trade.available};
   }
-  if(typeof registration.available==='boolean')compactRegistration.available=registration.available;
-  if(Object.keys(compactRegistration).length)result.registration=compactRegistration;
- }
- if(value.registration&&typeof value.registration==='object'){
-  const registration=value.registration,compactRegistration={};
-  const users=extract(registration,4);
-  if(users)Object.assign(compactRegistration,users);
-  for(const name of ['activation','engagement','trade']){
-   const numbers=extract(registration[name],name==='engagement'?12:8);
-   if(numbers)compactRegistration[name]=numbers;
-   if(name==='trade'&&typeof registration.trade?.available==='boolean')
-    compactRegistration.trade={...(compactRegistration.trade||{}),available:registration.trade.available};
+  if(typeof registration.coverage?.status==='string'){
+   compactRegistration.coverage={status:safeText(registration.coverage.status,30)};
+   if(typeof registration.coverage.historyComplete==='boolean')
+    compactRegistration.coverage.historyComplete=registration.coverage.historyComplete;
+   if(typeof registration.coverage.eventsCompleteThrough==='string')
+    compactRegistration.coverage.eventsCompleteThrough=safeText(registration.coverage.eventsCompleteThrough,60);
+   if(typeof registration.coverage.reason==='string')
+    compactRegistration.coverage.reason=safeText(registration.coverage.reason,100);
   }
   if(typeof registration.available==='boolean')compactRegistration.available=registration.available;
   if(Object.keys(compactRegistration).length)result.registration=compactRegistration;
