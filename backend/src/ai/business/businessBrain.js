@@ -95,11 +95,8 @@ function buildBusinessBrainContext({focusGoal='activation'}={}){
    {id:'channel_observation',meaning:'X、Search Console、KOL等渠道观测，不等于站内转化'},
    {id:'ai_suggestion_or_review',meaning:'AI建议、执行记录与复盘；建议不等于已执行'}
   ],rule:'按所选报告期间汇总；来源覆盖分别显示；未记录不等于没有运营；观察相关不等于因果',
-  activityOutcomeRules:[
-   '仅使用已结算活动冻结的summary、performance.total与target_progress；未结算或来源缺失保持未知，不得解释为零',
-   '分析、交易与账号匹配覆盖分别报告；缺失的交易/分析结果不得补零'
-  ],
-  experimentRule:'treatment/control是人工固定分组，不代表随机实验；送达状态、跨组曝光与分组结果必须分别说明，组间差异不证明增量因果'},
+  activityOutcomeRules:['仅用已结算冻结汇总；未结算或来源缺失保持未知，不补零'],
+  experimentRule:'treatment/control是人工固定分组，不代表随机实验；送达与跨组曝光需单列，组间差异不证明增量因果'},
   focus:{goal:GOAL_FOCUS[focusGoal]?focusGoal:'activation',
    objective:focus.objective,stages:focus.stages,priorityMetrics:focus.priorityMetrics},
   metricDictionaryVersion:'1',
