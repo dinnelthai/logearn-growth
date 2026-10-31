@@ -89,3 +89,36 @@ test('registration activation is unknown when no registrations have matured, not
   assert.match(value.warnings.join(' '),/不是0%/)
  }finally{evidence.fetchGrowthInsights=original}
 })
+
+test('registered trade conversion uses mature identity-matched accounts and discloses unmatched users',async()=>{
+ const original=evidence.fetchGrowthInsights
+ try{
+  evidence.fetchGrowthInsights=async()=>({cohorts:{registration:{available:true,scope:'all',trade:{
+   available:true,eligible:12,traders:3,conversion_rate:.25,pending:4,not_engaged:7,unmatched:2
+  }}}})
+  const result=await metrics({start:100,end:200,source:'all'},{snapshot_id:'s'},['registered_trade_conversion_rate'],{})
+  const value=result.metrics[0]
+  assert.equal(value.value,.25)
+  assert.equal(value.numerator,3)
+  assert.equal(value.denominator,12)
+  assert.equal(value.pending,4)
+  assert.equal(value.notEngaged,7)
+  assert.equal(value.unmatched,2)
+  assert.match(value.warnings.join(' '),/不是同Token交易归因/)
+  assert.equal(result.coverage.trades,'post_analysis_user_level')
+ }finally{evidence.fetchGrowthInsights=original}
+})
+
+test('registered trade conversion stays unknown when trade facts are unavailable',async()=>{
+ const original=evidence.fetchGrowthInsights
+ try{
+  evidence.fetchGrowthInsights=async()=>({cohorts:{registration:{available:true,scope:'all',trade:{
+   available:false,eligible:null,traders:null,conversion_rate:null,pending:1,not_engaged:2,unmatched:null
+  }}}})
+  const result=await metrics({start:100,end:200,source:'all'},{snapshot_id:'s'},['registered_trade_conversion_rate'],{})
+  assert.equal(result.metrics[0].value,null)
+  assert.equal(result.metrics[0].denominator,null)
+  assert.equal(result.coverage.trades,'unknown')
+  assert.match(result.metrics[0].warnings.join(' '),/未知不能解释为0/)
+ }finally{evidence.fetchGrowthInsights=original}
+})
