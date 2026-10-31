@@ -7,10 +7,15 @@ const safeJson=value=>{
 };
 const text=(value,max=160)=>String(value??'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,max);
 const finite=(value)=>typeof value==='number'&&Number.isFinite(value)?value:null;
-function activityOutcome(row){
- if(!row.settled_at)return {status:'not_settled'};
+function activityOutcome(row,periodEnd){
+ // A current settled_result must not leak observations into an older report.
+ if(!Number.isFinite(Number(row.settled_at))||!row.settled_at||
+  Number(row.settled_at)>=periodEnd)return {status:'not_settled'};
  const raw=safeJson(row.settled_result);
  if(!raw||typeof raw!=='object')return {status:'settled_unavailable'};
+ const sourceAsOf=Date.parse(raw.as_of||raw.snapshot_cutoff||'');
+ if(Number.isFinite(sourceAsOf)&&sourceAsOf>periodEnd)
+  return {status:'settled_unavailable',reason:'settlement-source-after-report-cutoff'};
  const pick=(value,keys)=>Object.fromEntries(keys.filter(key=>finite(value?.[key])!==null)
   .map(key=>[key,finite(value[key])]));
  const performance=raw.performance?.total&&typeof raw.performance.total==='object'?
@@ -127,7 +132,7 @@ function createOperationsTimeline({
     targetMetric:r.target_metric||null,targetValue:r.target_value??null,
     linkedKols:byActivity.get(r.id)||[],settledAt:r.settled_at??null,
     memberCount:memberCounts.get(r.id)??0,plannedMemberCount:plannedCounts.get(r.id)??0,
-    outcome:activityOutcome(r),
+    outcome:activityOutcome(r,end),
     assignments:assignmentByActivity.get(r.id)||[],
     scheduleChanges:scheduleByActivity.get(r.id)||[],
     scheduleIssue:!!r.schedule_error
