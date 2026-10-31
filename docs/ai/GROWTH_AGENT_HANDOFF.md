@@ -6,10 +6,10 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
-- Latest successful implementation/CI head: `94ef62b9f001b147a46964c89c4cff6b8503b492` (includes fixed-cohort retrospective evidence and operation-task route coverage). Fetch the live branch before editing.
+- Latest successful implementation/CI head: `a8834d5a190eb2784a64b5d955d5d55555d8e305` (includes fixed-cohort retrospective evidence and operation-task route coverage). Fetch the live branch before editing.
 - Fetch the live branch HEAD before every new edit; do not rely on this document's historical commit reference.
-- Latest successful CI: AI infrastructure run [41179371875](https://github.com/dinnelthai/logearn-growth/actions/runs/41179371875) — AI Contract, AI Frontend and AI Integration all succeeded; includes 10/10 operation-task/evidence tests.
-- Checklist progress: 31 / 48 implementation items (65%); live-source acceptance is not included in that percentage.
+- Latest successful CI: AI infrastructure run [41180112012](https://github.com/dinnelthai/logearn-growth/actions/runs/41180112012) — AI Contract, AI Frontend and AI Integration all succeeded; includes fixed-cohort learning and planner feedback tests.
+- Checklist progress: 32 / 48 implementation items (67%); live-source acceptance is not included in that percentage.
 - Do not switch to or commit to `master`.
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
 - Always verify the branch HEAD before editing and fetch each target file from this branch.
@@ -199,3 +199,16 @@ Final validation update: run [41177187712](https://github.com/dinnelthai/logearn
 - Tests: `operationTaskEvidence.test.js` covers equal-length windows, pre-task/post-completion anchors, maturity, owner isolation, execution timestamp match and source-scope drift. `operationTasks.test.js` covers task lifecycle sync.
 - CI [41179371875](https://github.com/dinnelthai/logearn-growth/actions/runs/41179371875): Contract, Integration and Frontend all passed; dedicated task/evidence tests 10/10.
 - Remaining: classify observational outcomes as observed-supported / observed-contradicted / insufficient independently from causal effectiveness; connect those classifications to the existing learning index without treating correlation as causality. Live-source acceptance remains separate.
+
+
+## 2026-10-31 — Fixed-cohort observational outcome learning
+
+- Added `backend/src/ai/growth/retrospectiveOutcome.js` as the shared v2 observational outcome classifier.
+- Corrected a versioning gap: the previous learning index and planner memory accepted only retrospective context v1, so the new v2 cohort payload could be persisted but ignored by subsequent learning. Learning now explicitly accepts v1 and v2; v2 never falls back to whole-business metric changes.
+- Direct metric equivalence is intentionally narrow: `active_users → analysis_users`. This is a semantic match to the fixed cohort's observed analysis users. Other metrics such as `new_users`, `activation_rate`, `d7`, registered-user conversion and trade conversion remain `insufficient` until a valid cohort-level equivalent exists.
+- A v2 outcome requires an available fixed cohort, equal requested audience sizes, zero unmatched accounts in both periods, and medium/high retrospective confidence. If the primary metric has no direct equivalent, or cohort evidence/coverage is incomplete, outcome is `insufficient`.
+- Labels are `observed-supported`, `observed-contradicted`, or `insufficient`; evidence records the cohort metric, baseline/effect, audience count, periods and snapshot. Causal effectiveness and prediction accuracy remain null/not claimed.
+- Updated `agentLearning.judgeHistory`, `experienceFeedback.summarizeExperience`, `agentStore.feedback` and `aiRecords.getAnalysisMemory`. The owner-scoped judgement store and next-investigation planner now receive v2 cohort evidence; the memory query explicitly projects both `baseline_data` and `effect_data`.
+- Tests cover supported v2 outcome, incomplete coverage, unsupported metric, and planner experience feedback without fallback to global metrics.
+- CI [41180112012](https://github.com/dinnelthai/logearn-growth/actions/runs/41180112012): Contract, Integration and Frontend all passed. Dedicated Learning/Experience cohort suite 24/24; AI Integration 17/17; Contract groups 174 (173 pass, 0 fail, 1 skipped), plus 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112.
+- No migration, deployment, production data collection, paid call or external action.
