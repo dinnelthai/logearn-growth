@@ -147,6 +147,11 @@ function hydrateWeeklyReport(analysis,{strict=false}={}){
  if(!w||typeof w!=='object'||Array.isArray(w))return;
  const known=new Set((analysis.claims||[]).flatMap(claim=>claim.evidenceIds||[]));
  const refs=list=>Array.isArray(list)?list.filter(id=>typeof id==='string'&&known.has(id)).slice(0,12):[];
+ if(!strict){
+  if(!Array.isArray(w.lifecycle))w.lifecycle=LIFECYCLE_STAGES.map(stage=>({stage,status:'not-investigated',finding:'历史报告未保存该阶段的结构化判断',evidenceIds:[]}));
+  if(!Array.isArray(w.opportunities))w.opportunities=[];
+  if(!Array.isArray(w.previousActions))w.previousActions=[];
+ }
  if(!Array.isArray(w.highlights))
   w.highlights=(analysis.claims||[]).filter(x=>x.kind==='fact'&&typeof x.text==='string')
    .filter(x=>refs(x.evidenceIds).length).slice(0,8)
