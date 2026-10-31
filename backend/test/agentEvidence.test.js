@@ -22,3 +22,38 @@ test('claims reject invented IDs, wrong numbers and cross-owner or cross-scope e
  assert.throws(()=>validateClaims([{id:'x',kind:'fact',text:'12',evidenceIds:[e.id]}],{...context,ownerId:'bob'},store),/权限/);
  }finally{db.close()}
 });
+
+test('owner-scoped observed tool durations require at least three real archived successes',()=>{
+ const db=setup(),store=createEvidenceStore(db);
+ try{
+  const now=Date.now(),bob={...context,ownerId:'bob'};
+  const add=(ownerId,tool,elapsedMs)=>{
+   const ctx={...context,ownerId};
+   const e=makeEvidence({metricId:'active_users',value:1,
+    query:{tool,body:{start:100,end:200,source:'twitter'}},
+    executionTiming:{elapsedMs}},ctx);
+   store.save(e,ctx);
+   return e;
+  };
+  for(const ms of [12,35,20])add('alice','get_channels',ms);
+  for(const ms of [1,2,3,4])add('bob','get_channels',ms);
+  add('alice','get_paths',5);add('alice','get_paths',10);
+  add('alice','get_funnel',-1);
+  const observed=store.recentToolTimings(context,{now});
+  assert.equal(observed.get_channels.sampleCount,3);
+  assert.equal(observed.get_channels.medianMs,20);
+  assert.equal(observed.get_channels.basis,'owner-archived-successful-tool-wall-time');
+  assert.equal(observed.get_channels.monetaryCostKnown,false);
+  assert.equal(observed.get_paths,undefined,'insufficient samples never imply cheap');
+  assert.equal(observed.get_funnel,undefined,'invalid duration is not a zero cost');
+  assert.equal(store.recentToolTimings(bob,{now}).get_channels.medianMs,3);
+  assert.notEqual(store.recentToolTimings(bob,{now}).get_channels.medianMs,
+   observed.get_channels.medianMs);
+  assert.equal(store.recentToolTimings({...context,ownerId:'charlie'},{now}).get_channels,
+   undefined);
+  const saved=add('alice','get_referral',25);
+  assert.equal(store.get(saved.id,context).executionTiming.elapsedMs,25);
+  assert.equal(store.get(saved.id,context).executionTiming.monetaryCostKnown,false);
+  assert.throws(()=>store.recentToolTimings(context,{minSamples:1}),/参数无效/);
+ }finally{db.close()}
+});
