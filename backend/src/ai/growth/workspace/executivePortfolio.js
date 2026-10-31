@@ -52,12 +52,17 @@ function opportunityPortfolio(owner,store){
   knownROI:0,investmentDecision:'manual-review-required',
   noAttributionClaims:true};
 }
-function shouldRepeatCandidate(metricId,learning){
- const lessons=(learning?.lessons||[]).filter(x=>x.metricId===metricId);
+function shouldRepeatCandidate(metricId,learning,actionText){
+ // A failed *metric* does not mean that all investigations of that metric
+ // are wrong. Only the same previously-executed intervention is suppressed.
+ const target=typeof actionText==='string'?actionText.trim().slice(0,250):'';
+ if(!target)return {propose:true,reason:'no-specific-action-to-compare'};
+ const lessons=(learning?.lessons||[]).filter(x=>x.metricId===metricId&&
+  typeof x.action==='string'&&x.action.trim()===target);
  const adverse=lessons.filter(x=>x.outcome==='observed-decline').length;
  const positive=lessons.filter(x=>x.outcome==='observed-improvement').length;
  return adverse>=2&&positive===0?
-  {propose:false,reason:'repeated-observed-decline-requires-new-hypothesis'}:
+  {propose:false,reason:'same-action-repeated-observed-decline-requires-new-hypothesis'}:
   {propose:true,reason:'not-proven-causal'};
 }
 module.exports={goalAlignment,opportunityPortfolio,shouldRepeatCandidate,rankOpportunity};

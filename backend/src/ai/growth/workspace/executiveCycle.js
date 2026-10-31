@@ -86,7 +86,7 @@ async function runExecutiveCycle({ownerId,store,now=Date.now(),load=loadObservat
   const metric=signals.find(s=>s.metricId+':'+s.subject===p.subject)?.metricId;
   if(!metric||metric!==focus?.metricId)continue;
   const decision=require('./executivePortfolio').shouldRepeatCandidate(
-   metric,store.executiveLearning(ownerId));
+   metric,store.executiveLearning(ownerId),caseFor(metric).action);
   if(!decision.propose)continue;
   const proposed=store.proposeActionOnce(ownerId,p.id,{
    description:caseFor(metric).action,assignee:'AI Growth Agent',

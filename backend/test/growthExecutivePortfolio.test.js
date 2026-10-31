@@ -30,10 +30,11 @@ test('portfolio prioritizes verified North Star problems but never fabricates RO
   assert.deepEqual(opportunityPortfolio('b',s).items,[]);
  }finally{db.close()}
 });
-test('repeated adverse observed reviews require a changed intervention, never imply causality',()=>{
- assert.equal(shouldRepeatCandidate('active_users',{lessons:[
-  {metricId:'active_users',outcome:'observed-decline'},
-  {metricId:'active_users',outcome:'observed-decline'}]}).propose,false);
- assert.equal(shouldRepeatCandidate('active_users',{lessons:[
-  {metricId:'active_users',outcome:'observed-improvement'}]}).propose,true);
+test('repeated negative outcomes only suppress the SAME action, not every experiment on a metric',()=>{
+ const lessons=[
+  {metricId:'active_users',action:'Repeat old action',outcome:'observed-decline'},
+  {metricId:'active_users',action:'Repeat old action',outcome:'observed-decline'}];
+ assert.equal(shouldRepeatCandidate('active_users',{lessons},'Repeat old action').propose,false);
+ assert.equal(shouldRepeatCandidate('active_users',{lessons},'Investigate a new hypothesis').propose,true);
+ assert.equal(shouldRepeatCandidate('active_users',{lessons},'').propose,true);
 });

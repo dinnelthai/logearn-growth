@@ -318,7 +318,7 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
    else if(status==='no-observed-change')outcome.noObservedChange++;
    else outcome.insufficientEvidence++;
    if(lessons.length<8)lessons.push({actionId:row.id,metricId:row.metric_id,
-    outcome:status||'insufficient-evidence',reviewedAt:row.review.reviewedAt||null,
+    action:String(row.description||'').slice(0,250),outcome:status||'insufficient-evidence',reviewedAt:row.review.reviewedAt||null,
     causalityProven:false});
   }
   return {version:'executive-learning-v1',reviewed:reviewed.length,...outcome,lessons,
