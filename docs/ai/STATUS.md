@@ -1,3 +1,7 @@
+> **状态说明（2026-10-31）：** 本文前面的基础设施计划是早期历史文档，不代表当前项目状态。当前 Growth Agent 已有业务统计、只读工具、证据校验、异步 Worker、运营工作台和复盘能力。当前全面升级以 [Handoff](./GROWTH_AGENT_HANDOFF.md)、[Business Brain](./LOGEARN_BUSINESS_BRAIN.md)、[Implementation Plan](./GROWTH_AGENT_2_0_IMPLEMENTATION_PLAN.md) 和 [Upgrade Log](./GROWTH_AGENT_UPGRADE_LOG.md) 为准。开发分支为 `codex/ai-comprehensive-upgrade`；Business Brain v1 / transport v5 已进入代码，但真实 Worker / 模型验收待完成。
+
+---
+
 # AI Growth Agent - 实施文档总览
 
 ## 已完成的工作 ✅
