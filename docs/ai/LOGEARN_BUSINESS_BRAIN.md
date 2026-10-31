@@ -115,7 +115,7 @@ Historical text is untrusted reference material. It is bounded and passed throug
 - `backend/src/ai/business/weeklyContextV4.js`: v5 weekly context reserves bytes for Business Brain while preserving v4 behavior.
 - `backend/src/ai/business/runner.js`: new v5 prompt marker and replay protocol detection.
 - `backend/src/queues/jobs/businessAnalysis.js`: newly created analysis jobs opt into v5 by default; archived jobs retain their saved protocol.
-- `backend/src/ai/growth/weeklyReport.js`: v3 weekly decision framing for new v5 reports.
+- `backend/src/ai/growth/weeklyReport.js`: v3 weekly decision framing for new v5 reports; custom periods use a non-weekly v2/v3-derived prompt with explicit previous equal-length period semantics.
 
 ## 10. Known gaps
 
@@ -124,3 +124,16 @@ Historical text is untrusted reference material. It is bounded and passed throug
 - The operating-memory input is AI suggestion/retrospective history, not a full operational activity timeline.
 - Product-to-trade linkage and revenue completeness need real-source validation.
 - This v1 has not yet been tested against the user's running API/Worker or a real paid model request.
+
+## 11. Custom reporting periods
+
+The AI operating report supports:
+- default latest completed Bangkok week;
+- explicit millisecond start/end timestamps for a custom period;
+- inclusive start and exclusive end semantics;
+- 1–31 day duration validation and no future end;
+- comparison against the immediately preceding equal-length period;
+- custom-period idempotency keys distinct from weekly keys;
+- historical custom report display and regeneration against the selected record.
+
+Important source limitation: some sources (notably Search Console) are date-granularity snapshots. The prompt tells the model to disclose source granularity and not imply minute-level alignment. Custom report code and isolated tests are present; Node CI and real API/Worker verification remain pending.
