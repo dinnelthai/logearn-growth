@@ -224,8 +224,10 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
     selected=current?.id||(!initialized?(rows[0]?.id||null):null);
    initialized=true;
    const row=rows.find(x=>x.id===selected);
-   const canRegenerateSelected=!!row&&['completed','failed','cancelled'].includes(row.status)&&
+   const showRegenerateSelected=!!row&&
     (row.report_period==='custom-v1'||row.id===current?.id);
+   const canRegenerateSelected=showRegenerateSelected&&
+    ['completed','failed','cancelled'].includes(row.status);
    const regenerateArchived=!row&&!current&&d.canRegenerateArchivedFailed===true;
    const nextSnapshot=JSON.stringify({
     period:d.period,customPeriod,range,archivedCurrentWeek:d.archivedCurrentWeek,
@@ -260,13 +262,14 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
     '<span>自定义1–31天；与紧邻前一段等长周期比较</span></div>';
    root.innerHTML='<div class="ai-weekly-heading"><div><h3>'+(shownCustom?'AI 运营报告':'AI 运营周报')+'</h3><p class="a-muted">'+
     (row?'当前查看：':'统计范围：')+shownRange+'</p></div>'+
-    (canRegenerateSelected?'<div class="ai-weekly-toolbar">'+
+    (showRegenerateSelected?'<div class="ai-weekly-toolbar">'+
       '<span class="ai-weekly-status">'+safe('正在查看 · '+(statuses[row.status]||row.status))+'</span>'+
-      '<button type="button" class="a-button ai-weekly-regenerate-trigger" data-weekly-regenerate>'+
+      '<button type="button" class="a-button ai-weekly-regenerate-trigger" data-weekly-regenerate '+
+       (canRegenerateSelected?'':'disabled title="报告正在生成中"')+'>'+
        (row.report_period==='custom-v1'?'重新生成所选时间范围报告':'重新生成 AI 运营周报')+'</button></div>':
      row?'<span class="ai-weekly-status">历史报告 · '+safe(statuses[row.status]||row.status)+'</span>':
      regenerateArchived?'<button type="button" class="a-button a-primary" data-weekly-confirm>'+(customPeriod?'重新生成所选时间范围报告':'重新生成 AI 周报')+'</button>':
-     d.archivedCurrentWeek?'<span class="ai-weekly-status">本期记录已移除</span>':
+     d.archivedCurrentWeek?'<span class="ai-weekly-status">'+(customPeriod?'本期记录已移除':'本周记录已移除')+'</span>':
      '<button type="button" class="a-button a-primary" data-weekly-confirm>'+(customPeriod?'生成所选时间范围报告':'生成最近完整周报告')+'</button>')+'</div>'+
     rangePicker+
     (canRegenerateSelected?
