@@ -57,3 +57,18 @@ Source/test HEAD `8a7f71c98fce502b68a056671ee9a95304507abb`. Source-specific tim
 - **Model safety:** nested journey data is allowlisted as aggregate evidence; raw rows, user IDs, wallets and membership lists remain excluded. Weekly fact projection prioritizes mature activation, each parallel product-entry count and verified trade conversion.
 - **Regression coverage:** `backend/test/aiBusinessMetricsAdapter.test.js`, `backend/test/agentTools.test.js`, `backend/test/aiWeeklyCoverage.test.js`, existing `backend/test/growthInsights.test.js` and `backend/test/growthCohortTrades.test.js`. Final [AI infrastructure CI 41187724624](https://github.com/dinnelthai/logearn-growth/actions/runs/41187724624) passed Contract, Integration and Frontend on source/test HEAD `a4f421400160d1a895e5032d7614062946e6f731`.
 - **Acceptance boundary:** this closes the *code + fixture contract* for the journey, not live event completeness, independent registration/trade watermarks, or a production read-only data acceptance.
+
+## 2026-10-31 — Registered cohort source segmentation, provenance and privacy
+
+The only new dimension supported by the Growth Agent metric query is `query_metrics({metrics:['registered_user_journey'],dimensions:['source']})`. This deliberately uses the already-present `public.account_v2` registration cohort and its `facts.source` **observed event association**, not a first-touch acquisition or referral ownership proof.
+
+- **Registration cohort**: counts all owner-scoped registered accounts in the authorized creation-period range; existing narrower `scope.source` means *observed-source attributed subset*, never all registrations that originated through that channel.
+- **Source buckets**: up to four highest-count safe observed named labels, one `unknown` bucket for absent/unclassified associations and `other` for invalid or excess source labels. No account IDs or event rows are returned in this projection. Bucket populations and mature denominators reconcile with the same overall registration cohort.
+- **Activation**: after registration, first observed chip-analysis within 24 hours. Only accounts with a full mature 24h follow-up enter the denominator; pending users are separate, rates null if eligible is zero.
+- **Parallel product entry**: chip analysis, Holder, strategy, signal, repeat chip are **five independent 7-day observations**, each over the same mature registered cohort. They may overlap and must never be summed as an exclusive funnel.
+- **Trade**: remains an **overall**, user-identity-verified post-first-analysis 7-day outcome. Individual source groups have no supportable trade attribution and intentionally contain **no** trade-rate fields.
+- **Model citations**: `modelEvidence` retains allowlisted aggregate source counts. `weeklyCoverage.factsFromEvidence` reserves at most two source rows and 12 total source/overall numeric facts with evidence IDs. The immutable evidence query body and fingerprint include `dimensions:['source']`, distinguishing grouped versus ungrouped analysis and enabling valid claim checking. Other dimensional requests fail before expensive analytics.
+
+**Remaining acceptance:** inspect the real `first_entry_source` data dictionary and representative values, historical source assignment drift, missing-attribution rates, registration account deduplication, event capture completeness and verified Hologres trade matching. This code/CI milestone is not a claim of incremental acquisition or verified channel attribution. Source segmentation is a business observation, not an experiment.
+
+Source/test HEAD `7044ef3859c551002f543c0d8d178cbd142877dc`; [AI CI 41198640425](https://github.com/dinnelthai/logearn-growth/actions/runs/41198640425) passed contract/integration/frontend.
