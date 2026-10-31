@@ -179,11 +179,14 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
   requiredString(taskId,'运营任务ID');
   const hasTaskTable=fetch("SELECT name FROM sqlite_master WHERE type='table' AND name='operation_tasks'");
   if(!hasTaskTable)throw Object.assign(Error('既有运营待办存储不可用，不能创建虚构名单'),{status:503});
-  const task=fetch('SELECT id FROM operation_tasks WHERE id=? AND owner_id=?',taskId,owner);
+  const task=fetch('SELECT id,source_json FROM operation_tasks WHERE id=? AND owner_id=?',taskId,owner);
   if(!task)throw Object.assign(Error('运营任务不存在或无权访问'),{status:404});
   const source=suggestion.action_scope?.source||suggestion.applicable_scope?.source||'all';
   if(typeof source!=='string'||source.length>200)
    throw Object.assign(Error('AI 建议的业务范围无效'),{status:400});
+  let taskSource='all';try{taskSource=JSON.parse(task.source_json||'{}').source||'all'}catch{}
+  if(taskSource!==source)
+   throw Object.assign(Error('AI 建议与运营任务的来源范围不一致，不能关联'),{status:409});
   const problem=observeProblem(owner,{
    type:'user',subject:'ai-suggestion:'+suggestion.id,scope:{source},
    description:('已采纳 AI 建议：'+String(suggestion.business_problem||'增长行动')+
