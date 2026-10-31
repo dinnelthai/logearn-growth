@@ -2,6 +2,7 @@
 // Agent-only facade: all authorization, query budgets and evidence storage
 // still flow through the existing registry. Never run business SQL here.
 const {forModel}=require('../modelEvidence');
+const {SOURCE_CONTRACTS}=require('./sourceContracts');
 
 const MODULES=Object.freeze([
  {moduleId:'growth.seo',version:'1.0.0',description:'GSC 聚合与可选第三方排名；不得推断 SEO 到注册因果归因',capabilities:['get_seo_performance','openseo.saved_rankings']},
@@ -76,7 +77,7 @@ function sourceType(e,id){
   if(e?.value?.source==='gsc-manual-export')return 'manual_search_observation';
   return 'search_source_unknown';
  }
- return 'logearn_business_observation';
+ return SOURCE_CONTRACTS[id]?.sourceType||'source_unknown';
 }
 function listBusinessModules(registry,context){
  if(!context?.ownerId)fail('缺少认证所有者',403);
@@ -90,7 +91,8 @@ function listBusinessModules(registry,context){
    .map(id=>{const c=live.get(id);return {
     id:c.id,version:c.version||'1',description:c.description,
     supportedScopes:c.supportedScopes,permission:c.permission,cost:c.cost||'none',
-    inputSchema:c.inputSchema
+    inputSchema:c.inputSchema,
+    sourceContract:SOURCE_CONTRACTS[id]||null
    };});
   return {moduleId:m.moduleId,version:m.version,description:m.description,
    status:capabilities.length?'available':'unavailable',capabilities};
@@ -125,6 +127,7 @@ async function executeBusinessModule(registry,{moduleId,capabilityId,input={}},c
    fixedAudience:!!(sourceScope.activityId||sourceScope.cohortId)}},
   evidenceIds:evidence.map(e=>e?.id).filter(id=>typeof id==='string').slice(0,24),
   sources:[...new Set(evidence.map(e=>sourceType(e,capabilityId)))],
+  sourceContract:SOURCE_CONTRACTS[capabilityId]||null,
   definitionVersions:[...new Set(evidence.map(e=>e?.definitionVersion).filter(Boolean))],
   coverage:projected.evidence?.[0]?.coverage||{status:'unknown'},
   watermarks:projected.evidence?.[0]?.watermarks||{},
