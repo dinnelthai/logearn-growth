@@ -185,3 +185,15 @@ Branch: codex/ai-comprehensive-upgrade
 - AI infrastructure run [41169098472](https://github.com/dinnelthai/logearn-growth/actions/runs/41169098472) — **success** across AI Contract, AI Frontend and AI Integration.
 - AI Contract groups: 32/32, 13/13, 22/22, 2/2 and 112/112; AI Integration: 17/17; AI Frontend succeeded.
 - The earlier run [41169006336](https://github.com/dinnelthai/logearn-growth/actions/runs/41169006336) caught the context-size regression before this compaction; the corrected code passed the complete run above.
+
+## 2026-10-31 — Registration cohort signals in deterministic triage
+
+- Extended the deterministic triage allowlist to recognize the two mature registration cohort rates; rate concerns can now be promoted as investigation signals without treating them as causal conclusions.
+- Registration count changes can also enter the existing count-movement rule when a comparable candidate is present.
+- Added regression coverage that orders registration trade/activation rate signals by existing priority and score, and confirms each remains an investigation cue with `causalClaim:false`.
+- The business report must still supply comparable, evidence-backed candidates; this change does not fabricate a previous-period baseline.
+
+### CI validation
+
+- AI infrastructure run [41169268207](https://github.com/dinnelthai/logearn-growth/actions/runs/41169268207) — **success** across AI Contract, AI Frontend and AI Integration.
+- AI Contract groups: 32/32, 13/13, 22/22, 2/2 and 112/112; AI Integration: 17/17; AI Frontend succeeded.
