@@ -16,8 +16,7 @@ function createRouter({db=require('../db/connection')}={}){
   const month=currentMonth();
   // API reads use previously persisted owner-scoped evidence only.
   // Refreshes run in the leased daily scheduler, never on a page GET.
-  const goals=store.listGoals(owner,{start:month.start,end:month.end})
-   .map(goal=>({goal,progress:store.progress(owner,goal.id).progress}));
+  const goals=store.dashboardGoals(owner,{start:month.start,end:month.end});
   res.json({version:'growth-workspace-v1',month,goals,problems:store.problems(owner),actions:store.actions(owner),reports:store.reportList(owner),quality:store.qualitySummary(owner),externalActions:0,modelCalls:0});
  }));
  router.post('/goals',h(async(req,res,owner)=>res.status(201).json(store.saveGoal(owner,req.body||{}))));

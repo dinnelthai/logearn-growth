@@ -74,6 +74,32 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
   }
   return {goal,progress:goalProgress(goal,evidence,at)}
  }
+ // Dashboard batch read: reuse the one owner-scoped 200-evidence window for
+ // all current goals instead of repeating listGoals + JSON parsing per goal.
+ // Match the exact same first verified/partial observation as progress().
+ function dashboardGoals(owner,{start,end,at=getNow()}={}){
+  const goals=listGoals(owner,{asOf:at,start,end});
+  if(!goals.length)return [];
+  const rows=all("SELECT payload FROM gw_evidence WHERE owner_id=? AND observed_at<=? ORDER BY observed_at DESC LIMIT 200",owner,at);
+  const byMetric=new Map();
+  for(const row of rows){
+   const evidence=safeJSON(row.payload);
+   if(!evidence||typeof evidence.metricId!=='string')continue;
+   if(!byMetric.has(evidence.metricId))byMetric.set(evidence.metricId,[]);
+   byMetric.get(evidence.metricId).push(evidence);
+  }
+  return goals.map(goal=>{
+   let evidence=null;
+   for(const candidate of byMetric.get(goal.metric_id)||[]){
+    const result=goalProgress(goal,candidate,at);
+    if(result.status==='verified'||result.status==='partial'){
+     evidence=candidate;
+     break;
+    }
+   }
+   return {goal,progress:goalProgress(goal,evidence,at)};
+  });
+ }
  function problemRow(r){return r?{...r,scope:safeJSON(r.scope_json,{}),impact:safeJSON(r.impact_json,{status:'unknown'})}:null}
  function problem(owner,id){ownerId(owner);return problemRow(fetch('SELECT * FROM gw_problems WHERE owner_id=? AND id=?',owner,id))}
  function problems(owner,{status=null,limit=50}={}){ownerId(owner);if(!Number.isSafeInteger(limit)||limit<1||limit>200)throw Error('列表限制无效');
@@ -253,6 +279,6 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
    reviewSampleSize:reviewed,uncertainReviews:byVerdict.uncertain||0,
    interpretation:'仅来自人工审阅样本，未审核问题不计入准确率；样本存在选择偏差'};
  }
- return {saveGoal,goalById,listGoals,saveEvidence,getEvidence,progress,observeProblem,problem,problems,problemEvents,setProblemStatus,startRun,run,ask,answer,cancelRun,finishRun,createAction,action,actions,updateAction,reviewAction,report,buildReport,reportList,linkOperationTask,linkedOperationTasks,linkAcceptedSuggestionToTask,suggestionOperationTasks,suggestionIdsForOperationTask,reviewProblem,reconcileSource,qualitySummary};
+ return {saveGoal,goalById,listGoals,saveEvidence,getEvidence,progress,dashboardGoals,observeProblem,problem,problems,problemEvents,setProblemStatus,startRun,run,ask,answer,cancelRun,finishRun,createAction,action,actions,updateAction,reviewAction,report,buildReport,reportList,linkOperationTask,linkedOperationTasks,linkAcceptedSuggestionToTask,suggestionOperationTasks,suggestionIdsForOperationTask,reviewProblem,reconcileSource,qualitySummary};
 }
 module.exports={workspaceStore};

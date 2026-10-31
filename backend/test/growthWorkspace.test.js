@@ -111,3 +111,27 @@ test('goal progress rejects evidence from another metric, scope or future period
   assert.equal(s.progress('alice',goal.id,{at:now,evidenceId:future.id}).progress.observed,null);
  }finally{close()}
 });
+
+test('dashboard batch reuses one owner-scoped evidence scan and preserves per-goal progress',()=>{
+ const {db,s,close}=setup();try{
+  const all=s.saveGoal('alice',target());
+  const x=s.saveGoal('alice',{...target(),scope:{source:'x'}});
+  s.saveEvidence('alice',evidence('all-metric','verified',41,now-1000));
+  s.saveEvidence('alice',{...evidence('x-metric','verified',17),scope:{source:'x'}});
+  s.saveEvidence('bob',evidence('bob-metric','verified',999));
+  const expected=[all,x].map(goal=>({goal,progress:s.progress('alice',goal.id).progress}));
+  let scans=0;
+  const dbProxy={exec:sql=>db.exec(sql),prepare(sql){
+   if(sql.includes('FROM gw_evidence WHERE owner_id=? AND observed_at<=?'))scans++;
+   return db.prepare(sql);
+  }};
+  const batched=workspaceStore(dbProxy,{clock:()=>now});
+  const result=batched.dashboardGoals('alice',{start:monthStart,end:monthEnd});
+  assert.deepEqual(result,expected);
+  assert.equal(scans,1);
+  assert.deepEqual(batched.dashboardGoals('charlie',{start:monthStart,end:monthEnd}),[]);
+  assert.equal(scans,1,'no goals must skip the evidence scan');
+  assert.equal(result[0].progress.observed,41);
+  assert.equal(result[1].progress.observed,17);
+ }finally{close()}
+});
