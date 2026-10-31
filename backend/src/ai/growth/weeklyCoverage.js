@@ -163,7 +163,11 @@ function insufficientReason(result){
  return '本周没有足够的可核对聚合指标，不能视作零';
 }
 function packModule(def,{status,reason,evidence=[],source='read-only',tool=def.tool}={}){
- return {id:def.id,label:def.label,status,reason:cleanText(reason||'',180),
+ const truncated=evidence.some(e=>Object.values(e?.value?.coverage||{})
+  .some(row=>row?.truncated===true));
+ const coverageReason=truncated&&status==='collected'?
+  (reason||'已取得只读统计')+'；部分来源达到读取上限，结果为有界样本':reason;
+ return {id:def.id,label:def.label,status,reason:cleanText(coverageReason||'',180),
   tool,source,evidenceIds:evidence.map(e=>e?.id).filter(id=>typeof id==='string').slice(0,4),
   facts:factsFromEvidence(evidence).slice(0,8)};
 }
