@@ -32,7 +32,7 @@ function trustedMetrics(data){
  }).filter(Boolean);
 }
 const riskPriority=id=>id==='new_users'?'P0':'P1';
-export function renderWeeklyDecisionReport({data,record,safe,fmt,date,links,canCreateProblem=false}){
+export function renderWeeklyDecisionReport({data,record,safe,fmt,date,dateTime=null,links,canCreateProblem=false}){
  const result=data?.result||{},w=result.weeklyReport;
  if(!w)return '<p role="alert">未形成通过证据校验的周报正文，不能视作生成成功。</p>';
  const coverage=weeklyCoverageSummary(data);
@@ -97,9 +97,12 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,links,canC
  const list=(items,render)=>items.length?'<div class="ai-weekly-stack">'+items.map(render).join('')+'</div>':
   '<p class="ai-weekly-empty">本期没有可验证的记录；不代表业务表现正常。</p>';
  return '<article class="ai-weekly-report ai-weekly-decision">'+
-  '<header class="ai-weekly-report-head"><div><span class="ai-eyebrow">GROWTH OPERATIONS / WEEKLY</span>'+
-  '<h3>运营决策周报</h3><p>'+safe(date(record.date_range_start))+' — '+
-  safe(date(Number(record.date_range_end)-86400000))+' · Asia/Bangkok · 已保存分析</p></div>'+
+  '<header class="ai-weekly-report-head"><div><span class="ai-eyebrow">GROWTH OPERATIONS / REPORT</span>'+
+  '<h3>运营决策报告</h3><p>'+
+  (record.report_period==='custom-v1'&&typeof dateTime==='function'?
+   safe(dateTime(record.date_range_start)+' → '+dateTime(record.date_range_end)+'（结束不含）'):
+   safe(date(record.date_range_start))+' — '+safe(date(Number(record.date_range_end)-1)))+
+  ' · Asia/Bangkok · 已保存分析</p></div>'+
   '<span class="ai-weekly-quality" data-quality="'+(w.partial?'partial':'validated')+'">'+
    (w.partial?'部分校验 · 业务结论待核实':'结构校验通过 · 业务结论待核实')+'</span></header>'+
   '<section class="ai-weekly-coverage-alert" data-complete="'+(coverage.analyzed===coverage.total?'true':'false')+'" role="status">'+
