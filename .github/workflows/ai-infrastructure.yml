@@ -143,6 +143,7 @@ jobs:
           node --check src/workers/remoteAnalysis.js
           node --check test/productChainTrades.test.js
           node --check test/aiBusinessBrain.test.js
+          node --check test/aiBusinessMetricsAdapter.test.js
           node --check test/aiWeeklyReport.test.js
           node --check test/aiWeeklyContextV4.test.js
       - name: Run offline agent contract tests
@@ -154,7 +155,7 @@ jobs:
       - name: Run Business Brain and custom report regression tests
         env:
           NODE_ENV: test
-        run: node --test test/aiBusinessBrain.test.js test/aiWeeklyReport.test.js test/aiWeeklyContextV4.test.js
+        run: node --test test/aiBusinessBrain.test.js test/aiBusinessMetricsAdapter.test.js test/aiWeeklyReport.test.js test/aiWeeklyContextV4.test.js
 
       - name: Run product-to-trade evidence regression tests
         env:
