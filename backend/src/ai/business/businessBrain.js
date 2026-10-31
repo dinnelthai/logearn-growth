@@ -32,7 +32,7 @@ const LIFECYCLE=Object.freeze([
  {id:'activation',name:'首次价值/激活',metricIds:['new_users','activation_rate','active_users'],caveat:'new_users 是首次观测分析，不是新注册。'},
  {id:'engagement',name:'产品参与',productIds:['ai_strategy','chip_distribution','holder_ranking'],metricIds:['product_chain','paths'],caveat:'多价值入口，不是强制线性漏斗。'},
  {id:'retention',name:'留存',metricIds:['d7','retention'],caveat:'只比较成熟队列。'},
- {id:'trading',name:'真实交易',productIds:['wallet_trading'],metricIds:['product_chain','volume_usd'],caveat:'身份/访问关联不足时不声称精确归因。'},
+ {id:'trading',name:'真实交易',productIds:['wallet_trading'],metricIds:['product_chain'],caveat:'交易量是交易事实中的数值字段，不等于收入；身份/访问关联不足时不声称精确归因。'},
  {id:'economics',name:'商业经济',metricIds:['trade_revenue'],caveat:'交易量不等于收入；合作账本不等于全平台收入。'}
 ]);
 const LABELS=Object.freeze({
@@ -50,7 +50,7 @@ const METRIC_IDS=Object.freeze(Object.keys(LABELS));
 const CONTEXT_METRIC_IDS=Object.freeze([
  'registered_users','new_users','active_users','returning_users','activation_rate',
  'd7','channels','seo_search','kol_performance','content_growth',
- 'product_chain','volume_usd','trade_revenue','login_conversion','retention'
+ 'product_chain','trade_revenue','login_conversion','retention'
 ]);
 const GOAL_FOCUS=Object.freeze({
  activation:{objective:'提高首次有效产品分析用户，同时辨别注册、访问、登录与首次分析之间的真实断点。',
