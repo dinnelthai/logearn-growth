@@ -150,3 +150,26 @@ test('ordinary transport v3 without a weekly coverage manifest retains existing 
  assert.equal(view.weeklyCoverage,null);
  assert.ok(Buffer.byteLength(JSON.stringify(view),'utf8')<=BUDGET);
 });
+
+test('v5 weekly context keeps trusted query priorities without pushing out 13 module coverage',()=>{
+ const raw=fixture(5);
+ raw.evidence=raw.evidence.filter(e=>e.id.startsWith('current-')||
+  e.id.startsWith('prior-')||e.id==='gsc-source-evidence');
+ raw.definitions={};raw.candidates=[];raw.warnings=[];
+ raw.growthPlan.questionRanking={questions:[{
+  metric:'new_users',priority:'P0',goalRelevant:true,affectedUsers:null,
+  observedChangeMagnitude:22,evidenceConfidence:'unknown',
+  authorizedTool:'query_metrics',observedLatency:{medianMs:7,sampleCount:3},
+  unrelatedIdentity:'user:private'
+ }]};
+ const v=modelContext(raw,{transportVersion:'v5'});
+ assert.equal(v.questionPriority[0].metric,'new_users');
+ assert.equal(v.questionPriority[0].observedMedianMs,7);
+ assert.equal(v.questionPriority[0].affectedUsers,null);
+ assert.equal(v.questionPriority[0].monetaryQueryCost,'unknown');
+ assert.equal(v.questionPriority[0].unrelatedIdentity,undefined);
+ assert.equal(v.weeklyCoverage.length,12);
+ assert.ok(v.evidence.some(e=>e.id==='gsc-source-evidence'));
+ assert.ok(Buffer.byteLength(JSON.stringify(v),'utf8')<=BUDGET);
+ assert.ok(!JSON.stringify(v).includes('user:private'));
+});
