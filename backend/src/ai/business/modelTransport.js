@@ -133,7 +133,8 @@ function statView(value,{depth=0,maxRows=MAX_GROUPS}={}){
    result[key]=statView(v,{depth:depth+1,maxRows});continue;
   }
   if(v&&typeof v==='object'){
-   if(!groups.has(key)){hidden++;continue}
+   const approvedMetricObject=key==='value'&&value.metricId==='registered_user_journey';
+   if(!groups.has(key)&&!approvedMetricObject){hidden++;continue}
    result[key]=statView(v,{depth:depth+1,maxRows});continue;
   }
   // A dimension bucket's textual category is meaningful business metadata,
