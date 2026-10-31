@@ -16,7 +16,7 @@ function createRegistry(){
    {id:'kol-collaboration:collab-uuid',kolRef:'kol:kol-1',kind:'kol_collaboration',layer:'human_operation',source:'crm_collaborations',title:'KOL campaign',startAt:start,endAt:end,linkedActivityIds:['activity-uuid']}
   ],
   channelObservations:[{kind:'x_official_account',layer:'channel_observation',source:'twitterapi.io',title:'X account',metrics:{impressions:10}},
-   {kind:'kol_period_observation',layer:'channel_observation',source:'kol-crm-observed-behavior',title:'KOL period',relationshipType:'crm-kol-id-match',kolSummaries:[{kolRef:'kol:kol-1',label:'KOL One',stage:'active',metrics:{observedUsers:5,analysis_events:10},linkedCollaborationRefs:['kol-collaboration:collab-uuid']}]}],
+   {kind:'kol_period_observation',layer:'channel_observation',source:'kol-crm-observed-behavior',title:'KOL period',startAt:start,endAt:end,observedAt:end,coverage:{status:'partial'},relationshipType:'crm-kol-id-match',kolSummaries:[{kolRef:'kol:kol-1',label:'KOL One',stage:'active',metrics:{observedUsers:5,analysis_events:10},linkedCollaborationRefs:['kol-collaboration:collab-uuid']}]}],
   aiActions:[{kind:'ai_report_action',layer:'ai_suggestion_or_review',source:'business_analysis_actions',title:'Suggested test',status:'pending'}],
   coverage:{growthActivities:{status:'available',count:1},xOfficial:{status:'available',count:1}},
   warnings:['AI suggestions are not completed human operations']
@@ -79,6 +79,17 @@ test('legacy tool discovery and execution expose the owner-scoped operating time
  assert.equal(linked.observed.trade_users,1);
  assert.equal(linked.observed.transactions,2);
  assert.equal(linked.coverage.trade,'available');
+ assert.equal(value.channelLinks.length,1);
+ const channel=value.channelLinks[0];
+ assert.equal(channel.collaborationRef,value.humanOperations[1].recordRef);
+ assert.equal(channel.relationshipType,'crm-kol-id-match');
+ assert.equal(channel.attribution,'observed-overlap-not-causal');
+ assert.equal(channel.metrics.observedUsers,5);
+ assert.equal(channel.metrics.analysis_events,10);
+ assert.equal(channel.coverage.status,'partial');
+ assert.equal(channel.window.start,start);
+ assert.equal(channel.window.end,end);
+ assert.equal(JSON.stringify(channel).includes('collab-uuid'),false);
  assert.equal(JSON.stringify(linked).includes('activity-uuid'),false);
  assert.match(value.warnings.join(' '),/not completed human operations/)
 })
@@ -102,6 +113,27 @@ test('only explicit CRM keys and comparable mature windows connect outcomes; nev
   assert.deepEqual(result.evidence[0].value.outcomeLinks,[]);
   // The independent KOL observation itself never becomes an attributed outcome.
   assert.equal(result.evidence[0].value.channelObservations[1].kolSummaries[0].metrics.analysis_events,10);
+ }
+});
+
+test('KOL metric links require explicit CRM identity, whole-window coverage and pre-cutoff observation',async()=>{
+ const cases=[
+  p=>{p.channelObservations[1].kolSummaries[0].linkedCollaborationRefs=[];},
+  p=>{p.channelObservations[1].kolSummaries[0].kolRef='kol:different';},
+  p=>{p.channelObservations[1].startAt=start+1000;},
+  p=>{p.channelObservations[1].endAt=end-1000;},
+  p=>{p.channelObservations[1].observedAt=end+1000;},
+  p=>{p.channelObservations[1].coverage.status='unavailable';},
+  p=>{p.channelObservations[1].kolSummaries[0].metrics={};}
+ ];
+ for(const modify of cases){
+  const {registry,payload}=createRegistry();
+  modify(payload);
+  const context={ownerId:'owner-1',runId:'test',scope:{source:'all'},
+   period:{start,end,timezone:'Asia/Bangkok'}};
+  const out=await registry.executeTool('get_operations_timeline',{},context);
+  assert.equal(out.status,'ok');
+  assert.deepEqual(out.evidence[0].value.channelLinks,[]);
  }
 });
 
