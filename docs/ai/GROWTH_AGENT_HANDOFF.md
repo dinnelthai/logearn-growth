@@ -6,7 +6,7 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
-- Latest successful implementation/CI head: `e832e93e5a57a8bc1881aa4c6fa5b05b9c0d534f` (includes fixed-cohort retrospective evidence and operation-task route coverage). Fetch the live branch before editing.
+- Latest successful implementation/CI head: `6c60b8e33a5684d0da5ed8e90e828ea69e2a5b04` (action anti-repeat code; verify the latest run below before relying on it). (includes fixed-cohort retrospective evidence and operation-task route coverage). Fetch the live branch before editing.
 - Fetch the live branch HEAD before every new edit; do not rely on this document's historical commit reference.
 - Latest successful CI: AI infrastructure run [41180112012](https://github.com/dinnelthai/logearn-growth/actions/runs/41180112012) passed all AI jobs; subsequent frontend UI run [41180467339](https://github.com/dinnelthai/logearn-growth/actions/runs/41180467339) passed with the detailed learning evidence table.
 - Checklist progress: 32 / 48 implementation items (67%); live-source acceptance is not included in that percentage.
@@ -227,3 +227,14 @@ Final validation update: run [41177187712](https://github.com/dinnelthai/logearn
 - The response includes concise operation problem/action labels and evidence already present in the aggregate-only retrospective record; it does not expose cohort member IDs.
 - Growth Agent Control renders a recent-review table: operation, metric, observational label, baseline → after value and fixed audience count. All dynamic text is escaped.
 - AI infrastructure run [41180441759](https://github.com/dinnelthai/logearn-growth/actions/runs/41180441759) passed Contract, Integration and Frontend jobs. Frontend UI run [41180467339](https://github.com/dinnelthai/logearn-growth/actions/runs/41180467339) passed.
+
+
+## 2026-10-31 — Action anti-repeat and insufficient-review handling
+
+- `experienceFeedback.summarizeExperience` now retains up to three recent action-level lessons per metric, including bounded business problem, actual executed action, outcome label and reason. v2 reviews classified `insufficient` remain visible to the planner rather than disappearing from experience feedback.
+- Planner skill checks receive prior action labels. An observed-contradicted action must not be repeated as-is; revisit only with a different hypothesis, mechanism and new evidence. An insufficient review requires evidence completion or a materially changed intervention and must not be treated as proof of failure.
+- Investigation attention now weights contradicted reviews more strongly than insufficient reviews.
+- `analysisContract.assertActionNovelty` now checks exact normalized action text against both the original proposal and the recorded actual executed action, scoped to primary metric and source. Similarity-based blocking is deliberately not used to avoid false positives.
+- Tests cover contradicted-action prompt guidance, insufficient-evidence handling, and deterministic rejection of exact repeats of the actual executed action.
+- Latest code CI run: [41181045783](https://github.com/dinnelthai/logearn-growth/actions/runs/41181045783) — verify all jobs before treating as passed.
+- No schema migration, deployment, paid call, production data collection or external write.
