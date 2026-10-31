@@ -413,3 +413,27 @@ Branch: `codex/ai-comprehensive-upgrade`
 - Added tests for lifecycle transitions, actual-action capture, missing completion notes, retryable link lookup failure and compatibility when workspace tables are not migrated.
 - Latest successful CI: [41178355922](https://github.com/dinnelthai/logearn-growth/actions/runs/41178355922), code head `1f0ab05f71b0fd5fef90b77282411102ebb3c5a2`; all three jobs passed. AI Contract: 172 (171 pass, 0 fail, 1 skipped) plus regression groups 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112; Integration 17/17; Frontend success.
 - Remaining: the operation-task review's cohort baseline/after-period evidence is not yet projected into the AI retrospective evidence record. The retrospective still uses its existing business-metric review pipeline; do not claim cohort-level causal attribution.
+
+
+## 2026-10-31 — Fixed-cohort retrospective evidence bridge
+
+### Implemented
+- Added `backend/src/ai/growth/operationTaskEvidence.js` to resolve the unique operation task linked to an executed AI suggestion and build a bounded cohort comparison.
+- Revalidates owner isolation, source scope and exact match between task completion timestamp and suggestion `executed_at`.
+- Uses the same frozen audience and same Hologres snapshot for both windows.
+- Baseline: 3–14 complete Bangkok business days ending before task creation.
+- Post-completion observation: equal-length window beginning on the first complete Bangkok business day after task completion. The task execution interval is excluded.
+- Persists `observeUntil`, time-window anchors, snapshot, aggregate baseline/effect metrics and metric changes in existing retrospective JSON fields. No schema migration.
+- Model receives aggregate cohort metrics only; no user IDs or user-level rows. It is instructed to distinguish cohort observation from whole-business/channel movement and not claim causality.
+- Explicit statuses: not-linked, ambiguous, waiting, unavailable and available. Incomplete reads and scope/timestamp mismatches cannot be treated as zero.
+- Added dedicated CI execution for `operationTaskEvidence.test.js` and `operationTasks.test.js`, plus syntax checks for the new service, retrospective worker and task route.
+
+### Validation
+- Successful AI infrastructure CI: [41179371875](https://github.com/dinnelthai/logearn-growth/actions/runs/41179371875), code head `94ef62b9f001b147a46964c89c4cff6b8503b492`.
+- AI Contract, AI Integration and AI Frontend all passed.
+- Dedicated task/evidence suite: 10/10 passed. AI Integration: 17/17. Contract groups: 172 (171 pass, 0 fail, 1 skipped), plus 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112.
+- During validation, CI caught and we fixed: (1) non-async task PATCH handler awaiting lifecycle sync; (2) missing helper export for isolated tests; (3) incorrect escaped numeric-ID regex. The route and regex are now covered by CI.
+
+### Remaining
+- Add a separate observational outcome label (observed-supported / observed-contradicted / insufficient) to the learning index, distinct from causal effectiveness. Current retrospective still forces `hasCausality=false`; do not interpret positive before/after movement as causal success.
+- No production deployment, paid model call, paid collection, migration or external action.
