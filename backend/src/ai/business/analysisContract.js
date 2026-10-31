@@ -118,6 +118,21 @@ function validateAnalysis(a,context={}) {
           throw Error('竞争性根因假设缺少证据或使用了未授权调查工具');
         if(strictContract)assertDiscriminatingQuery(hypothesis.discriminatingQuery,context);
       }
+      if(strictContract){
+       // Candidate tool IDs and inputs passed the current task authorization
+       // gate above. Only owner's trusted observed execution times may compare
+       // them; do not claim known USD query cost or automatic query permission.
+       const queries=s.competingHypotheses.map(h=>h.discriminatingQuery);
+       const locked=queries.some(q=>{
+        const capability=context.capabilities.find(x=>x.id===q.tool);
+        return capability?.cost==='paid'||capability?.cost==='unknown';
+       });
+       const compared=require('../growth/queryEconomics').compareQueries(queries,
+        locked?{}:context.trustedToolTimings||{});
+       s.discriminatingQueryEfficiency=locked?
+        {...compared,status:'paid-or-unknown-capability-cost',
+         bestObservedLatencyTool:null,measuredMedianMs:null}:compared;
+      }
     }
     if(strictContract){
       assertReviewMetrics(s.validationMetrics);
