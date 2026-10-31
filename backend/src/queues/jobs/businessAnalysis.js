@@ -139,6 +139,9 @@ async function businessAnalysis(job) {
       };
     const session=require('../../ai/business/foundation').defaultFoundation().prepare(compact,{ownerId,runId:analysisId,goalRef:job.data.goalRef});
     compact=session.context;
+    // Pin the strict output contract into the saved snapshot; archived contexts
+    // without this marker retain their original validation behavior on recovery.
+    compact.analysisContractVersion=require('../../ai/business/analysisContract').ANALYSIS_CONTRACT_VERSION;
     // A single bounded, owner-scoped read-only manifest backs EVERY weekly
     // section. Only a subset is queried; all other modules remain explicitly
     // uninvestigated. This does not create model calls or loosen tool budgets.
