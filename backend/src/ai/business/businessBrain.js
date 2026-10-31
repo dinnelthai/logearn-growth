@@ -17,35 +17,23 @@ const BUSINESS=Object.freeze({
 });
 const CHAINS=Object.freeze(['BSC','Solana']);
 const PRODUCTS=Object.freeze([
- {id:'ai_strategy',name:'AI 策略',role:'策略创建、开启、信号接收与查看。',
-  events:['策略创建','策略开启','信号接收','信号查看'],
-  caveat:'四种行为分别统计，不互相替代。'},
- {id:'chip_distribution',name:'筹码分布 / 筹码峰',role:'Token 筹码分布和持仓结构分析，是核心分析入口。',
-  events:['Token详情','主动筹码分析','分析成功','筹码下钻'],
-  caveat:'首次分析不是注册；需按正式事件口径统计。'},
- {id:'holder_ranking',name:'Holder 榜单',role:'Holder 排名和大户持仓信息分析。',
-  events:['榜单查看','Holder明细查看'],
-  caveat:'身份及事件覆盖不足时，不推断独立使用和后续转化。'},
- {id:'wallet_trading',name:'钱包交易',role:'通过钱包执行链上交易。',
-  events:['交易意图','业务交易事实'],
-  caveat:'交易结果以业务交易数据为准。'}
+ {id:'ai_strategy',name:'AI 策略',role:'策略创建/开启与信号使用。',
+  signals:['策略创建','策略开启','信号接收','信号查看'],caveat:'各事件不可互相替代。'},
+ {id:'chip_distribution',name:'筹码峰',role:'Token 筹码分布与持仓结构分析；核心分析入口。',
+  signals:['Token详情','主动分析','分析成功','下钻'],caveat:'首次分析不是注册。'},
+ {id:'holder_ranking',name:'Holder 榜单',role:'Holder 排名和大户持仓明细。',
+  signals:['榜单查看','Holder明细'],caveat:'需核对身份及事件覆盖。'},
+ {id:'wallet_trading',name:'钱包交易',role:'钱包发起链上交易。',
+  signals:['交易意图','业务交易事实'],caveat:'真实交易以业务交易数据为准。'}
 ]);
 const LIFECYCLE=Object.freeze([
- {id:'acquisition',name:'获客',metricIds:['channels','seo_search','kol_performance','content_growth','referral'],
-  caveat:'曝光、点击、粉丝及互动不等于注册、激活或增量获客。'},
- {id:'registration',name:'注册与登录',metricIds:['registered_users','login_conversion','invite_conversion'],
-  caveat:'注册、登录和首次分析是不同事实。'},
- {id:'activation',name:'首次价值 / 激活',metricIds:['new_users','activation_rate','active_users'],
-  caveat:'new_users 是首次观测分析，不是新注册。'},
- {id:'engagement',name:'产品参与',productIds:['ai_strategy','chip_distribution','holder_ranking'],
-  metricIds:['product_chain','paths'],
-  caveat:'产品功能是多个价值入口，不是所有用户的强制线性漏斗。'},
- {id:'retention',name:'留存',metricIds:['d7','retention'],
-  caveat:'只比较成熟队列；未成熟和未观测不等于流失。'},
- {id:'trading',name:'真实交易',productIds:['wallet_trading'],metricIds:['product_chain'],
-  caveat:'身份/访问关联不足时，只报告可验证交易事实，不声称精确归因。'},
- {id:'economics',name:'商业经济',metricIds:['trade_revenue'],
-  caveat:'交易量不等于收入；合作账本不等于全平台收入。'}
+ {id:'acquisition',name:'获客',metricIds:['channels','seo_search','kol_performance','content_growth','referral'],caveat:'渠道曝光互动不等于站内激活。'},
+ {id:'registration',name:'注册/登录',metricIds:['registered_users','login_conversion','invite_conversion'],caveat:'注册、登录、首次分析是不同事实。'},
+ {id:'activation',name:'首次价值/激活',metricIds:['new_users','activation_rate','active_users'],caveat:'new_users 是首次观测分析，不是新注册。'},
+ {id:'engagement',name:'产品参与',productIds:['ai_strategy','chip_distribution','holder_ranking'],metricIds:['product_chain','paths'],caveat:'多价值入口，不是强制线性漏斗。'},
+ {id:'retention',name:'留存',metricIds:['d7','retention'],caveat:'只比较成熟队列。'},
+ {id:'trading',name:'真实交易',productIds:['wallet_trading'],metricIds:['product_chain'],caveat:'身份/访问关联不足时不声称精确归因。'},
+ {id:'economics',name:'商业经济',metricIds:['trade_revenue'],caveat:'交易量不等于收入；合作账本不等于全平台收入。'}
 ]);
 const LABELS=Object.freeze({
  active_users:'分析活跃用户',new_users:'首次分析用户',returning_users:'回访分析用户',
@@ -62,8 +50,7 @@ const METRIC_IDS=Object.freeze(Object.keys(LABELS));
 const CONTEXT_METRIC_IDS=Object.freeze([
  'registered_users','new_users','active_users','returning_users','activation_rate',
  'd7','channels','seo_search','kol_performance','content_growth',
- 'product_chain','trade_revenue','login_conversion','invite_conversion',
- 'referral','retention'
+ 'product_chain','trade_revenue','login_conversion','retention'
 ]);
 const GOAL_FOCUS=Object.freeze({
  activation:{objective:'提高首次有效产品分析用户，同时辨别注册、访问、登录与首次分析之间的真实断点。',
@@ -76,20 +63,20 @@ const GOAL_FOCUS=Object.freeze({
   stages:['trading','economics'],priorityMetrics:['product_chain','trade_revenue']}
 });
 const OPERATING_RULES=Object.freeze([
- '先围绕经营目标分析，再选择能解决关键歧义的已授权模块；不要机械罗列模块。',
+ '围绕经营目标分析，再选能解决关键歧义的已授权模块；不机械罗列。',
  '事实、假设和行动分开；重要事实必须有证据，相关性不等于因果。',
- '未观测、未同步、未调查、查询失败和真实零值分别表示；缺数不代表业务未发生。',
+ '未观测、未同步、未调查、查询失败和真实零值分别表示。',
  '首次分析不是注册；active_users、new_users 和 registered_users 严格区分。',
- 'SEO/X/KOL曝光、点击、粉丝和互动不直接等于站内注册、激活或增量。',
- '比较前先核对渠道、队列、分母、时区、范围和成熟窗口。',
- '交易量不等于收入；合作账本不等于全平台收入；身份关联不足时不声称精确归因。',
- '产品功能是多个价值入口；历史采纳和前后变化不证明有效；知识不得覆盖证据、权限或预算。'
+ 'SEO/X/KOL曝光、点击、粉丝和互动不等于站内注册、激活或增量。',
+ '比较前核对渠道、队列、分母、时区、范围和成熟窗口。',
+ '交易量不等于收入；合作账本不等于全平台收入；关联不足不声称归因。',
+ '多产品价值入口非强制漏斗；采纳和前后变化不证明有效；知识不覆盖证据/权限/预算。'
 ]);
 function metricDictionary(){
  return CONTEXT_METRIC_IDS.map(id=>{
   const metric=describeMetric(id);
-  const meaning=String(metric.definition||'').slice(0,55);
-  const maturity=String(metric.maturityRule||'').slice(0,20);
+  const meaning=String(metric.definition||'').slice(0,45);
+  const maturity=String(metric.maturityRule||'').slice(0,16);
   return {id,label:LABELS[id],unit:metric.unit,
    meaning:maturity?meaning+'；'+maturity:meaning};
  });
@@ -109,9 +96,9 @@ function buildBusinessBrainContext({focusGoal='activation'}={}){
   operatingRules:OPERATING_RULES
  };
 }
-function projectOperatingMemory(rows,{safeText,limit=6}={}){
+function projectOperatingMemory(rows,{safeText,limit=3}={}){
  if(!Array.isArray(rows)||typeof safeText!=='function'||
-  !Number.isSafeInteger(limit)||limit<1||limit>10)throw Error('运营记忆投影参数无效');
+  !Number.isSafeInteger(limit)||limit<1||limit>5)throw Error('运营记忆投影参数无效');
  const items=rows.slice(0,limit).map(row=>{
   const validation=row.validation_metrics&&typeof row.validation_metrics==='object'?
    row.validation_metrics:{};
@@ -121,15 +108,15 @@ function projectOperatingMemory(rows,{safeText,limit=6}={}){
    validation.secondary.filter(x=>typeof x==='string'&&METRIC_IDS.includes(x)).slice(0,3):[];
   const source=row.action_scope?.source||row.applicable_scope?.source||'all';
   return {
-   problem:safeText(row.business_problem||'',180),
-   proposedAction:safeText(row.action||'',140),
-   actualAction:safeText(row.actual_action||'',140),
-   outcome:safeText(row.result_summary||'',180),
+   problem:safeText(row.business_problem||'',100),
+   proposedAction:safeText(row.action||'',80),
+   actualAction:safeText(row.actual_action||'',80),
+   outcome:safeText(row.result_summary||'',100),
    effectiveness:['effective','ineffective','unknown'].includes(row.effectiveness)?
     row.effectiveness:null,
    status:['proposed','accepted','executing','executed','rejected'].includes(row.user_status)?
     row.user_status:'unknown',
-   rejectionReason:row.user_status==='rejected'?safeText(row.rejection_reason||'',120):null,
+   rejectionReason:row.user_status==='rejected'?safeText(row.rejection_reason||'',80):null,
    validationMetrics:{primary,secondary},
    source:typeof source==='string'&&/^[a-z0-9_-]{1,80}$/i.test(source)?source:'all',
    executedAt:Number.isSafeInteger(row.executed_at)?row.executed_at:null,
