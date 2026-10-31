@@ -2,13 +2,26 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {DEFINITIONS,initialCoverage,collectWeeklyCoverage,finalizeWeeklyCoverage,
- modelCoverage}=require('../src/ai/growth/weeklyCoverage');
+ modelCoverage,factsFromEvidence}=require('../src/ai/growth/weeklyCoverage');
+const skills=require('../src/ai/growth/skills').listGrowthSkills();
 
 const period={start:1000,end:2000,previousStart:0,previousEnd:1000,timezone:'Asia/Bangkok'};
 const baseline={id:'base-1',metricId:'active_users',value:71,
  period,coverage:{status:'partial'}};
 const context=()=>({period,evidence:[baseline],business:{scope:{source:'all'}}});
 const toolIds=DEFINITIONS.map(x=>x.tool);
+test('growth overview carries registration and mature cohort metrics into authorized investigations',()=>{
+ const skill=skills.find(x=>x.id==='growth-overview');
+ assert.ok(skill.signals.includes('registered_users'));
+ assert.ok(skill.signals.includes('registration_activation_rate'));
+ assert.ok(skill.signals.includes('registered_trade_conversion_rate'));
+ const facts=factsFromEvidence([{id:'registration-cohort',metricId:'growth_insights',value:{
+  cohorts:{registration:{metrics:{users:14,eligible:10,activated:5,pending:4,rate:.5},
+   trade:{eligible:7,traders:2,conversion_rate:2/7,pending:1,not_engaged:3,unmatched:1}}}
+ }}]);
+ assert.ok(facts.some(x=>x.metric==='cohorts.registration.metrics.eligible'&&x.value===10));
+ assert.ok(facts.some(x=>x.metric==='cohorts.registration.trade.traders'&&x.value===2));
+});
 test('all thirteen modules are represented, missing sources are never marked analyzed',()=>{
  const result=initialCoverage(context(),{allowedTools:toolIds,availableSpecialties:[]});
  assert.equal(result.modules.length,13);
