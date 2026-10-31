@@ -90,6 +90,11 @@ function buildBusinessBrainContext({focusGoal='activation'}={}){
   productMap:{chains:CHAINS,products:PRODUCTS,
    principle:'产品功能是多个价值入口；只有具备事件和身份关联证据时，才将跨功能行为组成漏斗。'},
   lifecycle:LIFECYCLE,
+  operatingModel:{capability:'get_operations_timeline',layers:[
+   {id:'human_operation',meaning:'人工登记或实际执行的活动、KOL合作、内容与任务'},
+   {id:'channel_observation',meaning:'X、Search Console、KOL等渠道观测，不等于站内转化'},
+   {id:'ai_suggestion_or_review',meaning:'AI建议、执行记录与复盘；建议不等于已执行'}
+  ],rule:'按所选报告期间汇总；来源覆盖分别显示；未记录不等于没有运营；观察相关不等于因果'},
   focus:{goal:GOAL_FOCUS[focusGoal]?focusGoal:'activation',
    objective:focus.objective,stages:focus.stages,priorityMetrics:focus.priorityMetrics},
   metricDictionaryVersion:'1',
