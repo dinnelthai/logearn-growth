@@ -81,3 +81,41 @@ test('unexpected upstream failure is not mistaken for missing or zero data',asyn
   {moduleId:'growth.acquisition',capabilityId:'get_channels'},ctx),
   e=>e.status===503&&!e.message.includes('private'));
 });
+
+test('every built-in tool has an explicit audited origin, clock and attribution boundary',()=>{
+ const {SOURCE_CONTRACTS}=require('../src/ai/business/tools/sourceContracts');
+ const {listToolIds}=require('../src/ai/business/tools/registry');
+ assert.deepEqual(Object.keys(SOURCE_CONTRACTS).sort(),listToolIds().sort());
+ assert.equal(Object.keys(SOURCE_CONTRACTS).length,18);
+ for(const [id,c]of Object.entries(SOURCE_CONTRACTS)){
+  assert.match(id,/^[a-z][a-z0-9_]+$/);
+  assert.match(c.sourceType,/^[a-z][a-z0-9_]+$/);
+  assert.match(c.clock,/^[a-z][a-z0-9_]+$/);
+  assert.ok(c.limitation.length>=20);
+ }
+ assert.equal(SOURCE_CONTRACTS.get_channel_economics.clock,'manual_records');
+ assert.equal(SOURCE_CONTRACTS.get_referral.clock,'cumulative_asof');
+ assert.equal(SOURCE_CONTRACTS.get_seo_performance.clock,'pt_calendar_snapshot');
+ assert.equal(SOURCE_CONTRACTS.get_content_growth.clock,'bounded_post_observation');
+ assert.equal(SOURCE_CONTRACTS.get_invite_conversion.clock,'event_and_relationship');
+ assert.equal(SOURCE_CONTRACTS.get_product_chain.clock,'event_and_trade');
+ assert.notEqual(SOURCE_CONTRACTS.get_kol_performance.sourceType,
+  SOURCE_CONTRACTS.get_channels.sourceType);
+});
+test('business module exposes its actual source contract rather than a generic business source label',async()=>{
+ const r=registry(),modules=listBusinessModules(r,ctx);
+ const seo=modules.find(m=>m.moduleId==='growth.seo').capabilities[0];
+ assert.equal(seo.sourceContract.clock,'pt_calendar_snapshot');
+ const out=await executeBusinessModule(r,
+  {moduleId:'growth.acquisition',capabilityId:'get_channels'},ctx);
+ assert.deepEqual(out.sources,['hologres_observed_source']);
+ assert.equal(out.sourceContract.clock,'event_snapshot');
+ assert.match(out.sourceContract.limitation,/not verified acquisition/);
+ const gsc=registry({status:'ok',evidence:[{id:'seo-e',metricId:'seo_search',
+   definitionVersion:'1',value:{source:'gsc-manual-export',metrics:{clicks:2}},
+   coverage:{status:'export-limited'},watermarks:{searchConsole:null}}]});
+ const manual=await executeBusinessModule(gsc,
+  {moduleId:'growth.seo',capabilityId:'get_seo_performance'},ctx);
+ assert.deepEqual(manual.sources,['manual_search_observation']);
+ assert.equal(manual.sourceContract.clock,'pt_calendar_snapshot');
+});
