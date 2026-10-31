@@ -9,9 +9,10 @@ async function registrationFacts(s,{start,end,source='all'},audience){
    WHERE a.created_at>=TO_TIMESTAMP($2::double precision/1000.0) AND a.created_at<TO_TIMESTAMP($3::double precision/1000.0)
     AND a.created_at<=$1::timestamptz AND ($5::text='all' OR COALESCE(NULLIF(BTRIM(f.source),''),'未知')=$5)
     AND ($6::text[] IS NULL OR 'user:'||a.account_id::text=ANY($6))
-  ) SELECT r.user_key,r.registered_at,r.source,
-   MIN(e.client_ts) FILTER(WHERE e.event_name IN(${ANALYSIS_SQL}) AND e.client_ts>=r.registered_at) AS first_chip_at
-   FROM registrations r LEFT JOIN e ON e.user_key=r.user_key AND e.client_ts<=$4
+  ) SELECT r.user_key,r.registered_at,r.source,MIN(e.client_ts) AS first_chip_at
+   FROM registrations r LEFT JOIN e ON e.user_key=r.user_key
+    AND e.client_ts>=r.registered_at AND e.client_ts<=$4
+    AND e.event_name IN(${ANALYSIS_SQL})
    GROUP BY r.user_key,r.registered_at,r.source ORDER BY r.user_key LIMIT 50001`,
    [s.snapshot_cutoff,start,Math.min(end,Date.parse(s.as_of)+1),Date.parse(s.as_of),source,audience]),50000,'注册批次超过预算，请缩小范围')
   return {available:true,rows:rows.map(r=>({...r,registered_at:Number(r.registered_at),first_chip_at:r.first_chip_at==null?null:Number(r.first_chip_at)})),scope:source==='all'?'all':'observed_source',error:null}
