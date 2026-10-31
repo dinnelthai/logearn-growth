@@ -38,6 +38,44 @@ function growthInsights(rows, qualityRows, b, s, tradeFacts={known:null,trades:[
     return {eligible:put(prefix+':eligible',eligible),returned:put(prefix+':returned',returned),pending:put(prefix+':pending',rs.filter(r=>!eligibleIds.has(r.user_key))),
       rate:eligible.length?returned.length/eligible.length:null,interval:interval(returned.length,eligible.length),list_key:prefix}
   }
+  const summarizeTradeCohort=(cohortRows,anchorOf,prefix)=>{
+    const engaged=cohortRows.filter(r=>{
+      const anchor=Number(anchorOf(r));
+      return r.first_chip_at!=null&&Number.isFinite(Number(r.first_chip_at))&&
+        Number.isFinite(anchor)&&Number(r.first_chip_at)>=anchor&&Number(r.first_chip_at)<=asOf
+    });
+    const mature=engaged.filter(r=>Number(r.first_chip_at)+7*DAY<=asOf+1);
+    const matched=tradeFacts.known===null?[]:mature.filter(r=>tradeFacts.known.has(r.user_key));
+    const traders=[];let volume=0,transactions=0,missingValues=0,excluded=0;
+    for(const r of matched){
+      let traded=false;const anchor=Number(r.first_chip_at);
+      for(const t of tradesByUser.get(r.user_key)||[]){
+        const at=Date.parse(t.transaction_time);
+        if(!inRange(at,anchor,anchor+7*DAY))continue;
+        if(!t.valid||!t.transaction_hash||t.chain==null){excluded++;continue}
+        traded=true;transactions++;
+        const amount=t.trade_value==null?null:Number(t.trade_value);
+        if(amount==null||!Number.isFinite(amount))missingValues++;else volume+=Math.abs(amount);
+      }
+      if(traded)traders.push(r);
+    }
+    const available=tradeFacts.known!==null;
+    return {
+      available,error:tradeFacts.error,association:'user-level-after-first-analysis',
+      engaged:put(prefix+':engaged',engaged),
+      eligible:available?put(prefix+':eligible',matched):null,
+      unmatched:available?mature.length-matched.length:null,
+      pending:engaged.length-mature.length,
+      not_engaged:cohortRows.length-engaged.length,
+      traders:available?put(prefix+':traders',traders):null,
+      conversion_rate:available&&matched.length?traders.length/matched.length:null,
+      transactions:available?transactions:null,
+      volume_usd:!available||!matched.length||missingValues>0||excluded>0?null:volume,
+      missing_values:available?missingValues:null,
+      excluded_trades:available?excluded:null,
+      list_key:prefix
+    };
+  };
   const entrants=rows.filter(r=>inRange(r.first_seen_at,start,end)),tradesByUser=new Map()
   for(const t of tradeFacts.trades){const id='user:'+t.account_id;if(!tradesByUser.has(id))tradesByUser.set(id,[]);tradesByUser.get(id).push(t)}
   const channels=[...new Set(entrants.map(r=>r.source||'未知'))].map((source,i)=>{
@@ -45,27 +83,7 @@ function growthInsights(rows, qualityRows, b, s, tradeFacts={known:null,trades:[
     const mature=rs.filter(r=>r.first_seen_at+DAY<=asOf+1)
     const activated=mature.filter(r=>r.first_chip_at!=null&&r.first_chip_at>=r.first_seen_at&&r.first_chip_at<r.first_seen_at+DAY)
     const latencies=activated.map(r=>r.first_chip_at-r.first_seen_at).sort((a,b)=>a-b)
-    const engaged=rs.filter(r=>r.first_chip_at!=null&&Number.isFinite(Number(r.first_chip_at))&&
-      Number.isFinite(Number(r.first_seen_at))&&Number(r.first_chip_at)>=Number(r.first_seen_at)&&Number(r.first_chip_at)<=asOf)
-    const tradeMature=engaged.filter(r=>Number(r.first_chip_at)+7*DAY<=asOf+1)
-    const matched=tradeMature.filter(r=>tradeFacts.known?.has(r.user_key)),traders=[]
-    let volume=0,transactions=0,missingValues=0,excluded=0
-    for(const r of matched){let traded=false;for(const t of tradesByUser.get(r.user_key)||[]){
-      const at=Date.parse(t.transaction_time),anchor=Number(r.first_chip_at)
-      if(!inRange(at,anchor,anchor+7*DAY))continue
-      if(!t.valid||!t.transaction_hash||t.chain==null){excluded++;continue}
-      traded=true;transactions++;const amount=t.trade_value==null?null:Number(t.trade_value)
-      if(amount==null||!Number.isFinite(amount))missingValues++;else volume+=Math.abs(amount)
-    }if(traded)traders.push(r)}
-    const trade={available:tradeFacts.known!==null,error:tradeFacts.error,
-      association:'user-level-after-first-analysis',
-      eligible:put(key+':trade:eligible',matched),unmatched:tradeMature.length-matched.length,
-      pending:engaged.length-tradeMature.length,not_activated:rs.length-engaged.length,
-      traders:tradeFacts.known===null?null:put(key+':trade:traders',traders),
-      conversion_rate:tradeFacts.known===null||!matched.length?null:traders.length/matched.length,
-      transactions:tradeFacts.known===null?null:transactions,
-      volume_usd:tradeFacts.known===null||!matched.length||transactions>0&&missingValues===transactions?null:volume,
-      missing_values:missingValues,excluded_trades:excluded,list_key:key+':trade'}
+    const trade=summarizeTradeCohort(rs,r=>r.first_seen_at,key+':trade')
     return {source,users:put(key+':users',rs),eligible:put(key+':eligible',mature),activated:put(key+':activated',activated),pending:rs.length-mature.length,trade,
       activation_rate:mature.length?activated.length/mature.length:null,activation_interval:interval(activated.length,mature.length),
       median_ms:latencies.length?latencies[Math.floor((latencies.length-1)/2)]:null,
@@ -87,6 +105,8 @@ function growthInsights(rows, qualityRows, b, s, tradeFacts={known:null,trades:[
   const registration=evidence.registration||{available:false,rows:[],error:'该结果未包含注册事实'}
   for(const r of registration.rows)if(!members[r.user_key])members[r.user_key]={id:r.user_key,source:r.source||'未知'}
   const cohorts=require('./growthCohorts').growthCohorts(rows,registration,{start,end,asOf},put)
+  if(registration.available)cohorts.registration.trade=summarizeTradeCohort(
+    registration.rows,r=>r.registered_at,'cohort:registered:trade')
   const coverage=evidence.coverage||{available:false,rows:[]}
   for(const f of families){const row=coverage.rows.find(r=>r.scope==='family'&&r.family===f.key);f.users=coverage.available?(row?.users||0):null}
   const events=qualityRows.reduce((n,r)=>n+Number(r.events),0),linked=qualityRows.reduce((n,r)=>n+Number(r.linked_events),0),missingSource=qualityRows.reduce((n,r)=>n+Number(r.missing_source_events),0)
