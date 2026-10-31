@@ -588,3 +588,50 @@
 #la-studio .ai-weekly-coverage-gaps .ai-weekly-module {
  background:var(--weekly-surface,transparent);
 }
+
+
+/* Lifecycle and operating-memory sections keep the report decision-first. */
+#la-studio .ai-weekly-lifecycle-grid {
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+}
+#la-studio .ai-weekly-lifecycle-item {
+ display:grid;gap:8px;min-width:0;padding:14px 15px;
+ border:1px solid var(--weekly-divider,var(--a-border));
+ border-left:3px solid var(--weekly-divider,var(--a-border));
+ border-radius:9px;background:var(--weekly-surface,transparent);
+}
+#la-studio .ai-weekly-lifecycle-item[data-status=observed] {border-left-color:var(--weekly-positive)}
+#la-studio .ai-weekly-lifecycle-item[data-status=partial] {border-left-color:var(--a-warn)}
+#la-studio .ai-weekly-lifecycle-item>div {
+ display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+}
+#la-studio .ai-weekly-lifecycle-item strong {font-size:13px;color:var(--a-text)}
+#la-studio .ai-weekly-lifecycle-item span {font-size:11px;color:var(--a-muted)}
+#la-studio .ai-weekly-lifecycle-item p {
+ margin:0;font-size:12px;line-height:1.7;color:var(--a-muted);
+}
+#la-studio .ai-weekly-previous-actions-section .ai-weekly-action {
+ background:var(--weekly-surface,transparent);
+}
+#la-studio .ai-weekly-previous-actions-section .ai-weekly-action p {
+ margin:6px 0 0;font-size:12px;line-height:1.65;color:var(--a-muted);
+}
+#la-studio .ai-weekly-coverage-details {
+ border:1px solid var(--weekly-divider,var(--a-border));
+ border-radius:10px;background:var(--weekly-raised,transparent);padding:0 15px;
+}
+#la-studio .ai-weekly-coverage-details>summary {
+ cursor:pointer;padding:14px 2px;font-size:13px;line-height:1.6;
+ font-weight:700;color:var(--a-muted);
+}
+#la-studio .ai-weekly-coverage-details[open]>summary {
+ border-bottom:1px solid var(--weekly-divider,var(--a-border));
+}
+#la-studio .ai-weekly-coverage-details .ai-weekly-details-body {padding:15px 0}
+#la-studio .ai-weekly-decision :is(#weekly-priorities,#weekly-metrics,#weekly-coverage,#weekly-actions,
+ .ai-weekly-lifecycle-section,.ai-weekly-opportunities-section,.ai-weekly-previous-actions-section) {
+ scroll-margin-top:24px;
+}
+@media (max-width:760px) {
+ #la-studio .ai-weekly-lifecycle-grid {grid-template-columns:1fr}
+}
