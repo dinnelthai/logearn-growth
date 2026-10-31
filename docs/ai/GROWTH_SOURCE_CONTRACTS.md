@@ -1,6 +1,6 @@
 # Growth Agent 2.0 — Channel source and historical-period contracts
 
-> Branch: `codex/ai-comprehensive-upgrade`. Latest audited source/test HEAD: `e5a08a39d4668d2895c23bc5997946885292a9a0`; [AI infrastructure CI 41200563427](https://github.com/dinnelthai/logearn-growth/actions/runs/41200563427) passed Contract, Integration and Frontend.
+> Branch: `codex/ai-comprehensive-upgrade`. Latest audited source/test HEAD: `81bc9a06fba358c484eed9bb620ab303110d8ed5`; [AI infrastructure CI 41201630015](https://github.com/dinnelthai/logearn-growth/actions/runs/41201630015) passed Contract, Integration and Frontend.
 >
 > This is a **code + fixture/CI contract audit**, not an assertion that real X, Search Console, Hologres, CRM or referral data have been connected, are current, or passed a paid-model end-to-end test. Unknown is not zero. No source here authorizes automatic external collection or paid calls.
 
@@ -130,3 +130,20 @@ The positive-allowlist model projection exposes only this compact metadata and n
 **Tests:** `backend/test/businessModuleCatalog.test.js` tests every one of the 18 audited tool IDs, plus effective channel-specific source scope. `backend/test/agentTools.test.js` checks mixed account/registration/trade/event metrics, GSC, CRM and model projection. `backend/test/modelEvidenceCompact.test.js` asserts the compact model view keeps unverified source metadata under its byte budget. These are offline contract tests, not source freshness verification.
 
 **Real acceptance still outstanding:** independently read actual Hologres event completeness, account creation watermark, verified transaction enrichment and identity coverage; check stored GSC PT-day completion, X sampling and KOL CRM link completeness; validate operator metric definitions and a real already-authorized v5 report. This implementation explicitly represents unknowns and does not substitute code/CI for real external data acceptance.
+
+## 2026-10-31 — Operating Memory as-of / explicit activity-to-observation joins
+
+**Source/test SHA:** `81bc9a06fba358c484eed9bb620ab303110d8ed5`. [AI CI 41201630015](https://github.com/dinnelthai/logearn-growth/actions/runs/41201630015) passed Contract, Integration and Frontend.
+
+**Two independent records must not be equated just because their dates overlap.** The Operating Memory tool now permits only two strictly labelled and size-limited association classes:
+
+| Association | Required stable key and period condition | Evidence visible to model | Never assert |
+| --- | --- | --- | --- |
+| `outcomeLinks` | Same-owner CRM **explicit collaboration→activity ID**; collaboration fully contains activity; activity settled before report end; saved result's source-as-of covers activity end but does not exceed report end; per-metric source coverage marked available | Up to 8 hashed collaboration/activity refs, activity window, source-as-of, and bounded observed completed/analysis_users/trade_users/transactions | Collaboration created additional users or caused trades; any source-unavailable outcome is zero |
+| `channelLinks` | Same CRM KOL profile ID **and explicit collaboration ref**; KOL observation interval fully contains the collaboration; source watermark covers period and is not future; stored snapshot **capturedAt** independently exists and is <= report end | Up to 8 hashed collaboration refs with window, observed timestamp, available per-KOL aggregates, coverage and `observed-overlap-not-causal` | KOL cohort totals are attributed to this particular collaboration or prove incremental acquisition |
+
+All other apparent similarities (shared channel label, same day, coincidental topic, incomplete observation, missing capture time, unknown linked ID, PT vs Bangkok date mismatch) **remain unlinked**. Explicit links do not resolve overlapping KOL cohorts. Trade volume and verified transactions do not become platform revenue.
+
+The timeline reader also hides **post-report settlements and future settlement snapshots** in historical reports. The positive allowlist transmits only aggregated outcome metrics and opaque `record:[hash]` refs, not raw CRM IDs, members, wallets, posts or user-level records. The link arrays are supplementary associations; original source observations remain separate with their own coverage/freshness.
+
+**Acceptance boundary:** all checks here are source-contract fixtures. Actual production cross-source time alignment, incomplete sampling, historical mutations and causal lift remain independently unverified.
