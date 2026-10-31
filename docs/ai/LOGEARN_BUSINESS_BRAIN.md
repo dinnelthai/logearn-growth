@@ -2,7 +2,7 @@
 
 > Runtime source: `backend/src/ai/business/businessBrain.js`  
 > Current version: `logearn-business-brain-v1`  
-> Status: v1 code added on `codex/ai-comprehensive-upgrade`; runtime / real-model validation pending.
+> Status: v1 code and focused CI validated on codex/ai-comprehensive-upgrade; live API/Worker and real-model validation pending.
 
 ## 1. Purpose
 
@@ -150,3 +150,25 @@ The query is deliberately bounded:
 - expose row/window truncation in quality diagnostics.
 
 This is a performance and scope reduction, not a claim of complete transaction coverage. A trade can be counted as confirmed only when identity and unique token enrichment match the same user, chain and post-analysis time window. An unmatched or truncated window remains unknown. CI validates SQL construction and failure semantics; actual Hologres latency and match coverage still require read-only observation on the authorized source.
+
+ 
+## 13. Operating activity memory
+
+The read-only get_operations_timeline capability reuses existing owner-scoped records. It does not create a second CRM, content platform, or task manager.
+
+| Layer | Existing sources | Interpretation limits |
+|---|---|---|
+| Human operations | growth_activities, crm_collaborations, manually entered content_growth_items, operation_tasks | Activity/task records describe what was logged or executed; manual content is not complete platform collection |
+| Channel observations | X official-account snapshots, Search Console snapshots, KOL observed-behavior snapshots | X is a third-party, per-account recent-post sample (maximum 20); Search Console dates use Pacific Time; KOL observations are not causal attribution |
+| AI actions/reviews | business_analysis_actions, specialist signals | A suggestion is not an executed activity; execution/adoption is not success |
+
+For growth_activities, the timeline exposes only aggregate roster counts, manually assigned treatment/control counts, delivery states, cross-exposure counts, schedule changes, and—when the activity has been settled—the frozen settled_result summary, performance.total, and target progress. Member rows, user IDs, delivery evidence text, and per-user outcomes are never projected to the model. Delivery status uses the latest sent/delivered/not-delivered record as of the selected period end; cross-exposure is reported independently.
+
+Interpretation rules:
+- An unsettled activity or missing source coverage is unknown, not zero.
+- treatment and control are manually fixed groups, not randomized cohorts. Delivery, cross-exposure, and group differences do not prove incremental causality.
+- Analysis, trade, and account-match coverage remain separate. A missing trade result is not zero trades.
+- KOL costs and recorded revenue remain separated by currency. Search Console PT dates are not silently relabeled as Bangkok business dates.
+- Community/training activity is visible only when recorded in existing activity/task records; there is no dedicated platform connector in this implementation. Absence of such records does not prove no activity occurred.
+
+The weekly coverage projector prioritizes settled activity outcomes and group delivery aggregates, keeps evidence IDs, and remains under the 22KB model-context cap in CI fixtures. This is code/fixture validation, not live-source acceptance.
