@@ -25,19 +25,17 @@ test('growth overview carries registration and mature cohort metrics into author
 });
 test('funnel weekly facts expose mature denominators and association-unknown counts',()=>{
  const facts=factsFromEvidence([{id:'funnel-evidence',metricId:'funnel',value:{
-  total_entered:4,total_converted:1,pending_count:1,steps:[
+  total_entered:4,total_converted:2,pending_count:1,steps:[
    {key:'token',users:4,eligible:3,converted:3,previous_conversion_rate:1,
     total_eligible:3,total_conversion_rate:1,pending:1,unknown:0,drop_off_users:0},
    {key:'chip',users:3,eligible:3,converted:2,previous_conversion_rate:2/3,
-    total_eligible:3,total_conversion_rate:2/3,pending:0,unknown:1,drop_off_users:1},
-   {key:'trade',users:1,eligible:2,converted:1,previous_conversion_rate:.5,
-    total_eligible:2,total_conversion_rate:.5,pending:0,unknown:0,drop_off_users:1}
+    total_eligible:3,total_conversion_rate:2/3,pending:0,unknown:1,drop_off_users:1}
   ]
  }}]);
  assert.ok(facts.some(x=>x.metric==='steps.token.eligible'&&x.value===3));
  assert.ok(facts.some(x=>x.metric==='steps.chip.eligible'&&x.value===3));
  assert.ok(facts.some(x=>x.metric==='steps.chip.unknown'&&x.value===1));
- assert.ok(facts.some(x=>x.metric==='steps.trade.total_conversion_rate'&&x.value===.5));
+ assert.ok(facts.some(x=>x.metric==='steps.chip.total_conversion_rate'&&x.value===2/3));
  assert.equal(facts.length,12);
 });
 
