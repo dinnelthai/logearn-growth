@@ -2,7 +2,7 @@
 
 Branch: `codex/ai-comprehensive-upgrade`  
 Scope: Business Brain, Growth Intelligence, Operating Memory, Decision Engine and Learning Loop.  
-Progress snapshot (2026-10-31, audited source/test HEAD `14f42ba61c785866e918df3ca841bf4525f35bc2`): **39 / 48 implementation checklist items (81.3%)** have code and focused CI-contract evidence; **9 remain open**. This is NOT live-source, platform-revenue availability or real-model acceptance.  
+Progress snapshot (2026-10-31, latest source/test HEAD `8a7f71c98fce502b68a056671ee9a95304507abb`): **39 / 48 implementation checklist items (81.3%)** have code and focused CI-contract evidence; **9 remain open**. This is NOT live-source, platform-revenue availability or real-model acceptance.  
 Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace and storage.
 
 ## Product definition
@@ -58,6 +58,13 @@ Do not build a second analytics engine, CRM, operations task manager, metric reg
 - Read-only source acceptance must establish data freshness, identity/match coverage, mature denominators, real Hologres query latency, GSC PT-day alignment and X/KOL/invite snapshots. Missing data is unknown, never zero.
 
 **Execution order:** (1) Phase 2 audit and source-safe funnel/economics, (2) Phase 3 stable operational outcome links, (3) Phase 4 query-cost ranking only after measured metadata exists, (4) already-authorized read-only v5/Operating Memory/fixed-cohort acceptance plus operator confirmation. Keep paid calls, deployments, migrations and external writes separately approval-gated.
+
+### Continuation checkpoint — 2026-10-31 (source-specific provenance / CRM independence)
+
+- Source/test HEAD: `8a7f71c98fce502b68a056671ee9a95304507abb`. [AI infrastructure 41186244825](https://github.com/dinnelthai/logearn-growth/actions/runs/41186244825): **success** for AI Contract, AI Integration, AI Frontend, including source-specific provenance and CRM Hologres-isolation regressions.
+- **Resolved:** `backend/src/ai/business/tools/registry.js` now persists actual GSC API synced/manual imported times, bounded X observed-post times, follower-scan progress update times, verified KOL snapshot `asOf` and their source-version identities. Missing source times remain null, not the event-store timestamp or the query wall clock. `backend/src/ai/business/modelTransport.js` exposes those keys through the model evidence allowlist. Manual CRM collaboration ledger no longer inherits Hologres event freshness and remains independently queryable when Hologres status is down.
+- **Boundary:** GSC fetch timestamp does not prove PT daily completeness; X latest sampled post does not prove all-account freshness; KOL event snapshot does not prove manual CRM relation completeness; manual collaboration ledger has no independent complete-through watermark. The complete per-metric/per-source metadata checklist **remains unchecked** until every remaining compound tool contract and real-source verification is covered. Detailed matrix: `docs/ai/GROWTH_SOURCE_CONTRACTS.md`.
+- **Progress unchanged: 39/48 = 81.3%, Phase 2 4/8, 9 open.** This completes material backend sub-work but not a broadly defined roadmap item. No paid calls, migrations or deployment.
 
 ### Continuation checkpoint — 2026-10-31 (GSC/X/KOL/invite source semantics)
 
