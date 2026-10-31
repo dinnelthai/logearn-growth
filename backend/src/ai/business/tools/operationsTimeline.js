@@ -208,7 +208,7 @@ function createOperationsTimeline({
    const accountCoverage=[];
    for(const account of overview.accounts||[]){
     const postsAvailable=Array.isArray(account.posts)?account.posts:[];
-    const lastSynced=Date.parse(account.lastSynced||'');
+    const lastSynced=typeof account.lastSynced==='number'?account.lastSynced:Date.parse(account.lastSynced||'');
     const accountStatus=!overview.configured?'not_configured':
      Number.isFinite(lastSynced)?'pending-period-check':
       account.error||account.lastAttempt?'unavailable':'not_synced';
