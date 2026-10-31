@@ -512,6 +512,16 @@ router.get('/growth-review-queue',handle(async(req,res)=>{
     entries,automaticPaidReviews:false});
 }));
 router.get('/suggestions/list',handle(async(req,res)=>res.json({suggestions:await records.listSuggestions(req.user.user_id,paging(req))})));
+router.post('/suggestions/:id/link-operation-task',handle(async(req,res)=>{
+  const ownerId=String(req.user.user_id),taskId=req.body?.taskId;
+  if(typeof taskId!=='string'||!taskId.trim()||taskId.length>128)
+    return res.status(400).json({error:'请提供已有运营任务 ID'});
+  const suggestion=await records.getSuggestion(req.params.id,ownerId);
+  if(!suggestion)return res.status(404).json({error:'建议不存在'});
+  const store=require('../ai/growth/workspace/store').workspaceStore(require('../db/connection'));
+  const linked=store.linkAcceptedSuggestionToTask(ownerId,suggestion,taskId.trim());
+  res.json(linked);
+}));
 router.put('/suggestions/:id/status',handle(async(req,res)=>{
   const {userStatus,actualAction,actionScope,executedAt,rejectionReason}=req.body;
   if(!['pending','adopted','executing','executed','rejected','invalid'].includes(userStatus))return res.status(400).json({error:'建议状态无效'});
