@@ -371,3 +371,19 @@
 #la-studio .ga-workspace form :is(input,select,textarea),#la-studio .ga-workspace .a-button {font-size:13px}
 #la-studio .ga-tab {font-size:13px;min-height:38px}
 @media (max-width:800px){#la-studio .ai-weekly-coverage-alert .a-button {width:100%}}
+
+/* Custom collection period for AI operating reports */
+#la-studio .ai-weekly-range-picker {
+ display:flex;align-items:end;flex-wrap:wrap;gap:10px;
+ margin:12px 0 16px;padding:12px 14px;
+ border:1px solid var(--a-border);border-radius:10px;
+ background:var(--a-panel);
+}
+#la-studio .ai-weekly-range-picker label {
+ display:grid;gap:5px;color:var(--a-muted);font-size:12px;font-weight:650;
+}
+#la-studio .ai-weekly-range-picker input {
+ min-height:36px;padding:6px 9px;border:1px solid var(--a-border);
+ border-radius:8px;background:var(--ui-surface-raised);color:var(--a-text);font:inherit;
+}
+#la-studio .ai-weekly-range-picker span {font-size:12px;color:var(--a-muted)}
