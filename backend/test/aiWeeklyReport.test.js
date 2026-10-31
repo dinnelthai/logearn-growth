@@ -35,6 +35,8 @@ test('31-day custom period is valid and its prompt is not constrained to a natur
  assert.ok(require('../src/ai/growth/weeklyReport').weeklyPromptV3.includes('operations-timeline'));
  assert.ok(require('../src/ai/growth/weeklyReport').weeklyPromptV3.includes('未收集、未连接或读取失败不等于没有运营'));
  assert.ok(require('../src/ai/growth/weeklyReport').weeklyPromptV3.includes('treatment/control 是人工固定分组，不是随机实验'));
+ assert.ok(require('../src/ai/growth/weeklyReport').weeklyPromptV3.includes('previousActions'));
+ assert.ok(require('../src/ai/growth/weeklyReport').weeklyPromptV3.includes('acquisition|registration|activation|engagement|retention|trading|economics'));
  assert.ok(customPeriodPromptV1.includes('紧邻前一段等长周期'));
  assert.equal(customPeriodPromptV1.includes('完整自然周'),false);
  assert.equal(customPeriodPromptV1.includes('本任务是 LogEarn 完整自然周'),false);
@@ -130,4 +132,50 @@ test('a malformed additional report becomes a clearly partial saved AI result',(
  assert.equal(report.metrics.length,0);
  assert.deepEqual(report.highlights[0].evidenceIds,['ev1']);
  assert.ok(report.dataGaps.length>0);
+});
+
+test('v5 weekly report requires all seven lifecycle stages and evidence-backed opportunities/actions',()=>{
+ const {LIFECYCLE_STAGES}=require('../src/ai/growth/weeklyReport');
+ const report={claims:[{kind:'fact',text:'观察到首次分析用户增长',evidenceIds:['ev1']}],
+  weeklyReport:{executiveSummary:'本周观察到增长，但原因仍待验证',
+   metrics:[],highlights:[],issues:[],channelFindings:[],nextWeek:[],dataGaps:[],
+   lifecycle:LIFECYCLE_STAGES.map(stage=>({stage,status:'unknown',
+    finding:'本期没有足够的阶段级证据',evidenceIds:[]})),
+   opportunities:[{text:'首次分析用户有正向变化，需验证持续性',evidenceIds:['ev1']}],
+   previousActions:[{action:'调整新用户引导',status:'executed',
+    review:'insufficient',outcome:'固定人群指标尚不支持判断',
+    metric:'active_users',evidenceIds:['ev1']}]}
+ };
+ assert.equal(validateWeeklyReport(report,{strict:true}),report.weeklyReport);
+ report.weeklyReport.lifecycle.pop();
+ assert.throws(()=>validateWeeklyReport(report,{strict:true}),/生命周期/);
+});
+test('v5 weekly report rejects unsupported claims in lifecycle, opportunity and previous-action sections',()=>{
+ const {LIFECYCLE_STAGES}=require('../src/ai/growth/weeklyReport');
+ const make=()=>({claims:[{evidenceIds:['ev1']}],weeklyReport:{
+  executiveSummary:'当前观察',metrics:[],highlights:[],issues:[],channelFindings:[],nextWeek:[],dataGaps:[],
+  lifecycle:LIFECYCLE_STAGES.map(stage=>({stage,status:'unknown',finding:'未知',evidenceIds:[]})),
+  opportunities:[{text:'增长机会',evidenceIds:['fake']}],
+  previousActions:[{action:'执行过的行动',status:'executed',review:'not-reviewed',
+   outcome:'尚未复盘',metric:'active_users',evidenceIds:['ev1']}]
+ }});
+ assert.throws(()=>validateWeeklyReport(make(),{strict:true}),/增长机会/);
+ const badLifecycle=make();badLifecycle.weeklyReport.opportunities=[];
+ badLifecycle.weeklyReport.lifecycle[0].status='observed';
+ assert.throws(()=>validateWeeklyReport(badLifecycle,{strict:true}),/生命周期/);
+ const badAction=make();badAction.weeklyReport.opportunities=[];
+ badAction.weeklyReport.previousActions[0].status='proposed';
+ assert.throws(()=>validateWeeklyReport(badAction,{strict:true}),/历史行动复盘/);
+});
+test('missing v5 report sections are saved only as an explicit partial report with unknown lifecycle stages',()=>{
+ const analysis={summary:'已完成部分分析',claims:[],suggestions:[],
+  weeklyReport:{executiveSummary:'部分结果',metrics:[],highlights:[],issues:[],
+   channelFindings:[],nextWeek:[],dataGaps:[]}};
+ const report=ensureWeeklyReport(analysis,{context:{weeklyReportContractVersion:'weekly-report-v2'}});
+ assert.equal(report.partial,true);
+ assert.equal(report.lifecycle.length,7);
+ assert.ok(report.lifecycle.every(x=>x.status==='not-investigated'));
+ assert.deepEqual(report.opportunities,[]);
+ assert.deepEqual(report.previousActions,[]);
+ assert.ok(report.dataGaps.some(x=>x.includes('不代表没有运营')));
 });
