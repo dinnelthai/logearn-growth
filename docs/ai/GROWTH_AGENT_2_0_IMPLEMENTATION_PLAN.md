@@ -2,7 +2,7 @@
 
 Branch: `codex/ai-comprehensive-upgrade`  
 Scope: Business Brain, Growth Intelligence, Operating Memory, Decision Engine and Learning Loop.  
-Progress snapshot (2026-10-31, latest source-contract/UI test HEAD `f9de3abb5eae27be99ba9129ee92c8b57a318a03`): **37 / 48 implementation checklist items (77.1%)** have code/CI evidence; **11 remain open**. This is NOT the live-source or model-acceptance rate.  
+Progress snapshot (2026-10-31, audited implementation HEAD `ac7b5a410211bb257033943a729ad852e0d16fb8`): **38 / 48 implementation checklist items (79.2%)** have code and focused CI-contract evidence; **10 remain open**. This is NOT live-source, platform-revenue availability or real-model acceptance.  
 Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace and storage.
 
 ## Product definition
@@ -36,18 +36,18 @@ Do not build a second analytics engine, CRM, operations task manager, metric reg
 
 ## Progress audit — 2026-10-31 (branch-only)
 
-**Scope and accounting.** Source-of-truth is this branch's 48 checkboxes, not comparison with `master`. A checked item means implementation with focused/CI evidence; it **does not** mean the live LogEarn sources, Worker, paid model, external collectors or operator outcomes have passed acceptance. Newly checked items in this audit: the two Phase 5 weekly-report UI/contract items, backed by implementation/test files. No business code was changed in this documentation pass.
+**Scope and accounting.** Source-of-truth is this branch's 48 checkboxes, not comparison with `master`. A checked item means implementation with focused/CI evidence; it **does not** mean the live LogEarn sources, Worker, paid model, external collectors or operator outcomes have passed acceptance. Newly checked in the reconciled audit: two Phase 5 weekly-report items and the Phase 2 platform-vs-partner revenue identity contract. Subsequent source/test commits are separate from documentation-only changes.
 
 | Phase | Code/CI checked | Open | Remaining boundary |
 |---|---:|---:|---|
 | 0 — Baseline/handoff | 5/5 | 0 | Maintain handoff after changes |
 | 1 — Business Brain | 8/10 | 2 | Real authorized context check; operator approval of North Star/product map |
-| 2 — Growth Intelligence | 2/8 | 6 | Source contracts, mature funnel, channel semantics, metadata and economics |
+| 2 — Growth Intelligence | 3/8 | 5 | Live source contracts, mature funnel, channel semantics, breakdowns, full metadata |
 | 3 — Operating Memory | 7/8 | 1 | Cross-channel outcome links only with reliable keys and windows |
 | 4 — Decision Engine | 4/6 | 2 | Cost-aware ranking / cheapest discriminating query lack trusted cost metadata |
 | 5 — Operating Report | 5/5 | 0 | New v5 report contract/UI exist, **live model and report-quality acceptance pending** |
 | 6 — Learning Loop | 6/6 | 0 | Frozen-cohort end-to-end acceptance pending; v2 direct cohort review currently maps only `active_users → analysis_users` |
-| **Total** | **37/48 (77.1%)** | **11** | **Do not equate code completion with production readiness** |
+| **Total** | **38/48 (79.2%)** | **10** | **No real-source/Worker/paid-model acceptance implied** |
 
 **Latest verified checks:** AI infrastructure [run 41184069508](https://github.com/dinnelthai/logearn-growth/actions/runs/41184069508) passed on `76ec311df688860f93b72b930641cf1c3cd3ef03` (strict v5 weekly partial-report fallback); frontend [run 41184123727](https://github.com/dinnelthai/logearn-growth/actions/runs/41184123727) passed on exact audited HEAD `030c0ed8993a049485f4a064d48cef1f661dfa05`. Earlier intermediate AI CI runs failed before corrective commits; do not cite them as final failures. No full real-source / Worker / paid-model acceptance was performed in this review.
 
@@ -58,6 +58,13 @@ Do not build a second analytics engine, CRM, operations task manager, metric reg
 - Read-only source acceptance must establish data freshness, identity/match coverage, mature denominators, real Hologres query latency, GSC PT-day alignment and X/KOL/invite snapshots. Missing data is unknown, never zero.
 
 **Execution order:** (1) Phase 2 audit and source-safe funnel/economics, (2) Phase 3 stable operational outcome links, (3) Phase 4 query-cost ranking only after measured metadata exists, (4) already-authorized read-only v5/Operating Memory/fixed-cohort acceptance plus operator confirmation. Keep paid calls, deployments, migrations and external writes separately approval-gated.
+
+### Continuation checkpoint — 2026-10-31 (Phase 2 ledger/platform revenue split)
+
+- Code/test HEAD: `ac7b5a410211bb257033943a729ad852e0d16fb8`. AI Contract and AI Frontend jobs of [run 41185478559](https://github.com/dinnelthai/logearn-growth/actions/runs/41185478559) passed at documentation authoring time; AI Integration job was still running. Verify the final run conclusion before claiming full CI success.
+- **Resolved:** the `get_channel_economics` tool previously filed owner-specific CRM ledger aggregates under `trade_revenue`. New evidence uses `collaboration_economics` (version 1); formal platform revenue is `trade_revenue` version 2 with `platform-revenue-unavailable` adapter. The v1 archived metric remains readable, not silently remapped. Business Brain is `logearn-business-brain-v2` with metric dictionary version 2, and the new model context still obeys the 22KB check in AI Contract.
+- **Explicit boundary:** no actual platform trading-fee/revenue source was connected or independently accepted, so real platform revenue must remain unknown. Human collaboration receipts are not platform income; trade notional is not fee revenue. This closes the **semantic separation** task, not a future real-revenue implementation.
+- **Updated total: 38/48 (79.2%), Phase 2 = 3/8, 10 checkboxes open.** Remaining Phase 2 items are full source-contract audit, mature funnel, external/channel date semantics, supported breakdowns and per-source freshness/watermark coverage.
 
 ### Continuation checkpoint — 2026-10-31 (Phase 2 source contract + weekly UI)
 
@@ -109,7 +116,8 @@ Acceptance:
 - [ ] Add channel / product / cohort breakdowns only where the source supports them.
 - [ ] Keep source watermark, coverage, freshness, scope and definition version with each metric.
   - **Incremental code milestone (2026-10-31):** `query_metrics` now archives per-metric coverage/limits and keeps metric-specific warnings (registration scope, mature cohort, trade identity) alongside common warnings. The event snapshot no longer masquerades as a separate registration watermark; registration/trade watermarks remain explicitly `null` pending measured source freshness. `makeEvidence` already pins definition version, owner scope and period. Still open: standardize independent source watermarks/freshness across every non-metric specialty and validate against live sources. AI CI [41184881554](https://github.com/dinnelthai/logearn-growth/actions/runs/41184881554) passed (Contract, Integration, Frontend).
-- [ ] Separate platform revenue from trade volume and partner/collaboration ledger records.
+- [x] Separate platform revenue from trade volume and partner/collaboration ledger records (**code + contract tests; actual platform revenue remains unavailable**).
+  - `get_channel_economics` now emits `collaboration_economics` v1, explicitly limited to owner-scoped CRM/KOL collaboration ledger; its USD/other-currency balances and ROI are never presented as platform trading revenue. `trade_revenue` remains as a separate v2 formal **unavailable platform revenue** metric without pretending there is an adapter; archived v1 evidence is not rewritten. Trade volume stays a transaction metric, not either revenue stream. `logearn-business-brain-v2` pins the distinction, versioned metric dictionary v2 and a 22KB bounded input. New weekly module names and tests reflect this. No direct platform fee/revenue source was built.
 
 Acceptance:
 - dashboard and AI use the same underlying analytics service;
