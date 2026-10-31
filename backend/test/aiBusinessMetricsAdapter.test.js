@@ -122,3 +122,29 @@ test('registered trade conversion stays unknown when trade facts are unavailable
   assert.match(result.metrics[0].warnings.join(' '),/未知不能解释为0/)
  }finally{evidence.fetchGrowthInsights=original}
 })
+
+test('metric-specific coverage reports registration and trade uncertainty independently',async()=>{
+ const original=evidence.fetchGrowthInsights;
+ try{
+  evidence.fetchGrowthInsights=async()=>({cohorts:{registration:{
+   available:true,scope:'observed_source',
+   metrics:{users:3,eligible:2,activated:1,pending:1,rate:.5},
+   trade:{available:false,eligible:null,traders:null,conversion_rate:null}
+  }}});
+  const out=await metrics({start:100,end:200,source:'x'},
+   {snapshot_id:'event-snapshot'},[
+    'registered_users','registration_activation_rate','registered_trade_conversion_rate'],{});
+  const [registered,activated,traded]=out.metrics;
+  assert.equal(registered.value,3);
+  assert.equal(registered.coverage.status,'partial');
+  assert.match(registered.coverage.reason,/已观测归因/);
+  assert.equal(activated.value,.5);
+  assert.equal(activated.coverage.status,'partial');
+  assert.match(activated.coverage.reason,/事件覆盖和注册水位/);
+  assert.equal(traded.value,null);
+  assert.equal(traded.coverage.status,'unavailable');
+  assert.match(traded.coverage.reason,/不能解释为零/);
+  assert.equal(out.coverage.registrations,'observed_source');
+  assert.equal(out.coverage.trades,'unknown');
+ }finally{evidence.fetchGrowthInsights=original}
+});
