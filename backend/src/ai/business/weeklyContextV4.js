@@ -206,7 +206,7 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
   omissions:{
    rawRowsOmitted:true,postTextOmitted:true,toolNarrativesOmitted:true,
    fullSourceMetadataArchived:true,
-   note:'12模块仅发送关键统计与覆盖；没有查询或没有观测不表示0；需要补查时使用授权工具'
+   note:'13模块仅发送关键统计与覆盖；没有查询或没有观测不表示0；需要补查时使用授权工具'
   }
  };
  const size=()=>Buffer.byteLength(JSON.stringify(out),'utf8');
