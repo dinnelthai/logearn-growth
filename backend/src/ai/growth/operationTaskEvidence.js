@@ -1,10 +1,27 @@
 'use strict';
 
 const {workspaceStore}=require('./workspace/store');
-const {reviewPeriods}=require('../../analytics/businessPriorities');
+const DAY=86400000,OFFSET=7*3600000;
 const METRICS=['analysis_users','analysis_events','analysis_days','trade_users','transactions','volume_usd'];
 
 function json(value,fallback=null){try{return JSON.parse(value)}catch{return fallback}}
+function taskReviewPeriods(task,cutoff){
+ const completedAt=task.completed_at,createdAt=task.created_at;
+ if(!Number.isSafeInteger(completedAt)||!Number.isSafeInteger(createdAt)||createdAt<0||completedAt<createdAt)
+  throw Error('运营任务时间戳无效');
+ const effectStart=Math.floor((completedAt+OFFSET)/DAY)*DAY-OFFSET+DAY;
+ const fullDayEnd=Math.floor((cutoff+OFFSET)/DAY)*DAY-OFFSET;
+ const availableDays=Math.floor((fullDayEnd-effectStart)/DAY);
+ if(availableDays<3)throw Error('任务完成后至少需要3个完整业务日才能复盘');
+ const days=Math.min(14,availableDays);
+ const baselineEnd=Math.floor((createdAt+OFFSET)/DAY)*DAY-OFFSET;
+ const baselineStart=baselineEnd-days*DAY;
+ const effectEnd=effectStart+days*DAY;
+ if(baselineStart<0||baselineEnd>createdAt||effectEnd>fullDayEnd)
+  throw Error('固定人群前后观察窗口无效');
+ return {baselineStart,baselineEnd,effectStart,effectEnd,days,
+  timezone:'Asia/Bangkok',baselineAnchor:'before-task-created',effectAnchor:'after-task-completed'};
+}
 function metricChanges(baseline,effect){
  return Object.fromEntries(METRICS.map(key=>{
   const a=baseline?.[key],b=effect?.[key];
@@ -43,7 +60,7 @@ async function loadLinkedTaskEvidence({db,ownerId,suggestionId,executedAt,expect
  if(!Number.isSafeInteger(cutoff)||!Number.isFinite(cutoff))
   return {status:'unavailable',reason:'invalid-source-watermark',taskId:task.id};
  let periods;
- try{periods=(dependencies.reviewPeriods||reviewPeriods)(task.completed_at,cutoff)}
+ try{periods=(dependencies.taskReviewPeriods||taskReviewPeriods)(task,cutoff)}
  catch(error){return {status:'waiting',reason:'cohort-observation-window-not-mature',taskId:task.id,
   message:String(error.message||error).slice(0,200)}}
  const factsLoader=dependencies.memberFacts||require('../../data/memberMetrics').memberFacts;
@@ -75,7 +92,7 @@ async function loadLinkedTaskEvidence({db,ownerId,suggestionId,executedAt,expect
   metricChanges:metricChanges(baseline,effect),
   quality:{baselineErrors:beforeFacts.errors,effectErrors:afterFacts.errors,
    baselineUnmatched:before.unmatched_users,effectUnmatched:after.unmatched_users},
-  interpretation:'同一固定人群、等长业务窗口、同一数据快照的前后观察；不是随机对照实验，不单独证明行动因果效果。'
+  interpretation:'同一固定人群、等长业务窗口、同一数据快照的前后观察；基线窗口严格早于任务创建，观察窗口从任务完成后的下一个完整业务日开始，任务执行期间不计入任一窗口；不是随机对照实验，不单独证明行动因果效果。'
  };
 }
-module.exports={METRICS,metricChanges,findLinkedTask,loadLinkedTaskEvidence};
+module.exports={METRICS,taskReviewPeriods,metricChanges,findLinkedTask,loadLinkedTaskEvidence};
