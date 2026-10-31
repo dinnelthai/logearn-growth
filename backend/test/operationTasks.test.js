@@ -72,3 +72,12 @@ test('linked AI suggestion is not marked executed without a real completion note
  assert.equal(result.status,'partial');assert.equal(result.items[0].status,'needs-execution-note');
  assert.equal(rows.get('s-2').user_status,'adopted');
 });
+
+test('task update can report a retryable partial sync when link lookup fails',async()=>{
+ const result=await syncLinkedAISuggestions({id:'task-3',status:'in_progress'},'alice','',{
+  workspace:{suggestionIdsForOperationTask(){throw Error('workspace temporarily unavailable')}},
+  records:{}
+ });
+ assert.equal(result.status,'partial');
+ assert.equal(result.items[0].status,'link-lookup-failed');
+});
