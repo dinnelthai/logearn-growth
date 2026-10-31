@@ -60,6 +60,41 @@ test('collaboration economics evidence never becomes platform revenue or trade v
   assert.notEqual(describeMetric('trade_revenue').definition,describeMetric('collaboration_economics').definition);
  }finally{t.db.close()}
 });
+test('query_metrics archives the complete registration journey with independent source limits',async()=>{
+ const t=setup({metrics:async()=>({metrics:[{metricId:'registered_user_journey',
+  value:{available:true,registration:{
+   users:20,activation:{eligible:16,activated:8,pending:4,rate:.5,window_ms:86400000},
+   engagement:{eligible:12,chip_analysis_users:9,holder_view_users:6,
+    strategy_started_users:4,signal_view_users:7,repeat_analysis_users:3,
+    chip_analysis_rate:.75,holder_view_rate:.5,window_ms:604800000,
+    definition:'并行产品入口，可重叠'},
+   trade:{available:false,eligible:null,traders:null,conversion_rate:null,
+    association:'user-level-after-first-analysis'},
+   coverage:{status:'partial',reason:'注册、事件和交易事实来源独立'}
+  }},
+  coverage:{status:'partial',reason:'注册源、事件源和交易源完整性待验证'},
+  warnings:['产品入口并行，不能相加或串行化','交易未知不等于0']
+ }],coverage:{events:'partial',registrations:'unknown',trades:'unknown'}})});
+ try{
+  const result=await t.registry.executeTool('query_metrics',
+   {metrics:['registered_user_journey']},t.context);
+  assert.equal(result.status,'ok');
+  const evidence=result.evidence[0];
+  assert.equal(evidence.metricId,'registered_user_journey');
+  assert.equal(evidence.value.registration.engagement.holder_view_users,6);
+  assert.equal(evidence.value.registration.engagement.repeat_analysis_users,3);
+  assert.equal(evidence.value.registration.trade.eligible,null);
+  assert.equal(evidence.coverage.status,'partial');
+  assert.equal(evidence.watermarks.events,'2026-10-20T00:00:00Z');
+  assert.equal(evidence.watermarks.registrations,null);
+  assert.equal(evidence.watermarks.trades,null);
+  const projected=require('../src/ai/business/modelTransport').modelEvidence(evidence);
+  assert.equal(projected.value.registration.engagement.signal_view_users,7);
+  assert.equal(projected.value.registration.trade.available,false);
+  assert.doesNotMatch(JSON.stringify(projected),/private-user|0x[a-f0-9]{40}/i);
+ }finally{t.db.close()}
+});
+
 test('manual CRM ledger read works when unrelated Hologres snapshot is unavailable',async()=>{
  let queriedSnapshot=false,ledgerCalls=0;
  const t=setup({snapshot:async()=>{queriedSnapshot=true;throw Error('Hologres unavailable')},
