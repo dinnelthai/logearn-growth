@@ -55,7 +55,9 @@ test('operating timeline is a collected weekly module with separate aggregate la
     value:{metrics:{clicks:8}},coverage:{periodMatched:true}}]}:
    {status:'ok',evidence:[{id:'operations-1',metricId:'activities',
     value:{counts:{human_operations_shown:2,channel_observations_shown:1,ai_actions_shown:3,total_records_shown:6},
-     humanOperations:[{title:'Campaign'}],channelObservations:[],aiActions:[],
+     humanOperations:[{kind:'growth_activity',source:'growth_activities',title:'Campaign',
+      assignments:[{group:'treatment',assigned:4,delivered:3,sent_unconfirmed:0,not_delivered:0,delivery_unknown:1,cross_exposed:1},
+       {group:'control',assigned:3,delivered:1,sent_unconfirmed:1,not_delivered:0,delivery_unknown:1,cross_exposed:0}]}],channelObservations:[],aiActions:[],
      coverage:{growthActivities:{status:'available',truncated:true}}},
     coverage:{status:'available'}}]}
  });
@@ -64,7 +66,8 @@ test('operating timeline is a collected weekly module with separate aggregate la
  assert.match(row.reason,/有界样本/);
  assert.ok(row.evidenceIds.includes('operations-1'));
  assert.ok(row.facts.some(x=>x.metric==='counts.human_operations_shown'&&x.value===2));
- assert.ok(row.facts.some(x=>x.metric==='counts.ai_actions_shown'&&x.value===3));
+ assert.ok(row.facts.some(x=>x.metric==='humanOperations.growth_activities.assignments.treatment.delivered'&&x.value===3));
+ assert.ok(row.facts.some(x=>x.metric==='humanOperations.growth_activities.assignments.control.delivered'&&x.value===1));
  assert.equal(out.queries,2);
 });
 test('unmatched SEO source stays insufficient, not falsely counted as weekly analyzed',async()=>{
