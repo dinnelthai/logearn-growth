@@ -2,7 +2,7 @@
 
 Branch: `codex/ai-comprehensive-upgrade`  
 Scope: Business Brain, Growth Intelligence, Operating Memory, Decision Engine and Learning Loop.  
-Progress snapshot (2026-10-31): 33 / 48 implementation checklist items have code and CI coverage in place (69%); live-source acceptance is tracked separately.  
+Progress snapshot (2026-10-31): 35 / 48 implementation checklist items have code and CI coverage in place (73%); live-source acceptance is tracked separately.  
 Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace and storage.
 
 ## Product definition
@@ -107,8 +107,10 @@ Implementation note (2026-10-31): v5 now ranks observed positive and negative si
 - [ ] Prioritize business questions by goal relevance, affected population, change magnitude, evidence confidence and query cost.
 - [ ] Generate competing root-cause hypotheses and identify the cheapest authorized query that distinguishes them.
 - [x] Look for growth opportunities as well as declines (v5-only, goal-ranked observed increases; not proof of replicability).
-- [ ] Generate actions with problem, hypothesis, expected impact basis, resource/owner, primary metric, target, maturity window and review condition.
-- [ ] Validate each suggested metric against the registry and the actual retrospective service.
+- [x] Generate actions with problem, hypothesis, expected impact basis, resource/owner, primary metric, target, maturity window and review condition (new analysis-contract-v2 snapshots require a complete execution plan, bounded review conditions, impact basis and exact source scope).
+- [x] Validate each suggested metric against the registry and the actual retrospective service (shared reviewMetrics contract; only directly readable metrics are accepted for new suggestions).
+
+Implementation note (2026-10-31): New analysis tasks pin `analysis-contract-v2` into their saved context. The shared `growth/reviewMetrics.js` map defines the exact metrics the retrospective service can rebuild (`active_users`, `new_users`, `returning_users`, `activation_rate`, `d7`) and provides the same value projection used by the actual retrospective job. The formal metric registry derives its `reviewAdapter` from this map and throws on any mismatch. `registered_users`, `registration_activation_rate` and `registered_trade_conversion_rate` remain valid business metrics but are explicitly not reviewable by the current retrospective service; new suggestions cannot pretend otherwise. New contract snapshots require a complete validated execution plan, impact basis, exact requested source scope and non-empty review conditions. Archived contexts without the v2 marker retain legacy validation for safe recovery.
 - [x] Avoid duplicate or already-disproved actions: retain recent executed action labels (including insufficient reviews), instruct the planner not to repeat contradicted actions, and reject exact duplicates against both proposed and actual executed action text.
 
 Implementation note (2026-10-31): Learning now retains up to three recent action records per metric, including the bounded business problem, actual executed action, observational label and reason. Contradicted actions are explicitly marked “do not repeat as-is”; insufficient reviews instead require evidence completion or a materially changed intervention, without being treated as disproved. Planner skills receive these action-level lessons, and their relevance contributes to investigation attention. The analysis contract also performs deterministic exact-text duplicate detection against both the original proposal and the recorded actual action, scoped by primary metric and source. Similarity-based rejection is intentionally not used to avoid false positives; the model is instructed to distinguish materially changed validation steps.
