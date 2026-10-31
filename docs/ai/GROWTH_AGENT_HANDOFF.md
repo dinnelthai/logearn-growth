@@ -6,9 +6,9 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
-- Latest successful implementation/CI head: `e39b6b1791e5459af7a458c278f937f92c796011` (reviewable metric and complete action-plan contract; CI run 41182874411 passed). Fetch the live branch before editing.
+- Latest successful implementation/CI head: `c46073497ab41dfd67c44249e34d341b8063689e` (strict discriminating-query schema, source and period validation; CI run 41183309528 passed). Fetch the live branch before editing.
 - Fetch the live branch HEAD before every new edit; do not rely on this document's historical commit reference.
-- Latest successful CI: AI infrastructure run [41182874411](https://github.com/dinnelthai/logearn-growth/actions/runs/41182874411) — AI Contract, AI Frontend and AI Integration all passed, including strict metric and action-plan contract tests.
+- Latest successful CI: AI infrastructure run [41183309528](https://github.com/dinnelthai/logearn-growth/actions/runs/41183309528) — AI Contract, AI Frontend and AI Integration all passed.
 - Checklist progress: 35 / 48 implementation items (73%); live-source acceptance is not included in that percentage.
 - Do not switch to or commit to `master`.
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
@@ -249,3 +249,12 @@ Final validation update: run [41177187712](https://github.com/dinnelthai/logearn
 - Tests cover registry/service parity, retrospective value projection, unsupported metrics, malformed/duplicate metrics, required action plans, exact source scope and legacy recovery compatibility.
 - CI [41182874411](https://github.com/dinnelthai/logearn-growth/actions/runs/41182874411) passed all three AI jobs. Contract groups: 177 (176 pass, 0 fail, 1 skipped), plus 26/26, 16/16, 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112.
 - No schema migration, deployment, live source collection, paid model call or external write.
+
+
+## 2026-10-31 — Discriminating-query validation
+
+- Strict `analysis-contract-v2` now requires competing root-cause explanations to be distinct and validates each discriminating query's input against the exact capability schema in the current task context.
+- Query scope must match the task source; query dates must remain within the authorized period. `query_metrics` metric IDs are checked against the formal registry.
+- The stricter input/schema validation is gated to v2 snapshots. Archived contexts retain the previous authorization behavior so older finalization/recovery is not retroactively broken.
+- CI [41183309528](https://github.com/dinnelthai/logearn-growth/actions/runs/41183309528) passed all AI Contract, Frontend and Integration jobs. Contract groups: 177 (176 pass, 0 fail, 1 skipped), plus 26/26, 19/19, 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112.
+- Query-cost ranking remains open: legacy tool resource/latency costs are not measured. Do not label a query “cheapest” or invent cost estimates; prefer the smallest necessary authorized query and state cost as unknown.
