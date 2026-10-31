@@ -93,6 +93,7 @@ jobs:
           node --check src/ai/growth/reviewQueue.js
           node --check src/ai/growth/operationTaskEvidence.js
           node --check src/queues/jobs/retrospective.js
+          node --check src/routes/operationTasks.js
           node --check test/operationTaskEvidence.test.js
           node --check src/ai/growth/inbox.js
           node --check src/ai/growth/crossDay.js
