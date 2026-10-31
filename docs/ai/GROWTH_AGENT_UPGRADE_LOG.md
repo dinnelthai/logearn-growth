@@ -762,3 +762,24 @@ These are **code-complete/CI-validated**, not a guarantee that an actual new v5 
 
 - **43/48 = 89.6%; 5 unchecked; Phase 2 8/8.** Other open: two Phase 1 operator/real-context acceptance; one Phase 3 stable activity-to-outcome association; two Phase 4 cost-aware question ranking / cheapest differentiating query based on actual trusted metadata.
 - Real-source completeness and freshness, account/transaction association, actual paid AI analysis and report-quality evaluation have not been validated. No deployment, migration, sync, payment, external publish or `master` change.
+
+## 2026-10-31 — Phase 3 Operating Memory stable activity→mature outcome links (44/48)
+
+### Source and time integrity
+
+- Prior Operating Memory already included the underlying owner-scoped activity settlement, explicit CRM collaboration↔activity references and same-KOL-profile observations, but the AI could not safely connect them into an outcome statement. An as-of bug also let historical reports show activity settlement saved after the requested period.
+- `backend/src/ai/business/tools/operationsTimeline.js` now passes requested report `end` to `activityOutcome`; a settlement at or after the half-open end, or whose own `as_of/snapshot_cutoff` falls after report end, is not treated as a historical settled outcome. KOL observed source watermark is separated from the snapshot's own `capturedAt` time; both are needed to prove the observation existed by the report cutoff.
+
+### Implementation and hard association boundaries
+
+- `backend/src/ai/business/tools/registry.js#operationsTimelineSummary()` derives at most **8 `outcomeLinks`** from explicit CRM collaboration→activity keys, only where collaboration period **fully contains** activity period, settlement and its source-as-of are before report end, source-as-of covers the full activity period, and respective account, analysis or trade source coverage is **available**. Provides only independently observed aggregate `completed`, `analysis_users`, `trade_users`, `transactions`. Each link has hashed `collaborationRef/activityRef`, an aligned window, observed source timestamp and `attribution:'observed-non-causal'`. This is not KOL incremental credit.
+- At most **8 `channelLinks`** require explicit same CRM KOL profile + referenced collaboration ID, a KOL observation interval fully spanning the collaboration, an observation source time at/after completion and before report end, and **a separately present capturedAt not after report end**. If a source observation was saved after the report, no historical link is formed even if its data watermark is backdated. The per-profile KOL metrics are only observed, non-exclusive cohort aggregates, never attributed to individual collaborations.
+- `backend/src/ai/business/modelTransport.js` positive allowlist is extended for these two bounded relationship arrays, only opaque record refs, time windows, nonpersonal observed metrics and explicit relationship/attribution labels. No member IDs, wallet/token addresses, arbitrary raw evidence or same-day-only X/GSC matches are exposed.
+
+### Tests, CI and limitations
+
+- `backend/test/operationsTimeline.test.js` tests historically late settlement and late source snapshot rejection using the owner-scoped existing timeline reader.
+- `backend/test/operationsTimelineRegistry.test.js` proves valid explicit matches and rejects missing links, unmatched KOL IDs, non-containing periods, late settlement/sourceAsOf, after-cutoff capture, absent capture proof and unavailable source; preserves independent unrelated KOL observations instead of manufacturing new attribution.
+- **Final code/test HEAD:** `81bc9a06fba358c484eed9bb620ab303110d8ed5`; [AI infrastructure 41201630015](https://github.com/dinnelthai/logearn-growth/actions/runs/41201630015) **passed AI Contract, AI Integration, AI Frontend**. Several earlier intermediate commits ran before their corresponding regression fixtures were adjusted; final full run is the acceptance point. These are offline and integration-container fixtures, not live KOL, Worker or paid model verification.
+- Phase 3 last checkbox checked **at code/CI level only**. **Total 44/48 (91.7%); 4 open; Phase 3 8/8**. This still does not demonstrate actual incremental conversion, true attribution or guaranteed external freshness. Remaining roadmap: Phase 1 two real-context/operator product definition gates, Phase 4 two measured-query-cost/hypothesis-planning gates.
+- No model/paid provider calls, external collectors, deployments, migrations, production writes, or `master` changes.
