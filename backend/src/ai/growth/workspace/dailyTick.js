@@ -29,7 +29,7 @@ function dailyWorkspaceTick({db,ownerId,now=Date.now(),sources=null,signals=[]}=
   evidenceCoverage:brief.snapshot.quality.sourceCompleteness,paidCalls:0,externalActions:0,
   warning:'Only explicitly supplied authorized source health and vetted signals were inspected; unconfigured sources may remain unknown'};
 }
-async function dailyWorkspaceTickWithMetrics({db,ownerId,now=Date.now(),metricProviders=null,executiveObservation=null}={}){
+async function dailyWorkspaceTickWithMetrics({db,ownerId,now=Date.now(),metricProviders=null,executiveObservation=null,executiveResearchRunner=null}={}){
  const store=workspaceStore(db,{clock:()=>now}),month=currentMonth(now),sources=localSourceHealth(db,ownerId);
  const providers=metricProviders||{status:()=>require('../../../data/hologres').status(),weekly:(...args)=>require('../../../data/weeklyCore').weeklyCoreFacts(...args)};
  const goals=store.listGoals(ownerId,{asOf:now,start:month.start,end:month.end}).filter(g=>g.metric_id==='weekly_core');
@@ -45,12 +45,16 @@ async function dailyWorkspaceTickWithMetrics({db,ownerId,now=Date.now(),metricPr
   // Research connectors are optional; a missing plugin must not suppress
   // the free daily Executive report or durable owner reminders.
   try{
-   const dbEvidence=require('../../business/evidence').createEvidenceStore(db);
-   const registry=require('../../business/tools/registry').defaultRegistry();
-   investigation=await require('./executiveInvestigation').investigateOwner({store,ownerId,now,registry,
-    verifyExternalEvidence:(owner,id,ctx)=>{
-     try{return !!dbEvidence.get(id,ctx)}catch{return false}
-    }});
+   if(executiveResearchRunner){
+    investigation=await executiveResearchRunner({store,ownerId,now});
+   }else{
+    const dbEvidence=require('../../business/evidence').createEvidenceStore(db);
+    const registry=require('../../business/tools/registry').defaultRegistry();
+    investigation=await require('./executiveInvestigation').investigateOwner({store,ownerId,now,registry,
+     verifyExternalEvidence:(owner,id,ctx)=>{
+      try{return !!dbEvidence.get(id,ctx)}catch{return false}
+     }});
+   }
   }catch{
    investigation={status:'registry-unavailable',paidCalls:0,modelCalls:0,externalActions:0};
   }

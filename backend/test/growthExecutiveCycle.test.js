@@ -124,3 +124,24 @@ test('two conflicting North Star goals are surfaced as ambiguity, not an arbitra
   assert.equal(f.store.problems('alice').find(p=>p.subject.startsWith('active_users:')).goal_id,null);
  }finally{f.close()}
 });
+
+test('optional read-only research failure does not take down the daily report and reminders',async()=>{
+ const f=fixture(),previous=process.env.GROWTH_EXECUTIVE_RESEARCH_ENABLED;
+ process.env.GROWTH_EXECUTIVE_RESEARCH_ENABLED='1';
+ try{
+  const {dailyWorkspaceTickWithMetrics}=require('../src/ai/growth/workspace/dailyTick');
+  const response=await dailyWorkspaceTickWithMetrics({db:f.db,ownerId:'alice',now,
+   executiveObservation:async()=>snapshot(),
+   executiveResearchRunner:async()=>{throw Error('sensitive connector failure')}});
+  assert.equal(response.executive.status,'verified');
+  assert.equal(response.investigation.status,'registry-unavailable');
+  assert.ok(response.reportId);
+  assert.equal(JSON.stringify(response).includes('sensitive connector failure'),false);
+  assert.equal(response.paidCalls,0);
+  assert.equal(response.externalActions,0);
+ }finally{
+  if(previous===undefined)delete process.env.GROWTH_EXECUTIVE_RESEARCH_ENABLED;
+  else process.env.GROWTH_EXECUTIVE_RESEARCH_ENABLED=previous;
+  f.close();
+ }
+});
