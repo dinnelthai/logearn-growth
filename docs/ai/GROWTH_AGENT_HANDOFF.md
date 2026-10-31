@@ -6,9 +6,9 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
-- Latest successful implementation/CI head: `bd611f586c563d834d2752e72649bc809514330c` (includes fixed-cohort retrospective evidence and operation-task route coverage). Fetch the live branch before editing.
+- Latest successful implementation/CI head: `e832e93e5a57a8bc1881aa4c6fa5b05b9c0d534f` (includes fixed-cohort retrospective evidence and operation-task route coverage). Fetch the live branch before editing.
 - Fetch the live branch HEAD before every new edit; do not rely on this document's historical commit reference.
-- Latest successful CI: AI infrastructure run [41180112012](https://github.com/dinnelthai/logearn-growth/actions/runs/41180112012) passed all AI jobs; subsequent frontend UI run [41180322912](https://github.com/dinnelthai/logearn-growth/actions/runs/41180322912) passed with the learning evidence summary update.
+- Latest successful CI: AI infrastructure run [41180112012](https://github.com/dinnelthai/logearn-growth/actions/runs/41180112012) passed all AI jobs; subsequent frontend UI run [41180467339](https://github.com/dinnelthai/logearn-growth/actions/runs/41180467339) passed with the detailed learning evidence table.
 - Checklist progress: 32 / 48 implementation items (67%); live-source acceptance is not included in that percentage.
 - Do not switch to or commit to `master`.
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
@@ -219,3 +219,11 @@ Final validation update: run [41177187712](https://github.com/dinnelthai/logearn
 - Growth Agent Control → “自我评价与下一轮策略” now displays the `insufficient` count alongside observed-supported and observed-contradicted.
 - Added a clear explanation: these are fixed-cohort before/after observations, not causal impact; only directly comparable active-user evidence is currently eligible; unsupported metrics or incomplete coverage remain insufficient.
 - Frontend UI workflow [41180322912](https://github.com/dinnelthai/logearn-growth/actions/runs/41180322912) passed.
+
+
+### Learning evidence detail — 2026-10-31
+
+- `GET /api/ai-analysis/growth-agent/learning` now returns the latest 10 owner-scoped observational judgements alongside aggregate counts and strategy versions.
+- The response includes concise operation problem/action labels and evidence already present in the aggregate-only retrospective record; it does not expose cohort member IDs.
+- Growth Agent Control renders a recent-review table: operation, metric, observational label, baseline → after value and fixed audience count. All dynamic text is escaped.
+- AI infrastructure run [41180441759](https://github.com/dinnelthai/logearn-growth/actions/runs/41180441759) passed Contract, Integration and Frontend jobs. Frontend UI run [41180467339](https://github.com/dinnelthai/logearn-growth/actions/runs/41180467339) passed.
