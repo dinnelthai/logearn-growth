@@ -141,7 +141,9 @@ jobs:
           node --check src/data/productChainTrades.js
           node --check src/analytics/productChain.js
           node --check src/workers/remoteAnalysis.js
+          node --check src/data/growthEvidence.js
           node --check test/productChainTrades.test.js
+          node --check test/growthEvidence.test.js
           node --check test/aiBusinessBrain.test.js
           node --check test/aiBusinessMetricsAdapter.test.js
           node --check test/aiWeeklyReport.test.js
@@ -161,6 +163,11 @@ jobs:
         env:
           NODE_ENV: test
         run: node --test test/productChainTrades.test.js test/productChain.test.js
+
+      - name: Run registration evidence regression tests
+        env:
+          NODE_ENV: test
+        run: node --test test/growthEvidence.test.js
 
       - name: Run Growth Workspace and Token efficiency regression tests
         env:
