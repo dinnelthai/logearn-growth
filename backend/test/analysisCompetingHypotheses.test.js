@@ -121,19 +121,20 @@ test('archived analysis contexts without the v2 marker keep legacy validation co
 });
 
 test('discriminating query inputs must match the authorized tool schema',()=>{
- const value=base();
+ const value=strictValue();
  value.suggestions[0].competingHypotheses[0].discriminatingQuery.input={notAField:true};
- assert.throws(()=>validateAnalysis(value,{capabilities:allowedCapabilities}),/不符合当前工具schema/);
+ assert.throws(()=>validateAnalysis(value,{analysisContractVersion:'analysis-contract-v2',
+  business:{scope:{source:'all'}},capabilities:allowedCapabilities}),/不符合当前工具schema/);
 });
 test('discriminating queries cannot escape the task source or date window',()=>{
- const value=base();
+ const value=strictValue();
  value.suggestions[0].competingHypotheses[0].discriminatingQuery.input={scope:{source:'twitter'}};
- assert.throws(()=>validateAnalysis(value,{capabilities:allowedCapabilities,
-  business:{scope:{source:'all'}},period:{start:100,end:200}}),/超出当前任务来源/);
- const outside=base();
+ assert.throws(()=>validateAnalysis(value,{analysisContractVersion:'analysis-contract-v2',
+  capabilities:allowedCapabilities,business:{scope:{source:'all'}},period:{start:100,end:200}}),/超出当前任务来源/);
+ const outside=strictValue();
  outside.suggestions[0].competingHypotheses[0].discriminatingQuery.input={start:-1,end:200};
- assert.throws(()=>validateAnalysis(outside,{capabilities:allowedCapabilities,
-  business:{scope:{source:'all'}},period:{start:100,end:200}}),/调查期间超出/);
+ assert.throws(()=>validateAnalysis(outside,{analysisContractVersion:'analysis-contract-v2',
+  capabilities:allowedCapabilities,business:{scope:{source:'all'}},period:{start:100,end:200}}),/调查期间超出/);
 });
 test('competing root-cause hypotheses must be genuinely distinct',()=>{
  const value=base();
