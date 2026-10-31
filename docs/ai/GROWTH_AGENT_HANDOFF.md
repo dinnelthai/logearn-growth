@@ -6,10 +6,10 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
-- Last code-validation commit: `c04bd5ba0d5f0c31bc6f5b8f1c65cc631c0b150c` (green AI infrastructure CI).
-- Documentation HEAD immediately before this handoff refresh: `b6306a33254af8d6b737a352b5465038d793c69f`; fetch the live branch HEAD before every new edit.
-- Latest successful CI: AI infrastructure run [41156542441](https://github.com/dinnelthai/logearn-growth/actions/runs/41156542441); desktop UI regression run [41155768483](https://github.com/dinnelthai/logearn-growth/actions/runs/41155768483).
-- Checklist progress: 18 / 45 implementation items (40%); live-source acceptance is not included in that percentage.
+- Last code-validation commit: `942185ab52c206aef679d932c60fc41ce0f32d53` (all AI infrastructure CI jobs green).
+- Documentation baseline before this handoff refresh: `409791810e6d0a6a9c2f2885f8c648541d7fa6ee`; fetch the live branch HEAD before every new edit.
+- Latest successful CI: AI infrastructure run [41164982501](https://github.com/dinnelthai/logearn-growth/actions/runs/41164982501) — AI Contract, AI Frontend and AI Integration all succeeded.
+- Checklist progress: 22 / 45 implementation items (49%); live-source acceptance is not included in that percentage.
 - Do not switch to or commit to `master`.
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
 - Always verify the branch HEAD before editing and fetch each target file from this branch.
@@ -39,8 +39,10 @@ New model protocol:
 - `backend/src/workers/remoteAnalysis.js` — passes validated request-analysis rows into the trade lookup.
 - `backend/src/ai/business/runner.js` — v5 marker, prompt rules, replay detection and bounded tool replies.
 - `backend/src/queues/jobs/businessAnalysis.js` — new analyses opt into v5; archived tasks keep their stored prompt/transport.
-- `backend/src/ai/growth/weeklyReport.js` — new v5 weekly prompt.
-- Tests: `backend/test/aiBusinessBrain.test.js`, `backend/test/aiWeeklyContextV4.test.js`.
+- `backend/src/ai/growth/weeklyReport.js` — new v5 weekly prompt, including operating-layer and non-causal activity rules.
+- `backend/src/ai/business/tools/operationsTimeline.js` — owner-scoped read-only operating timeline over existing activities, KOL collaborations, manual content, operation tasks, X/GSC/KOL observations and AI actions; includes aggregate delivery states and frozen settled outcomes only.
+- `backend/src/ai/growth/weeklyCoverage.js` — 13th weekly module, with outcome-first aggregate facts and per-source coverage.
+- Tests: `backend/test/aiBusinessBrain.test.js`, `aiWeeklyContextV4.test.js`, `aiWeeklyCoverage.test.js`, `operationsTimeline.test.js`, `operationsTimelineRegistry.test.js`, `aiWeeklyReport.test.js`.
 
 New v5 flags:
 - `AI_BUSINESS_BRAIN_V5_ENABLED` — defaults enabled when the existing v2/v3 context path is enabled; set to `0` to use the prior generic v3 context for newly created analyses.
@@ -54,7 +56,7 @@ New v5 flags:
 - Existing metric registry is the formal source of metric definitions.
 - The North Star is stored as an operator direction, not a formal composite KPI.
 - The model receives a bounded Business Brain and up to three compact historical AI suggestion/review entries.
-- Operating memory does not yet include all human KOL, SEO, X, community, campaign or training activity.
+- Operating Memory v1 now separates human operations, channel observations and AI suggestions/reviews. It reuses KOL collaborations, growth activities, manual content, operation tasks, X/GSC/KOL snapshots and AI action records. Community/training platforms still have no dedicated connector; unrecorded activity remains unknown.
 - Business Brain does not grant tools or prove that every product behavior is instrumented.
 
 ## 5. Important pre-existing constraints
@@ -72,69 +74,41 @@ New v5 flags:
 
 ## 6. Immediate next tasks
 
-### P0 — Validate the v5 implementation
+### P0 — Live-source acceptance (not yet performed)
 
-Green CI already ran the focused tests. If a local checkout becomes available, rerun from the required branch:
-
-~~~bash
-cd backend
-node --test test/aiBusinessBrain.test.js test/aiWeeklyContextV4.test.js test/aiWeeklyReport.test.js test/productChainTrades.test.js
-~~~
-
-Then run broader targeted suites:
-
-~~~bash
-node --test test/aiWeeklyCoverage.test.js test/aiWeeklyDecision.test.js test/aiWeeklyContextBudget.test.js test/aiBusiness.test.js
-~~~
-
-Record exact passed / failed / skipped counts and failure reasons. Do not claim tests passed based only on syntax inspection.
-
-### P0 — Preserve the operator's custom report-period requirement
-
-The user explicitly requested that the report support a custom collection time range and not be limited to a calendar week. Review the current branch's frontend and backend before implementing. A previous change was made on another branch, so do not assume it exists here.
-
-Required behavior:
-- default to the latest completed week;
-- allow custom start and end timestamps in Asia/Bangkok;
-- end semantics are explicit (prefer exclusive end);
-- validate range and maximum duration;
-- compare with the immediately preceding equal-length period only if the metric/source contract supports it;
-- display source-specific date alignment and coverage;
-- retain report history and idempotency for exact periods.
+- Validate the custom-period report and product-to-trade path against an already-authorized read-only Hologres source.
+- Check operating timeline source freshness, per-source coverage, settled activity outcomes and query latency against real data.
+- Do not call paid models, paid SEO research, or paid external collectors for acceptance. No live-source acceptance is implied by CI.
 
 ### P1 — Complete Growth Intelligence
 
-- [x] Code-level source contract: product-to-trade reads authoritative `trading_transaction` facts and confirmed ledger / indexed swap token enrichment; identity, token and visit association remain separate.
+- [x] Code-level source contract: product-to-trade reads authoritative trading_transaction facts and confirmed ledger / indexed swap token enrichment; identity, token and visit association remain separate.
 - [x] Bound the trade query to successful same-token analysis windows and expose truncation / unknown coverage.
-- [ ] Validate actual Hologres latency, trade match rate and identity coverage using the already-authorized read-only source; CI fixtures are not live-source acceptance.
-- Separate registration from first observed analysis; inspect `growthEvidence.registrationFacts` and adapt the existing registered-user metric only if the source contract is authoritative.
-- Confirm activation denominator and maturity.
-- Review SEO/GSC PT date alignment and X observation timestamps.
-- Add source-specific coverage and evidence, not guessed data.
+- [ ] Validate actual Hologres latency, trade match rate and identity coverage using the already-authorized read-only source.
+- [ ] Finish the registration → activation → product engagement → trade source-contract review, including registered_users versus first-observed new_users and mature denominators.
+- [ ] Review SEO/GSC PT date alignment, X snapshot freshness and KOL observation windows against live source watermarks.
+- [ ] Add cross-channel activity links only when stable identifiers and comparable windows exist; temporal overlap is not attribution.
 
-### P1 — Complete Operating Memory
+### P1 — Operating Memory
 
-Reuse existing records and services:
-- `kolOperations.js`
-- `seoOperations.js`
-- content growth and X account/content adapters
-- existing `operation_tasks` / activity monitor
-- `businessReports` manual action history
-- AI suggestion and retrospective records
-
-Do not build a parallel CRM or task manager. Keep AI suggestion/review memory separate from human-entered operational activity.
+- [x] Build the initial owner-scoped timeline by reusing existing activity, KOL, content, task, X, GSC and AI action records.
+- [x] Keep human activity, channel observation and AI action/review layers separate.
+- [x] Include aggregate activity delivery state and frozen settled outcomes without member rows or IDs.
+- [x] Expose per-source coverage, freshness limitations and truncated samples.
+- [ ] Link campaign/content activity to channel metrics and mature outcomes where stable identifiers and windows allow.
+- [ ] Add dedicated community/training connectors only if an existing source and business need are confirmed; do not infer absence from missing records.
 
 ### P2 — Decision Engine and Learning Loop
 
 - Rank problems by business objective, impact, evidence strength and query cost.
-- Produce competing hypotheses and a minimal discriminating investigation.
+- Produce competing hypotheses and the smallest authorized investigation that distinguishes them.
 - Validate every proposed action's primary metric against the registry and retrospective service.
 - Record execution and mature outcome using the existing workspace.
-- Do not call an adopted suggestion “successful” until reviewed evidence supports it.
+- Do not call an adopted suggestion successful until reviewed evidence supports it.
 
 ## 7. Validation / production boundary
 
-This upgrade has not been deployed or tested against the user's live API/Worker. CI passed 166/166 active AI contract tests plus the targeted 22/22 and 112/112 suites, 17/17 PostgreSQL/Redis integration tests, and 429 frontend tests (4 skipped). These are fixture/service-container checks, not a real-source acceptance test.
+This upgrade has not been deployed or tested against the user's live API/Worker. Latest AI infrastructure run [41164982501](https://github.com/dinnelthai/logearn-growth/actions/runs/41164982501) passed all three jobs: AI Contract (167 total / 166 passed / 0 failed / 1 skipped; targeted groups 37/37, 32/32, 13/13, 22/22, 2/2 and 112/112), AI Integration (17/17), and AI Frontend (success). These are fixture/service-container checks, not a real-source acceptance test.
 
 Do not:
 - run paid model calls just to test projection;
