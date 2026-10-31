@@ -154,3 +154,22 @@ test('all eighteen built-in tools archive independently labeled source, scope, c
   assert.equal(typeof e.queryFingerprint,'string',tool);
  }
 });
+
+test('channel-filtered report evidence records effective scope, keeping missing timestamps null',()=>{
+ const {makeEvidence}=require('../src/ai/business/evidence');
+ const {modelEvidence}=require('../src/ai/business/modelTransport');
+ const e=makeEvidence({metricId:'activation_rate',value:null,
+  filters:{source:'x'},query:{channel:'x'},coverage:{status:'partial'},
+  watermarks:{events:null,registrations:null,trades:null}},ctx);
+ assert.equal(e.sourceMetadata.scope,'observed_source');
+ assert.equal(e.filters.scope.source,'all','source filter does not change authorization scope');
+ assert.equal(e.filters.source,'x');
+ const model=modelEvidence(e);
+ assert.equal(model.sourceMetadata.scope,'observed_source');
+ assert.equal(model.sourceMetadata.freshness.status,'unknown');
+ assert.equal(model.sourceVersions.events,null);
+ assert.equal(model.watermarks.events,null);
+ assert.equal(model.watermarks.trades,null);
+ assert.equal(model.watermarks.registrations,null);
+ assert.equal(e.definitionVersion,'1');
+});
