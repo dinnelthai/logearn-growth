@@ -437,3 +437,25 @@ Branch: `codex/ai-comprehensive-upgrade`
 ### Remaining
 - Add a separate observational outcome label (observed-supported / observed-contradicted / insufficient) to the learning index, distinct from causal effectiveness. Current retrospective still forces `hasCausality=false`; do not interpret positive before/after movement as causal success.
 - No production deployment, paid model call, paid collection, migration or external action.
+
+
+## 2026-10-31 — Fixed-cohort observational outcome classification and planner feedback
+
+### Implemented
+- Added `backend/src/ai/growth/retrospectiveOutcome.js` for v2 observational outcome classification.
+- Fixed a material versioning gap: Learning Loop and planner memory previously accepted only retrospective context v1, excluding the new v2 fixed-cohort payload. Both now consume v2 explicitly.
+- The classifier uses only the directly comparable metric mapping `active_users → analysis_users`. It requires available cohort evidence, equal requested audience sizes, zero unmatched accounts in both windows and medium/high review confidence.
+- Unsupported primary metrics (e.g. `new_users`, `activation_rate`, `d7`, registration activation and trade conversion) are classified as `insufficient`; global metrics are not substituted for fixed-cohort metrics.
+- Updated `agentLearning.judgeHistory` and `experienceFeedback.summarizeExperience` to emit/use `observed-supported`, `observed-contradicted`, and `insufficient` without claiming causality.
+- Updated `agentStore.feedback` to fetch baseline/effect JSON and `aiRecords.getAnalysisMemory` (including its LATERAL projection) so the next investigation planner receives the cohort evidence.
+- Added tests for v2 cohort-supported labels, incomplete coverage, unsupported metric mappings, and planner feedback that refuses to fall back to conflicting global metrics.
+
+### Validation
+- Successful AI infrastructure CI: [41180112012](https://github.com/dinnelthai/logearn-growth/actions/runs/41180112012), code head `a8834d5a190eb2784a64b5d955d5d55555d8e305`.
+- Contract, Integration and Frontend jobs all passed.
+- Dedicated fixed-cohort Learning/Experience suite: 24/24; AI Integration: 17/17; Contract groups: 174 (173 pass, 0 fail, 1 skipped), plus 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112.
+
+### Remaining
+- Extend direct cohort metric equivalence only when underlying source semantics and SQL support it; do not infer equivalence from similar names.
+- Add an end-to-end read-only acceptance using a real owner-scoped task, a real Hologres snapshot and an already-mature post-completion window. This is not covered by offline fixtures/CI.
+- No migration, deployment, production collection, paid model call or external action.
