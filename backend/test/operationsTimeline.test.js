@@ -4,11 +4,11 @@ const assert=require('node:assert/strict')
 const {createOperationsTimeline,dateInZone}=require('../src/ai/business/tools/operationsTimeline')
 const DAY=86400000,now=Date.parse('2026-10-31T00:00:00Z')
 const start=Date.parse('2026-10-01T00:00:00Z'),end=start+DAY
-function fakeDb({settledAt=end-1,snapshotAsOf=end-1,activityEnd=end-1,collaborationStart=start}={}){
+function fakeDb({settledAt=end-1,snapshotAsOf=end-1,activityEnd=end-1,collaborationStart=start,activityRows=null}={}){
  const calls=[]
  const db={calls,prepare(sql){return {all(...args){
   calls.push({sql,args})
-  if(sql.includes('FROM growth_activities'))return [{id:'act-1',name:'Launch campaign',start_at:start,cutoff_at:activityEnd,goal:'activation',target_metric:'new_users',target_value:20,schedule_state:'active',schedule_error:null,archived_at:null,settled_at:settledAt,settled_result:JSON.stringify({
+  if(sql.includes('FROM growth_activities')&&!sql.includes('FROM growth_activity_assignments'))return activityRows??[{id:'act-1',name:'Launch campaign',start_at:start,cutoff_at:activityEnd,goal:'activation',target_metric:'new_users',target_value:20,schedule_state:'active',schedule_error:null,archived_at:null,settled_at:settledAt,settled_result:JSON.stringify({
    as_of:new Date(snapshotAsOf).toISOString(),
    summary:{total:10,eligible:8,completed:4,conversion_rate:.5,prior:2,active:1,inactive:3,review:0},
    performance:{total:{users:10,analysis_users:4,analysis_events:12,analysis_days:5,trade_users:2,transactions:3,volume_usd:99,missing_values:0,excluded_trades:0}},
@@ -118,6 +118,12 @@ test('timeline merges existing owner-scoped records but keeps human, channel and
  assert.ok(db.calls.some(c=>c.sql.includes('FROM growth_activities')&&c.args[0]==='owner-1'));
  assert.ok(db.calls.some(c=>c.sql.includes('growth_activity_assignments')&&c.args[0]==='owner-1'));
  assert.ok(db.calls.some(c=>c.sql.includes('growth_activity_delivery_evidence')&&c.args[0]==='owner-1'));
+ const assignmentQuery=db.calls.find(c=>c.sql.includes('FROM growth_activity_assignments'));
+ assert.ok(assignmentQuery);
+ assert.match(assignmentQuery.sql,/WITH scoped_activity AS \(/);
+ assert.match(assignmentQuery.sql,/FROM growth_activity_delivery_evidence e\s+JOIN scoped_activity a/);
+ assert.match(assignmentQuery.sql,/FROM growth_activity_assignments x\s+JOIN scoped_activity a/);
+ assert.deepEqual(assignmentQuery.args,['owner-1','act-1',end,end,end]);
  assert.match(result.warnings.join(' '),/AI 建议/);
  assert.match(result.warnings.join(' '),/社群与培训/);
 });
@@ -177,4 +183,13 @@ test('timeline rejects invalid periods, unsupported source filters and unauthent
  await assert.rejects(service.collect({start,end,source:'direct'},{ownerId:'owner-1'}),e=>e.status===400);
  await assert.rejects(service.collect({start,end,source:'all'},{}),e=>e.status===401);
  await assert.rejects(service.collect({start,end: start+32*DAY,source:'all'},{ownerId:'owner-1'}),e=>e.status===400);
+});
+
+test('no selected activities skips delivery evidence ranking entirely',async()=>{
+ const db=fakeDb({activityRows:[]});
+ const result=await createOperationsTimeline({...sources(db),clock:()=>now})
+  .collect({start,end,source:'all',limit:60},{ownerId:'owner-1'});
+ assert.equal(result.coverage.growthActivities.status,'empty');
+ assert.ok(!db.calls.some(call=>call.sql.includes('FROM growth_activity_assignments')));
+ assert.ok(!db.calls.some(call=>call.sql.includes('FROM growth_activity_delivery_evidence')));
 });
