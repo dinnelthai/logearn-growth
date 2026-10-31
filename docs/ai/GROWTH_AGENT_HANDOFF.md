@@ -9,7 +9,7 @@
 - Latest code-validation commit: `27604c06ef103880350743723f5351c78d938d90`; subsequent commits in this handoff sequence update documentation only.
 - Fetch the live branch HEAD before every new edit; do not rely on this document's historical commit reference.
 - Latest successful CI: AI infrastructure run [41177187712](https://github.com/dinnelthai/logearn-growth/actions/runs/41177187712) — AI Contract, AI Frontend and AI Integration all succeeded.
-- Checklist progress: 28 / 48 implementation items (58%); live-source acceptance is not included in that percentage.
+- Checklist progress: 29 / 48 implementation items (60%); live-source acceptance is not included in that percentage.
 - Do not switch to or commit to `master`.
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
 - Always verify the branch HEAD before editing and fetch each target file from this branch.
@@ -165,3 +165,14 @@ Decision Engine update (2026-10-31): v5 now ranks positive and negative signals 
 
 
 Final validation update: run [41177187712](https://github.com/dinnelthai/logearn-growth/actions/runs/41177187712), code head `27604c06ef103880350743723f5351c78d938d90`, passed all three jobs. Contract groups: 172 tests (171 pass, 0 fail, 1 skipped), plus 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112; Integration 17/17; Frontend success. No live-source acceptance or production/external action.
+
+
+## 2026-10-31 — Accepted AI suggestion → operation task bridge
+
+- Endpoints: `POST /suggestions/:id/link-operation-task` with `{ "taskId": "..." }`; `GET /suggestions/:id/operation-tasks`.
+- Only owner-owned suggestions in `adopted`, `executing` or `executed` state may link. The operation task must already exist, belong to the same owner and have exactly the same source scope.
+- Implementation reuses existing Growth Workspace problem and operation-link tables; no migration or new task/cohort generation.
+- Problem detail now returns `linkedOperationTasks`.
+- Tests cover acceptance gate, task existence, owner isolation, scope matching, idempotency and retrieval.
+- Limitation: linking does not auto-transition the AI suggestion when the task is executed. Operator still records actual execution in the existing AI suggestion workflow. Automatic status sync and task baseline/after-evidence handoff into retrospective remain open.
+- Latest successful CI: [41177929631](https://github.com/dinnelthai/logearn-growth/actions/runs/41177929631), code head `6a96a5c064a78ea08d9580260de18da9c3ffed6e`; all three AI jobs passed.
