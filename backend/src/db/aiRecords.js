@@ -802,7 +802,7 @@ async function getAnalysisMemory(ownerId, source = 'all') {
     ret.baseline_data,ret.effect_data,ret.baseline_data->>'reviewContextVersion' AS review_context_version
     FROM ai_suggestions s LEFT JOIN ai_experience_index e ON e.suggestion_id=s.id
     JOIN ai_analysis_records a ON a.id=s.analysis_id
-    LEFT JOIN LATERAL (SELECT conclusion,created_at,metric_changes,confidence,has_improvement,baseline_data FROM ai_retrospectives WHERE suggestion_id=s.id AND owner_id=$1 ORDER BY created_at DESC LIMIT 1) ret ON true
+    LEFT JOIN LATERAL (SELECT conclusion,created_at,metric_changes,confidence,has_improvement,baseline_data,effect_data FROM ai_retrospectives WHERE suggestion_id=s.id AND owner_id=$1 ORDER BY created_at DESC LIMIT 1) ret ON true
     WHERE s.owner_id=$1 AND COALESCE(s.action_scope->>'source',s.applicable_scope->>'source',a.business_scope->>'source','all')=$2
     ORDER BY GREATEST(s.updated_at,COALESCE(e.updated_at,0)) DESC LIMIT 30`, [ownerId, source]);
   return result.rows;
