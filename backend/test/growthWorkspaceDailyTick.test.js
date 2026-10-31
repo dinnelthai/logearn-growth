@@ -30,8 +30,10 @@ test('daily scan brings an observed incomplete weekly source into one owner-scop
  store.saveGoal('alice',{metricId:'weekly_core',definitionVersion:'1',target:200,unit:'users',aggregation:'rolling-distinct',periodStart:month.start,periodEnd:month.end,scope:{source:'all'}});
  const providers={status:async()=>({snapshot_id:'s',as_of:new Date(now).toISOString(),history_complete:false,events_complete_through:null}),weekly:async()=>({payload:{available:true,start:end-7*86400000,end,timezone:'Asia/Bangkok',source:'all',users:27}})};
  const {dailyWorkspaceTickWithMetrics}=require('../src/ai/growth/workspace/dailyTick');
- const a=await dailyWorkspaceTickWithMetrics({db,ownerId:'alice',now,metricProviders:providers});const b=await dailyWorkspaceTickWithMetrics({db,ownerId:'alice',now:now+86400000,metricProviders:providers});
- assert.equal(a.newProblems,1);assert.equal(b.newProblems,0);assert.equal(store.problems('alice').length,1);assert.equal(store.problems('bob').length,0);
- assert.equal(store.problemEvents('alice',store.problems('alice')[0].id)[0].evidenceIds.length,1);
+ const executiveObservation=async()=>({status:'unavailable'});
+ const a=await dailyWorkspaceTickWithMetrics({db,ownerId:'alice',now,metricProviders:providers,executiveObservation});const b=await dailyWorkspaceTickWithMetrics({db,ownerId:'alice',now:now+86400000,metricProviders:providers,executiveObservation});
+ assert.equal(a.newProblems,1);assert.equal(b.newProblems,0);const gaps=store.problems('alice').filter(p=>p.subject==='source:weekly-core-events');
+ assert.equal(gaps.length,1);assert.equal(store.problems('bob').length,0);
+ assert.equal(store.problemEvents('alice',gaps[0].id)[0].evidenceIds.length,1);
  }finally{db.close()}
 });

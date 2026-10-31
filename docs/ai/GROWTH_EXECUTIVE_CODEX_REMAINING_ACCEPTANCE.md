@@ -94,3 +94,21 @@ node --test test/growthExecutiveCycle.test.js test/growthExecutiveInvestigation.
 6. 不合并 `master`，不提交凭据、用户 ID、原始钱包或事件级数据。
 
 **完成定义：**既有代码回归 + 真实授权环境来源和链路证据 + 可由运营负责人复核的结果。没有生产权限不必阻塞代码交付，但必须单列无法独立签收的事项。
+
+## 2026-10-31 本地授权验收记录（部分）
+
+- HEAD `e16bdb11dee9211c1a8cde0f96e612356a78825d`；本地存在未提交的指标注册与回归夹具修复，测试结果不能视为该提交的远程 CI。
+- Node 23.11.0。运行中的本地 API、AI Worker 和 PostgreSQL 存在；默认 SQLite 缺少 `gw_executive_notices`、`gw_executive_workitems`。现有运行环境的数据用途与迁移目标尚未确认，未在该库执行迁移。自主调度 owner、发现、付费日任务、研究和外部提醒的配置文件开关未启用；未证明运行进程全部有效配置一致。
+- 对现有 SQLite 执行一致性只读备份，在隔离副本连续运行两次迁移：六张指定表齐全，表数由 111 至 113，`quick_check=ok`。这不是生产迁移或生产恢复演练。
+- 临时独立 PostgreSQL 和独立 Redis 实例上，`aiMigrationIntegration`、`growthAutonomyIntegration`、`growthSharedRedisIntegration`、`workerLeaseIntegration` 四项通过；验证了迁移回滚与幂等、测试 owner 隔离、缓存隔离、租约 fencing 和模拟重复投递。测试后临时实例和数据库已清理；不证明真实 Worker 拓扑或真实操作闭环。
+- 本地 AI 数据库只读检查：11 条历史周报，其中 5 条 completed；已完成记录的 10 个可解析 context/snapshot 均未包含 `weekly-report-v2`，快照审计通过数为 0。真实 v5、真实来源和模型 journal 验收仍阻塞，47/48 不变。
+- 前端 442 通过、4 跳过，构建成功；Executive 定向 39 项及本轮相关 42 项通过。后端全量 `NODE_ENV=test npm test`：1072 通过、17 失败、16 跳过；剩余失败涉及耗时、预算、周报接口、13 模块预算断言及漏斗契约，发布前必须逐项核对。不可关闭全量测试项。
+- 未执行生产迁移、付费采集或模型调用、外部通知、部署或合并；真实 Hologres/GSC/X/KOL、执行交付与复盘、P50/P95、费用和 UI 人工验收均未通过。
+
+## 2026-10-31 唯一环境授权后的实际操作
+
+用户确认只有一个环境并授权全部操作。对该环境默认 SQLite，在执行迁移前通过 SQLite 在线备份取得一致性副本，备份和迁移后的 `quick_check` 均为 `ok`。按原迁移脚本连续执行两次成功；六张指定表存在。备份保留在该环境的 `backend/data/backups/`，禁止提交。此记录覆盖上一节中“尚未迁移运行库”的状态，不等于恢复演练完成。
+
+本地 AI PostgreSQL 和 Bull 使用的本地 Redis 可连接；只读 Hologres 连接可用。实际只读北极星观察返回 `history_complete=false`、`events_complete_through=null`，查询截至 `2026-10-31T16:14:44.034Z`，因此覆盖未验证，不可声称真实下降或执行效果。运行中的 API 和 AI Worker 启动于本次分支同步之前，尚未证明运行代码与当前 HEAD 一致。配置文件未启用自动发现、指定 owner 或付费日任务；没有改变这些开关。尚未发起付费模型调用或外部通知。
+
+没有已存档 v5 快照，且真实来源覆盖未通过。避免把新生成的报告自动等同于真实来源验收；必须先解决来源水位和后端全量回归，并确认实际运行代码后再进行有界生成与人工核对。原 47/48 保持不变。未宣称实际人机闭环、P50/P95、真实费用或发布验收通过。

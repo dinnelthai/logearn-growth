@@ -15,6 +15,6 @@ test('quality query requires relation IDs and caps unbounded version groups; una
  const old=remote.query
  try{remote.query=async(sql)=>{assert(sql.includes("properties->>'analysis_request_id'"));assert(sql.includes('LIMIT 2001'));return []};await growthQuality(s,{start:100,end:1000},[])
  remote.query=async()=>{throw Error('secret database detail')}
- const result=await cohortTrades(s,[{user_key:'user:1',first_seen_at:100}],{start:100,end:1000});assert.equal(result.known,null);assert(!result.error.includes('secret'))
+ const result=await cohortTrades(s,[{user_key:'user:1',first_seen_at:100,first_chip_at:100}],{start:100,end:1000});assert.equal(result.known,null);assert(!result.error.includes('secret'))
  }finally{remote.query=old}
 })

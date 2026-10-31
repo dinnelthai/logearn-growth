@@ -12,7 +12,7 @@ function setup(){
   'CREATE TABLE x_official_account_sync(owner_id TEXT,account TEXT,followers INTEGER,last_synced INTEGER);'+
   'CREATE TABLE x_official_posts(owner_id TEXT,account TEXT,post_id TEXT,published_at TEXT,body TEXT,impressions INTEGER,likes INTEGER,replies INTEGER,reposts INTEGER,quotes INTEGER,observed_at INTEGER);'+
   'CREATE TABLE x_official_post_snapshots(owner_id TEXT,account TEXT,post_id TEXT,observed_at INTEGER,impressions INTEGER,likes INTEGER,replies INTEGER,reposts INTEGER);'+
-  'CREATE TABLE x_official_follower_daily(owner_id TEXT,account TEXT,day TEXT,followers INTEGER);');
+  'CREATE TABLE x_official_follower_daily(owner_id TEXT,account TEXT,day TEXT,followers INTEGER,observed_at INTEGER);');
  return db;
 }
 const start=Date.parse('2026-10-29T00:00:00Z');
@@ -31,8 +31,8 @@ test('daily conversion includes last 30-day X sample with as-of metric, not only
    .run('alice','logearn_cn','101',observed,980,3,4,8);
   db.prepare('INSERT INTO x_official_post_snapshots VALUES(?,?,?,?,?,?,?,?)')
    .run('alice','logearn_cn','101',future,99999,999,999,999);
-  db.prepare('INSERT INTO x_official_follower_daily VALUES(?,?,?,?)')
-   .run('alice','logearn_cn','2026-10-29',9721);
+  db.prepare('INSERT INTO x_official_follower_daily VALUES(?,?,?,?,?)')
+   .run('alice','logearn_cn','2026-10-29',9721,observed);
   const reader=createContentAdapters(db);
   assert.deepEqual(availableDailySpecialties(db,'alice'),['content-growth']);
   const report=reader.contentGrowth({start,end},{ownerId:'alice'});
@@ -52,7 +52,7 @@ test('daily conversion includes last 30-day X sample with as-of metric, not only
   assert.equal(outbound.value.contentSignals[0].sampleSize,1);
   assert.equal(outbound.value.contentSignals[0].followers,9721);
   assert.equal(outbound.value.contentSignals[1].repostRate,0.82);
-  assert.equal(outbound.value.xOfficial,undefined);
+  assert.equal(outbound.value.xOfficial.accounts[0].posts,undefined);
   for(const forbidden of ['99999','88888','private-user@example.com','owner_id','post_id'])
    assert.equal(encoded.includes(forbidden),false,forbidden);
   assert.equal(getSkill('content-growth').tools.includes('get_content_growth'),true);
