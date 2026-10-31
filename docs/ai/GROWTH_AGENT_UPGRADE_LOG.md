@@ -465,3 +465,10 @@ Branch: `codex/ai-comprehensive-upgrade`
 - Growth Agent Control now displays all three observational outcome counts: observed-supported, observed-contradicted and insufficient.
 - Added an explicit explanation that the labels describe fixed-cohort before/after movement, not causal impact; only the directly comparable active-user metric currently contributes to v2 labels.
 - Frontend UI CI [41180322912](https://github.com/dinnelthai/logearn-growth/actions/runs/41180322912) passed.
+
+
+### Recent learning evidence detail — 2026-10-31
+- `GET /growth-agent/learning` now returns the latest 10 owner-scoped judgement records in addition to aggregate assessment and strategy versions.
+- The learning projection includes bounded business-problem/action labels, metric and aggregate evidence; it never returns frozen cohort member IDs.
+- Growth Agent Control now renders the latest operation, metric, observational label, baseline → effect and fixed audience count, with all dynamic text escaped.
+- Backend CI [41180441759](https://github.com/dinnelthai/logearn-growth/actions/runs/41180441759) passed all AI Contract, Integration and Frontend jobs. Frontend UI CI [41180467339](https://github.com/dinnelthai/logearn-growth/actions/runs/41180467339) passed.
