@@ -320,3 +320,30 @@ Branch: `codex/ai-comprehensive-upgrade`
 - Complete prioritization using affected population and investigation/query cost, not just goal relevance, evidence completeness and relative change.
 - Generate competing root-cause hypotheses and the cheapest authorized discriminating query.
 - Generate fully specified actions and validate their metrics against the registry/retrospective service; prevent duplicate or already-disproved actions.
+
+
+## 2026-10-31 — Decision Engine: impact-ranked investigation and competing hypotheses
+
+Branch: `codex/ai-comprehensive-upgrade`
+
+### Implemented
+
+- v5 positive and negative decision signals now carry metric units, evidence coverage, goal rank and an affected-population delta only when the metric unit is a user count.
+- Decision ordering compares goal relevance first, evidence completeness second, and affected population only for matching units. Relative movement is used only as a same-unit tie-breaker; unlike units are not compared by raw magnitude.
+- The investigation focus now selects from both positive and negative goal-ranked signals and suggests only already-authorized candidate tools relevant to the selected metric.
+- Investigation instructions require reuse of current evidence, minimum necessary authorized queries, no duplicate requests, and stopping when evidence is sufficient or no authorized discriminator exists.
+- Analysis contract now supports 2–3 competing root-cause hypotheses per important unresolved recommendation, with supporting/counter evidence, missing evidence and a discriminating query.
+- Runtime validation checks that each proposed query tool exists in the current task capability set. Evidence references attached to hypotheses are checked against the owner-scoped evidence store.
+- If source/tool cost metadata is absent, the model is explicitly told to treat cost as unknown and not invent a price or trigger external paid collection.
+- Added tests for positive-signal investigation focus and rejection of unauthorized hypothesis tools.
+
+### Validation
+
+- GitHub Actions [41175597697](https://github.com/dinnelthai/logearn-growth/actions/runs/41175597697) passed AI Contract, AI Integration and AI Frontend.
+- AI Contract groups: 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112; AI Integration: 17/17; AI Frontend: success.
+- Fixture/service-container validation only. No live business source, paid model call, external collection, migration or deployment was performed.
+
+### Remaining
+
+- True query-cost ranking is not implemented because the current legacy tool descriptors do not expose comparable cost/latency metadata. Do not guess it. Add reviewed cost/latency classes to trusted tool descriptors before ranking by numeric query cost.
+- Root-cause hypothesis generation is now a validated output contract; verify quality against real, already-authorized analysis results before marking the full Decision Engine checklist complete.
