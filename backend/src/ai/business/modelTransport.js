@@ -27,6 +27,7 @@ const numeric=new Set([
  'memberCount','plannedMemberCount','firstAt','lastAt','assigned','delivered','sent_unconfirmed','not_delivered','delivery_unknown','cross_exposed','retrospective_records','firstDeliveryAt','lastDeliveryAt',
  'completed','prior','active','inactive','review','analysis_users','analysis_events','analysis_days','returning_analysis_users','multi_day_users','trade_users','actual','ratio','target','limit','limitPerAccount',
  'activation_rate','activation_interval','median_age_days','retention_rate',
+ 'chip_analysis_users','holder_view_users','strategy_started_users','signal_view_users','repeat_analysis_users',
  'chip_analysis_rate','holder_view_rate','strategy_started_rate','signal_view_rate','repeat_analysis_rate',
  'registeredUsers','clicks','impressions','ctr','position','likes','shares','comments',
  'duration_ms','value_usd','daily_count','day_count','sample_size','size',
