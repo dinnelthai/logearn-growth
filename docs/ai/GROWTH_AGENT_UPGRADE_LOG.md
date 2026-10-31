@@ -264,3 +264,26 @@ Branch: `codex/ai-comprehensive-upgrade`
 
 - Validate activity-to-channel relationships only where an actual shared stable identifier exists.
 - For X/GSC observations without post/campaign/landing-page identity linkage, retain temporal comparison as context and label attribution unavailable.
+
+
+## 2026-10-31 — Operating Memory: connect KOL observations to CRM collaborations
+
+Branch: `codex/ai-comprehensive-upgrade`
+
+### Implemented
+
+- Reused the shared CRM KOL profile ID already present in `crm_collaborations.kol_id` and the existing KOL observation snapshot rows.
+- Exposed a bounded per-KOL aggregate only for KOL profiles with a collaboration in the selected period: observed users, analysis users/events, trade users, transactions and volume when available.
+- Added deterministic hashed `kolRef` and linked collaboration record references to the model-safe projection; raw CRM identifiers do not leave the projection.
+- Kept the source semantics explicit: CRM profile matching is a stable record join, while tagged-user behavior remains observational and is not causal attribution or incremental lift.
+- Added collector and safe-projection regression tests.
+
+### Validation boundary
+
+- Changes committed to `codex/ai-comprehensive-upgrade`; CI is required for verification.
+- No live Hologres read, paid model call, migration, deployment, external collection or external action was performed.
+
+### Remaining
+
+- X post-level campaign linkage is not established by title or time overlap; keep it unlinked until a real shared post/campaign identifier exists.
+- Search Console remains a site/query-period observation; do not attribute its clicks to individual manual content records without a landing-page/campaign join.
