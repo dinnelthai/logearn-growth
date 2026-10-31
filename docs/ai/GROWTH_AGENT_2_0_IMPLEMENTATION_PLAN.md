@@ -102,6 +102,8 @@ Acceptance:
 
 ### Phase 4 — Decision Engine
 
+Implementation note (2026-10-31): v5 now ranks observed positive and negative signals by goal relevance and evidence completeness, and uses affected-population deltas only when comparing user-count metrics. It selects relevant tools from the current authorized capability list and requires minimum necessary, non-duplicate investigation. The analysis contract supports 2–3 competing root-cause hypotheses with supporting/counter evidence, missing evidence and a discriminating query; proposed tools are checked against task capabilities and hypothesis evidence IDs against the owner-scoped evidence store. This is partial implementation, not completion of the checklist: numeric query-cost ranking remains open until trusted tool cost/latency metadata exists, and live-result quality still needs validation.
+
 - [ ] Prioritize business questions by goal relevance, affected population, change magnitude, evidence confidence and query cost.
 - [ ] Generate competing root-cause hypotheses and identify the cheapest authorized query that distinguishes them.
 - [x] Look for growth opportunities as well as declines (v5-only, goal-ranked observed increases; not proof of replicability).
