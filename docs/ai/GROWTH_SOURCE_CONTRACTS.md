@@ -1,6 +1,6 @@
 # Growth Agent 2.0 — Channel source and historical-period contracts
 
-> Branch: `codex/ai-comprehensive-upgrade`. Audited 2026-10-31 at source/test SHA `14f42ba61c785866e918df3ca841bf4525f35bc2`.
+> Branch: `codex/ai-comprehensive-upgrade`. Latest source/test HEAD at this update: `a4f421400160d1a895e5032d7614062946e6f731`.
 >
 > This is a **code + fixture/CI contract audit**, not an assertion that real X, Search Console, Hologres, CRM or referral data have been connected, are current, or passed a paid-model end-to-end test. Unknown is not zero. No source here authorizes automatic external collection or paid calls.
 
@@ -24,7 +24,7 @@
 
 - **Fixture-level correctness:** historic future-knowledge leakage, read-only and owner filters, GSC stored PT date slicing, KOL watermark/overlap, verified invitations and referrals; checked by AI Contract CI workflow.
 - **Unverified live acceptance:** selected GSC property and true PT daily coverage; third-party X post snapshot/retention freshness and historical follower capture; CRM/member matching and true Hologres trade watermarks; referral registration identity cross-coverage; source scan truncation and query cost; actual platform fee revenue. Inspect each with existing authorized read-only connection. No live records or external APIs were accessed in this audit.
-- **Product decisions still pending:** attribution keys, trusted maturity/denominator coverage for registration→parallel product use→transaction journey, and operator-confirmed North Star.
+- **Product decisions still pending:** operator-confirmed North Star and attribution keys beyond existing verified identities. The registration→parallel product-use→trade journey now has a code/fixture contract below; its real-source completeness and freshness are not yet accepted.
 
 New v5 reports must distinguish source collection from evidence interpretation. Old saved reports are never rewritten to retrofit data which was collected afterward.
 
@@ -44,3 +44,16 @@ Source/test HEAD `8a7f71c98fce502b68a056671ee9a95304507abb`. Source-specific tim
 - `backend/src/ai/business/tools/registry.js` implements the bounded provenance selection, preventing cross-source watermark substitution. `backend/src/ai/business/modelTransport.js` exposes only trusted specialist version/time keys already present in archived evidence; no arbitrary source metadata traversals.
 - `backend/test/growthSpecialistTools.test.js` covers real timestamp paths and absent-source nulls for GSC API/manual import, X, KOL, follower scans and model projection. `backend/test/agentTools.test.js` checks CRM ledger has **no** event watermark and stays available when Hologres status is down.
 - **Still open:** audit *every* remaining tool's compound event/registration/trade/relational provenance and per-source complete-through semantics, implement trustworthy freshness thresholds where supported, and validate independent source feeds in the real environment. The broad roadmap metadata checkbox remains unchecked; this is a subtask, not the full definition.
+
+## 2026-10-31 — Registration → activation → parallel product use → trade journey
+
+- **Read-only metric:** `query_metrics(["registered_user_journey"])`, also advertised as a signal of the existing `growth-overview` skill. This reuses the existing `growthInsights` job and analytics facts; no parallel event collector or alternate SQL definition was introduced.
+- **Registration cohort:** `account_v2.created_at` in the selected Bangkok business period. It remains separate from first-observed/first-analysis users. If a source filter is selected, only accounts with an observed matching source can be included; unattributed accounts are not silently assigned to that source.
+- **24-hour activation:** first chip analysis in `[registered_at, registered_at + 24h)`; only registrations with a full 24-hour observation window enter the denominator. Newer registrations remain pending. A zero mature denominator produces a null rate.
+- **Seven-day product engagement:** chip analysis, Holder view, strategy start, signal view and repeat chip analysis are each independently counted within the first seven days after registration. Each uses the **same mature seven-day registration denominator**. They are parallel, overlapping entry points; counts must not be added and are not a serial funnel.
+- **Trade conversion:** separate branch anchored on first chip analysis; transaction must fall within the following 168 hours. The denominator includes only mature first-analysis users with verified account identity. Unmatched identities are reported separately. This is user-level trade observation, not same-token attribution or causal proof. If trade facts/identity cannot be queried, trade numerator, denominator and rate stay null.
+- **Completeness and freshness:** the model-visible journey includes the event-source `historyComplete` flag and `eventsCompleteThrough` where the existing snapshot exposes them. Evidence carries the event snapshot only for event-based behavior. Registration and trade source versions/watermarks remain null until independently measured; a Hologres event watermark is not substituted for either.
+- **Breakdown contract:** the journey supports the existing authorized source scope and fixed audience scope, but does not advertise or accept device/version group-by. No unsupported cross-dimensional breakdown is inferred.
+- **Model safety:** nested journey data is allowlisted as aggregate evidence; raw rows, user IDs, wallets and membership lists remain excluded. Weekly fact projection prioritizes mature activation, each parallel product-entry count and verified trade conversion.
+- **Regression coverage:** `backend/test/aiBusinessMetricsAdapter.test.js`, `backend/test/agentTools.test.js`, `backend/test/aiWeeklyCoverage.test.js`, existing `backend/test/growthInsights.test.js` and `backend/test/growthCohortTrades.test.js`. [AI infrastructure CI 41187657285](https://github.com/dinnelthai/logearn-growth/actions/runs/41187657285) passed Contract, Integration and Frontend for the implementation/test set before the final compaction-only deduplication; latest HEAD's final CI is being verified separately.
+- **Acceptance boundary:** this closes the *code + fixture contract* for the journey, not live event completeness, independent registration/trade watermarks, or a production read-only data acceptance.
