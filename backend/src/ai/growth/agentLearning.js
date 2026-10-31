@@ -29,7 +29,8 @@ function judgeHistory(rows,{now=Date.now()}={}){
   const forecastCalibration=require('./agentForecast').calibrateForecast(row.forecast,row);
   evaluated.push({
    suggestionId:row.suggestion_id,retrospectiveId:row.retrospective_id,
-   analysisId:row.analysis_id,metric:known.has(metric)?metric:null,
+   analysisId:row.analysis_id,businessProblem:String(row.business_problem||'').slice(0,240),
+   actualAction:String(row.actual_action||'').slice(0,240),metric:known.has(metric)?metric:null,
    goal:row.filter_conditions?.focusGoal||'activation',
    source:row.action_scope?.source||row.applicable_scope?.source||row.business_scope?.source||'all',
    assessment,forecastCalibration,evidence:{
