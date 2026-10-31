@@ -89,6 +89,9 @@ test('query_metrics archives the complete registration journey with independent 
   assert.equal(evidence.watermarks.registrations,null);
   assert.equal(evidence.watermarks.trades,null);
   const projected=require('../src/ai/business/modelTransport').modelEvidence(evidence);
+  assert.deepEqual(require('../src/ai/business/metricRegistry').describeMetric('registered_user_journey').supportedDimensions,[]);
+  await assert.rejects(()=>t.registry.executeTool('query_metrics',
+   {metrics:['registered_user_journey'],dimensions:['device']},t.context),/不支持设备\/版本分组/);
   assert.equal(projected.value.registration.engagement.signal_view_users,7);
   assert.equal(projected.value.registration.trade.available,false);
   assert.doesNotMatch(JSON.stringify(projected),/private-user|0x[a-f0-9]{40}/i);
