@@ -48,6 +48,11 @@ function forModelV4(result,{maxBytes=3500,legacy=false}={}){
    ...(e.period?{period:{start:e.period.start,end:e.period.end}}:{}),
    ...(e.coverage?{coverage:{status:e.coverage.status,
     periodMatched:e.coverage.periodMatched}}:{}),
+   ...(e.sourceMetadata?{sourceMetadata:{
+    sourceType:e.sourceMetadata.sourceType,
+    clock:e.sourceMetadata.clock,
+    scope:e.sourceMetadata.scope,
+    freshness:e.sourceMetadata.freshness}}:{}),
    ...(!legacy&&e.warnings?.length?{warnings:e.warnings.slice(0,2)}:{})};
  });
  const base={status,evidence:[],omittedEvidence:rows.length,
