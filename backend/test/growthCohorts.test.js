@@ -46,3 +46,33 @@ test('registered cohort trade conversion starts after first analysis and uses ma
  assert.equal(trade.pending,0);
  assert.equal(trade.association,'user-level-after-first-analysis');
 });
+
+test('registered trade cohort excludes first chip analysis outside its registration seven-day entry window',()=>{
+ const registration={available:true,scope:'all',rows:[
+  {user_key:'user:20',registered_at:start,first_chip_at:start+7*DAY-1},
+  {user_key:'user:21',registered_at:start,first_chip_at:start+7*DAY},
+  {user_key:'user:22',registered_at:start,first_chip_at:start+8*DAY},
+  {user_key:'user:23',registered_at:start,first_chip_at:start+DAY},
+  {user_key:'user:24',registered_at:start,first_chip_at:null}
+ ]};
+ const asOf=end+40*DAY;
+ const facts={known:new Set(['user:20','user:21','user:22','user:23']),
+  error:null,trades:[
+   {account_id:'20',transaction_hash:'t20',chain:'3',valid:true,
+    transaction_time:new Date(start+7*DAY+DAY).toISOString(),trade_value:'4'},
+   {account_id:'21',transaction_hash:'t21',chain:'3',valid:true,
+    transaction_time:new Date(start+8*DAY).toISOString(),trade_value:'4'},
+   {account_id:'22',transaction_hash:'t22',chain:'3',valid:true,
+    transaction_time:new Date(start+9*DAY).toISOString(),trade_value:'4'}
+  ]};
+ const out=growthInsights([],[],{start,end},{as_of:new Date(asOf).toISOString()},facts,
+  {registration}).payload.cohorts.registration;
+ assert.equal(out.engagement.eligible,5);
+ assert.equal(out.engagement.chip_analysis_users,2);
+ assert.equal(out.trade.engaged,2);
+ assert.equal(out.trade.not_engaged,3);
+ assert.equal(out.trade.eligible,2);
+ assert.equal(out.trade.traders,1);
+ assert.equal(out.trade.conversion_rate,.5);
+ assert.deepEqual(out.trade.association,'user-level-after-first-analysis');
+});
