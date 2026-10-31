@@ -124,10 +124,20 @@ async function businessAnalysis(job) {
         ownerId,runId:analysisId,scope,period:compact.period
       }).map(item=>item.id);
     }
+    // This reads already saved owner-scoped successful tool timings. It never
+    // invokes a provider, paid probe or new business query; missing/old samples
+    // must remain unknown and must not block normal report generation.
+    const observedTimingRegistry={observedToolTimings:context=>{
+      try{
+       return require('../../ai/business/evidence').createEvidenceStore(
+        require('../../db/connection')).recentToolTimings(context);
+      }catch{return {}}
+    }};
     const growthPlan=require('../../ai/growth/planner').planGrowthInvestigation({
       goal:focusGoal,report:compact,history:memory,focusSkillId,
       maxSkills:isWeeklyReport?12:Math.min(6,3+availableSpecialties.length),availableSpecialties,
       strategy:learnedStrategy,availableCapabilityIds,
+      observedTimingRegistry,ownerId,
       // Weekly reports cover channels beyond the primary activation goal.
       includeWeeklySpecialties:isWeeklyReport
     });
@@ -139,6 +149,15 @@ async function businessAnalysis(job) {
       };
     const session=require('../../ai/business/foundation').defaultFoundation().prepare(compact,{ownerId,runId:analysisId,goalRef:job.data.goalRef});
     compact=session.context;
+    // Rank only against the final authorized capability list, not the wider
+    // pre-session catalog. This cannot authorize an unapproved tool.
+    if(compact.growthPlan){
+      compact.growthPlan.questionRanking=require('../../ai/growth/questionPriority')
+       .rankBusinessQuestions({goal:focusGoal,candidates:compact.candidates||[],
+        capabilityIds:(compact.capabilities||[]).map(cap=>cap.id),
+        observedTimings:observedTimingRegistry.observedToolTimings({ownerId,
+         scope:compact.business?.scope||scope,period:compact.period})});
+    }
     // Pin the strict output contract into the saved snapshot; archived contexts
     // without this marker retain their original validation behavior on recovery.
     compact.analysisContractVersion=require('../../ai/business/analysisContract').ANALYSIS_CONTRACT_VERSION;
