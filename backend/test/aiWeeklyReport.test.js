@@ -32,6 +32,8 @@ test('31-day custom period is valid and its prompt is not constrained to a natur
  assert.equal(period.end-period.start,31*86400000);
  assert.ok(customPeriodPromptV0.includes('自定义时间范围'));
  assert.ok(customPeriodPromptV1.includes('context.businessBrain'));
+ assert.ok(require('../src/ai/growth/weeklyReport').weeklyPromptV3.includes('operations-timeline'));
+ assert.ok(require('../src/ai/growth/weeklyReport').weeklyPromptV3.includes('未收集、未连接或读取失败不等于没有运营'));
  assert.ok(customPeriodPromptV1.includes('紧邻前一段等长周期'));
  assert.equal(customPeriodPromptV1.includes('完整自然周'),false);
  assert.equal(customPeriodPromptV1.includes('本任务是 LogEarn 完整自然周'),false);
