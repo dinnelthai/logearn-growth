@@ -6,9 +6,9 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
-- Latest successful implementation/CI head: `a8834d5a190eb2784a64b5d955d5d55555d8e305` (includes fixed-cohort retrospective evidence and operation-task route coverage). Fetch the live branch before editing.
+- Latest successful implementation/CI head: `bd611f586c563d834d2752e72649bc809514330c` (includes fixed-cohort retrospective evidence and operation-task route coverage). Fetch the live branch before editing.
 - Fetch the live branch HEAD before every new edit; do not rely on this document's historical commit reference.
-- Latest successful CI: AI infrastructure run [41180112012](https://github.com/dinnelthai/logearn-growth/actions/runs/41180112012) — AI Contract, AI Frontend and AI Integration all succeeded; includes fixed-cohort learning and planner feedback tests.
+- Latest successful CI: AI infrastructure run [41180112012](https://github.com/dinnelthai/logearn-growth/actions/runs/41180112012) passed all AI jobs; subsequent frontend UI run [41180322912](https://github.com/dinnelthai/logearn-growth/actions/runs/41180322912) passed with the learning evidence summary update.
 - Checklist progress: 32 / 48 implementation items (67%); live-source acceptance is not included in that percentage.
 - Do not switch to or commit to `master`.
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
@@ -212,3 +212,10 @@ Final validation update: run [41177187712](https://github.com/dinnelthai/logearn
 - Tests cover supported v2 outcome, incomplete coverage, unsupported metric, and planner experience feedback without fallback to global metrics.
 - CI [41180112012](https://github.com/dinnelthai/logearn-growth/actions/runs/41180112012): Contract, Integration and Frontend all passed. Dedicated Learning/Experience cohort suite 24/24; AI Integration 17/17; Contract groups 174 (173 pass, 0 fail, 1 skipped), plus 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112.
 - No migration, deployment, production data collection, paid call or external action.
+
+
+### Learning evidence visibility — 2026-10-31
+
+- Growth Agent Control → “自我评价与下一轮策略” now displays the `insufficient` count alongside observed-supported and observed-contradicted.
+- Added a clear explanation: these are fixed-cohort before/after observations, not causal impact; only directly comparable active-user evidence is currently eligible; unsupported metrics or incomplete coverage remain insufficient.
+- Frontend UI workflow [41180322912](https://github.com/dinnelthai/logearn-growth/actions/runs/41180322912) passed.
