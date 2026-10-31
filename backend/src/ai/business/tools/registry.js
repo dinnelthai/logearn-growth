@@ -1,4 +1,4 @@
-const {randomUUID}=require('node:crypto');
+const {randomUUID,createHash}=require('node:crypto');
 const {resolveScope,owner}=require('../scope'),{describeMetric,listMetrics}=require('../metricRegistry');
 const {makeEvidence,fingerprint}=require('../evidence');
 const {validateRange}=require('../../../analytics/businessPriorities');
@@ -52,16 +52,17 @@ function productChainSummary(payload){
 }
 function operationsTimelineSummary(payload){
  const pick=(row,keys)=>Object.fromEntries(keys.filter(k=>row?.[k]!==undefined).map(k=>[k,row[k]]));
+ const opaqueRef=value=>'record:'+createHash('sha256').update(String(value)).digest('hex').slice(0,16);
  const human=(payload.humanOperations||[]).slice(0,30).map(row=>{
   const relatedActivityRefs=Array.isArray(row.linkedActivityIds)?
-   row.linkedActivityIds.slice(0,8).map(id=>'activity:'+String(id).slice(0,100)):[];
+   row.linkedActivityIds.slice(0,8).map(id=>opaqueRef('activity:'+String(id).slice(0,100))):[];
   return {...pick(row,[
    'kind','layer','source','title','channel','topic','kol','startAt','endAt','eventAt',
    'status','goal','targetMetric','targetValue','assignee','dueAt','createdAt','updatedAt',
    'completedAt','settledAt','linkedKols','metrics','evaluation',
    'memberCount','plannedMemberCount','assignments','scheduleChanges','outcome',
    'financeSource','costTotals','revenueTotals','collection'
-  ]),...(row.id?{recordRef:String(row.id).slice(0,140)}:{}),
+  ]),...(row.id?{recordRef:opaqueRef(row.id)}:{ }),
    ...(relatedActivityRefs.length?{relatedRecordRefs:relatedActivityRefs,
     relationshipType:'explicit-crm-activity-link'}:{})};
  });

@@ -68,7 +68,7 @@ const categories=new Set(['source','device','version','app_version','user_stage'
  'entry_module','label','key','metric','metricId','unit','status','goal','focusGoal',
  'type','kind','priority','direction','platform','channel','date','timezone',
  'association','family','definitionVersion','ruleVersion','user_pool',
- 'scope','qualityStatus','category','name','period','state','browser',
+ 'scope','qualityStatus','category','name','period','state','browser','relationshipType',
  'coverage','quality','scene',
  'os','event_name','group','metricName','currency','trafficSource',
  'list_type','page_name','layer','targetMetric','financeSource','collection','siteUrl','startDate','endDate','dateTimezone','attribution','sourceKind','publishedAt','group','action','channel']);
@@ -84,7 +84,7 @@ const groups=new Set(['total','totals','days','growth','change','dimensions','ch
  'humanOperations','channelObservations','aiActions','timeline','warnings','samplePosts',
  'outcome','targetProgress','performance','sourceCoverage',
  'assignments','scheduleChanges',
- 'linkedKols','linkedActivityIds','costTotals','revenueTotals','evaluation','review',
+ 'linkedKols','linkedActivityIds','relatedRecordRefs','costTotals','revenueTotals','evaluation','review',
  'metrics','series','distribution','sources','bySource','period','filters',
  'sourceVersions','watermarks','goal','current','previous','weekly','northStar',
  'contentSignals',
@@ -93,7 +93,7 @@ const groups=new Set(['total','totals','days','growth','change','dimensions','ch
  'manual','official','economics',
  'growthActivities','kolCollaborations','contentRecords','operationTasks','accounts',
  'xOfficial','searchConsole','kolObservations','aiReportActions','specialistSignals']);
-const ids=new Set(['snapshot_id','snapshotId','as_of','eventsCompleteThrough',
+const ids=new Set(['recordRef','snapshot_id','snapshotId','as_of','eventsCompleteThrough',
  'events_complete_through','cutoff','asOf','queryFingerprint']);
 const privacy=/\b(?:user|session|wallet|account|token_visit|strategy_run|user_id|session_id|cookie|email|phone)[:=][^\s,;]+|[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}|\b0x[a-fA-F0-9]{35,}\b|\b(?:[0-9a-fA-F]{8}-){4}[0-9a-fA-F]{12}\b|https?:\/\/\S+|\b(?:\d[\s-]?){12,}\b/gi;
 const safeText=(x,max=MAX_TEXT)=>typeof x==='string'
