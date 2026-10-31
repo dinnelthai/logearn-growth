@@ -70,7 +70,9 @@ async function metrics(body,snapshot,ids,context){
      rate:finite(activation.rate)?activation.rate:null,window_ms:86400000},
     engagement:productEngagement,trade:tradeConversion,
     coverage:{status:'partial',
-     reason:'账号创建、行为事件和交易来自不同事实源；来源完整性与独立水位仍待验证'},
+     historyComplete:growth?.quality?.history_complete===true,
+     eventsCompleteThrough:growth?.quality?.events_complete_through||null,
+     reason:'账号创建、行为事件和交易来自不同事实源；只有事件源历史完整性标记可见，注册与交易独立水位仍未知'},
     definition:'按真实注册账号建立队列。先观察注册后24小时筹码分析激活；再分别观察注册后7日内各产品入口；交易另按首次分析后7日统计。并行产品入口不构成线性漏斗。'
    }},warnings};
   }
