@@ -164,3 +164,16 @@ test('question priority reports goal relevance, real affected population and own
  assert.equal(missing.questionRanking.questions.find(q=>q.metric==='new_users').authorizedTool,null);
  assert.equal(missing.questionRanking.questions.find(q=>q.metric==='new_users').observedLatency,null);
 });
+
+test('North Star is a goal-relevant user count; trades stay a separate outcome',()=>{
+ const {rankBusinessQuestions}=require('../src/ai/growth/questionPriority');
+ const rows=[
+  {id:'north',metric:'active_users',priority:'P1',absolute:-12,evidenceIds:['ev-1'],evidenceConfidence:'high'},
+  {id:'trade',metric:'registered_trade_conversion_rate',priority:'P1',absolute:-0.2,evidenceIds:['ev-2'],evidenceConfidence:'high'},
+  {id:'return',metric:'returning_users',priority:'P1',absolute:-3,evidenceIds:['ev-3'],evidenceConfidence:'high'}
+ ];
+ const result=rankBusinessQuestions({goal:'activation',candidates:rows,capabilityIds:['query_metrics']});
+ assert.equal(result.questions.find(x=>x.metric==='active_users').goalRelevant,true);
+ assert.equal(result.questions.find(x=>x.metric==='returning_users').goalRelevant,true);
+ assert.equal(result.questions.find(x=>x.metric==='registered_trade_conversion_rate').goalRelevant,false);
+});

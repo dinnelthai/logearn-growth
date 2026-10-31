@@ -3,7 +3,7 @@
 // confidence, causal impact or SQL billing. Currency cost remains unknown.
 const {timingFor}=require('./queryEconomics');
 const GOAL={
- activation:new Set(['registration_activation_rate','activation_rate','new_users','registered_users']),
+ activation:new Set(['active_users','returning_users','registration_activation_rate','activation_rate','new_users','registered_users']),
  retention:new Set(['d7','returning_users','active_users']),
  conversion:new Set(['registered_trade_conversion_rate','registration_activation_rate','activation_rate','new_users']),
  revenue:new Set(['registered_trade_conversion_rate','weekly_core'])

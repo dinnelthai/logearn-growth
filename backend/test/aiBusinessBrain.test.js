@@ -44,6 +44,18 @@ test('Business Brain exposes the four LogEarn product roles and complete lifecyc
  assert.ok(value.operatingRules.some(x=>x.includes('相关性不等于因果')));
  assert.equal(value.business.northStarIntent.status,
   'operator-direction-not-a-validated-composite-kpi');
+ assert.equal(value.business.northStarIntent.metricId,'active_users');
+ assert.equal(value.business.northStarIntent.unit,'users');
+ assert.match(value.business.northStarIntent.definitionStatus,/operator-confirmed/);
+ assert.deepEqual(value.business.northStarIntent.eventNames,
+  ['chip_analysis_viewed','chip_analysis_drilldown']);
+ assert.match(value.business.northStarIntent.counting,/多少次只计一人/);
+ assert.match(value.business.northStarIntent.tradeOutcome,/独立结果指标/);
+ assert.match(value.business.northStarIntent.tradeOutcome,/不设.*时间窗/);
+ assert.match(value.business.northStarIntent.tradeIdentity,/匹配异常/);
+ assert.equal(value.focus.priorityMetrics[0],'active_users');
+ assert.ok(value.operatingRules.some(x=>x.includes('交易是北极星之外')));
+ assert.ok(value.operatingRules.some(x=>x.includes('只计1人')));
 });
 test('unknown focus goals fall back to activation without inventing a new goal',()=>{
  const value=brain.buildBusinessBrainContext({focusGoal:'invented-goal'});

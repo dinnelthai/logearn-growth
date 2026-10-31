@@ -10,17 +10,23 @@ const BUSINESS=Object.freeze({
  category:'Web3 Token Research, On-chain Analytics and Wallet Trading',
  purpose:'帮助用户研究 Token、理解筹码与持仓结构、使用策略信号，并在需要时通过钱包进行交易。',
  northStarIntent:{
-  statement:'有效分析用户，并关注其带来的真实交易量。',
+  statement:'北极星：统计期内触发筹码峰查看/下钻的去重分析用户数。',
   status:'operator-direction-not-a-validated-composite-kpi',
-  caveat:'在身份关联、有效分析定义、交易事实覆盖和观察窗口统一前，不得将其合并成一个未经验证的单一数值。'
+  definitionStatus:'operator-confirmed-2026-10-31;live-event-coverage-unverified',
+  metricId:'active_users',unit:'users',
+  eventNames:['chip_analysis_viewed','chip_analysis_drilldown'],
+  counting:'同一个 user_key 在同一统计期内无论查看/下钻多少次只计一人；跨统计期分别去重。',
+  tradeOutcome:'真实交易是独立结果指标，不属于北极星的分子或分母；不设分析到交易的北极星关联时间窗。',
+  tradeIdentity:'无法可靠匹配用户身份的交易不计入已验证的用户关联交易，需标记匹配异常/覆盖缺口；不能理解为真实零交易。',
+  caveat:'现有 active_users 以这两类观测事件代理点击筹码峰；真实埋点覆盖与 user_key 稳定性仍待验收。已有注册后7日交易转化率为独立既有指标，不是北极星条件。'
  }
 });
 const CHAINS=Object.freeze(['BSC','Solana']);
 const PRODUCTS=Object.freeze([
  {id:'ai_strategy',name:'AI 策略',role:'策略创建/开启与信号使用。',
   signals:['策略创建','策略开启','信号接收','信号查看'],caveat:'各事件不可互相替代。'},
- {id:'chip_distribution',name:'筹码峰',role:'Token 筹码分布与持仓结构分析；核心分析入口。',
-  signals:['Token详情','主动分析','分析成功','下钻'],caveat:'首次分析不是注册。'},
+ {id:'chip_distribution',name:'筹码峰',role:'Token 筹码分布与持仓结构分析；有效分析用户的核心入口。',
+  signals:['筹码峰查看','筹码峰下钻','分析请求','分析成功'],caveat:'北极星按查看/下钻的去重用户计数，不要求分析成功；首次分析不是注册。'},
  {id:'holder_ranking',name:'Holder 榜单',role:'Holder 排名和大户持仓明细。',
   signals:['榜单查看','Holder明细'],caveat:'需核对身份及事件覆盖。'},
  {id:'wallet_trading',name:'钱包交易',role:'钱包发起链上交易。',
@@ -53,8 +59,8 @@ const CONTEXT_METRIC_IDS=Object.freeze([
  'product_chain','trade_revenue','collaboration_economics','login_conversion','retention'
 ]);
 const GOAL_FOCUS=Object.freeze({
- activation:{objective:'提高首次有效产品分析用户，同时辨别注册、访问、登录与首次分析之间的真实断点。',
-  stages:['acquisition','registration','activation'],priorityMetrics:['registered_users','registration_activation_rate','new_users','activation_rate','active_users']},
+ activation:{objective:'优先提高统计期内查看筹码峰的去重用户数；兼顾首次分析与回访、注册和激活断点，但不把交易量混入北极星。',
+  stages:['acquisition','registration','activation'],priorityMetrics:['active_users','new_users','returning_users','registered_users','registration_activation_rate','activation_rate']},
  retention:{objective:'提高成熟用户的持续产品使用，先确认队列成熟度和可观测覆盖。',
   stages:['engagement','retention'],priorityMetrics:['active_users','returning_users','d7','retention']},
  conversion:{objective:'理解从产品价值行为到真实交易的可验证转化，不把点击意图当成成交。',
@@ -66,10 +72,10 @@ const OPERATING_RULES=Object.freeze([
  '围绕经营目标分析，再选能解决关键歧义的已授权模块；不机械罗列。',
  '事实、假设和行动分开；重要事实必须有证据，相关性不等于因果。',
  '未观测、未同步、未调查、查询失败和真实零值分别表示。',
- '首次分析不是注册；active_users、new_users 和 registered_users 严格区分。注册激活率只用已成熟注册队列作分母；注册后7日的筹码、Holder、策略和信号入口分别计数，入口可重叠，不合并单一参与率；未观测不等于未参与。',
+ '北极星是统计期内筹码峰查看/下钻的去重用户数 active_users；同一个 user_key 多次操作只计1人。new_users、returning_users 和 registered_users 按各自正式口径另列。注册激活率只用成熟注册队列作分母；注册后7日的筹码、Holder、策略、信号入口分别计数，入口可重叠；未观测不等于未参与。',
  'SEO/X/KOL曝光、点击、粉丝和互动不等于站内注册、激活或增量。',
  '比较前核对渠道、队列、分母、时区、范围和成熟窗口。',
- '平台真实收入缺少核验源时未知；CRM/KOL合作账本不是平台收入，交易量也不是收入；注册后7日交易率仅为用户级观察，不是同Token交易或因果归因。',
+ '真实交易是北极星之外的结果指标，不设北极星的分析到交易关联时间窗；现有注册后7日交易率是独立旧指标。用户/钱包交易身份无法可靠关联时，排除在已验证关联交易指标外并标记数据质量异常，不能视为零成交。平台收入缺核验源时未知，合作账本与交易量均不是平台收入。',
  '运营复盘必须读取 get_operations_timeline；人工活动、渠道观察与AI建议/复盘分层，AI建议不得视为已执行活动。',
  '多产品价值入口非强制漏斗；采纳和前后变化不证明有效；知识不覆盖证据/权限/预算。'
 ]);
