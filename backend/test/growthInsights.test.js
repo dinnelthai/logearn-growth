@@ -43,6 +43,28 @@ test('cohort trade is restricted to mature verified users and the first 168 hour
  const missing=growthInsights(rows,[],{start,end},snapshot).payload.channels[0].trade
  assert.equal(missing.available,false);assert.equal(missing.traders,null);assert.equal(missing.volume_usd,null)
 })
+test('registered cohort reports parallel product engagement within a mature seven-day window',()=>{
+ const registrations={available:true,scope:'all',rows:[
+  {user_key:'user:10',registered_at:start,first_chip_at:start+1000,
+   first_holder_at:start+2000,first_strategy_at:start+3000,first_signal_at:start+4000,
+   first_repeat_chip_at:start+DAY+500},
+  {user_key:'user:11',registered_at:start,first_chip_at:start+DAY,
+   first_holder_at:null,first_strategy_at:start+2*DAY,first_signal_at:null,
+   first_repeat_chip_at:null},
+  {user_key:'user:12',registered_at:asOf-2*DAY,first_chip_at:null,
+   first_holder_at:null,first_strategy_at:null,first_signal_at:null,first_repeat_chip_at:null}
+ ]};
+ const out=growthInsights([],[],{start,end},snapshot,{known:new Set(),trades:[],error:null},
+  {registration:registrations}).payload.cohorts.registration.engagement;
+ assert.equal(out.eligible,2);
+ assert.equal(out.pending,1);
+ assert.equal(out.chip_analysis_users,2);
+ assert.equal(out.holder_view_users,1);
+ assert.equal(out.strategy_started_users,2);
+ assert.equal(out.signal_view_users,1);
+ assert.equal(out.repeat_analysis_users,1);
+ assert.match(out.definition,/入口可重叠/);
+});
 test('quality separates absent telemetry from actual zero and preserves safe version evidence',()=>{
  const quality=[{event_name:'analysis_requested',version:'v2',events:'4',linked_events:'3',missing_source_events:'2',missing_id_events:'1',first_at:start,latest_at:end-1}]
  const q=growthInsights([],quality,{start,end},snapshot).payload.quality
