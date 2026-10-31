@@ -142,6 +142,13 @@ jobs:
           node --check src/analytics/productChain.js
           node --check src/workers/remoteAnalysis.js
           node --check src/data/growthEvidence.js
+          node --check src/data/growthInsights.js
+          node --check src/analytics/growthInsights.js
+          node --check src/ai/business/metricRegistry.js
+          node --check src/ai/business/businessBrain.js
+          node --check src/ai/business/tools/adapters.js
+          node --check src/ai/business/weeklyContextV4.js
+          node --check test/growthCohortTrades.test.js
           node --check test/productChainTrades.test.js
           node --check test/growthEvidence.test.js
           node --check test/aiBusinessBrain.test.js
@@ -163,6 +170,11 @@ jobs:
         env:
           NODE_ENV: test
         run: node --test test/productChainTrades.test.js test/productChain.test.js
+
+      - name: Run registration activation and post-analysis trade cohort tests
+        env:
+          NODE_ENV: test
+        run: node --test test/growthCohortTrades.test.js test/growthInsights.test.js test/growthCohorts.test.js
 
       - name: Run registration evidence regression tests
         env:
