@@ -151,12 +151,17 @@ async function businessAnalysis(job) {
     compact=session.context;
     // Rank only against the final authorized capability list, not the wider
     // pre-session catalog. This cannot authorize an unapproved tool.
+    const permittedIds=new Set((compact.capabilities||[]).map(cap=>cap.id));
+    const storedTimings=observedTimingRegistry.observedToolTimings({ownerId,
+     scope:compact.business?.scope||scope,period:compact.period});
+    // Freeze a small, authorized-only timing snapshot with this analysis so a
+    // resumed validation cannot silently use later or other-owner timings.
+    compact.trustedToolTimings=Object.fromEntries(
+     Object.entries(storedTimings).filter(([id])=>permittedIds.has(id)).slice(0,30));
     if(compact.growthPlan){
       compact.growthPlan.questionRanking=require('../../ai/growth/questionPriority')
        .rankBusinessQuestions({goal:focusGoal,candidates:compact.candidates||[],
-        capabilityIds:(compact.capabilities||[]).map(cap=>cap.id),
-        observedTimings:observedTimingRegistry.observedToolTimings({ownerId,
-         scope:compact.business?.scope||scope,period:compact.period})});
+        capabilityIds:[...permittedIds],observedTimings:compact.trustedToolTimings});
     }
     // Pin the strict output contract into the saved snapshot; archived contexts
     // without this marker retain their original validation behavior on recovery.
