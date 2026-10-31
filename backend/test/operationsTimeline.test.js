@@ -81,7 +81,7 @@ test('timeline merges existing owner-scoped records but keeps human, channel and
  assert.deepEqual(activity.assignments.map(x=>[x.group,x.count]),[['treatment',4],['control',3]]);
  assert.deepEqual(activity.deliveryEvidence.map(x=>[x.kind,x.channel,x.count]),[['delivered','telegram',5]]);
  assert.deepEqual(activity.scheduleChanges.map(x=>[x.action,x.count]),[['rescheduled',2]]);
- assert.equal(db.calls.some(c=>c.sql.includes('growth_activity_delivery_evidence')&&/\\buser_id\\b|\\be\\.evidence\\b/.test(c.sql)),false);
+ assert.equal(db.calls.some(c=>c.sql.includes('growth_activity_delivery_evidence')&&/\buser_id\b|\be\.evidence\b/.test(c.sql)),false);
  assert.equal(result.coverage.searchConsole.periodMatched,false);
  assert.equal(result.coverage.contentRecords.collection,'manual');
  assert.ok(db.calls.some(c=>c.sql.includes('FROM growth_activities')&&c.args[0]==='owner-1'));
