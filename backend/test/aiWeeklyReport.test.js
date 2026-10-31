@@ -10,6 +10,19 @@ test('weekly report uses last complete Monday-Sunday Bangkok week',()=>{
  assert.equal(period.timezone,'Asia/Bangkok');
  assert.equal(weeklyKey(period),weeklyKey({...period}));
 });
+test('custom report period accepts exact Bangkok timestamps and rejects invalid windows',()=>{
+ const now=Date.parse('2026-10-31T07:15:00+07:00');
+ const start=Date.parse('2026-10-24T09:30:00+07:00');
+ const end=Date.parse('2026-10-31T06:45:00+07:00');
+ const period=reportPeriod({start:String(start),end:String(end)},now);
+ assert.equal(period.kind,'custom');
+ assert.equal(period.start,start);
+ assert.equal(period.end,end);
+ assert.equal(period.timezone,'Asia/Bangkok');
+ assert.throws(()=>reportPeriod({start:String(start)},now),/同时填写/);
+ assert.throws(()=>reportPeriod({start:String(start),end:String(now+1)},now),/有效/);
+ assert.throws(()=>reportPeriod({start:String(start-31*86400000),end:String(end)},now),/1–31天/);
+});
 test('report evidence must occur in already validated claims',()=>{
  const report={claims:[{evidenceIds:['observed-1']}],weeklyReport:{
   executiveSummary:'基于已观测的真实周报',metrics:[{label:'有效分析',current:12,previous:10,changePct:20,evidenceIds:['observed-1']}],
