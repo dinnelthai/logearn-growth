@@ -137,3 +137,16 @@ The AI operating report supports:
 - historical custom report display and regeneration against the selected record.
 
 Important source limitation: some sources (notably Search Console) are date-granularity snapshots. The prompt tells the model to disclose source granularity and not imply minute-level alignment. Custom report code and isolated tests are present; Node CI and real API/Worker verification remain pending.
+
+## 12. Product-to-trade evidence query bounds
+
+The read-only product-to-trade lookup now starts from successful user-triggered analysis rows that carry token visit, token address and chain context. It uses the existing verified-wallet identity precedence, then reads authoritative `trading_transaction` facts and enriches transaction hashes from confirmed account ledger and supported indexed swap data.
+
+The query is deliberately bounded:
+- merge overlapping account/chain analysis windows;
+- maximum 5,000 merged windows;
+- maximum 20,000 returned trade rows;
+- 2,000 hashes per token-enrichment batch;
+- expose row/window truncation in quality diagnostics.
+
+This is a performance and scope reduction, not a claim of complete transaction coverage. A trade can be counted as confirmed only when identity and unique token enrichment match the same user, chain and post-analysis time window. An unmatched or truncated window remains unknown. CI validates SQL construction and failure semantics; actual Hologres latency and match coverage still require read-only observation on the authorized source.
