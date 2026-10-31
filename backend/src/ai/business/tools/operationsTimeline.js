@@ -55,6 +55,7 @@ function createOperationsTimeline({
   if(!Number.isSafeInteger(limit)||limit<1||limit>100)throw Object.assign(Error('运营时间线条数无效'),{status:400});
   const startIso=new Date(start).toISOString(),endIso=new Date(end).toISOString();
   const humanOperations=[],channelObservations=[],aiActions=[],coverage={};
+  const collaborationRefsByKol=new Map();
   const status=count=>count?'available':'empty';
   const read=async(key,fn)=>{
    try{return await fn()}
@@ -149,12 +150,13 @@ function createOperationsTimeline({
    const finance=await kolOperations.collaborations(ownerId,{limit:50}).catch(()=>[]);
    const financeById=new Map(finance.map(row=>[row.collaborationId,row]));
    for(const r of rows){
-    const f=financeById.get(r.id);
+    const f=financeById.get(r.id),kolId=String(r.kol_id);
+    if(!collaborationRefsByKol.has(kolId))collaborationRefsByKol.set(kolId,[]);
+    collaborationRefsByKol.get(kolId).push('kol-collaboration:'+r.id);
     humanOperations.push({
      id:'kol-collaboration:'+r.id,
-     linkedActivityIds:(linked.get(r.id)||[]).slice(0,8),
      kind:'kol_collaboration',layer:'human_operation',
-     source:'crm_collaborations',title:text(r.name,120),channel:'KOL',
+     source:'crm_collaborations',title:text(r.name,120),channel:'KOL',kolRef:'kol:'+kolId,
      kol:text(r.kol_name,80),startAt:r.start_at,endAt:r.end_at,
      status:r.status,goal:text(r.goal,240),deliverables:text(r.deliverables,240),
      assignee:text(r.assignee,80),linkedActivityIds:(linked.get(r.id)||[]).slice(0,8),
@@ -302,14 +304,20 @@ function createOperationsTimeline({
     const evidence=safeJson(record.evidence)||{},rows=Array.isArray(evidence.rows)?evidence.rows:[];
     const observedUsers=rows.reduce((n,r)=>n+(Number.isFinite(Number(r.observedUsers))?Number(r.observedUsers):0),0);
     const analysisEvents=rows.reduce((n,r)=>n+(Number.isFinite(Number(r.analysisEvents))?Number(r.analysisEvents):0),0);
+    const linkedKols=rows.filter(row=>collaborationRefsByKol.has(String(row.id))).slice(0,8);
     channelObservations.push({
      id:'kol-observation:'+record.id,kind:'kol_period_observation',layer:'channel_observation',
      source:'kol-crm-observed-behavior',title:'KOL 观察周期',
      startAt:Number(record.start_at),endAt:Number(record.end_at),
      observedAt:Date.parse(record.source_watermark)||record.captured_at||null,
      metrics:{profiles:rows.length,observedUsers,analysisEvents},
+     kolSummaries:linkedKols.map(row=>({kolRef:'kol:'+String(row.id),label:text(row.label,80),
+      stage:text(row.stage,24),metrics:{observedUsers:finite(row.observedUsers),
+       analysisUsers:finite(row.analysisUsers),analysisEvents:finite(row.analysisEvents),
+       tradeUsers:finite(row.tradeUsers),transactions:finite(row.transactions),volume_usd:finite(row.volumeUsd)},
+      linkedCollaborationRefs:(collaborationRefsByKol.get(String(row.id))||[]).slice(0,4)})),
      coverage:safeJson(record.coverage)||{},scope:evidence.scope||'tagged',
-     attribution:'observational-not-causal'
+     attribution:'observational-not-causal',relationshipType:linkedKols.length?'crm-kol-id-match':'unlinked'
     });
    }
    coverage.kolObservations={status:status(selected.length),count:selected.length,limit:12,truncated:snapshots.length===12,ownerScoped:true};
@@ -364,6 +372,7 @@ function createOperationsTimeline({
    'KOL 观察与人工账本不证明增量因果；多币种成本/收入不得合并',
    '活动、社群与培训仅在现有 growth_activities / operation_tasks 等记录中可见；没有专门平台连接时不代表不存在活动',
    '内容增长记录是人工登记，不是平台完整采集',
+   'KOL观察仅通过同一CRM档案ID关联合作；行为指标仍是归组用户的非因果观察',
    '运营备注来自操作员自述，未经独立核验；作为线索而非已验证事实'
   ];
   const limited=Object.entries(coverage).filter(([,value])=>value?.truncated===true).map(([key])=>key);
