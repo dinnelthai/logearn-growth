@@ -52,6 +52,12 @@ async function businessAnalysis(job) {
   // pinned to their saved prompt/version and must never be silently rewritten.
   const useWeeklyV4=isWeeklyReport&&useContextV3&&
     process.env.AI_WEEKLY_CONTEXT_V4_ENABLED!=='0';
+  // v5 is additive: archived v1-v4 prompts keep their exact transport.
+  // Newly created analyses receive the versioned business knowledge layer.
+  const useBusinessBrainV5=useContextV3&&
+    process.env.AI_BUSINESS_BRAIN_V5_ENABLED!=='0';
+  const useWeeklyV5=isWeeklyReport&&useBusinessBrainV5&&
+    process.env.AI_WEEKLY_CONTEXT_V5_ENABLED!=='0';
   let leaseError=null,renewing=false;
   const heartbeat=setInterval(async()=>{
     if(renewing)return;
@@ -173,8 +179,10 @@ async function businessAnalysis(job) {
     const currentPrompt=require('../../ai/optimization/promptRegistry')
       .createPromptRegistry(require('../../db/connection'))
       .resolve(ownerId,'analysis',prompt,{runId:analysisId});
-    const result=await runTask({context:compact,prompt:isWeeklyReport?currentPrompt+'\n'+(useContextV3?weeklyReport.weeklyPromptV2:weeklyReport.weeklyPrompt):currentPrompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
-      contextVersion:useWeeklyV4?'v4':useContextV3?'v3':'v1',
+    const result=await runTask({context:compact,prompt:isWeeklyReport?currentPrompt+'\n'+
+      (useWeeklyV5?weeklyReport.weeklyPromptV3:useContextV3?weeklyReport.weeklyPromptV2:weeklyReport.weeklyPrompt):currentPrompt,
+      ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
+      contextVersion:useWeeklyV5?'v5':useWeeklyV4?'v4':useBusinessBrainV5?'v5':useContextV3?'v3':'v1',
       ...(isWeeklyReport?{modelTimeoutMs:weeklyReport.weeklyModelTimeoutMs()}:{}),
       paidCalls:{
         begin:round=>executionClaim.record.filter_conditions?.proposalId
