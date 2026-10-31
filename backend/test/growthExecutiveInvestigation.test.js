@@ -95,3 +95,54 @@ test('success requires verified external evidence, not only status=ok',()=>{
   assert.equal(saved.result.status,'partial');
  }finally{f.close()}
 });
+
+test('investigation plans differ for new versus returning analysis users',()=>{
+ const {investigationQuestions}=require('../src/ai/growth/workspace/executiveInvestigation');
+ assert.deepEqual(investigationQuestions('new_users').map(x=>x.moduleId),
+  ['growth.acquisition','growth.activation','growth.login']);
+ assert.deepEqual(investigationQuestions('returning_users').map(x=>x.moduleId),
+  ['growth.retention','growth.activation','growth.quality']);
+ assert.deepEqual(investigationQuestions('unknown_metric'),[]);
+});
+test('source comparisons reject mismatched provenance and non-adjacent windows',()=>{
+ const {evidenceForProblem}=require('../src/ai/growth/workspace/executiveInvestigation');
+ const f=setup();try{
+  f.store.saveEvidence('alice',evidence('one',100,start));
+  f.store.saveEvidence('alice',{...evidence('two',50,start+DAY),source:'other-source'});
+  const p=f.store.observeProblem('alice',{type:'business',subject:'incompatible',
+   scope:{source:'all'},evidenceIds:['one','two']});
+  assert.equal(evidenceForProblem(f.store,'alice',p.id),null);
+  f.store.saveEvidence('alice',evidence('three',50,start+5*DAY));
+  const q=f.store.observeProblem('alice',{type:'business',subject:'non-adjacent',
+   scope:{source:'all'},evidenceIds:['one','three']});
+  assert.equal(evidenceForProblem(f.store,'alice',q.id),null);
+ }finally{f.close()}
+});
+test('investigations retain the module-linked hypothesis evidence without claiming causality',async()=>{
+ const f=setup();try{
+  f.store.saveEvidence('alice',evidence('baseline',100,start));
+  f.store.saveEvidence('alice',evidence('recent',50,start+DAY));
+  const p=f.store.observeProblem('alice',{type:'business',subject:'active_users:drop',
+   scope:{source:'all'},evidenceIds:['baseline','recent'],priority:5});
+  const reg={
+   listBusinessModules:()=>['growth.acquisition','growth.activation','growth.quality']
+    .map(id=>({moduleId:id,status:'available',version:'1',description:id,
+     capabilities:[{id:id==='growth.acquisition'?'get_channels':id==='growth.activation'?
+       'get_funnel':'check_data_quality',cost:'free',version:'1'}]})),
+   executeBusinessModule:async req=>({
+    status:req.moduleId==='growth.quality'?'unavailable':'ok',
+    evidenceIds:req.moduleId==='growth.quality'?[]:[req.moduleId+'-e'],
+    coverage:{status:'partial'}})
+  };
+  const result=await investigateOwner({store:f.store,ownerId:'alice',now,registry:reg,
+   verifyExternalEvidence:(_owner,id)=>id.endsWith('-e')});
+  assert.equal(result.status,'partial');
+  const saved=f.store.run('alice',result.runId).result;
+  assert.equal(saved.hypotheses.length,3);
+  assert.equal(saved.hypotheses[0].status,'observed-not-causal');
+  assert.equal(saved.hypotheses[0].causalityEstablished,false);
+  assert.equal(saved.hypotheses[2].status,'blocked');
+  assert.equal(saved.hypotheses[0].agentEvidenceIds.length,1);
+  assert.equal(f.store.executiveQueue('alice').investigations.length,1);
+ }finally{f.close()}
+});

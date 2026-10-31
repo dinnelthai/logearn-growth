@@ -185,17 +185,26 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
   const snapshotId=requiredString(input?.sourceEvidenceId,'调查源',256);
   if(snapshotId!==row.result?.sourceEvidenceId||!getEvidence(owner,snapshotId))throw Error('调查快照不匹配');
   const steps=Array.isArray(input.steps)?input.steps:[];
-  if(steps.length>4||steps.some(x=>typeof x.moduleId!=='string'||x.moduleId.length>80||
+  if(steps.length>3||steps.some(x=>typeof x.moduleId!=='string'||x.moduleId.length>80||
    !['ok','unavailable','blocked'].includes(x.status)))throw Error('调查结果不可验证');
   const ids=[...new Set((input.evidenceIds||[]).slice(0,20))];
   if(ids.some(x=>typeof x!=='string'||!x||!verifyExternalEvidence(owner,x)))throw Error('调查引用了未授权的外部证据');
+  const hypotheses=Array.isArray(input.hypotheses)?input.hypotheses:[];
+  if(hypotheses.length>3||hypotheses.some(x=>typeof x.kind!=='string'||
+   !/^[a-z-]{3,60}$/.test(x.kind)||typeof x.moduleId!=='string'||
+   !steps.some(step=>step.moduleId===x.moduleId)&&x.status!=='not-inspected'||
+   !['not-inspected','blocked','observed-not-causal','coverage-unverified'].includes(x.status)||
+   !Array.isArray(x.evidenceIds)||x.evidenceIds.some(id=>!ids.includes(id))))
+   throw Error('假设与工具证据不匹配');
   const summary={version:'executive-investigation-v1',sourceEvidenceId:snapshotId,
    status:ids.length>0&&steps.length>0&&steps.every(x=>x.status==='ok')?'evidence-collected':'partial',
-   steps:steps.map(x=>({moduleId:x.moduleId,status:x.status})),agentEvidenceIds:ids,
-   hypotheses:[
-    {kind:'acquisition-mix',status:'unverified'},
-    {kind:'activation-friction',status:'unverified'},
-    {kind:'tracking-quality',status:'unverified'}],
+   steps:steps.map(x=>({moduleId:x.moduleId,status:x.status,
+    capabilityId:typeof x.capabilityId==='string'?x.capabilityId.slice(0,80):null,
+    agentEvidenceIds:(x.evidenceIds||[]).filter(id=>ids.includes(id)).slice(0,8)})),
+   agentEvidenceIds:ids,
+   hypotheses:hypotheses.map(x=>({kind:x.kind,moduleId:x.moduleId,status:x.status,
+    question:String(x.question||'').slice(0,180),
+    agentEvidenceIds:x.evidenceIds.slice(0,8),causalityEstablished:false})),
    decision:'仅记录已授权调查能力的真实状态；没有跨源可验证归因，不自动采纳行动',
    modelCalls:0,paidCalls:0,externalActions:0};
   db.prepare("UPDATE gw_runs SET state='completed',result_json=?,updated_at=? WHERE owner_id=? AND id=? AND mode='executive-readonly' AND state='running'")
@@ -398,6 +407,9 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
    reviewsDue:dueReviews.slice(0,8).map(a=>({id:a.id,problemId:a.problem_id,observeUntil:a.observe_until})),
    overdueTasks:overdueTasks.map(t=>({id:t.id,title:t.title,assignee:t.assignee,dueAt:t.due_at,status:t.status})),
    workItems:workItems(owner,{limit:30}).map(x=>({id:x.id,actionId:x.action_id,title:x.title,step:x.step,status:x.status,assignee:x.assignee,dueAt:x.due_at})),
+   investigations:all("SELECT id,problem_id,state,result_json,updated_at FROM gw_runs WHERE owner_id=? AND mode='executive-readonly' ORDER BY updated_at DESC LIMIT 8",owner)
+    .map(x=>({id:x.id,problemId:x.problem_id,state:x.state,updatedAt:x.updated_at,
+     summary:safeJSON(x.result_json,{})})),
    learning:executiveLearning(owner),
    portfolio:require('./executivePortfolio').opportunityPortfolio(owner,{problems,problemEvents,getEvidence,executiveLearning}),
    goalAlignment:require('./executivePortfolio').goalAlignment(
