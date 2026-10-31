@@ -50,6 +50,7 @@ const AGGREGATE_OBJECTS=new Set([
  'metrics','summary','totals','global','conversion','product_chain',
  'first_value','referral','window','trade','xOfficial','contentSignals',
  'counts','retention','growth','current','previous','funnel','attribution',
+ 'humanOperations','assignments','scheduleChanges',
  'registration','association','first_value','exposure','entrance',
  'byCurrency','bySource','dimensions','rates','d7','d30',
  'channels','sources','steps','stages','drops','groups','cohorts',
@@ -59,7 +60,7 @@ const AGGREGATE_OBJECTS=new Set([
 const AGGREGATE_ARRAYS=new Set([
  'channels','sources','steps','stages','drops','groups','cohorts',
  'families','retention_summary','entrance_breakdown','page_clicks_summary',
- 'items','series','trends','bySource','days'
+ 'items','series','trends','bySource','days','humanOperations','assignments','scheduleChanges'
 ]);
 const validNumber=x=>typeof x==='number'&&Number.isFinite(x);
 const cleanText=(value,max=180)=>String(value??'').slice(0,max);
@@ -88,8 +89,8 @@ function factsFromEvidence(evidence){
      for(const [i,item] of value.slice(0,8).entries()){
       if(!item||typeof item!=='object'||Array.isArray(item))continue;
       const category=safeDimension(item.source)||safeDimension(item.channel)||
-       safeDimension(item.key)||safeDimension(item.stage)||
-       safeDimension(item.label);
+       safeDimension(item.kind)||safeDimension(item.group)||safeDimension(item.key)||
+       safeDimension(item.stage)||safeDimension(item.label);
       // A numeric index alone is stable within this snapshot, not attribution.
       visit(item,evidenceId,name+'.'+(category||String(i)),depth+1);
       if(facts.length>=12)break;
@@ -170,7 +171,7 @@ function packModule(def,{status,reason,evidence=[],source='read-only',tool=def.t
   (reason||'已取得只读统计')+'；部分来源达到读取上限，结果为有界样本':reason;
  return {id:def.id,label:def.label,status,reason:cleanText(coverageReason||'',180),
   tool,source,evidenceIds:evidence.map(e=>e?.id).filter(id=>typeof id==='string').slice(0,4),
-  facts:factsFromEvidence(evidence).slice(0,8)};
+  facts:factsFromEvidence(evidence).slice(0,(def.id==='operations-timeline'?12:8))};
 }
 function initialCoverage(context,{allowedTools=[],availableSpecialties=[]}={}){
  const available=new Set(allowedTools),special=new Set(availableSpecialties);
