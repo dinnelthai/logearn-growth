@@ -5,13 +5,34 @@ const express=require('express');
 const {workspaceStore}=require('../ai/growth/workspace/store');
 const {currentMonth}=require('../ai/growth/workspace/period');
 const {requiredString}=require('../ai/growth/workspace/contracts');
-function createRouter({db=require('../db/connection'),readAgentTargets=null}={}){
+function createRouter({db=require('../db/connection'),readAgentTargets=null,
+ readReportSourceStatus=()=>require('../data/hologres').status()}={}){
  const router=express.Router();const store=workspaceStore(db);
  const h=fn=>async(req,res)=>{try{
   if(!req.user?.user_id)return res.status(401).json({error:'未登录'});
   await fn(req,res,String(req.user.user_id));
  }catch(e){const known=Number.isInteger(e.status)&&e.status>=400&&e.status<500;const status=known?e.status:503;return res.status(status).json({error:known?e.message:'工作台服务暂不可用；请先核验数据库迁移与 API/Worker 拓扑'})}};
  const num=(v,defaultValue)=>v===undefined?defaultValue:Number(v);
+ // as_of is the latest OBSERVED event, not an ingestion-complete-through.
+ // This bound prevents known-impossible report periods without claiming coverage.
+ async function reportObservation(required=false){
+  try{
+   const source=await readReportSourceStatus(),observed=Date.parse(source?.as_of);
+   if(!Number.isFinite(observed)||observed<0)throw Error('missing observed time');
+   return {lastObservedAt:new Date(observed).toISOString(),latestEnd:observed+1,
+    kind:'last-observed-event',coverageVerified:false};
+  }catch(_error){
+   if(required)throw Object.assign(
+    Error('无法核验最新业务事件观测时间，未创建付费任务，请稍后重试'),{status:409});
+   return null;
+  }
+ }
+ async function requireObservedReportEnd(end){
+  const observation=await reportObservation(true);
+  if(end>observation.latestEnd)throw Object.assign(
+   Error('所选截止时间晚于最近事件观测时间；请缩短时间范围。未创建付费任务'),{status:409});
+ }
+
  router.get('/dashboard',h(async(req,res,owner)=>{
   const month=currentMonth();
   // API reads use previously persisted owner-scoped evidence only.
@@ -69,14 +90,15 @@ function createRouter({db=require('../db/connection'),readAgentTargets=null}={})
   const records=require('../db/aiRecords');
   const {reportPeriod}=require('../ai/growth/weeklyReport');
   const period=reportPeriod(req.query);
-  const [reports,archivedCurrentWeek,archivedFailed]=await Promise.all([
+  const [reports,archivedCurrentWeek,archivedFailed,sourceWatermark]=await Promise.all([
    records.listWeeklyReportRecords(owner,{limit:20}),
    records.hasHiddenWeeklyReport(owner,period),
-   records.getArchivedFailedWeeklyReport(owner,period)
+   records.getArchivedFailedWeeklyReport(owner,period),
+   reportObservation(false)
   ]);
   const hasCurrent=reports.some(row=>Number(row.date_range_start)===period.start&&
    Number(row.date_range_end)===period.end);
-  res.json({period,reports,archivedCurrentWeek,
+  res.json({period,reports,archivedCurrentWeek,sourceWatermark,
    canRegenerateArchivedFailed:!hasCurrent&&!!archivedFailed,paidGeneration:false});
  }));
  // Audit one already-saved, owner-scoped weekly snapshot; never collect or bill.
@@ -108,6 +130,7 @@ function createRouter({db=require('../db/connection'),readAgentTargets=null}={})
    return res.status(409).json({error:'本周失败周报已删除，请使用「重新生成 AI 周报」明确发起新的付费任务'});
   if(!archivedFailed&&req.body?.regenerateArchivedFailed===true)
    return res.status(409).json({error:'未发现本周已删除的失败周报，无法执行重新生成'});
+  await requireObservedReportEnd(period.end);
   // Deterministic key per archived failure: repeated clicks enqueue only once.
   // Every attempt preserves the original task, evidence and paid-call ledger.
   const requestKey=archivedFailed?
@@ -180,6 +203,7 @@ function createRouter({db=require('../db/connection'),readAgentTargets=null}={})
      notice:'已创建基于该报告的新任务，没有再次提交付费模型调用'});
    return res.status(409).json({error:'该时间范围已有更新的报告任务，请刷新后从最新记录重新生成'});
   }
+  await requireObservedReportEnd(period.end);
   const requestKey=reportKey(period)+':explicit-regenerate:'+previous.id;
   const userQuestion=previous.user_question||
    '请使用真实业务证据生成覆盖增长、SEO、渠道、激活、留存、交易与运营行动的完整运营报告';
@@ -241,6 +265,7 @@ function createRouter({db=require('../db/connection'),readAgentTargets=null}={})
   const ledger=await records.listAnalysisPaidCalls(previous.id,owner);
   if(!ledger.some(call=>['unknown','started'].includes(call.status)))
    return res.status(409).json({error:'前一次调用账本不是未确认状态，禁止绕过原任务'});
+  await requireObservedReportEnd(period.end);
   const requestKey=reportKey(period)+':manual-timeout:'+previous.id;
   const conditions={...previous.filter_conditions,weeklyReissueOf:previous.id};
   const scope=previous.business_scope||conditions.businessScope||{source:'all'};

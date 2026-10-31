@@ -15,6 +15,15 @@ const rangeBounds=range=>{
  if(end>Date.now())throw Error('结束时间不能晚于当前时间');
  return {start,end};
 };
+// A latest-event observation is a conservative bound, not a completeness watermark.
+export function reportSourceWindow({start,end,lastObservedAt,now=Date.now()}={}){
+ const observed=Date.parse(lastObservedAt);
+ if(!Number.isFinite(observed)||!Number.isSafeInteger(end))
+  return {exceeds:false,recommendedEnd:null};
+ const cutoff=Math.floor(Math.min(observed,now)/60000)*60000;
+ return {exceeds:end>observed+1,
+  recommendedEnd:Number.isSafeInteger(start)&&cutoff>start?cutoff:null};
+}
 const periodText=row=>row.report_period==='custom-v1'?
  dateTime(row.date_range_start)+' → '+dateTime(row.date_range_end)+'（结束不含）':
  date(row.date_range_start)+' — '+date(Number(row.date_range_end)-1)+' · 完整周';
@@ -252,7 +261,10 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
    const row=rows.find(x=>x.id===selected);
    const showRegenerateSelected=!!row&&
     (row.report_period==='custom-v1'||row.id===current?.id);
-   const canRegenerateSelected=showRegenerateSelected&&
+   const sourceWindow=reportSourceWindow({start:row?Number(row.date_range_start):d.period.start,
+    end:row?Number(row.date_range_end):d.period.end,
+    lastObservedAt:d.sourceWatermark?.lastObservedAt});
+   const canRegenerateSelected=showRegenerateSelected&&!sourceWindow.exceeds&&
     ['completed','failed','cancelled'].includes(row.status);
    const regenerateArchived=!row&&!current&&d.canRegenerateArchivedFailed===true;
    const nextSnapshot=JSON.stringify({
@@ -280,11 +292,21 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
     start:localDateTime(Number(row.date_range_start)),
     end:localDateTime(Number(row.date_range_end))
    }:range;
+   const suggestedEnd=sourceWindow.recommendedEnd===null?null:
+    localDateTime(sourceWindow.recommendedEnd);
+   const sourceHint=d.sourceWatermark?.lastObservedAt?
+    (sourceWindow.exceeds?'所选截止时间晚于最近事件观测时间 '+dateTime(Date.parse(d.sourceWatermark.lastObservedAt))+
+      '（UTC+7）；请缩短时间范围。来源历史与采集完整性仍未核验。':
+     '最近事件观测至 '+dateTime(Date.parse(d.sourceWatermark.lastObservedAt))+
+      '（UTC+7）；不代表采集完整。'):
+    '来源观测截止时间暂不可用；创建付费任务之前仍须通过服务端校验。';
    const rangePicker='<div class="ai-weekly-range-picker">'+
     '<label>开始时间 · UTC+7 <input type="datetime-local" data-weekly-start value="'+safe(rangeForPicker.start)+'"></label>'+
-    '<label>结束时间（不含）· UTC+7 <input type="datetime-local" data-weekly-end value="'+safe(rangeForPicker.end)+'"></label>'+
+    '<label>结束时间（不含）· UTC+7 <input type="datetime-local" data-weekly-end value="'+safe(rangeForPicker.end)+'"'+(suggestedEnd?' max="'+safe(suggestedEnd)+'"':'')+'></label>'+
     '<button type="button" class="a-button" data-weekly-apply-range>应用时间范围</button>'+
     '<button type="button" class="a-button" data-weekly-reset-range>最近完整周</button>'+
+    (sourceWindow.exceeds&&suggestedEnd?
+     '<button type="button" class="a-button" data-weekly-use-observed>使用可观测截止时间</button>':'')+
     '<span>自定义1–31天；与紧邻前一段等长周期比较</span></div>';
    root.innerHTML='<div class="ai-weekly-heading"><div><h3>'+(shownCustom?'AI 运营报告':'AI 运营周报')+'</h3><p class="a-muted">'+
     (row?'当前查看：':'统计范围：')+shownRange+'</p></div>'+
@@ -298,6 +320,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
      d.archivedCurrentWeek?'<span class="ai-weekly-status">'+(customPeriod?'本期记录已移除':'本周记录已移除')+'</span>':
      '<button type="button" class="a-button a-primary" data-weekly-confirm>'+(customPeriod?'生成所选时间范围报告':'生成最近完整周报告')+'</button>')+'</div>'+
     rangePicker+
+    '<p class="a-muted" data-weekly-source-hint role="status">'+safe(sourceHint)+'</p>'+
     (canRegenerateSelected?
      '<div class="ai-weekly-regenerate-confirm" data-weekly-regenerate-confirm hidden>'+
      '<p><strong>重新生成当前报告？</strong>将重新读取所选时间范围的业务数据，并创建一份独立的新报告。旧报告、证据与历史费用全部保留；本次可能再次产生模型费用。</p>'+
@@ -330,6 +353,18 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
      rangeBounds(next);range=next;customPeriod=true;selected=null;
      notice='已切换到自定义时间范围。';load();
     }catch(error){const note=root.querySelector('[data-weekly-note]');if(note)note.textContent=error.message}
+   });
+   root.querySelector('[data-weekly-use-observed]')?.addEventListener('click',()=>{
+    if(!sourceWindow.exceeds||!suggestedEnd)return;
+    try{
+     const next={start:rangeForPicker.start,end:suggestedEnd};
+     rangeBounds(next);range=next;customPeriod=true;selected=null;
+     notice='已将截止时间调整到可观测范围内；采集完整性仍未证实。';
+     load();
+    }catch(error){
+     const target=root.querySelector('[data-weekly-note]');
+     if(target)target.textContent=error.message;
+    }
    });
    root.querySelector('[data-weekly-reset-range]')?.addEventListener('click',()=>{
     customPeriod=false;selected=null;notice='已恢复最近完整周。';load();
@@ -379,6 +414,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
     const button=event.currentTarget;
     button.disabled=true;button.textContent='正在创建新周报…';
     try{
+     if(sourceWindow.exceeds)throw Error('该报告超出最近事件观测时间，请缩短截止时间并创建新的报告');
      const result=await api('/ai-weekly-reports/'+encodeURIComponent(row.id)+'/regenerate',
       'POST',{acceptPotentialDuplicateCharge:true});
      if(disposed)return;
@@ -431,6 +467,10 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
     if(note)note.textContent='正在创建所选时间范围的 AI 分析任务…';
     try{
      const bounds=customPeriod?rangeBounds(range):null;
+     const end=bounds?.end??d.period.end;
+     if(Number.isFinite(Date.parse(d.sourceWatermark?.lastObservedAt))&&
+      end>Date.parse(d.sourceWatermark.lastObservedAt)+1)
+      throw Error('截止时间晚于最近事件观测时间，请先缩短时间范围；未创建付费任务');
      const result=await api('/ai-weekly-reports','POST',{
       ...(bounds?{start:bounds.start,end:bounds.end}:{}),
       ...(regenerateArchived?{regenerateArchivedFailed:true}:{})

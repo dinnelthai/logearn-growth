@@ -45,7 +45,7 @@ function endpoint(){
   if(!Object.hasOwn(deps,id))throw Error('Unexpected dependency '+id);
   return deps[id];
  },Date,Number,String,JSON,Object,Error,RegExp,console});
- mod.exports.createRouter({db:{}});
+ mod.exports.createRouter({db:{},readReportSourceStatus:async()=>({as_of:'2026-10-31T00:00:00Z'})});
  const handler=registered.get('POST /ai-weekly-reports/:id/new-attempt');
  assert.equal(typeof handler,'function');
  async function invoke({owner='alice',ack=true}={}){

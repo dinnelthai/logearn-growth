@@ -7,7 +7,7 @@ const vm=require('node:vm');
 
 const period={start:Date.parse('2026-10-19T00:00:00+07:00'),
  end:Date.parse('2026-10-26T00:00:00+07:00')};
-function setup(){
+function setup({observedThrough='2026-10-31T00:00:00Z'}={}){
  const handlers=new Map(),queued=[],created=new Map();
  let hidden=false;
  const existing={id:'weekly-failed',owner_id:'owner',status:'failed',
@@ -55,7 +55,7 @@ function setup(){
   require:key=>{if(!Object.hasOwn(dependencies,key))throw Error('Unhandled dependency '+key);
    return dependencies[key]},
   Date,Number,String,JSON,Object,Error,RegExp,console});
- module.exports.createRouter({db:{}});
+ module.exports.createRouter({db:{},readReportSourceStatus:async()=>({as_of:observedThrough})});
  async function request(method,url,owner='owner',body={}){
   let status=200,json;
   const res={status(code){status=code;return this},json(value){json=value;return this}};
@@ -103,4 +103,15 @@ test('the archived indicator remains scoped to the owner',async()=>{
  assert.equal(result.json.archivedCurrentWeek,false);
  assert.equal(result.json.canRegenerateArchivedFailed,false);
  assert.equal(result.json.reports.length,0);
+});
+
+test('late observed source blocks archived regeneration before persistence or paid queue',async()=>{
+ const f=setup({observedThrough:'2026-10-20T00:00:00Z'});f.archive();
+ const metadata=await f.request('GET','/ai-weekly-reports');
+ assert.equal(metadata.json.sourceWatermark.coverageVerified,false);
+ assert.equal(metadata.json.sourceWatermark.lastObservedAt,'2026-10-20T00:00:00.000Z');
+ const refused=await f.request('POST','/ai-weekly-reports','owner',{regenerateArchivedFailed:true});
+ assert.equal(refused.status,409);
+ assert.match(refused.json.error,/未创建付费任务/);
+ assert.equal(f.queued.length,0);
 });

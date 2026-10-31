@@ -7,7 +7,7 @@ const vm=require('node:vm');
 
 const period={start:Date.parse('2026-10-19T00:00:00+07:00'),
  end:Date.parse('2026-10-26T00:00:00+07:00')};
-function harness({oldStatus='completed',oldOwner='owner',oldPeriod=period}={}){
+function harness({oldStatus='completed',oldOwner='owner',oldPeriod=period,observedThrough='2026-10-31T00:00:00Z'}={}){
  const routes=new Map(),queued=[],created=new Map(),updates=[];
  const old={id:'weekly-original',owner_id:oldOwner,status:oldStatus,
   date_range_start:oldPeriod.start,date_range_end:oldPeriod.end,
@@ -51,7 +51,7 @@ function harness({oldStatus='completed',oldOwner='owner',oldPeriod=period}={}){
   require:name=>{if(!Object.hasOwn(deps,name))throw Error('Unmocked '+name);return deps[name]},
   Date,Number,String,JSON,Object,Error,RegExp,console
  });
- mod.exports.createRouter({db:{}});
+ mod.exports.createRouter({db:{},readReportSourceStatus:async()=>({as_of:observedThrough})});
  async function submit({owner='owner',id='weekly-original',ack=true}={}){
   let code=200,body;
   const res={status(value){code=value;return this},json(data){body=data;return this}};
@@ -110,4 +110,13 @@ test('a failed weekly report can start a separate acknowledged run without clear
  assert.equal(result.status,202);
  assert.equal(env.old.status,'failed');
  assert.equal(env.queued.length,1);
+});
+
+test('regeneration cannot create a new paid task past the source observation time',async()=>{
+ const env=harness({observedThrough:'2026-10-20T00:00:00Z'});
+ const result=await env.submit();
+ assert.equal(result.status,409);
+ assert.match(result.body.error,/未创建付费任务/);
+ assert.equal(env.queued.length,0);
+ assert.equal(env.created.size,0);
 });
