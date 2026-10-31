@@ -84,7 +84,7 @@ const groups=new Set(['total','totals','days','growth','change','dimensions','ch
  'product_chain','first_value','trade','d7','d30','registration','association','attribution',
  'exposure','entrance','entrance_breakdown','page_clicks_summary','retention_summary',
  'funnels','paths','pages','summary','sample','byCurrency','trends','rates','counts',
- 'humanOperations','channelObservations','outcomeLinks','aiActions','timeline','warnings','samplePosts',
+ 'humanOperations','channelObservations','outcomeLinks','channelLinks','aiActions','timeline','warnings','samplePosts',
  'outcome','targetProgress','performance','sourceCoverage','observed','window',
  'assignments','scheduleChanges',
  'linkedKols','linkedActivityIds','relatedRecordRefs','kolSummaries','linkedCollaborationRefs','costTotals','revenueTotals','evaluation','review',
