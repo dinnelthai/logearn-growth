@@ -261,7 +261,7 @@ function ensureWeeklyReport(analysis,{context=null}={}){
   }
   return w;
  };
- try{validateWeeklyReport(analysis);return complete()}
+ try{validateWeeklyReport(analysis,{strict});return complete()}
  catch(error){
   const cited=new Set((analysis.claims||[]).flatMap(c=>c.evidenceIds||[]));
   const references=row=>(Array.isArray(row.evidenceIds)?row.evidenceIds:[]).filter(id=>cited.has(id));
@@ -281,7 +281,7 @@ function ensureWeeklyReport(analysis,{context=null}={}){
     '周度 KPI 对照和渠道分项未能形成完整证据表，不能视为零增长。'],
    partial:true
   };
-  validateWeeklyReport(analysis);
+  validateWeeklyReport(analysis,{strict});
   return complete();
  }
 }
