@@ -1,6 +1,6 @@
 # Growth Agent 2.0 — Channel source and historical-period contracts
 
-> Branch: `codex/ai-comprehensive-upgrade`. Latest source/test HEAD at this update: `a4f421400160d1a895e5032d7614062946e6f731`.
+> Branch: `codex/ai-comprehensive-upgrade`. Latest source/test HEAD: `a4f421400160d1a895e5032d7614062946e6f731`; [AI infrastructure CI 41187724624](https://github.com/dinnelthai/logearn-growth/actions/runs/41187724624) passed Contract, Integration and Frontend.
 >
 > This is a **code + fixture/CI contract audit**, not an assertion that real X, Search Console, Hologres, CRM or referral data have been connected, are current, or passed a paid-model end-to-end test. Unknown is not zero. No source here authorizes automatic external collection or paid calls.
 
@@ -55,5 +55,5 @@ Source/test HEAD `8a7f71c98fce502b68a056671ee9a95304507abb`. Source-specific tim
 - **Completeness and freshness:** the model-visible journey includes the event-source `historyComplete` flag and `eventsCompleteThrough` where the existing snapshot exposes them. Evidence carries the event snapshot only for event-based behavior. Registration and trade source versions/watermarks remain null until independently measured; a Hologres event watermark is not substituted for either.
 - **Breakdown contract:** the journey supports the existing authorized source scope and fixed audience scope, but does not advertise or accept device/version group-by. No unsupported cross-dimensional breakdown is inferred.
 - **Model safety:** nested journey data is allowlisted as aggregate evidence; raw rows, user IDs, wallets and membership lists remain excluded. Weekly fact projection prioritizes mature activation, each parallel product-entry count and verified trade conversion.
-- **Regression coverage:** `backend/test/aiBusinessMetricsAdapter.test.js`, `backend/test/agentTools.test.js`, `backend/test/aiWeeklyCoverage.test.js`, existing `backend/test/growthInsights.test.js` and `backend/test/growthCohortTrades.test.js`. [AI infrastructure CI 41187657285](https://github.com/dinnelthai/logearn-growth/actions/runs/41187657285) passed Contract, Integration and Frontend for the implementation/test set before the final compaction-only deduplication; latest HEAD's final CI is being verified separately.
+- **Regression coverage:** `backend/test/aiBusinessMetricsAdapter.test.js`, `backend/test/agentTools.test.js`, `backend/test/aiWeeklyCoverage.test.js`, existing `backend/test/growthInsights.test.js` and `backend/test/growthCohortTrades.test.js`. Final [AI infrastructure CI 41187724624](https://github.com/dinnelthai/logearn-growth/actions/runs/41187724624) passed Contract, Integration and Frontend on source/test HEAD `a4f421400160d1a895e5032d7614062946e6f731`.
 - **Acceptance boundary:** this closes the *code + fixture contract* for the journey, not live event completeness, independent registration/trade watermarks, or a production read-only data acceptance.
