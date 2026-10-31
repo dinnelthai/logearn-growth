@@ -210,14 +210,15 @@ function createOperationsTimeline({
     const postsAvailable=Array.isArray(account.posts)?account.posts:[];
     const lastSynced=Date.parse(account.lastSynced||'');
     const accountStatus=!overview.configured?'not_configured':
-     Number.isFinite(lastSynced)?'synced':
+     Number.isFinite(lastSynced)?'pending-period-check':
       account.error||account.lastAttempt?'unavailable':'not_synced';
     const oldest=Date.parse(postsAvailable.at(-1)?.published_at||'');
     if((account.posts||[]).length===20&&Number.isFinite(oldest)&&start<oldest)truncated=true;
     const posts=postsAvailable.filter(p=>{
      const at=Date.parse(p.published_at);return Number.isFinite(at)&&at>=start&&at<end;
     });
-    accountCoverage.push({account:text(account.label||account.id,60),status:accountStatus,
+    const periodStatus=accountStatus==='pending-period-check'?(posts.length?'available':'empty'):accountStatus;
+    accountCoverage.push({account:text(account.label||account.id,60),status:periodStatus,
      lastSynced:Number.isFinite(lastSynced)?lastSynced:null,posts:posts.length});
     const measured=posts.filter(p=>Number(p.impressions)>0&&
      [p.likes,p.replies,p.reposts].every(v=>v!=null));
