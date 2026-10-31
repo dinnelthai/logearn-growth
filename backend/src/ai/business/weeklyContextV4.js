@@ -20,6 +20,17 @@ function factsFromValue(value,max=4){
  if(valid(value))return [{metric:'value',value}];
  if(typeof value!=='object')return [];
  const matches=[],registration=value?.cohorts?.registration,registrationMetrics=registration?.metrics;
+ // Preserve the aggregate activity experiment summary without exposing member IDs.
+ for(const row of (Array.isArray(value.humanOperations)?value.humanOperations:[])
+  .filter(x=>x?.kind==='growth_activity'&&Array.isArray(x.assignments)).slice(0,1)){
+  const source=row.source==='growth_activities'?'growth_activities':'activity';
+  for(const assignment of row.assignments.slice(0,2)){
+   const group=['treatment','control'].includes(assignment.group)?assignment.group:'group';
+   for(const key of ['assigned','delivered','sent_unconfirmed','not_delivered','delivery_unknown','cross_exposed']){
+    if(valid(assignment[key]))matches.push({metric:`humanOperations.${source}.assignments.${group}.${key}`,value:assignment[key]});
+   }
+  }
+ }
  if(registration?.available===true&&registrationMetrics&&typeof registrationMetrics==='object'){
   const fields=[
    ['registration_activation_rate','rate'],
