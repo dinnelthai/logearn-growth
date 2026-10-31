@@ -84,7 +84,7 @@ router.post('/',wrap(async(req,res)=>{
  });res.status(saved.existing?200:201).json({task:expose(saved.task),existing:saved.existing})
 }))
 router.get('/:id',(req,res,next)=>{try{const t=get(req.params.id,req.user.user_id);res.json({task:expose(t),history:db.prepare('SELECT * FROM operation_task_history WHERE task_id=? ORDER BY created_at DESC,id DESC').all(t.id).map(h=>({...h,before:h.before_json?JSON.parse(h.before_json):null,after:JSON.parse(h.after_json),before_json:undefined,after_json:undefined}))})}catch(e){next(e)}})
-router.patch('/:id',(req,res,next)=>{try{
+router.patch('/:id',async(req,res,next)=>{try{
  const t=get(req.params.id,req.user.user_id)
  if(req.body.expected_updated_at!==t.updated_at)fail('任务已被更新，请刷新后重试',409)
  const input=fields(req.body,t),note=req.body.result_note??''
