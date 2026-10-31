@@ -76,24 +76,22 @@ const GOAL_FOCUS=Object.freeze({
   stages:['trading','economics'],priorityMetrics:['product_chain','trade_revenue']}
 });
 const OPERATING_RULES=Object.freeze([
- '先围绕经营目标分析，再选择能解决关键歧义的已授权模块；不要机械罗列12个模块。',
+ '先围绕经营目标分析，再选择能解决关键歧义的已授权模块；不要机械罗列模块。',
  '事实、假设和行动分开；重要事实必须有证据，相关性不等于因果。',
  '未观测、未同步、未调查、查询失败和真实零值分别表示；缺数不代表业务未发生。',
- '首次分析不是注册；active_users、new_users 和 registered_users 严格按指标字典区分。',
+ '首次分析不是注册；active_users、new_users 和 registered_users 严格区分。',
  'SEO/X/KOL曝光、点击、粉丝和互动不直接等于站内注册、激活或增量。',
- '不同渠道、队列、分母、时区和成熟窗口核对后才能比较。',
- '交易量不等于收入；合作账本不等于全平台收入；币种不可未经换算混加。',
- '身份或访问关联不足时，只报告真实交易事实，不声称渠道或功能带来交易。',
- '产品功能是多个价值入口；Token详情→分析→交易只是可观测路径，不是强制漏斗。',
- '历史建议、人工采纳和前后变化不证明有效；业务知识不得覆盖证据、权限或预算。'
+ '比较前先核对渠道、队列、分母、时区、范围和成熟窗口。',
+ '交易量不等于收入；合作账本不等于全平台收入；身份关联不足时不声称精确归因。',
+ '产品功能是多个价值入口；历史采纳和前后变化不证明有效；知识不得覆盖证据、权限或预算。'
 ]);
 function metricDictionary(){
  return CONTEXT_METRIC_IDS.map(id=>{
   const metric=describeMetric(id);
-  const meaning=String(metric.definition||'').slice(0,78);
-  const maturity=String(metric.maturityRule||'').slice(0,38);
-  return {id,label:LABELS[id],definitionVersion:metric.version,
-   unit:metric.unit,meaning:maturity?meaning+'；'+maturity:meaning};
+  const meaning=String(metric.definition||'').slice(0,55);
+  const maturity=String(metric.maturityRule||'').slice(0,20);
+  return {id,label:LABELS[id],unit:metric.unit,
+   meaning:maturity?meaning+'；'+maturity:meaning};
  });
 }
 function buildBusinessBrainContext({focusGoal='activation'}={}){
@@ -106,6 +104,7 @@ function buildBusinessBrainContext({focusGoal='activation'}={}){
   lifecycle:LIFECYCLE,
   focus:{goal:GOAL_FOCUS[focusGoal]?focusGoal:'activation',
    objective:focus.objective,stages:focus.stages,priorityMetrics:focus.priorityMetrics},
+  metricDictionaryVersion:'1',
   metricDictionary:metricDictionary(),
   operatingRules:OPERATING_RULES
  };
