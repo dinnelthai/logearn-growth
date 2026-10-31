@@ -42,7 +42,7 @@ function discover(owner,store,{sources=[],signals=[],at=Date.now(),maxNew=8}={})
   results.push({type:'business',subject:id,scope:s.scope||{source:'all'},metricId:s.metricId,
    goalId:s.goalId||null,goalVersion:s.goalVersion||null,
    description:`已验证来源的指标出现下降，当前值 ${a.value}，基线 ${b.value}（相对变化 ${(change*100).toFixed(1)}%），原因待验证。`,
-   evidenceIds:[b.id,a.id],priority:s.goalId?4:3,
+   evidenceIds:[b.id,a.id],priority:s.metricId==='active_users'?5:s.goalId?4:3,
    impact:{status:'observed-relative-change',fraction:change,affectedJudgement:s.subject},
    nextStep:'先核对口径、分母、渠道与路径，再确定是否需要运营动作'});
  }

@@ -29,7 +29,7 @@ function dailyWorkspaceTick({db,ownerId,now=Date.now(),sources=null,signals=[]}=
   evidenceCoverage:brief.snapshot.quality.sourceCompleteness,paidCalls:0,externalActions:0,
   warning:'Only explicitly supplied authorized source health and vetted signals were inspected; unconfigured sources may remain unknown'};
 }
-async function dailyWorkspaceTickWithMetrics({db,ownerId,now=Date.now(),metricProviders=null}={}){
+async function dailyWorkspaceTickWithMetrics({db,ownerId,now=Date.now(),metricProviders=null,executiveObservation=null}={}){
  const store=workspaceStore(db,{clock:()=>now}),month=currentMonth(now),sources=localSourceHealth(db,ownerId);
  const providers=metricProviders||{status:()=>require('../../../data/hologres').status(),weekly:(...args)=>require('../../../data/weeklyCore').weeklyCoreFacts(...args)};
  const goals=store.listGoals(ownerId,{asOf:now,start:month.start,end:month.end}).filter(g=>g.metric_id==='weekly_core');
@@ -37,6 +37,10 @@ async function dailyWorkspaceTickWithMetrics({db,ownerId,now=Date.now(),metricPr
   const progress=await refreshWeeklyCore({store,owner:ownerId,goal,now,...providers});
   if(progress.status==='partial'&&progress.evidenceId){sources.push({id:'weekly-core-events',state:'partial',coverage:'history-and-watermark-unverified',evidenceId:progress.evidenceId});break}
  }
- return dailyWorkspaceTick({db,ownerId,now,sources});
+ const cycle=process.env.GROWTH_EXECUTIVE_CYCLE_ENABLED!=='0'?
+  await require('./executiveCycle').runExecutiveCycle({ownerId,store,now,
+   ...(executiveObservation?{load:executiveObservation}:{})}):{status:'disabled',modelCalls:0,externalActions:0};
+ const result=dailyWorkspaceTick({db,ownerId,now,sources});
+ return {...result,executive:cycle};
 }
 module.exports={dailyWorkspaceTick,dailyWorkspaceTickWithMetrics,localSourceHealth};

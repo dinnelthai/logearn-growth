@@ -159,6 +159,53 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
   db.prepare("UPDATE gw_runs SET state='completed',result_json=?,updated_at=? WHERE owner_id=? AND id=?").run(JSON.stringify(v),getNow(),owner,id);return run(owner,id)}
  function createAction(owner,problemId,input){const p=problem(owner,problemId);if(!p)throw Error('问题不存在');const desc=requiredString(input.description,'行动建议',1500),assignee=requiredString(input.assignee,'负责人',120),id=randomUUID(),now=getNow();
   db.prepare('INSERT INTO gw_actions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(owner,id,problemId,input.runId||null,desc,assignee,'proposed',input.metricId||null,input.definitionVersion||null,input.direction||null,null,null,null,null,now,now);return action(owner,id)}
+ // An internal investigation draft only. A repeated scan cannot spawn
+ // duplicate actions, and no scan may approve or execute one.
+ function proposeActionOnce(owner,problemId,input){
+  ownerId(owner);
+  if(!problem(owner,problemId))throw Object.assign(Error('问题不存在或无权访问'),{status:404});
+  const description=requiredString(input?.description,'行动描述',1500);
+  const assignee=requiredString(input?.assignee,'负责人',120);
+  const metric=input?.metricId||null,definition=input?.definitionVersion||null;
+  return inTx(()=>{
+   const prior=fetch('SELECT id FROM gw_actions WHERE owner_id=? AND problem_id=? AND description=? ORDER BY created_at DESC LIMIT 1',owner,problemId,description);
+   if(prior)return {...action(owner,prior.id),reused:true};
+   const id=randomUUID(),now=getNow();
+   db.prepare('INSERT INTO gw_actions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(owner,id,problemId,null,
+    description,assignee,'proposed',metric,definition,input?.direction||null,
+    null,null,null,null,now,now);
+   return {...action(owner,id),reused:false};
+  });
+ }
+ function executiveQueue(owner,{at=getNow()}={}){
+  ownerId(owner);
+  if(!Number.isSafeInteger(at)||at<0)throw Error('经营看板时间无效');
+  const month=currentMonth(at);
+  const northStar=listGoals(owner,{asOf:at,start:month.start,end:month.end})
+   .find(g=>g.metric_id==='active_users'&&g.scope?.source==='all');
+  const open=problems(owner,{limit:200}).filter(p=>['open','monitoring'].includes(p.status));
+  const acts=actions(owner,{limit:200});
+  const awaiting=acts.filter(a=>a.status==='proposed');
+  const dueReviews=acts.filter(a=>a.status==='executed'&&!a.review&&
+   Number.isSafeInteger(a.observe_until)&&a.observe_until<=at);
+  // Existing fixed-audience tasks remain owned by the operation task system.
+  // Never interpret a task's completion as an executed AI suggestion.
+  const hasTasks=fetch("SELECT 1 AS n FROM sqlite_master WHERE type='table' AND name='operation_tasks'");
+  const overdueTasks=hasTasks?all("SELECT id,title,status,assignee,due_at FROM operation_tasks WHERE owner_id=? AND status!='done' AND due_at IS NOT NULL AND due_at<? ORDER BY due_at ASC LIMIT 20",owner,at):[];
+  const priorities=open.slice().sort((a,b)=>b.priority-a.priority||a.first_seen-b.first_seen)
+   .slice(0,5).map(p=>({id:p.id,type:p.type,subject:p.subject,priority:p.priority,status:p.status,
+    nextStep:p.next_step,firstSeenAt:p.first_seen,lastSeenAt:p.last_seen}));
+  return {version:'growth-executive-queue-v1',
+   northStar:{metricId:'active_users',unit:'users',definitionVersion:'1',
+    goalId:northStar?.id||null,target:northStar?.target_value??null,
+    targetStatus:northStar?'workspace-configured':'not-configured',
+    note:'只统计报告期筹码峰查看/下钻的去重用户；交易是独立结果'},
+   priorities,unresolvedProblems:open.length,waitingApproval:awaiting.length,
+   awaitingApproval:awaiting.slice(0,8).map(a=>({id:a.id,problemId:a.problem_id,description:a.description,assignee:a.assignee})),
+   reviewsDue:dueReviews.slice(0,8).map(a=>({id:a.id,problemId:a.problem_id,observeUntil:a.observe_until})),
+   overdueTasks:overdueTasks.map(t=>({id:t.id,title:t.title,assignee:t.assignee,dueAt:t.due_at,status:t.status})),
+   requiresHumanApproval:true,automaticExternalActions:0,modelCalls:0};
+ }
  function action(owner,id){ownerId(owner);const a=fetch('SELECT * FROM gw_actions WHERE owner_id=? AND id=?',owner,id);return a?{...a,baseline:safeJSON(a.baseline_json),review:safeJSON(a.review_json)}:null}
  function actions(owner,{limit=50}={}){ownerId(owner);return all('SELECT * FROM gw_actions WHERE owner_id=? ORDER BY created_at DESC LIMIT ?',owner,Math.max(1,Math.min(200,limit))) .map(r=>({...r,baseline:safeJSON(r.baseline_json),review:safeJSON(r.review_json)}))}
  function updateAction(owner,id,next,{actualAction=null,baselineEvidenceId=null,observeUntil=null}={}){const a=action(owner,id),transitions={proposed:['accepted','rejected'],accepted:['executing','rejected'],executing:['executed','rejected'],executed:[]};
@@ -279,6 +326,6 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
    reviewSampleSize:reviewed,uncertainReviews:byVerdict.uncertain||0,
    interpretation:'仅来自人工审阅样本，未审核问题不计入准确率；样本存在选择偏差'};
  }
- return {saveGoal,goalById,listGoals,saveEvidence,getEvidence,progress,dashboardGoals,observeProblem,problem,problems,problemEvents,setProblemStatus,startRun,run,ask,answer,cancelRun,finishRun,createAction,action,actions,updateAction,reviewAction,report,buildReport,reportList,linkOperationTask,linkedOperationTasks,linkAcceptedSuggestionToTask,suggestionOperationTasks,suggestionIdsForOperationTask,reviewProblem,reconcileSource,qualitySummary};
+ return {saveGoal,goalById,listGoals,saveEvidence,getEvidence,progress,dashboardGoals,observeProblem,problem,problems,problemEvents,setProblemStatus,startRun,run,ask,answer,cancelRun,finishRun,createAction,proposeActionOnce,executiveQueue,action,actions,updateAction,reviewAction,report,buildReport,reportList,linkOperationTask,linkedOperationTasks,linkAcceptedSuggestionToTask,suggestionOperationTasks,suggestionIdsForOperationTask,reviewProblem,reconcileSource,qualitySummary};
 }
 module.exports={workspaceStore};

@@ -96,6 +96,7 @@ jobs:
           node --check src/ai/growth/operationTaskEvidence.js
           node --check src/ai/growth/retrospectiveOutcome.js
           node --check src/ai/growth/agentLearning.js
+          node --check src/ai/growth/workspace/executiveCycle.js
           node --check src/ai/growth/experienceFeedback.js
           node --check src/ai/growth/agentStore.js
           node --check src/queues/jobs/retrospective.js
@@ -222,7 +223,7 @@ jobs:
         env:
           NODE_ENV: test
         run: |
-          node --test test/auditBusinessAnalysisE2E.test.js test/growthStatisticalModelTransport.test.js test/agentTools.test.js test/modelEvidenceCompact.test.js test/agentHealth.test.js test/llmRedisRateLimit.test.js test/configureGrowthLlm.test.js test/agentFoundation.test.js test/agentFollowupRunner.test.js test/agentCapabilityContext.test.js test/agentContextBudget.test.js test/modelEvidenceCompact.test.js test/agentTokenFollowup.test.js test/agentTokenBudgetPreflight.test.js test/batchAnomalies.test.js test/aiUsageBudget.test.js test/aiRelayProvider.test.js test/growthCostAudit.test.js test/growthCrossDay.test.js test/growthAlertMonitorScheduler.test.js test/growthLiveObservation.test.js test/growthDiagnosis.test.js test/growthInbox.test.js test/growthSharedReport.test.js test/growthSharedDailyDispatch.test.js test/growthSharedSnapshotCache.test.js test/hologresExplain.test.js test/growthEfficiencyAudit.test.js test/growthDailySignalGate.test.js test/aiCostUnknownGuard.test.js test/growthWorkspaceHttp.test.js test/growthWorkspace.test.js test/growthWorkspaceMetric.test.js
+          node --test test/auditBusinessAnalysisE2E.test.js test/growthStatisticalModelTransport.test.js test/agentTools.test.js test/modelEvidenceCompact.test.js test/agentHealth.test.js test/llmRedisRateLimit.test.js test/configureGrowthLlm.test.js test/agentFoundation.test.js test/agentFollowupRunner.test.js test/agentCapabilityContext.test.js test/agentContextBudget.test.js test/modelEvidenceCompact.test.js test/agentTokenFollowup.test.js test/agentTokenBudgetPreflight.test.js test/batchAnomalies.test.js test/aiUsageBudget.test.js test/aiRelayProvider.test.js test/growthCostAudit.test.js test/growthCrossDay.test.js test/growthAlertMonitorScheduler.test.js test/growthLiveObservation.test.js test/growthDiagnosis.test.js test/growthInbox.test.js test/growthSharedReport.test.js test/growthSharedDailyDispatch.test.js test/growthSharedSnapshotCache.test.js test/hologresExplain.test.js test/growthEfficiencyAudit.test.js test/growthDailySignalGate.test.js test/aiCostUnknownGuard.test.js test/growthWorkspaceHttp.test.js test/growthWorkspace.test.js test/growthWorkspaceMetric.test.js test/growthExecutiveCycle.test.js
 
   ai-integration:
     runs-on: ubuntu-latest
