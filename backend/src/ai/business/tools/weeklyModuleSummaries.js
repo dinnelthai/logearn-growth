@@ -99,9 +99,12 @@ function followerSummary(payload){
   coverage:payload.coverage||{status:'partial'},
   warnings:['没有可核对的粉丝分类计数']};
  const grouped=new Map();
+ // An older scan snapshot has no reviewed_at; a null review count is not zero.
+ const reviewedKnown=chosen.every(r=>number(r.reviewed));
  for(const r of chosen){
   const category=safeDimension(r.category)||'other';
-  const current=grouped.get(category)||{source:category,records:0,analyzed:0,reviewed:0};
+  const current=grouped.get(category)||{source:category,records:0,analyzed:0,
+   ...(reviewedKnown?{reviewed:0}:{})};
   current.records+=r.n;
   if(number(r.analyzed))current.analyzed+=r.analyzed;
   if(number(r.reviewed))current.reviewed+=r.reviewed;
@@ -110,10 +113,11 @@ function followerSummary(payload){
  return {available:true,summary:{
   scannedRecords:sum(chosen.map(r=>r.n)),
   analyzedRecords:sum(chosen.filter(r=>number(r.analyzed)).map(r=>r.analyzed)),
-  reviewedRecords:sum(chosen.filter(r=>number(r.reviewed)).map(r=>r.reviewed))
+  ...(reviewedKnown?{reviewedRecords:sum(chosen.map(r=>r.reviewed))}:{})
  },groups:[...grouped.values()].sort((a,b)=>b.records-a.records).slice(0,6),
   coverage:payload.coverage||{status:'partial'},
   warnings:['为当前窗口内已扫描分类记录计数，不代表全账号粉丝总量、独立用户或真实购买意图',
+   ...(reviewedKnown?[]:['历史审阅完成时间不可还原，已审阅数量保持未知而非零']),
    ...(payload.warnings||[]).slice(0,2)]};
 }
 module.exports={loginSummary,economicsSummary,kolSummary,contentSummary,followerSummary};
