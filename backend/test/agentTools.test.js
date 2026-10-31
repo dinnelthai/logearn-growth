@@ -49,6 +49,8 @@ test('collaboration economics evidence never becomes platform revenue or trade v
   assert.match(ev.warnings.join(' '),/非平台收入/);
   const {describeMetric}=require('../src/ai/business/metricRegistry');
   assert.equal(describeMetric('trade_revenue').queryAdapter,'platform-revenue-unavailable');
+  assert.equal(describeMetric('trade_revenue').version,'2');
+  assert.equal(describeMetric('collaboration_economics').version,'1');
   assert.equal(describeMetric('collaboration_economics').queryAdapter,'economics');
   assert.notEqual(describeMetric('trade_revenue').definition,describeMetric('collaboration_economics').definition);
  }finally{t.db.close()}
