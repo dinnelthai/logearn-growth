@@ -29,6 +29,7 @@ const ALLOWED_NUMBERS=new Set([
  'participation_rate','continuation_rate','binding_rate',
  'views','likes','replies','retweets','reposts','posts','impressions','clicks','traders',
  'ctr','position','followers','engagementRate','trades','transactions',
+ 'chip_analysis_rate','holder_view_rate','strategy_started_rate','signal_view_rate','repeat_analysis_rate',
  'volume','volume_usd','cost_usd','revenue','cost','bound','inviters',
  'count','total','flows','exposures','clicked','entered','details',
  'visitor_users','clicked_users','drop_off_users','mature_users',
@@ -49,7 +50,7 @@ const ALLOWED_NUMBERS=new Set([
  'assigned','delivered','sent_unconfirmed','not_delivered','delivery_unknown','cross_exposed','retrospective_records'
 ]);
 const AGGREGATE_OBJECTS=new Set([
- 'metrics','summary','totals','global','conversion','product_chain','engagement',
+ 'metrics','summary','totals','global','conversion','product_chain','engagement','activation',
  'first_value','referral','window','trade','xOfficial','contentSignals',
  'counts','retention','growth','current','previous','funnel','attribution',
  'humanOperations','assignments','scheduleChanges','outcome','targetProgress','performance','sourceCoverage',
@@ -125,6 +126,19 @@ function factsFromEvidence(evidence){
     for(const key of ['users','previous_conversion_rate','drop_off_users'])
      add('steps.'+step+'.'+key,row?.[key],e.id);
    }
+  }else if(e.metricId==='registered_user_journey'){
+   const registration=value?.registration||{},activation=registration.activation||{},
+    engagement=registration.engagement||{},trade=registration.trade||{};
+   add('registration.activation.eligible',activation.eligible,e.id);
+   add('registration.activation.activated',activation.activated,e.id);
+   add('registration.activation.rate',activation.rate,e.id);
+   add('registration.engagement.eligible',engagement.eligible,e.id);
+   for(const key of ['chip_analysis_users','holder_view_users','strategy_started_users',
+    'signal_view_users','repeat_analysis_users'])
+    add('registration.engagement.'+key,engagement[key],e.id);
+   add('registration.trade.eligible',trade.eligible,e.id);
+   add('registration.trade.traders',trade.traders,e.id);
+   add('registration.trade.conversion_rate',trade.conversion_rate,e.id);
   }else if(e.metricId==='activities'&&Array.isArray(value?.humanOperations)){
    // Prioritize settled outcomes, then aggregate delivery states by fixed group.
    const row=value.humanOperations.find(x=>x?.kind==='growth_activity');
