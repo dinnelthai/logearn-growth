@@ -14,8 +14,11 @@ function makeEvidence(input,context){
  if(input.value!==null&&input.value!==undefined&&typeof input.value==='number'&&!Number.isFinite(input.value))fail('证据数值无效');
  if(input.denominator===0&&input.value!=null)fail('分母为0时数值必须未知');
  const query={metricId:metric.id,definitionVersion:metric.version,filters:{...(input.filters||{}),scope:context.scope||{source:'all'}},period,query:input.query||null};
+ const observedFilter=input.filters?.source;
+ const metadataScope=typeof observedFilter==='string'&&observedFilter!=='all'?
+  {...query.filters.scope,source:observedFilter}:query.filters.scope;
  const sourceMetadata=buildSourceMetadata({metricId:metric.id,query:input.query,
-  watermarks:input.watermarks,coverage:input.coverage,scope:query.filters.scope});
+  watermarks:input.watermarks,coverage:input.coverage,scope:metadataScope});
  return JSON.parse(JSON.stringify({id:randomUUID(),ownerId,...query,unit:metric.unit,value:input.value??null,numerator:input.numerator??null,denominator:input.denominator??null,sampleSize:input.sampleSize??null,
  sourceVersions:input.sourceVersions||context.sourceVersions||{},watermarks:input.watermarks||{},coverage:input.coverage||{status:'unknown'},sourceMetadata,warnings:input.warnings||[],queryFingerprint:fingerprint(query),generatedAt:new Date().toISOString(),
  reportLocator:input.reportLocator||{page:'businessAnalysis',...period,scope:query.filters.scope},supersedesId:input.supersedesId||null}));
