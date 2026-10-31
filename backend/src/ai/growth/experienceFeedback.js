@@ -47,6 +47,8 @@ function summarizeExperience(history,{source='all',now=Date.now(),lookbackDays=1
     businessProblem:String(item.business_problem||'').slice(0,180),
     actualAction:String(item.actual_action||'').slice(0,220),
     assessment,reason:observed?.reason||'legacy-review-evidence-insufficient',
+    judgementConflict:observed?.judgementConflict===true,
+    observedDirection:observed?.observedDirection||null,
     reviewedAt:reviewed,
     resultSummary:String(item.result_summary||'').slice(0,180)
    };

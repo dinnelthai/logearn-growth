@@ -66,3 +66,28 @@ test('v2 learning fails closed when cohort coverage is incomplete or primary met
  assert.equal(values[0].evidence.reason,'fixed-cohort-coverage-incomplete');
  assert.equal(values[1].evidence.reason,'primary-metric-has-no-direct-cohort-equivalent');
 });
+
+test('v2 review preserves model-versus-cohort direction conflict as explicit insufficient evidence',()=>{
+ const row0={...row('conflict',true),review_context_version:'2',
+  validation_metrics:{primary:'active_users'},
+  baseline_data:{operationTaskCohort:{status:'available',
+   metrics:{analysis_users:20,requested_users:30,unmatched_users:0}}},
+  effect_data:{operationTaskCohort:{analysis_users:14,requested_users:30,unmatched_users:0}}};
+ const [value]=judgeHistory([row0],{now});
+ assert.equal(value.assessment,'insufficient');
+ assert.equal(value.evidence.reason,'retrospective-judgement-conflicts-with-fixed-cohort-trend');
+ assert.equal(value.evidence.judgementConflict,true);
+ assert.equal(value.evidence.change.observedDirection,'down');
+ assert.equal(value.evidence.hasCausality,false);
+});
+test('v2 conflict with a positive observed direction is not silently recorded as supported',()=>{
+ const opposite={...row('opposite',false),review_context_version:'2',
+  validation_metrics:{primary:'active_users'},
+  baseline_data:{operationTaskCohort:{status:'available',
+   metrics:{analysis_users:20,requested_users:30,unmatched_users:0}}},
+  effect_data:{operationTaskCohort:{analysis_users:25,requested_users:30,unmatched_users:0}}};
+ const [value]=judgeHistory([opposite],{now});
+ assert.equal(value.assessment,'insufficient');
+ assert.equal(value.evidence.judgementConflict,true);
+ assert.equal(value.evidence.change.observedDirection,'up');
+});

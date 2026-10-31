@@ -29,14 +29,22 @@ function classifyRetrospectiveOutcome(row){
   });
  if(!['high','medium'].includes(row.confidence||row.review_confidence))
   return insufficient('retrospective-confidence-insufficient');
- let assessment='insufficient',reason='model-judgement-does-not-match-cohort-direction';
- if(row.has_improvement===true&&after>baseline){
+ // Distinguish an unavailable judgement from an explicit conflict with the
+ // verified fixed-cohort direction. Neither case proves intervention causality.
+ const observedDirection=after>baseline?'up':after<baseline?'down':'flat';
+ const judgementAvailable=typeof row.has_improvement==='boolean';
+ const judgementConflict=judgementAvailable&&row.has_improvement!==(after>baseline);
+ let assessment='insufficient',reason=judgementConflict?
+  'retrospective-judgement-conflicts-with-fixed-cohort-trend':
+  'retrospective-judgement-unavailable';
+ if(!judgementConflict&&row.has_improvement===true){
   assessment='observed-supported';reason='fixed-cohort-primary-metric-increased';
- }else if(row.has_improvement===false&&after<=baseline){
+ }else if(!judgementConflict&&row.has_improvement===false){
   assessment='observed-contradicted';reason='fixed-cohort-primary-metric-did-not-increase';
  }
  return {assessment,reason,metric,cohortMetric,baseline,effect:after,
-  absolute:after-baseline,requestedUsers:baselineCount,
+  absolute:after-baseline,observedDirection,judgementConflict,
+  requestedUsers:baselineCount,
   periods:base.periods||null,snapshot:base.snapshot||null,
   hasCausality:false,
   caveat:'固定人群前后观察只说明同期变化，不证明运营行动造成结果'};

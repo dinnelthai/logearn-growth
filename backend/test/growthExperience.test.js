@@ -144,3 +144,18 @@ test('insufficient v2 review prioritizes evidence completion instead of treating
  assert.doesNotMatch(overview.experienceChecks[0].instruction,/禁止原样重复/);
  assert.match(formatPlanForPrompt(plan),/增加注册引导内容/);
 });
+
+test('planner feedback differentiates judgement conflict from missing fixed-cohort evidence',()=>{
+ const history=[{review_context_version:'2',user_status:'executed',effectiveness:'unknown',
+  suggestion_id:'conflict-1',reviewed_at:now-1000,confidence:'medium',has_improvement:true,
+  validation_metrics:{primary:'active_users'},action_scope:{source:'all'},
+  actual_action:'简化筹码峰入口',
+  baseline_data:{operationTaskCohort:{status:'available',
+   metrics:{analysis_users:20,requested_users:30,unmatched_users:0}}},
+  effect_data:{operationTaskCohort:{analysis_users:12,requested_users:30,unmatched_users:0}}}];
+ const result=summarizeExperience(history,{source:'all',now});
+ assert.equal(result[0].insufficientReviews,1);
+ assert.equal(result[0].recentLessons[0].judgementConflict,true);
+ assert.equal(result[0].recentLessons[0].observedDirection,'down');
+ assert.equal(result[0].recentLessons[0].reason,'retrospective-judgement-conflicts-with-fixed-cohort-trend');
+});

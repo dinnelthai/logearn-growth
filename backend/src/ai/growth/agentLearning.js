@@ -37,6 +37,7 @@ function judgeHistory(rows,{now=Date.now()}={}){
     reason,primaryMetric:metric,change:observedEvidence||metricChange||null,
     outcomeBasis:row.review_context_version==='2'?'fixed-cohort-observation':'legacy-business-observation',
     hasImprovement:row.has_improvement,hasCausality:false,
+    judgementConflict:observedEvidence?.judgementConflict===true,
     confidence:row.confidence,reviewedAt:Number(row.reviewed_at),forecastCalibration,
     caveat:'回顾性观察不足以验证建议因果有效性；不证明模型预测准确；v2仅使用固定人群证据，缺少直接可比指标时归为证据不足'
    }
