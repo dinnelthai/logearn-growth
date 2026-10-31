@@ -102,7 +102,13 @@ describe('decision-first weekly view',()=>{
   expect(rows.find(x=>x.metricId==='active_users').changePct).toBeCloseTo(-13.4146,3);
   const wrong={...base,context_payload:{...base.context_payload,
    evidence:base.context_payload.evidence.filter(x=>x.id!=='new_users-current')}};
-  expect(trustedMetrics(wrong).find(x=>x.metricId==='new_users').evidenceIds.length).toBe(1);
+  const incomplete=trustedMetrics(wrong).find(x=>x.metricId==='new_users');
+  expect(incomplete.evidenceIds.length).toBe(1);
+  expect(incomplete.comparisonVerified).toBe(false);
+  expect(incomplete.changePct).toBeNull();
+  const html=renderWeeklyDecisionReport({...options,data:wrong,record});
+  expect(html).toContain('对照证据不完整');
+  expect(html).not.toContain('首次分析用户下降 55%');
  });
 });
 
@@ -155,4 +161,25 @@ it('shows all 13 source modules for v5 without fabricating a 13th historical mod
  const archived=renderWeeklyDecisionReport({...options,data:base,record});
  expect(archived).toContain('模块覆盖与调查状态 · 12 个增长模块');
  expect(archived).not.toContain('运营活动与执行记录');
+});
+
+it('prioritizes confirmed North Star over a larger first-analysis decline without an archived ranking',()=>{
+ const html=renderWeeklyDecisionReport({...options,data:base,record});
+ expect(html.indexOf('分析活跃用户下降 13.41%')).toBeLessThan(html.indexOf('首次分析用户下降 55%'));
+ expect(html).toContain('data-priority="p0"');
+});
+it('uses the archived business question ranking rather than inventing UI priority',()=>{
+ const ranked={...base,context_payload:{...base.context_payload,
+  growthPlan:{questionRanking:{questions:[
+   {metric:'new_users',goalRelevant:true,priority:'P0'},
+   {metric:'active_users',goalRelevant:true,priority:'P1'}]}}}};
+ const html=renderWeeklyDecisionReport({...options,data:ranked,record});
+ expect(html.indexOf('首次分析用户下降 55%')).toBeLessThan(html.indexOf('分析活跃用户下降 13.41%'));
+});
+it('never invents a comparison risk when saved current/previous evidence is missing',()=>{
+ const incomplete={...base,context_payload:{...base.context_payload,
+  evidence:base.context_payload.evidence.filter(x=>x.metricId!=='active_users')}};
+ const html=renderWeeklyDecisionReport({...options,data:incomplete,record});
+ expect(html).not.toContain('分析活跃用户下降 13.41%');
+ expect(html).toContain('对照证据不完整');
 });

@@ -70,3 +70,16 @@ it('returns null conversion rates when a mature denominator is empty',()=>{
  expect(r.steps[0]).toMatchObject({eligible:0,previous_conversion_rate:null,total_eligible:0,total_conversion_rate:null});
  expect(r.steps[1]).toMatchObject({eligible:0,previous_conversion_rate:null,total_eligible:0,total_conversion_rate:null});
 });
+
+it('counts terminal-step mature loss, not pending or unknown associations',()=>{
+ const asOf=base+DAY+500;
+ const users=[
+  {id:'converted',events:[e('token_click',10,{token_visit_id:'v1'}),e('token',20,{token_visit_id:'v1'}),e('chip',30,{token_visit_id:'v1'})]},
+  {id:'mature-loss',events:[e('token_click',100,{token_visit_id:'v2'}),e('token',200,{token_visit_id:'v2'})]},
+  {id:'pending',events:[e('token_click',1000,{token_visit_id:'v3'}),e('token',1001,{token_visit_id:'v3'})]},
+  {id:'unknown',events:[e('token_click',300,{token_visit_id:'v4'}),e('token',400,{token_visit_id:'v4'}),e('chip',410)]}
+ ];
+ const value=computeFunnel(users,{...opts,asOf});
+ expect(value.steps.at(-1)).toMatchObject({eligible:2,converted:1,pending:1,unknown:1,drop_off_users:1});
+ expect(value.mature_converted).toBe(1);
+});

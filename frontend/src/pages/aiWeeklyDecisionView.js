@@ -21,17 +21,38 @@ function trustedMetrics(data){
  return knownMetrics.map(([id,label,unit])=>{
   const now=current[id],before=previous[id];
   if(!numeric(now)&&!numeric(before))return null;
-  const ids=ev.filter(x=>x?.metricId===id&&numeric(x.value)&&(
-   (numeric(now)&&x.value===now&&x.period?.start===period.start&&x.period?.end===period.end)||
-   (numeric(before)&&x.value===before&&x.period?.start===period.previousStart&&x.period?.end===period.previousEnd)
-  )).map(x=>x.id).filter(Boolean).slice(0,4);
+  const match=(value,start,end)=>numeric(value)?ev.find(x=>
+   typeof x?.id==='string'&&x.id.length>0&&x.metricId===id&&
+   x.value===value&&x.period?.start===start&&x.period?.end===end):null;
+  const currentEvidence=match(now,period.start,period.end);
+  const previousEvidence=match(before,period.previousStart,period.previousEnd);
+  const evidenceIds=[currentEvidence?.id,previousEvidence?.id].filter(Boolean);
+  // Saved totals may be shown with a caveat but are never ranked as
+  // verified changes unless BOTH periods have matching archived evidence.
+  const comparisonVerified=!!currentEvidence&&!!previousEvidence;
   return {metricId:id,label,unit,current:numeric(now)?now:null,
-   previous:numeric(before)?before:null,
-   changePct:numeric(now)&&numeric(before)&&before!==0?
-    (now-before)/before*100:null,evidenceIds:ids,source:'trusted-snapshot'};
+   previous:numeric(before)?before:null,comparisonVerified,
+   changePct:comparisonVerified&&numeric(now)&&numeric(before)&&before!==0?
+    (now-before)/before*100:null,evidenceIds,
+   source:comparisonVerified?'period-evidence':'incomplete-period-evidence'};
  }).filter(Boolean);
 }
-const riskPriority=id=>id==='new_users'?'P0':'P1';
+// Prefer the pinned owner-scoped business question ranking; never assign P0
+// just because the UI sees a large percentage swing in a supporting metric.
+function rankSavedKpiRisks(kpis,context){
+ const questions=context?.growthPlan?.questionRanking?.questions;
+ const saved=Array.isArray(questions)?questions.filter(x=>x&&typeof x.metric==='string'&&
+  x.goalRelevant===true&&['P0','P1','P2'].includes(x.priority)):[];
+ const rank=new Map(saved.map((x,index)=>[x.metric,{priority:x.priority,index}]));
+ const fallbacks=context?.business?.focusGoal==='retention'?
+  ['active_users','returning_users','new_users']:
+  ['active_users','new_users','returning_users'];
+ const order=id=>rank.get(id)?.index??saved.length+fallbacks.indexOf(id);
+ return kpis.filter(x=>x.comparisonVerified&&numeric(x.changePct)&&x.changePct<=-10)
+  .sort((a,b)=>order(a.metricId)-order(b.metricId)||a.changePct-b.changePct)
+  .slice(0,3).map(x=>({metric:x,
+   priority:rank.get(x.metricId)?.priority||(x.metricId==='active_users'?'P0':'P1')}));
+}
 export function renderWeeklyDecisionReport({data,record,safe,fmt,date,dateTime=null,links,canCreateProblem=false}){
  const result=data?.result||{},w=result.weeklyReport;
  if(!w)return '<p role="alert">未形成通过证据校验的周报正文，不能视作生成成功。</p>';
@@ -49,7 +70,8 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,dateTime=n
   '<span class="ai-weekly-caveat">无可点开的证据编号 · 请核查归档</span>');
  const kpi=metric=>'<div class="ai-weekly-kpi" data-trend="'+indicator(metric)+'">'+
   '<div class="ai-weekly-kpi-top"><span class="ai-weekly-kpi-label">'+safe(metric.label)+'</span>'+
-  '<span class="ai-weekly-kpi-context">业务指标</span></div>'+
+  '<span class="ai-weekly-kpi-context">'+
+   (metric.source==='incomplete-period-evidence'?'对照证据不完整':'业务指标')+'</span></div>'+
   '<div class="ai-weekly-kpi-value">'+(numeric(metric.current)?fmt(metric.current):'—')+
    '<span>'+safe(metric.unit||'')+'</span></div>'+
   '<div class="ai-weekly-kpi-foot"><strong>'+(numeric(metric.changePct)?
@@ -58,9 +80,8 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,dateTime=n
      fmt(Math.abs(metric.changePct))+'%':trend(metric.changePct))+'</strong>'+
    '<span>较上周 · '+(numeric(metric.previous)?fmt(metric.previous):'未知')+'</span></div>'+
   '</div>';
- const risks=snapshotKpis.filter(x=>numeric(x.changePct)&&x.changePct<=-10)
-  .sort((a,b)=>a.changePct-b.changePct).slice(0,3)
-  .map(x=>({priority:riskPriority(x.metricId),title:x.label+'下降 '+fmt(Math.abs(x.changePct))+'%',
+ const risks=rankSavedKpiRisks(snapshotKpis,persistedContext(data))
+  .map(({metric:x,priority})=>({priority,title:x.label+'下降 '+fmt(Math.abs(x.changePct))+'%',
    changePct:x.changePct,
    detail:'本周 '+fmt(x.current)+'，上周 '+fmt(x.previous)+
     '。这是已观测变化，不代表原因已确认；先核查来源、指标定义和转化路径。',
@@ -133,7 +154,7 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,dateTime=n
   '<div class="ai-weekly-section-heading"><div><span class="ai-weekly-section-index">01 / PRIORITIES</span>'+
    '<h4>最需要处理的问题</h4></div><span>先明确变化，再验证原因</span></div>'+
   list(allRisks,(x,i)=>'<div class="ai-weekly-problem" data-priority="'+
-   (x.priority==='P0'?'p0':x.priority==='P1'?'p1':'hypothesis')+'">'+
+   (x.priority==='P0'?'p0':x.priority==='P1'?'p1':x.priority==='P2'?'p2':'hypothesis')+'">'+
    '<span class="ai-weekly-rank">'+String(i+1).padStart(2,'0')+'</span>'+
    '<div class="ai-weekly-problem-content">'+
    '<div class="ai-weekly-problem-title"><strong>'+safe(x.title)+'</strong>'+
@@ -248,4 +269,4 @@ export function readOnlyGscMarkup(data,{safe,fmt,startDate,endDate}){
    '<p>该快照没有可展示的指标；不能理解为零。</p>')+
   '<small>GSC 按 PT 日期标签汇总，业务按曼谷周统计，不能直接推导站内激活或交易。</small></div>';
 }
-export {trustedMetrics};
+export {trustedMetrics,rankSavedKpiRisks};

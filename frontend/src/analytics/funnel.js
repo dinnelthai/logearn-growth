@@ -105,7 +105,7 @@ export function computeFunnel(users, {
       previous_conversion_rate:eligibleRows.length?convertedRows.length/eligibleRows.length:null,
       total_eligible:totalEligible.length,
       total_conversion_rate:totalEligible.length?totalConverted.length/totalEligible.length:null,
-      drop_off_users:i<steps.length-1?eligibleRows.length-convertedRows.length:0}
+      drop_off_users:eligibleRows.length-convertedRows.length}
   })
 
   const complete = rows.filter(r => r.times.length === steps.length)

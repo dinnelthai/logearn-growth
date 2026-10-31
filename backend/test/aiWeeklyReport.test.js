@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {weeklyPeriod,reportPeriod,weeklyKey,reportKey,weeklyOperations,customPeriodPromptV0,customPeriodPromptV1,trustedWeeklyMetrics,validateWeeklyReport,ensureWeeklyReport}=require('../src/ai/growth/weeklyReport');
+const {weeklyPeriod,reportPeriod,weeklyKey,reportKey,weeklyOperations,weeklyPromptV2,weeklyPromptV3,customPeriodPromptV0,customPeriodPromptV1,trustedWeeklyMetrics,validateWeeklyReport,ensureWeeklyReport}=require('../src/ai/growth/weeklyReport');
 
 test('weekly report uses last complete Monday-Sunday Bangkok week',()=>{
  const period=weeklyPeriod(Date.parse('2026-10-29T09:00:00+07:00'));
@@ -32,6 +32,15 @@ test('31-day custom period is valid and its prompt is not constrained to a natur
  assert.equal(period.end-period.start,31*86400000);
  assert.ok(customPeriodPromptV0.includes('自定义时间范围'));
  assert.ok(customPeriodPromptV1.includes('context.businessBrain'));
+ assert.ok(weeklyPromptV2.includes('包含12个模块'),'archived v4 prompt remains unchanged');
+ for(const prompt of [weeklyPromptV3,customPeriodPromptV1]){
+  assert.ok(prompt.includes('包含13个模块'));
+  assert.ok(prompt.includes('重复13组指标明细'));
+  assert.equal(prompt.includes('包含12个模块'),false);
+  assert.ok(prompt.includes('单一去重指标定义已由运营负责人确认'));
+  assert.ok(prompt.includes('事件覆盖、跨设备 user_key 稳定性'));
+  assert.equal(prompt.includes('不是已验证的单一KPI'),false);
+ }
  assert.ok(require('../src/ai/growth/weeklyReport').weeklyPromptV3.includes('operations-timeline'));
  assert.ok(require('../src/ai/growth/weeklyReport').weeklyPromptV3.includes('未收集、未连接或读取失败不等于没有运营'));
  assert.ok(require('../src/ai/growth/weeklyReport').weeklyPromptV3.includes('treatment/control 是人工固定分组，不是随机实验'));
