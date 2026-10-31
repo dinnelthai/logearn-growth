@@ -491,7 +491,7 @@ function modelContext(raw,{transportVersion='v1',reviewRevision=0,reserveBytes=0
   const reserve=reserveBytes||7500+memoryRows*1000;
   const base=raw.weeklyCoverage?.version==='weekly-coverage-v1'?
    require('./weeklyContextV4').buildWeeklyContextV4(raw,{
-    modelEvidence,compactCapabilities,safeText,reviewRevision,reserveBytes:reserve
+    modelEvidence,compactCapabilities,safeText,reviewRevision,reserveBytes:reserve,includeDecisionSignals:true
    }):
    modelContext(raw,{transportVersion:'v3',reviewRevision,reserveBytes:reserve});
   return attachBusinessBrain(base,raw);
