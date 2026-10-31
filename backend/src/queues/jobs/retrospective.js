@@ -3,6 +3,7 @@ const {definitions,reviewPeriods,metricChanges,effectiveness,validateScope}=requ
 const {fetchNorthStar,fetchGrowthInsights}=require('./dataFetcher');
 const records=require('../../db/aiRecords'),remote=require('../../data/hologres');
 const {loadLinkedTaskEvidence}=require('../../ai/growth/operationTaskEvidence');
+const {buildRetrospectiveValues}=require('../../ai/growth/reviewMetrics');
 function reviewEvidence(kind,data,{start,end,source,snapshot}){
   const {statView}=require('../../ai/business/modelTransport');
   return {status:'ok',evidence:[{id:`review:${kind}:${start}:${end}`,metricId:kind,
@@ -34,12 +35,10 @@ async function retrospectiveAnalysis(job){
   ]);
   const metrics=suggestion.validation_metrics;
   const requested=[metrics.primary,...(metrics.secondary||[])];
-  function values(north,growth){
-    const channels=growth.channels||[],eligible=channels.reduce((n,c)=>n+c.eligible,0),activated=channels.reduce((n,c)=>n+c.activated,0);
-    const d7Eligible=channels.reduce((n,c)=>n+(c.d7?.eligible||0),0),d7Returned=channels.reduce((n,c)=>n+(c.d7?.returned||0),0);
-    return {...north.totals,activation_rate:eligible?activated/eligible:null,d7:d7Eligible?d7Returned/d7Eligible:null};
-  }
-  const changes=metricChanges(values(baseline,baselineGrowth),values(effect,effectGrowth),requested);
+  const changes=metricChanges(
+    buildRetrospectiveValues(baseline,baselineGrowth),
+    buildRetrospectiveValues(effect,effectGrowth),requested
+  );
   const context={reviewContextVersion:2,definitions,suggestion:{problem:suggestion.business_problem,hypothesis:suggestion.hypothesis,
     action:suggestion.actual_action,scope,expectedImpact:suggestion.expected_impact},periods,metricChanges:changes,
     operationTaskCohort,
