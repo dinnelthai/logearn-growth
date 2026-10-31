@@ -10,7 +10,7 @@ function reviewEvidence(kind,data,{start,end,source,snapshot}){
     sourceVersions:{events:snapshot.snapshot_id},watermarks:{events:snapshot.as_of},
     coverage:data.quality||{status:'unknown'},warnings:['统计观察不证明行动的因果效果']} ]};
 }
-const prompt=`你负责LogEarn增长建议复盘。比较等长完整UTC+7业务日的数据，区分相关性和因果性。若 operationTaskCohort.status=available，单独评估该固定人群的前后变化；它与全站/渠道指标是不同证据层，不可混为一谈。固定人群观察可说明该任务受众在执行前后的变化，但不是随机对照实验，不得单凭它声称行动造成改善。指标的 up/down 不等于业务好坏，必须结合指标定义和行动目标解释。若状态不是 available，明确说明固定人群证据缺失原因，不得推测或用全站数据代替。
+const prompt=`你负责LogEarn增长建议复盘。比较等长完整UTC+7业务日的数据，区分相关性和因果性。若 operationTaskCohort.status=available，单独评估该固定人群的前后变化；它与全站/渠道指标是不同证据层，不可混为一谈。该固定人群基线严格取自任务创建前的完整业务日，观察窗口从任务完成后的下一个完整业务日开始，任务执行期间不纳入任一窗口；因此它是任务前与任务完成后观察，不代表执行过程中的即时效果。它不是随机对照实验，不得单凭它声称行动造成改善。指标的 up/down 不等于业务好坏，必须结合指标定义和行动目标解释。若状态不是 available，明确说明固定人群证据缺失原因，不得推测或用全站数据代替。
 缺少对照实验时不能声称因果。confidence表示对指标前后观测和数据质量的判断，不代表因果可信度；样本或指标证据不足时为insufficient。建议未产生改善不等于已证实无效。
 分析所有主要及次要验证指标；不存在的指标明确说明，不得改用别的指标冒充。遇到复杂归因或证据冲突由当前单模型补查并说明不确定性。
 输出JSON：{"hasImprovement":false,"hasCausality":false,"confidence":"high/medium/low/insufficient中的一个","conclusion":"结论及证据","confoundingFactors":["混淆因素"],"lessonsLearned":"经验","nextSteps":["下一步"]}。`;
