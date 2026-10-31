@@ -27,6 +27,21 @@ test('planner prioritizes candidate-matching skill without changing original bus
  assert.equal(plan.sourceSnapshot,'watermark-1');
  assert.equal(JSON.stringify(report),before);
 });
+test('registration cohort metrics are formal signals and valid reviewed investigation focus',()=>{
+ const overview=listSkills().find(x=>x.id==='growth-overview');
+ assert.ok(overview.signals.includes('registered_users'));
+ assert.ok(overview.signals.includes('registration_activation_rate'));
+ assert.ok(overview.signals.includes('registered_trade_conversion_rate'));
+ const strategy={version:1,policy:{focusMetrics:['registration_activation_rate','registered_trade_conversion_rate'],
+  instructions:'核查成熟注册队列'}};
+ const plan=planGrowthInvestigation({goal:'activation',report,strategy});
+ assert.deepEqual(plan.learningStrategy.focusMetrics,
+  ['registration_activation_rate','registered_trade_conversion_rate']);
+ const registry=require('../src/ai/business/metricRegistry');
+ for(const id of ['registered_users','registration_activation_rate','registered_trade_conversion_rate']){
+  assert.ok(registry.describeMetric(id).definition.length>10);
+ }
+});
 test('planner rejects invalid goal, missing report and excessive skills',()=>{
  assert.throws(()=>planGrowthInvestigation({goal:'seo',report}),/未知增长目标/);
  assert.throws(()=>planGrowthInvestigation({goal:'activation'}),/现有业务报告/);
