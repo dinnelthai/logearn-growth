@@ -128,7 +128,6 @@ function createOperationsTimeline({
     memberCount:memberCounts.get(r.id)??0,plannedMemberCount:plannedCounts.get(r.id)??0,
     outcome:activityOutcome(r),
     assignments:assignmentByActivity.get(r.id)||[],
-    deliveryEvidence:deliveryByActivity.get(r.id)||[],
     scheduleChanges:scheduleByActivity.get(r.id)||[],
     scheduleIssue:!!r.schedule_error
    });
