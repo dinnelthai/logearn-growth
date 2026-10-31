@@ -146,6 +146,10 @@ function specialtyProvenance(id,raw,snapshot){
  const reportedTime=value=>typeof value==='string'&&Number.isFinite(Date.parse(value))?
   new Date(value).toISOString():null;
  const snapshotId=value=>typeof value==='string'&&value.length>0&&value.length<=120?value:null;
+ if(id==='get_channel_economics')
+  return {sourceVersions:{events:null,operatorRecords:'crm-manual-collaboration-ledger'},
+   watermarks:{events:null,operatorRecords:null,trades:null,registrations:null},
+   provenanceNote:'crm-ledger-has-no-authoritative-period-complete-watermark'};
  if(id==='get_seo_performance'){
   const source=raw?.source==='gsc-api'?'gsc-api':
    raw?.source==='gsc-manual-export'?'gsc-manual-export':null;
