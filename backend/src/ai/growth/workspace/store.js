@@ -173,7 +173,7 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
  function reportList(owner,{kind=null,limit=30}={}){ownerId(owner);return all('SELECT * FROM gw_reports WHERE owner_id=? '+(kind?'AND kind=? ':'')+'ORDER BY period_end DESC,revision DESC LIMIT ?',...(kind?[owner,kind,limit]:[owner,limit])).map(r=>({...r,snapshot:safeJSON(r.snapshot_json)}))}
  function suggestionIdsForOperationTask(owner,taskId){
   ownerId(owner);requiredString(taskId,'运营任务ID');
-  return all("SELECT DISTINCT SUBSTR(p.subject,14) AS suggestionId FROM gw_operation_links l JOIN gw_problems p ON p.owner_id=l.owner_id AND p.id=l.problem_id WHERE l.owner_id=? AND l.task_id=? AND p.type='user' AND p.subject LIKE 'ai-suggestion:%'",owner,taskId).map(row=>row.suggestionId).filter(Boolean);
+  return all("SELECT DISTINCT SUBSTR(p.subject,15) AS suggestionId FROM gw_operation_links l JOIN gw_problems p ON p.owner_id=l.owner_id AND p.id=l.problem_id WHERE l.owner_id=? AND l.task_id=? AND p.type='user' AND p.subject LIKE 'ai-suggestion:%'",owner,taskId).map(row=>row.suggestionId).filter(Boolean);
  }
  function suggestionOperationTasks(owner,suggestionId){
   ownerId(owner);requiredString(suggestionId,'AI 建议 ID');
