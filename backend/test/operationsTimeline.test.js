@@ -37,7 +37,7 @@ function fakeDb(){
  }} }};
  return db
 }
-function sources(db,{xError=false}={}){
+function sources(db,{xError=false,xUnsynced=false}={}){
  return {
   db,
   kolOperations:{
@@ -45,7 +45,7 @@ function sources(db,{xError=false}={}){
    list:async()=>[{id:'kol-snap-1',start_at:start,end_at:end,evidence:JSON.stringify({scope:'tagged',rows:[{observedUsers:5,analysisEvents:10}]}),coverage:{status:'partial'},source_watermark:new Date(end).toISOString(),captured_at:end}]
   },
   xMonitor:{overview:()=>{if(xError)throw Error('provider down');return {configured:true,source:'twitterapi.io',attribution:'not-verified',accounts:[{
-   id:'logearn_cn',label:'中文账号',lastSynced:now,metrics:{samplePosts:99,impressions:9999},
+   id:'logearn_cn',label:'中文账号',lastSynced:xUnsynced?null:now,lastAttempt:null,metrics:{samplePosts:99,impressions:9999},
    posts:[
     {post_id:'p1',published_at:new Date(start+1000).toISOString(),body:'PRIVATE POST BODY',impressions:100,likes:5,replies:2,reposts:3,quotes:1,observed_at:now},
     {post_id:'old',published_at:new Date(start-1000).toISOString(),body:'OUTSIDE',impressions:500,likes:1,replies:1,reposts:1,quotes:0,observed_at:now}
@@ -118,6 +118,15 @@ test('one source failure is isolated and does not erase the other operating reco
  assert.equal(result.aiActions.length,2);
 });
 
+test('configured X accounts with no successful sync are not reported as empty',async()=>{
+ const deps=sources(fakeDb(),{xUnsynced:true});
+ const result=await createOperationsTimeline({...deps,clock:()=>now})
+  .collect({start,end,source:'all',limit:60},{ownerId:'owner-1'});
+ assert.equal(result.coverage.xOfficial.status,'not_synced');
+ assert.deepEqual(result.coverage.xOfficial.accounts.map(x=>x.status),['not_synced']);
+ assert.equal(result.channelObservations.some(x=>x.kind==='x_official_account'),true);
+ assert.equal(result.channelObservations.find(x=>x.kind==='x_official_account').metrics.samplePosts,1);
+});
 test('date conversion uses Pacific dates for Search Console rather than Bangkok calendar labels',()=>{
  assert.equal(dateInZone(start,'America/Los_Angeles'),'2026-09-30');
  assert.equal(dateInZone(end-1,'America/Los_Angeles'),'2026-10-01');
