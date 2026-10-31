@@ -194,6 +194,10 @@ jobs:
           NODE_ENV: test
         run: node --test test/operationsTimeline.test.js test/operationsTimelineRegistry.test.js test/businessModuleCatalog.test.js test/aiBusinessBrain.test.js test/aiWeeklyCoverage.test.js test/aiWeeklyCapabilities.test.js
 
+      - name: Run read-only channel source and historical as-of contract tests
+        env:
+          NODE_ENV: test
+        run: node --test test/contentAgentEvidence.test.js test/xContentAgentEvidence.test.js test/aiWeeklyModuleSummaries.test.js test/gscWeeklyWindow.test.js test/growthKolReader.test.js test/inviteAssociation.test.js test/inviteRegistration.test.js test/referralInsights.test.js
       - name: Run Business Brain and custom report regression tests
         env:
           NODE_ENV: test
