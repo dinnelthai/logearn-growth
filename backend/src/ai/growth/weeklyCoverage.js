@@ -26,7 +26,7 @@ const ALLOWED_NUMBERS=new Set([
  'success','successes','started','pending','failed','cancelled','unknown',
  'rate','conversion_rate','success_rate','activation_rate','retention_rate',
  'participation_rate','continuation_rate','binding_rate',
- 'views','likes','replies','retweets','reposts','posts','impressions','clicks',
+ 'views','likes','replies','retweets','reposts','posts','impressions','clicks','traders',
  'ctr','position','followers','engagementRate','trades','transactions',
  'volume','volume_usd','cost_usd','revenue','cost','bound','inviters',
  'count','total','flows','exposures','clicked','entered','details',
