@@ -473,7 +473,7 @@ function fitWeeklyModelContext(context,raw,limit=22000){
 }
 function modelContext(raw,{transportVersion='v1',reviewRevision=0,reserveBytes=0}={}){
  if(!['v1','v2','v3','v4','v5'].includes(transportVersion))throw Error('不支持的模型上下文版本');
- if(!Number.isSafeInteger(reserveBytes)||reserveBytes<0||reserveBytes>6000)throw Error('上下文预留预算无效');
+ if(!Number.isSafeInteger(reserveBytes)||reserveBytes<0||reserveBytes>12000)throw Error('上下文预留预算无效');
  if(transportVersion==='v5'){
   const memoryRows=Array.isArray(raw.memory)?Math.min(3,raw.memory.length):0;
   const reserve=reserveBytes||7000+memoryRows*900;
