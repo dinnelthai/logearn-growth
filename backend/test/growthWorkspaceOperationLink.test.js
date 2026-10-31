@@ -37,6 +37,8 @@ test('adopted AI suggestions link idempotently to existing owner-scoped cohort t
   assert.equal(second.problemId,first.problemId);assert.equal(second.reused,true);
   assert.equal(s.linkedOperationTasks('alice',first.problemId).length,1);
   assert.equal(s.suggestionOperationTasks('alice','suggestion-1')[0].linkedOperationTasks.length,1);
+  assert.deepEqual(s.suggestionIdsForOperationTask('alice','task-1'),['suggestion-1']);
+  assert.deepEqual(s.suggestionIdsForOperationTask('bob','task-1'),[]);
   assert.equal(s.suggestionOperationTasks('bob','suggestion-1').length,0);
   assert.equal(s.problems('bob').length,0);
  }finally{db.close()}
