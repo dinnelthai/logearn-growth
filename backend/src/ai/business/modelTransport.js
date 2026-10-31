@@ -81,7 +81,7 @@ const notes=new Set(['definition','warnings','warning','reason','error','interpr
 const groups=new Set(['total','totals','days','growth','change','dimensions','channels','associations',
  'groups','cohorts','families','versions','quality','coverage','diagnostic_coverage',
  'activation','engagement','activation_interval','retention_interval','interval','stages','steps','drops',
- 'product_chain','first_value','trade','d7','d30','registration','attribution',
+ 'product_chain','first_value','trade','d7','d30','registration','association','attribution',
  'exposure','entrance','entrance_breakdown','page_clicks_summary','retention_summary',
  'funnels','paths','pages','summary','sample','byCurrency','trends','rates','counts',
  'humanOperations','channelObservations','aiActions','timeline','warnings','samplePosts',
