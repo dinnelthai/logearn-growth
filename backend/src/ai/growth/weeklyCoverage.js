@@ -10,7 +10,7 @@ const DEFINITIONS=Object.freeze([
  ['activation-funnel','用户激活','get_funnel','funnel'],
  ['retention','用户留存','get_retention','retention'],
  ['trade-conversion','产品到交易','get_product_chain','product_chain'],
- ['revenue','收入与渠道经济','get_channel_economics','trade_revenue'],
+ ['revenue','合作账本（非平台收入）','get_channel_economics','collaboration_economics'],
  ['referral-and-invite','推荐与邀请','get_invite_conversion','invite_conversion'],
  ['login-conversion','登录转化','get_login_conversion','login_conversion'],
  ['kol-impact','KOL 效果','get_kol_performance','kol_performance'],
