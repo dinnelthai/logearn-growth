@@ -8,7 +8,7 @@ const numeric=new Set([
  'total','count','counts','events','sessions','transactions','traders','trades',
  'current','previous','fresh','resumed','continuing','absent','delta','change',
  'rate','score','eligible','activated','returned','pending','unobserved','unknown',
- 'unknown_users','unmatched','converted','entered','total_entered','total_converted',
+ 'unknown_users','unmatched','converted','entered','total_entered','total_converted','total_eligible',
  'pending_count','drop_off_users','visitors','median_ms','p90_ms','window_ms',
  'median_conversion_ms','lag_ms','sampleSize','numerator','denominator','value',
  'first_at','latest_at','firstAt','latestAt','start','end','previousStart','previousEnd',
