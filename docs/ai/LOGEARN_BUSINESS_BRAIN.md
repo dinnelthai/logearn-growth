@@ -2,7 +2,7 @@
 
 > Runtime source: `backend/src/ai/business/businessBrain.js`  
 > Current version: `logearn-business-brain-v1`  
-> Status: v1 code and focused CI validated on codex/ai-comprehensive-upgrade; live API/Worker and real-model validation pending.
+> Status (audited 2026-10-31, code HEAD `030c0ed`): v1 Business Brain and v5 weekly report contract/UI have focused CI evidence; live LogEarn API/Hologres/Worker and real-model acceptance remain pending. No runtime business-semantic version change in this documentation refresh.
 
 ## 1. Purpose
 
@@ -87,15 +87,15 @@ The model must:
 
 ## 7. Operating memory in v1
 
-The first implementation projects at most three compact entries from existing owner-scoped AI suggestion and retrospective history. It distinguishes:
+The `businessBrain.js` memory projection remains a bounded (at most three compact entries) **AI suggestion/retrospective history**. Separately, the owner-scoped read-only `get_operations_timeline` capability joins recorded human operations, KOL collaborations, content, operation tasks, X/GSC/KOL observations and AI actions without merging or fabricating source objects. These are two distinct evidence layers; neither promises a complete operational log. The AI suggestion/retrospective projection distinguishes:
 - proposed action;
 - actual recorded action;
 - status (proposed / accepted / executing / executed / rejected);
-- review outcome (effective / ineffective / unknown);
+- legacy review outcome (effective / ineffective / unknown) and, when present in subsequent v2 cohort learning, distinct observational labels (observed-supported / observed-contradicted / insufficient), not causal effectiveness;
 - primary validation metric;
 - source scope and execution/review timestamps.
 
-Important limitation: this is **not the complete operating history**. It does not yet cover all KOL, SEO, X, community, training-camp, campaign or manually executed work. Missing records do not mean no work happened. Phase 2/3 must connect those existing business objects rather than create duplicate operations systems.
+Important limitation: the AI-history projection alone is **not** all operating memory; the separately implemented operations-timeline tool covers supported **recorded** KOL/SEO/X/activity/content/task sources with source-specific completeness, but it still cannot prove all work was logged. Community/training services have no dedicated external connector, and any activity/outcome connection without a stable identity and comparable maturity window remains unknown. Missing records do not mean no work happened. Do not create duplicate operations systems.
 
 Historical text is untrusted reference material. It is bounded and passed through the existing model text sanitizer; it must never be treated as instructions.
 
@@ -115,15 +115,17 @@ Historical text is untrusted reference material. It is bounded and passed throug
 - `backend/src/ai/business/weeklyContextV4.js`: v5 weekly context reserves bytes for Business Brain while preserving v4 behavior.
 - `backend/src/ai/business/runner.js`: new v5 prompt marker and replay protocol detection.
 - `backend/src/queues/jobs/businessAnalysis.js`: newly created analysis jobs opt into v5 by default; archived jobs retain their saved protocol.
-- `backend/src/ai/growth/weeklyReport.js`: v3 weekly decision framing for new v5 reports; custom periods use a non-weekly v2/v3-derived prompt with explicit previous equal-length period semantics.
+- `backend/src/ai/growth/weeklyReport.js`: v3 business framing and new `weekly-report-v2` strict contract for v5: seven lifecycle stages, evidence-backed opportunities and previousActions, explicit partial fallback when a required structure is invalid; custom periods retain equal-length previous-period semantics.
+- `frontend/src/pages/aiWeeklyDecisionView.js`: business-first lifecycle, opportunities, previous-action reviews and collapsible coverage/audit; frontend CI passed at code HEAD `030c0ed`. UI has a known hardcoded '12 modules' summary despite the 13-module v5 manifest (fix in a separate code change).
+- `backend/src/ai/business/tools/operationsTimeline.js` / `backend/src/ai/growth/weeklyCoverage.js`: existing owner-scoped human activity, channel observations, AI actions and per-source coverage are projected as a separately evidenced Operating Memory layer.
 
 ## 10. Known gaps
 
 - North-star metric contract is not yet formalized.
 - The runtime product map does not prove current event coverage for every product feature.
-- The operating-memory input is AI suggestion/retrospective history, not a full operational activity timeline.
+- `businessBrain.js` still projects short AI suggestion/retrospective history; `get_operations_timeline` adds supported recorded human/channel activity in a distinct owner-scoped evidence tool, but completeness and cross-channel causal attribution are not established.
 - Product-to-trade linkage and revenue completeness need real-source validation.
-- This v1 has not yet been tested against the user's running API/Worker or a real paid model request.
+- This v1 and the newly pinned `weekly-report-v2` have not passed live LogEarn API/Worker/Hologres or a real-model end-to-end acceptance test; a saved `aggregated-business-v4` historical report does not validate v5.
 
 ## 11. Custom reporting periods
 
@@ -172,3 +174,13 @@ Interpretation rules:
 - Community/training activity is visible only when recorded in existing activity/task records; there is no dedicated platform connector in this implementation. Absence of such records does not prove no activity occurred.
 
 The weekly coverage projector prioritizes settled activity outcomes and group delivery aggregates, keeps evidence IDs, and remains under the 22KB model-context cap in CI fixtures. This is code/fixture validation, not live-source acceptance.
+
+## 14. Reconciled development/acceptance boundary (2026-10-31)
+
+- Checklist status is maintained in `GROWTH_AGENT_2_0_IMPLEMENTATION_PLAN.md`: **37/48 code/CI-checked (77.1%), 11 open** at audited code HEAD `030c0ed8993a049485f4a064d48cef1f661dfa05`. The two newly checked Phase 5 items are weekly report implementation / UI structure, not real business-result acceptance.
+- New weekly v5 snapshots pin `weeklyReportContractVersion='weekly-report-v2'`, require every lifecycle stage and evidence-linked opportunity/previous-action entries where present, and convert incomplete new model output to an explicitly partial report without automatically repeating a paid call. Older v1-v4 snapshots keep legacy compatibility.
+- The weekly source manifest includes **13 modules** with operations-timeline; archived v4 reports may show fewer. The UI module-count label is currently hardcoded to 12 in one collapsed summary and requires an independent code fix.
+- Retrospective service reviewable metrics and fixed-cohort observational labels are **not** equivalent: v2 fixed-cohort comparison currently only supports `active_users → analysis_users` with exact frozen audience and maturity/coverage checks; registration/trade/retention-type cohort effects remain insufficient/unknown until directly supported.
+- Evidence requirements for live signoff: identity and transaction match coverage, mature denominator windows, source watermarks and freshness, PT Search Console date semantics, channel links with stable keys, authorized read-only Hologres/Worker acceptance and operator-approved North Star contract. No unsupported zero/correlation/ROI claims.
+
+This section documents existing behavior; no Business Brain version bump, application code, migration, paid call or external write is implied.
