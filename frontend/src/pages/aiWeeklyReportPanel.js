@@ -3,12 +3,22 @@ import {canOfferTaskRetry} from './aiTaskStatus.js';
 import {queueAnalysisLaunch} from '../analysisLaunchContext.js';
 import {renderWeeklyDecisionReport,readOnlyGscMarkup} from './aiWeeklyDecisionView.js';
 
-const DAY=86400000;
-const date=ms=>Number.isFinite(Number(ms))?new Date(Number(ms)+7*3600000).toISOString().slice(0,10):'未知';
+const DAY=86400000, BANGKOK=7*3600000;
+const date=ms=>Number.isFinite(Number(ms))?new Date(Number(ms)+BANGKOK).toISOString().slice(0,10):'未知';
+const today=date(Date.now());
+const defaultRange=()=>({start:date(Date.now()-7*DAY),end:today});
+const rangeBounds=range=>{
+ const start=Date.parse(range.start+'T00:00:00+07:00');
+ const next=Date.parse(range.end+'T00:00:00+07:00')+DAY;
+ const end=Math.min(next,Date.now());
+ if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start)throw Error('请选择有效的开始和结束日期');
+ if(end-start>31*DAY)throw Error('单次报告最多支持31天，请缩小时间范围');
+ return {start,end};
+};
 const fmt=x=>typeof x==='number'&&Number.isFinite(x)?x.toLocaleString('zh-CN',{maximumFractionDigits:2}):'未知';
 const statuses={pending:'排队中',processing:'AI 正在分析',completed:'已完成',failed:'生成失败',cancelled:'已取消'};
 export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null}){
- let disposed=false,seq=0,poll=null,selected=null,busy=false,recoveryQueued=false,notice='',lastSnapshot=null;
+ let disposed=false,seq=0,poll=null,selected=null,busy=false,recoveryQueued=false,notice='',lastSnapshot=null,range=defaultRange(),customPeriod=false;
  const clear=()=>{if(poll){clearTimeout(poll);poll=null}};
  const schedule=(rows,token)=>{
   if(!disposed&&token===seq&&(recoveryQueued||
@@ -200,7 +210,8 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
    root.innerHTML='<p class="a-muted">正在读取 AI 周报任务与历史…</p>';
   let releaseHeight=null;
   try{
-   const d=await api('/ai-weekly-reports');
+   const query=customPeriod?rangeBounds(range):null;
+   const d=await api('/ai-weekly-reports'+(query?'?start='+query.start+'&end='+query.end:''));
    if(disposed||token!==seq)return;
    const rows=Array.isArray(d.reports)?d.reports:[];
    if(!rows.some(x=>x.id===selected))selected=rows[0]?.id||null;
@@ -209,7 +220,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
    const regenerateArchived=!current&&d.canRegenerateArchivedFailed===true;
    const canRegenerateCurrent=!!current&&['completed','failed','cancelled'].includes(current.status);
    const nextSnapshot=JSON.stringify({
-    period:d.period,archivedCurrentWeek:d.archivedCurrentWeek,
+    period:d.period,range:customPeriod?range:null,archivedCurrentWeek:d.archivedCurrentWeek,
     canRegenerateArchivedFailed:d.canRegenerateArchivedFailed,selected,
     rows:rows.map(x=>({id:x.id,status:x.status,title:x.title,
      error_message:x.error_message,completed_at:x.completed_at,
@@ -223,8 +234,9 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
    lastSnapshot=nextSnapshot;
    if(row&&row.status!=='failed')recoveryQueued=false;
    if(row&&row.error_message&&row.error_message!=='补充查询过多，请缩小问题范围或提高调查能力')recoveryQueued=false;
-   root.innerHTML='<div class="ai-weekly-heading"><div><h3>AI 运营周报</h3><p class="a-muted">最近完整周：'+
-    safe(date(d.period.start))+' — '+safe(date(d.period.end-DAY))+' · UTC+7</p></div>'+
+   root.innerHTML='<div class="ai-weekly-heading"><div><h3>AI 运营报告</h3><p class="a-muted">'+
+    (customPeriod?'自定义时间范围：':'最近完整周：')+
+    safe(date(d.period.start))+' — '+safe(date(d.period.end-1))+' · Asia/Bangkok</p></div>'+
     (current?'<div class="ai-weekly-toolbar">'+
       '<span class="ai-weekly-status">'+safe(row?'正在查看 · '+(statuses[row.status]||row.status):
        '本期 · '+(statuses[current.status]||current.status))+'</span>'+
@@ -241,9 +253,14 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
      '<button type="button" class="a-button" data-weekly-regenerate-cancel>取消</button>'+
      '<button type="button" class="a-button a-primary" data-weekly-regenerate-submit>确认重新生成（可能收费）</button>'+
      '</div></div>':'')+
+    '<div class="ai-weekly-range-picker">'+
+     '<label>开始日期 <input type="date" data-weekly-start value="'+safe(range.start)+'"></label>'+
+     '<label>结束日期（包含） <input type="date" data-weekly-end value="'+safe(range.end)+'"></label>'+
+     '<button type="button" class="a-button" data-weekly-apply-range>应用时间范围</button>'+
+     '<span class="a-muted">自定义1–31天；与紧邻前一段等长周期比较</span></div>'+
     (regenerateArchived?
-     '<p>上一份失败周报已移出列表。点击重新生成会创建独立的付费模型任务，之前的调用和费用仍保留，可能产生重复费用；重复点击不会创建多份新任务。</p>':
-     '<p>分析上个完整自然周的真实业务数据，形成问题、证据与下周行动。单击生成将调用可能收费的模型；同一周不会重复创建任务。</p>')+
+     '<p>上一份失败报告已移出列表。重新生成会创建独立付费任务，原调用和费用保留。</p>':
+     '<p>选择任意日期范围生成运营报告；数据按 Asia/Bangkok 时间统计，并与紧邻前一段等长周期比较。生成会调用可能收费的模型。</p>')+
     (rows.length?'<label class="ai-weekly-picker">查看历史周报 <select data-weekly-select>'+
      rows.map(x=>'<option value="'+safe(x.id)+'" '+(x.id===selected?'selected':'')+'>'+
       safe(date(x.date_range_start))+' — '+safe(date(Number(x.date_range_end)-DAY))+' · '+
@@ -257,6 +274,12 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
      '<div><button type="button" class="a-button" data-weekly-delete-cancel>取消</button>'+
      '<button type="button" class="a-button ai-weekly-delete-submit" data-weekly-delete-submit>确认删除</button></div></div>':'')+
     '<div data-weekly-body aria-live="polite"></div><p data-weekly-note role="status">'+safe(notice)+'</p>';
+   root.querySelector('[data-weekly-apply-range]')?.addEventListener('click',()=>{
+    try{
+     const next={start:root.querySelector('[data-weekly-start]')?.value,end:root.querySelector('[data-weekly-end]')?.value};
+     rangeBounds(next);range=next;customPeriod=true;selected=null;notice='已切换到自定义时间范围。';load();
+    }catch(error){const note=root.querySelector('[data-weekly-note]');if(note)note.textContent=error.message}
+   });
    root.querySelector('[data-weekly-select]')?.addEventListener('change',e=>{selected=e.target.value;load()});
    root.querySelector('[data-weekly-inspect]')?.addEventListener('click',()=>{
     if(!row||typeof navigate!=='function')return;
@@ -328,15 +351,17 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
     const button=event.currentTarget;
     button.disabled=true;button.textContent='正在提交…';
     const note=root.querySelector('[data-weekly-note]');
-    if(note)note.textContent='正在创建本周 AI 分析任务…';
+    if(note)note.textContent='正在创建所选时间范围的 AI 分析任务…';
     try{
-     const result=await api('/ai-weekly-reports','POST',
-      regenerateArchived?{regenerateArchivedFailed:true}:{});
+     const bounds=rangeBounds(range);
+     const result=await api('/ai-weekly-reports','POST',{
+      start:bounds.start,end:bounds.end,...(regenerateArchived?{regenerateArchivedFailed:true}:{})
+     });
      selected=result.analysisId;
      if(!disposed)await load();
     }catch(error){
      if(!disposed&&button.isConnected){
-      button.disabled=false;button.textContent=regenerateArchived?'重新生成 AI 周报':'生成 AI 周报';
+      button.disabled=false;button.textContent=regenerateArchived?'重新生成 AI 周报':'生成所选时间范围报告';
       if(note)note.textContent='提交失败：'+error.message;
      }
     }finally{busy=false}
