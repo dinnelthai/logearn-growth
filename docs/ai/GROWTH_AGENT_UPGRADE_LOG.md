@@ -138,3 +138,22 @@ Branch: codex/ai-comprehensive-upgrade
 - Community/training platforms have no dedicated connector; only existing growth activity/task records can represent them.
 - Live source freshness, settled activity match coverage and latency still require read-only validation on an already-authorized source.
 - No migration, paid model call, paid collection, deployment, public posting or external action occurred.
+
+## 2026-10-31 — X account freshness and period coverage semantics
+
+- `backend/src/ai/business/tools/operationsTimeline.js` now distinguishes X source state per configured account:
+  - `available`: successful sync and at least one post in the selected period;
+  - `empty`: successful sync but no post in the selected period;
+  - `not_synced`: no successful sync watermark;
+  - `unavailable`: failed sync/read;
+  - `not_configured`: provider is not configured.
+- The overall X coverage state is derived from the per-account states; one synced account no longer hides another account that has never synced.
+- Numeric `lastSynced` values are accepted as epoch milliseconds; this was caught by CI regression tests and fixed.
+- `backend/src/ai/business/modelTransport.js` now preserves the per-account coverage array through the aggregate-only allowlist. Public account labels and status are retained; post bodies and identity data remain excluded.
+- Regression tests cover available posts, a successfully synced empty period, unsynced accounts, and provider failure isolation.
+
+### CI validation
+
+- AI infrastructure run [41168249767](https://github.com/dinnelthai/logearn-growth/actions/runs/41168249767) — **success** across AI Contract, AI Frontend and AI Integration.
+- AI Contract groups: 32/32, 13/13, 22/22, 2/2 and 112/112; AI Integration: 17/17; AI Frontend succeeded.
+- This remains fixture/service-container validation. No live X/GSC/Hologres read, local Worker run, paid model call, paid collection, migration or deployment was performed.
