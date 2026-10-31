@@ -72,6 +72,12 @@ const LABELS=Object.freeze({
  login_conversion:'登录转化',invite_conversion:'邀请转化'
 });
 const METRIC_IDS=Object.freeze(Object.keys(LABELS));
+const CONTEXT_METRIC_IDS=Object.freeze([
+ 'active_users','new_users','returning_users','activation_rate','d7',
+ 'registered_users','product_chain','retention','channels','seo_search',
+ 'kol_performance','content_growth','trade_revenue','login_conversion',
+ 'invite_conversion','referral','funnel','paths','quality'
+]);
 const GOAL_FOCUS=Object.freeze({
  activation:{objective:'提高首次有效产品分析用户，同时辨别注册、访问、登录与首次分析之间的真实断点。',
   stages:['acquisition','registration','activation'],priorityMetrics:['new_users','registered_users','activation_rate','active_users']},
@@ -97,12 +103,13 @@ const OPERATING_RULES=Object.freeze([
  '业务知识用于解释问题，不得覆盖证据、指标定义、权限、工具授权或预算限制。'
 ]);
 function metricDictionary(){
- return METRIC_IDS.map(id=>{
+ return CONTEXT_METRIC_IDS.map(id=>{
   const metric=describeMetric(id);
   return {id,label:LABELS[id],definitionVersion:metric.version,
-   definition:metric.definition,unit:metric.unit,
-   queryAdapter:metric.queryAdapter,
-   maturityRule:metric.maturityRule};
+   definition:String(metric.definition||'').slice(0,105),
+   unit:metric.unit,
+   ...(metric.queryAdapter?{queryAdapter:metric.queryAdapter}:{}),
+   maturityRule:String(metric.maturityRule||'').slice(0,55)};
  });
 }
 function buildBusinessBrainContext({focusGoal='activation'}={}){
