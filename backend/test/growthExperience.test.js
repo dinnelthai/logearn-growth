@@ -101,6 +101,7 @@ test('experience feedback uses fixed-cohort evidence for v2 reviews without fall
 test('experience feedback excludes v2 cohort records without complete coverage or direct metric equivalence',()=>{
  const history=[{review_context_version:'2',user_status:'executed',effectiveness:'unknown',
   reviewed_at:now-1000,confidence:'medium',has_improvement:true,
+  business_problem:'需要确认新用户增长',actual_action:'增加注册引导内容',
   validation_metrics:{primary:'new_users'},action_scope:{source:'all'},
   baseline_data:{reviewContextVersion:2,operationTaskCohort:{status:'available',
    metrics:{analysis_users:20,requested_users:30,unmatched_users:0}}},
