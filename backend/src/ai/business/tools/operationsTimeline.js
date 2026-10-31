@@ -92,9 +92,9 @@ function createOperationsTimeline({
    const rows=db.prepare(`SELECT id,platform,title,topic,published_at,created_at,
     impressions,likes,comments,shares,audience_fit,actionability
     FROM content_growth_items WHERE owner_id=?
-     AND COALESCE(NULLIF(published_at,''),created_at)>=?
-     AND COALESCE(NULLIF(published_at,''),created_at)<?
-    ORDER BY COALESCE(NULLIF(published_at,''),created_at) DESC,id LIMIT ?`
+     AND julianday(COALESCE(NULLIF(published_at,''),created_at))>=julianday(?)
+     AND julianday(COALESCE(NULLIF(published_at,''),created_at))<julianday(?)
+    ORDER BY julianday(COALESCE(NULLIF(published_at,''),created_at)) DESC,id LIMIT ?`
    ).all(ownerId,startIso,endIso,limit);
    for(const r of rows)humanOperations.push({
     id:'content:'+r.id,kind:'content_record',layer:'human_operation',
