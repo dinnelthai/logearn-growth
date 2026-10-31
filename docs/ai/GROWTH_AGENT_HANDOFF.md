@@ -6,10 +6,10 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
-- Latest **source/test** HEAD validated on 2026-10-31: `8a7f71c98fce502b68a056671ee9a95304507abb` (specialist GSC/X/KOL/follower watermarks, CRM ledger Hologres independence, immutable evidence projection). Fetch actual branch HEAD before any subsequent edit.
+- Latest **source/test** HEAD validated on 2026-10-31: `a4f421400160d1a895e5032d7614062946e6f731` (source-specific provenance, CRM/Hologres isolation, registered-user journey evidence and model projection). Fetch actual branch HEAD before any subsequent edit.
 - Fetch the live branch HEAD before every new edit; do not rely on this document's historical commit reference.
-- Latest successful AI CI: [41186244825](https://github.com/dinnelthai/logearn-growth/actions/runs/41186244825) — **AI Contract, AI Integration, AI Frontend passed** on source/test HEAD `8a7f71c98fce502b68a056671ee9a95304507abb`. Includes the specialized source/provenance regression and independent CRM ledger tests. No live Hologres, X, GSC, Worker, real-model or paid-model acceptance implied.
-- Latest canonical checklist: **39 / 48 (81.3%) code/CI checkboxes; 9 open**, Phase 2 **4/8**. Includes one Phase 2 source date/snapshot/relationship contract validation after the financial identity split. This is not production or live-source acceptance.
+- Latest successful AI CI: [41187724624](https://github.com/dinnelthai/logearn-growth/actions/runs/41187724624) — **AI Contract, AI Integration, AI Frontend passed** on source/test HEAD `a4f421400160d1a895e5032d7614062946e6f731`. Includes registration journey, source provenance, model projection and CRM/Hologres isolation regressions. No live Hologres, X, GSC, Worker, real-model or paid-model acceptance implied.
+- Latest canonical checklist: **40 / 48 (83.3%) code/CI checkboxes; 8 open**, Phase 2 **5/8**. Includes code/fixture acceptance of the registration→activation→parallel product engagement→identity-verified trade journey. This is not production or live-source acceptance.
 - Do not switch to or commit to `master`.
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
 - Always verify the branch HEAD before editing and fetch each target file from this branch.
@@ -308,3 +308,14 @@ Final validation update: run [41177187712](https://github.com/dinnelthai/logearn
 - **Tests:** `backend/test/growthSpecialistTools.test.js` verifies GSC API vs manual import, X/KOL/follower independent source times, model-visible provenance, null when source absent. `backend/test/agentTools.test.js` proves local CRM ledger reports no Hologres event watermark and remains usable if Hologres status cannot be read.
 - **Reference:** `docs/ai/GROWTH_SOURCE_CONTRACTS.md` includes the source/time matrix, semantic limits and unresolved contract gates.
 - **Checklist:** **39/48 (81.3%), 9 open; Phase 2 4/8, remaining 4 Phase 2 items.** This is a verified **subtask** of the larger “each metric's source watermark/coverage/freshness/scope/version” requirement, not full completion. Missing source coverage is unknown, never a fabricated 0 or fully current observation. Real-source acceptance, billing, deployment and model interpretation have not been performed.
+
+## 2026-10-31 — Registration journey and parallel product engagement
+
+- **Validated source/test HEAD:** `a4f421400160d1a895e5032d7614062946e6f731`; [AI infrastructure CI 41187724624](https://github.com/dinnelthai/logearn-growth/actions/runs/41187724624) passed Contract, Integration and Frontend.
+- **New metric:** `registered_user_journey` in the existing `query_metrics` tool; added to the `growth-overview` skill. Reuses existing `growthInsights`, `registrationFacts`, `cohortTrades` and `metricRegistry`.
+- **Semantics:** real `account_v2.created_at` registrations; mature 24h first-chip activation; five distinct 7d entry metrics (chip, Holder, strategy, signal, repeat analysis) over a shared mature registration denominator; and separate user-level trade conversion within 168h after first analysis for mature identity-verified accounts. Product entries overlap and must not be added or turned into a serial funnel.
+- **Completeness:** event `historyComplete` and `eventsCompleteThrough` are passed through when supplied. Registration and trade source watermarks remain null; no generic event watermark is substituted. Unsupported device/version grouping for this metric is rejected. Source filter includes only accounts with an observed matching source.
+- **Evidence safety:** nested journey fields are explicitly allowlisted in model transport; weekly facts preserve activation, parallel product-entry counts and trade conversion. User rows, IDs, wallets and member lists remain excluded.
+- **Tests:** `aiBusinessMetricsAdapter.test.js`, `agentTools.test.js`, `aiWeeklyCoverage.test.js`; underlying maturity/identity semantics also covered by `growthInsights.test.js` and `growthCohortTrades.test.js`.
+- **Checklist:** **40/48 (83.3%), 8 open; Phase 2 5/8**. Live event completeness, registration/trade freshness, identity coverage and production acceptance remain pending. Next: exhaustive module/source audit, supported breakdowns and complete per-metric provenance.
+- No migrations, paid calls, production deployment, external collection or writes.
