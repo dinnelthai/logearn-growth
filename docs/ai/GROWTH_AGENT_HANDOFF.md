@@ -6,10 +6,10 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
-- Latest **source/test** HEAD validated on 2026-10-31: `ac7b5a410211bb257033943a729ad852e0d16fb8` (Business Brain v2, separate platform revenue/CRM ledger metrics, versioned 22KB context). Fetch live branch HEAD before subsequent edits.
+- Latest **source/test** HEAD validated on 2026-10-31: `14f42ba61c785866e918df3ca841bf4525f35bc2` (historical X as-of protection and GSC/X/KOL/invite CI contract gate). Fetch the actual branch HEAD before any further edit.
 - Fetch the live branch HEAD before every new edit; do not rely on this document's historical commit reference.
-- Latest successful AI CI at audit: [41185478559](https://github.com/dinnelthai/logearn-growth/actions/runs/41185478559) — **AI Contract, AI Integration and AI Frontend passed** on source/test HEAD `ac7b5a410211bb257033943a729ad852e0d16fb8`. Earlier intermediate CI failures were corrected; no live Hologres/Worker/paid-model acceptance implied.
-- Latest canonical checklist: **38 / 48 (79.2%) code/CI checkboxes; 10 open**, Phase 2 **3/8**. Two historical Phase 5 corrections plus one new Phase 2 revenue/ledger identity separation. This is not production or live-source acceptance.
+- Latest successful AI CI: [41185823229](https://github.com/dinnelthai/logearn-growth/actions/runs/41185823229) — **AI Contract, AI Integration and AI Frontend passed**, including the new eight-file source contract test gate on source/test HEAD `14f42ba61c785866e918df3ca841bf4525f35bc2`. No live Hologres, X, GSC, Worker, real-model or paid-model acceptance implied.
+- Latest canonical checklist: **39 / 48 (81.3%) code/CI checkboxes; 9 open**, Phase 2 **4/8**. Includes one Phase 2 source date/snapshot/relationship contract validation after the financial identity split. This is not production or live-source acceptance.
 - Do not switch to or commit to `master`.
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
 - Always verify the branch HEAD before editing and fetch each target file from this branch.
@@ -288,3 +288,13 @@ Final validation update: run [41177187712](https://github.com/dinnelthai/logearn
 - **Files:** `backend/src/ai/business/metricRegistry.js`, `backend/src/ai/business/businessBrain.js`, `backend/src/ai/business/tools/registry.js`, `backend/src/ai/business/tools/businessModuleCatalog.js`, `backend/src/ai/growth/weeklyCoverage.js`; related test updates `agentTools.test.js`, `aiBusinessBrain.test.js`, `aiWeeklyModuleSummaries.test.js`, `aiWeeklyContextV4.test.js`.
 - **Roadmap:** code-only Phase 2 separation checkbox is now checked. **38/48 = 79.2%, 10 open; Phase 2 3/8.** Outstanding Phase 2 tasks: complete source contract audit, mature registration→multiple product-entry→trade journey, GSC/X/KOL/invite source date semantics, valid channel/product/cohort segmentation and per-source freshness/watermark propagation.
 - **Unmet external acceptance:** actual platform trading fee/revenue source still missing; do not assert platform revenue is 0. Real Hologres matching, GSC PT alignment, X/KOL freshness and v5 model reports remain unverified. No new migration, paid model, deployment or external writes were performed.
+
+## 2026-10-31 — Phase 2 GSC/X/KOL/invite source as-of contract
+
+- **Verified source/test SHA:** `14f42ba61c785866e918df3ca841bf4525f35bc2`; [AI infrastructure 41185823229](https://github.com/dinnelthai/logearn-growth/actions/runs/41185823229) successful across AI Contract / Integration / Frontend. This run now includes an explicit owner-scoped source-contract test step covering GSC date slicing, X historical posts/followers, model-safe follower summary, KOL aggregation, invite identity and referral maturity.
+- **Source audit guide:** `docs/ai/GROWTH_SOURCE_CONTRACTS.md` (read next when continuing Phase 2). Documents actual date/time contracts and non-attribution boundaries, not a license to collect from external services.
+- **X fix:** `backend/src/ai/business/tools/contentAdapters.js` now rejects daily follower history snapshots whose `observed_at` is at or after the report cutoff. Historical follower scan progress is only read when `updated_at` predates cutoff. A post classification updated after cutoff is `unknown` in historical views; manual review without `reviewed_at` cannot be accurately time-stamped.
+- **Transport fix:** `backend/src/ai/business/tools/weeklyModuleSummaries.js` omits `reviewedRecords` rather than reporting a numeric 0 when the source review timestamp is missing. Tests protect source scope, non-replay of future values and model projection.
+- **No duplication:** GSC uses the existing PT-day stored summary, KOL the existing tagged-CRM/Hologres snapshot path, referral/invite the existing verified relationship and mature flow services. The fixture suite confirms semantic boundaries but does not establish live source presence, paid access, or causality.
+- **Progress:** `docs/ai/GROWTH_AGENT_2_0_IMPLEMENTATION_PLAN.md` now **39/48 (81.3%), 9 open**, Phase 2 **4/8**. Open Phase 2 tasks: complete module/source audit; fully mature registration→parallel engagement→trade journey; supported channel/product/cohort dimensions; independent source watermark/freshness/coverage for each metric. Operator review and real-source/model integration acceptance remain separate.
+- **Constraints:** no migrations, external paid sync, paid AI calls, deployment or external publishing performed. No changes to any other branch.
