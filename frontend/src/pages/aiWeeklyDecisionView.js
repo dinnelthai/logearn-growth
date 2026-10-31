@@ -106,6 +106,11 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,dateTime=n
    ['平均排名',seoNumbers.position]].filter(([,v])=>numeric(v)||typeof v==='string'):[];
  const observations=Array.isArray(w.channelFindings)?w.channelFindings:[];
  const actions=Array.isArray(w.nextWeek)?w.nextWeek.slice(0,5):[];
+ // Never elevate an unrelated/uncited recommendation to an immediate action.
+ const leadRisk=risks[0]||null;
+ const leadAction=leadRisk?actions.find(action=>
+  Array.isArray(action.evidenceIds)&&action.evidenceIds.some(id=>
+   leadRisk.evidenceIds.includes(id))):null;
  const gaps=Array.isArray(w.dataGaps)?w.dataGaps:[];
  const lifecycle=Array.isArray(w.lifecycle)?w.lifecycle:[];
  const opportunities=Array.isArray(w.opportunities)?w.opportunities:[];
@@ -138,6 +143,18 @@ export function renderWeeklyDecisionReport({data,record,safe,fmt,date,dateTime=n
   ' · Asia/Bangkok · 已保存分析</p></div>'+
   '<span class="ai-weekly-quality" data-quality="'+(w.partial?'partial':'validated')+'">'+
    (w.partial?'部分校验 · 业务结论待核实':'结构校验通过 · 业务结论待核实')+'</span></header>'+
+  '<section class="ai-weekly-quick-decision" aria-label="本期决策摘要">'+
+   '<div class="ai-weekly-quick-primary"><span>本期优先核查</span>'+
+    '<strong>'+safe(leadRisk?leadRisk.title:'暂无通过双周期证据验证的核心下降问题')+'</strong>'+
+    '<p>'+safe(leadRisk?'这是观察到的变化，原因仍需验证。':'不代表业务没有异常；请检查来源和模块覆盖。')+'</p></div>'+
+   '<div class="ai-weekly-quick-action"><span>对应下一步</span>'+
+    '<p>'+safe(leadAction?leadAction.action:
+     leadRisk?'尚无与该问题证据直接关联的行动，请先核对原因与相关证据。':
+     '查看来源覆盖和已保存行动，避免没有证据就提出调整。')+'</p>'+
+    '<button type="button" class="a-button" data-weekly-section="'+
+     (leadAction?'weekly-actions':'weekly-coverage')+'">'+
+     (leadAction?'查看行动与复查标准':'检查证据覆盖')+'</button></div>'+
+  '</section>'+
   '<section class="ai-weekly-coverage-alert" data-complete="'+(coverage.analyzed===coverage.total?'true':'false')+'" role="status">'+
    '<div><strong>业务分析覆盖：'+coverage.analyzed+' / '+coverage.total+' 个模块有数值结论</strong>'+
    '<p>已取数待分析 '+coverage.collected+' 项；数据不足、未连接或未调查 '+coverage.missing+

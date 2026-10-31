@@ -183,3 +183,20 @@ it('never invents a comparison risk when saved current/previous evidence is miss
  expect(html).not.toContain('分析活跃用户下降 13.41%');
  expect(html).toContain('对照证据不完整');
 });
+
+it('only elevates an evidence-linked action to the immediate decision summary',()=>{
+ const noLink={...base,result:{...base.result,weeklyReport:{
+  ...base.result.weeklyReport,nextWeek:[{priority:'P0',action:'不相关的行动',
+   evidenceIds:['not-matching'],metric:'active_users',reviewCondition:'下周'}]}}};
+ const noLinkHtml=renderWeeklyDecisionReport({...options,data:noLink,record});
+ expect(noLinkHtml).toContain('本期优先核查');
+ expect(noLinkHtml).toContain('尚无与该问题证据直接关联的行动');
+ const withLink={...base,result:{...base.result,weeklyReport:{
+  ...base.result.weeklyReport,nextWeek:[{priority:'P0',action:'核查活跃用户埋点覆盖',
+   evidenceIds:['active_users-current'],metric:'active_users',
+   reviewCondition:'下个完整周'}]}}};
+ const linkedHtml=renderWeeklyDecisionReport({...options,data:withLink,record});
+ expect(linkedHtml).toContain('核查活跃用户埋点覆盖');
+ expect(linkedHtml).toContain('查看行动与复查标准');
+ expect(linkedHtml).toContain('aria-label="本期决策摘要"');
+});
