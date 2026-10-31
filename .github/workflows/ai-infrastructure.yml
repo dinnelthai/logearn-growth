@@ -201,7 +201,7 @@ jobs:
       - name: Run Business Brain and custom report regression tests
         env:
           NODE_ENV: test
-        run: node --test test/aiBusinessBrain.test.js test/aiBusinessMetricsAdapter.test.js test/aiWeeklyReport.test.js test/aiWeeklyContextV4.test.js test/aiSavedContextAudit.test.js
+        run: node --test test/aiBusinessBrain.test.js test/aiBusinessMetricsAdapter.test.js test/aiWeeklyReport.test.js test/aiWeeklyContextV4.test.js test/aiSavedContextAudit.test.js test/aiWeeklySnapshotAuditHttp.test.js
 
       - name: Run product-to-trade evidence regression tests
         env:

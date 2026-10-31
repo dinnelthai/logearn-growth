@@ -57,6 +57,23 @@ function createRouter({db=require('../db/connection')}={}){
   res.json({period,reports,archivedCurrentWeek,
    canRegenerateArchivedFailed:!hasCurrent&&!!archivedFailed,paidGeneration:false});
  }));
+ // Audit one already-saved, owner-scoped weekly snapshot; never collect or bill.
+ router.get('/ai-weekly-reports/:id/snapshot-audit',h(async(req,res,owner)=>{
+  const records=require('../db/aiRecords');
+  const row=await records.getAnalysisRecord(String(req.params.id||''),owner);
+  if(!row||row.filter_conditions?.weeklyReport!=='v1')
+   return res.status(404).json({error:'周报不存在或无访问权限'});
+  const saved=row.context_payload??row.data_snapshot;
+  let snapshot=saved;
+  if(typeof saved==='string'){
+   try{snapshot=JSON.parse(saved)}catch(_e){snapshot=null}
+  }
+  const audit=require('../ai/business/savedContextAudit').auditSavedWeeklyContext(snapshot);
+  res.json({version:'weekly-saved-context-audit-v1',
+   reportStatus:['pending','processing','completed','failed','cancelled'].includes(row.status)?
+    row.status:'unknown',
+   audit,liveSourceAcceptance:'not-verified',readOnly:true,modelCalls:0,externalSourceCalls:0});
+ }));
  router.post('/ai-weekly-reports',h(async(req,res,owner)=>{
   const {reportPeriod,reportKey,weeklyOperations}=require('../ai/growth/weeklyReport');
   const records=require('../db/aiRecords');
