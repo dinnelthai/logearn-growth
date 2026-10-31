@@ -28,7 +28,7 @@ test('Business Brain exposes the four LogEarn product roles and complete lifecyc
  assert.ok(value.metricDictionary.some(x=>x.id==='activities'));
  assert.equal(value.operatingModel.capability,'get_operations_timeline');
  assert.match(value.operatingModel.experimentRule,/不代表随机实验/);
- assert.match(value.operatingModel.activityOutcomeRules.join(' '),/未结算/);
+ assert.match(value.operatingModel.rule,/未结算/);
  assert.deepEqual(value.operatingModel.layers.map(x=>x.id),
   ['human_operation','channel_observation','ai_suggestion_or_review']);
  assert.ok(value.lifecycle.find(x=>x.id==='registration').metricIds.includes('registration_activation_rate'));
