@@ -733,3 +733,32 @@ These are **code-complete/CI-validated**, not a guarantee that an actual new v5 
 - Phase 2 `Audit all existing business modules and their source contracts`: **checked (code/CI catalog, 18 tools / 9 module facades)**. This is an audit of the implementation contract, **not** production source acceptance.
 - Phase 2 **7/8**, remaining only the independent per-metric source watermark, coverage, freshness, scope and version task. Overall roadmap **42/48 = 87.5%; 6 unchecked**. Source-specific real freshness/identity completeness and paid model validation must be verified independently; do not claim that static catalog metadata is a successful external data sync.
 - No paid API/LLM calls, migration, deployment, external write/post, branch merge or `master` edits.
+
+## 2026-10-31 — Phase 2 completed at code/CI level: metric source provenance and unverified freshness (43/48)
+
+### Problem found
+
+- Source clocks in legacy metric evidence were uneven: event `as_of` could appear while independent registration and verified-trade timestamps were absent, and some observations lacked explicit per-metric source-clock explanation. Successful reads were therefore vulnerable to interpretation as fresh/complete data.
+- `query_metrics` did not archive `snapshot.events_complete_through` even when the event source explicitly reported that separate field. Other evidence snapshots still could not establish independent registration/trade completeness; no synthetic watermark is permitted.
+- Model projections converted some missing source versions and watermarks into empty strings. Per-channel `reportEvidence` retains source filter in `filters.source`, but without a matching explicit source-metadata scope.
+
+### Code changes
+
+- New `backend/src/ai/business/sourceMetadata.js`: derives bounded source type, clock and conservative freshness from audited built-in tool contracts and formal metric classes (event-only, account creation, registration+events, registration+events+trade). Composite source clocks are never replaced by event-only timestamps.
+- `backend/src/ai/business/evidence.js`: automatically adds immutable `sourceMetadata` to newly created metric evidence without changing query authorization, period or fingerprint. The metadata includes `sourceType`, `clock`, effective `scope`, `coverageStatus` and `freshness:{status,referenceAt,reportedCompleteThrough}`. Null/absent clock means `unknown`; recorded clock means `unverified`, not fresh. Per-channel report filter is reflected in the effective observed-source metadata.
+- `backend/src/ai/business/tools/registry.js`: retains independently reported `events_complete_through` on applicable event metric evidence; missing complete-through is null; registration/trade remain independently unknown.
+- `backend/src/ai/business/modelTransport.js`: bounded positive allowlist for new source metadata, with missing source versions/watermarks represented by **null**. `backend/src/ai/business/modelEvidence.js`: compact investigation transport preserves source clock/scope/freshness where budget permits; otherwise existing budget protection applies.
+- No new collector or external source, SQL KPI redefinition, paid call, migration, production data mutation, overwrite of historical evidence, or branch merge.
+
+### Tests / acceptance boundary
+
+- `backend/test/businessModuleCatalog.test.js`: **18/18 built-in tool IDs** carry audited source, clock, definition version, scope, period, coverage status, no invented timestamps, and effective channel-filtered source scope.
+- `backend/test/agentTools.test.js`: owner/scope registry evidence for account registration vs event vs mixed account+trade, GSC API sync reference, local CRM no watermark and true reported event complete-through. Source metadata remains model-visible without private identities.
+- `backend/test/modelEvidenceCompact.test.js`: 3500-byte compact view retains only bounded observed source reference and unverified freshness with a partial-period GSC fixture.
+- **Final source/test SHA:** `e5a08a39d4668d2895c23bc5997946885292a9a0`. [AI infrastructure CI 41200563427](https://github.com/dinnelthai/logearn-growth/actions/runs/41200563427) **passed AI Contract, AI Integration, AI Frontend**. These are fixture and integration-container checks, not live Google/X/CRM/Hologres/Worker or paid-model acceptance.
+- The Phase 2 checklist item `Keep source watermark, coverage, freshness, scope and definition version with each metric` is now **checked at code/CI schema level**, with explicit unknowns as a valid documented state, not as a surrogate fresh source. See `docs/ai/GROWTH_SOURCE_CONTRACTS.md`.
+
+### Progress
+
+- **43/48 = 89.6%; 5 unchecked; Phase 2 8/8.** Other open: two Phase 1 operator/real-context acceptance; one Phase 3 stable activity-to-outcome association; two Phase 4 cost-aware question ranking / cheapest differentiating query based on actual trusted metadata.
+- Real-source completeness and freshness, account/transaction association, actual paid AI analysis and report-quality evaluation have not been validated. No deployment, migration, sync, payment, external publish or `master` change.
