@@ -459,3 +459,9 @@ Branch: `codex/ai-comprehensive-upgrade`
 - Extend direct cohort metric equivalence only when underlying source semantics and SQL support it; do not infer equivalence from similar names.
 - Add an end-to-end read-only acceptance using a real owner-scoped task, a real Hologres snapshot and an already-mature post-completion window. This is not covered by offline fixtures/CI.
 - No migration, deployment, production collection, paid model call or external action.
+
+
+### Learning outcome visibility — 2026-10-31
+- Growth Agent Control now displays all three observational outcome counts: observed-supported, observed-contradicted and insufficient.
+- Added an explicit explanation that the labels describe fixed-cohort before/after movement, not causal impact; only the directly comparable active-user metric currently contributes to v2 labels.
+- Frontend UI CI [41180322912](https://github.com/dinnelthai/logearn-growth/actions/runs/41180322912) passed.
