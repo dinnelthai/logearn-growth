@@ -10,6 +10,7 @@ const METRICS=[
 ];
 const valid=n=>typeof n==='number'&&Number.isFinite(n);
 const compactPeriod=p=>({
+ ...(p?.kind==='custom'?{kind:'custom'}:{}),
  start:p?.start??null,end:p?.end??null,
  previousStart:p?.previousStart??null,previousEnd:p?.previousEnd??null,
  timezone:p?.timezone||'Asia/Bangkok'
