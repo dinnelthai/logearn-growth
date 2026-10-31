@@ -34,6 +34,20 @@ async function metrics(body,snapshot,ids,context){
    return {metricId:m.id,value:available&&denominator>0?cohort.rate:null,
     numerator,denominator,sampleSize:denominator,pending:available?cohort.pending:null,warnings};
   }
+  if(m.id==='registered_trade_conversion_rate'){
+   const trade=growth?.cohorts?.registration?.trade;
+   const available=trade?.available===true&&Number.isFinite(trade.eligible)&&Number.isFinite(trade.traders);
+   const denominator=available?trade.eligible:null,numerator=available?trade.traders:null;
+   const warnings=['分母仅包含首次筹码分析后满7日且可验证账户身份的注册用户'];
+   if(!available)warnings.push('交易事实或身份关联不可用，未知不能解释为0');
+   if(available&&denominator===0)warnings.push('当前没有成熟且身份可验证的产品参与用户；比率为未知');
+   warnings.push('按用户身份关联首次分析后7日内的任意链上交易；不是同Token交易归因或因果证明');
+   if(available&&trade.unmatched>0)warnings.push('另有'+trade.unmatched+'名成熟用户身份未匹配，未计入分母');
+   return {metricId:m.id,value:available&&denominator>0?trade.conversion_rate:null,
+    numerator,denominator,sampleSize:denominator,
+    pending:available?trade.pending:null,notEngaged:available?trade.not_engaged:null,
+    unmatched:available?trade.unmatched:null,warnings};
+  }
   const channels=growth.channels||[],rows=channels.map(c=>m.id==='d7'?c.d7:{eligible:c.eligible,returned:c.activated});
   const known=rows.length>0&&rows.every(r=>Number.isFinite(r?.eligible)&&Number.isFinite(r?.returned));
   const numerator=known?rows.reduce((n,r)=>n+r.returned,0):null,denominator=known?rows.reduce((n,r)=>n+r.eligible,0):null;
@@ -42,7 +56,7 @@ async function metrics(body,snapshot,ids,context){
  const registration=growth?.cohorts?.registration;
  return {metrics:entries,coverage:{events:'partial',
   registrations:registration?.available===true?(registration.scope||'partial'):'unknown',
-  trades:'unknown'}};
+  trades:growth?.cohorts?.registration?.trade?.available===true?'post_analysis_user_level':'unknown'}};
 }
 async function economics(body,context){
  const db=require('../../../db/connection');
