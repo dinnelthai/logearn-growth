@@ -16,7 +16,7 @@ function createRegistry(){
    {id:'kol-collaboration:collab-uuid',kolRef:'kol:kol-1',kind:'kol_collaboration',layer:'human_operation',source:'crm_collaborations',title:'KOL campaign',startAt:start,endAt:end,linkedActivityIds:['activity-uuid']}
   ],
   channelObservations:[{kind:'x_official_account',layer:'channel_observation',source:'twitterapi.io',title:'X account',metrics:{impressions:10}},
-   {kind:'kol_period_observation',layer:'channel_observation',source:'kol-crm-observed-behavior',title:'KOL period',startAt:start,endAt:end,observedAt:end,coverage:{status:'partial'},relationshipType:'crm-kol-id-match',kolSummaries:[{kolRef:'kol:kol-1',label:'KOL One',stage:'active',metrics:{observedUsers:5,analysis_events:10},linkedCollaborationRefs:['kol-collaboration:collab-uuid']}]}],
+   {kind:'kol_period_observation',layer:'channel_observation',source:'kol-crm-observed-behavior',title:'KOL period',startAt:start,endAt:end,observedAt:end,capturedAt:end,coverage:{status:'partial'},relationshipType:'crm-kol-id-match',kolSummaries:[{kolRef:'kol:kol-1',label:'KOL One',stage:'active',metrics:{observedUsers:5,analysis_events:10},linkedCollaborationRefs:['kol-collaboration:collab-uuid']}]}],
   aiActions:[{kind:'ai_report_action',layer:'ai_suggestion_or_review',source:'business_analysis_actions',title:'Suggested test',status:'pending'}],
   coverage:{growthActivities:{status:'available',count:1},xOfficial:{status:'available',count:1}},
   warnings:['AI suggestions are not completed human operations']
@@ -123,6 +123,8 @@ test('KOL metric links require explicit CRM identity, whole-window coverage and 
   p=>{p.channelObservations[1].startAt=start+1000;},
   p=>{p.channelObservations[1].endAt=end-1000;},
   p=>{p.channelObservations[1].observedAt=end+1000;},
+  p=>{p.channelObservations[1].capturedAt=end+1000;},
+  p=>{p.channelObservations[1].capturedAt=null;},
   p=>{p.channelObservations[1].coverage.status='unavailable';},
   p=>{p.channelObservations[1].kolSummaries[0].metrics={};}
  ];
