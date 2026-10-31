@@ -1,5 +1,5 @@
 process.env.DB_PATH=':memory:';process.env.ANALYTICS_STORAGE='hologres'
-const {test,after}=require('node:test'),assert=require('node:assert/strict'),express=require('express'),db=require('../src/db/connection'),fs=require('node:fs'),remote=require('../src/data/hologres'),jobs=require('../src/services/analysisJobs')
+const {test,after}=require('node:test'),assert=require('node:assert/strict'),express=require('express'),db=require('../src/db/connection'),fs=require('node:fs'),remote=require('../src/data/hologres'),jobs=require('../src/services/analysisJobs'),{syncLinkedAISuggestions}=require('../src/routes/operationTasks')
 db.exec(fs.readFileSync(require('node:path').join(__dirname,'../src/db/schema.sql'),'utf8'))
 let asof=Date.now(),calls=0,broken=false
 remote.snapshot=async()=>({snapshot_id:'snap',snapshot_cutoff:new Date(asof).toISOString(),as_of:new Date(asof).toISOString()});remote.status=()=>remote.snapshot()
@@ -39,3 +39,36 @@ test('fixed roster and baseline survive task edits, completion, reopening and da
  asof=Date.now()+1000;const reviewed=await request('/t/'+id+'/review');assert.equal(reviewed.status,200);assert.equal(reviewed.body.performance.total.users,2);assert.equal(reviewed.body.start,t.created_at)
  assert.equal((await request('/t/'+id+'/review',undefined,'GET','b')).status,404)
 })
+
+test('linked AI suggestion follows fixed operation task execution and records actual result',async()=>{
+ const rows=new Map([['s-1',{id:'s-1',user_status:'adopted',action_scope:{source:'all'}}]]);
+ const transitions=[];
+ const records={
+  async getSuggestion(id){return rows.get(id)||null},
+  async transitionSuggestionStatus(id,owner,from,to,updates){
+   const row=rows.get(id);if(!row||row.user_status!==from)return null;
+   transitions.push({from,to,updates});
+   const next={...row,user_status:to,...(to==='executed'?{
+    actual_action:updates.actualAction,executed_at:updates.executedAt
+   }:{})};
+   rows.set(id,next);return next;
+  }
+ };
+ const workspace={suggestionIdsForOperationTask:()=>['s-1']};
+ const active=await syncLinkedAISuggestions({id:'task-1',status:'in_progress'},'alice','',{workspace,records});
+ assert.equal(active.status,'complete');assert.equal(rows.get('s-1').user_status,'executing');
+ const done=await syncLinkedAISuggestions({id:'task-1',status:'done',completed_at:123456},
+  'alice','完成首次分析引导并记录用户反馈',{workspace,records});
+ assert.equal(done.status,'complete');assert.equal(rows.get('s-1').user_status,'executed');
+ assert.equal(rows.get('s-1').actual_action,'完成首次分析引导并记录用户反馈');
+ assert.equal(rows.get('s-1').executed_at,123456);
+ assert.deepEqual(transitions.map(x=>[x.from,x.to]),[['adopted','executing'],['executing','executed']]);
+});
+test('linked AI suggestion is not marked executed without a real completion note',async()=>{
+ const rows=new Map([['s-2',{id:'s-2',user_status:'adopted'}]]);
+ const records={async getSuggestion(id){return rows.get(id)},async transitionSuggestionStatus(){throw Error('must not transition')}};
+ const result=await syncLinkedAISuggestions({id:'task-2',status:'done',completed_at:123},
+  'alice','',{workspace:{suggestionIdsForOperationTask:()=>['s-2']},records});
+ assert.equal(result.status,'partial');assert.equal(result.items[0].status,'needs-execution-note');
+ assert.equal(rows.get('s-2').user_status,'adopted');
+});
