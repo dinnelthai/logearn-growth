@@ -197,3 +197,22 @@ Branch: codex/ai-comprehensive-upgrade
 
 - AI infrastructure run [41169268207](https://github.com/dinnelthai/logearn-growth/actions/runs/41169268207) — **success** across AI Contract, AI Frontend and AI Integration.
 - AI Contract groups: 32/32, 13/13, 22/22, 2/2 and 112/112; AI Integration: 17/17; AI Frontend succeeded.
+
+## 2026-10-31 — Registered-cohort product engagement evidence
+
+- Extended the existing owner-scoped `registrationFacts` query using the canonical event map, not invented event names. It now returns the first post-registration observation for:
+  - chip analysis (`chip_analysis_viewed` / `chip_analysis_drilldown`);
+  - Holder view (`holders_analysis_viewed`);
+  - strategy start (`strategy_started`);
+  - signal view (`signal_viewed` / `strategy_signal_viewed`);
+  - repeat chip analysis after the first analysis has aged at least 24 hours.
+- `growthCohorts` now reports separate counts for each product entry within seven days after registration, using only registrations with a fully matured seven-day observation window as the denominator. Pending registrations are reported separately.
+- Product-entry counts are allowed to overlap. No combined engagement rate or forced linear funnel is calculated. A missing event remains an observation gap, not proof that a user did not engage.
+- Updated weekly context and weekly evidence projections to preserve these aggregate counts without user IDs or member rows.
+- Added regression coverage for event-source mapping, maturity, overlapping product entries and weekly evidence projection.
+
+### CI validation
+
+- AI infrastructure run [41169637765](https://github.com/dinnelthai/logearn-growth/actions/runs/41169637765) — **success** across AI Contract, AI Frontend and AI Integration.
+- AI Contract groups: 33/33, 13/13, 23/23, 2/2 and 112/112; AI Integration: 17/17; AI Frontend succeeded.
+- This is fixture/service-container validation only. No live Hologres source was queried.
