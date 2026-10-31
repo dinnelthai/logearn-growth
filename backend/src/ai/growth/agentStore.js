@@ -155,7 +155,8 @@ function createAgentStore(db=pool){
    const existing=await conn.query(`SELECT id,version,policy,feedback_digest
      FROM ai_growth_agent_strategy WHERE owner_id=$1 AND source=$2 AND goal=$3
      ORDER BY version DESC LIMIT 1`,[ownerId,source,goal]);
-   if(existing.rows[0]?.feedback_digest===input.digest){
+   if(existing.rows[0]?.feedback_digest===input.digest&&
+     existing.rows[0]?.policy?.version===input.policy?.version){
     await conn.query('COMMIT');started=false;
     return {...existing.rows[0],unchanged:true};
    }
