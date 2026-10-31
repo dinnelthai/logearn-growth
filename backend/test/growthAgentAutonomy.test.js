@@ -28,6 +28,8 @@ test('daily AI brief refuses an invented overall grade for incomplete goals',()=
   goals:['activation','retention'],analyses:[row],targets:[]});
  assert.equal(x.status,'partial');assert.equal(x.score.value,null);
  assert.equal(x.report.automatedExternalActions,0);
+ assert.equal(x.report.executiveFocus.metricId,'active_users');
+ assert.equal(x.report.executiveFocus.status,'target-not-configured');
 });
 test('strategy policy only refocuses investigation and does not claim causal accuracy',()=>{
  const rows=[1,2,3].map(i=>({

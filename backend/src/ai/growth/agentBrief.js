@@ -57,6 +57,22 @@ function createDailyBrief({ownerId,day,source='all',goals=['activation'],
  const overallScore=allCompleted&&scored?
   Math.round(scores.reduce((n,x)=>n+x.score,0)/goals.length):null;
  const status=!completed.length?'blocked':allCompleted&&scored?'ready':'partial';
+ // The executive focus is the one confirmed North Star, not the equal-weight
+ // four-goal reporting grade. Keep the old grade for saved-brief compatibility.
+ const northTarget=targets.find(t=>t?.metric==='active_users'&&t.source===source&&t.active===true);
+ const northRun=analyses.find(row=>row?.status==='completed'&&
+  row?.filter_conditions?.focusGoal==='activation'&&
+  row.data_snapshot?.period?.start===Number(row.date_range_start)&&
+  row.data_snapshot?.period?.end===Number(row.date_range_end)&&
+  row.data_snapshot?.business?.scope?.source===source);
+ const northScore=northTarget&&northRun?
+  scoreDaily(northRun.data_snapshot,[northTarget]):null;
+ const northObserved=northScore?.metrics?.find(m=>m.metric==='active_users')?.observed??null;
+ const executiveFocus={metricId:'active_users',unit:'users',
+  target:northTarget?.target??null,observed:northObserved,
+  attainmentScore:northScore?.score??null,
+  status:northTarget?northScore?.status||'unverified':'target-not-configured',
+  interpretation:'报告期筹码峰去重分析用户是北极星；四类目标均分只作为旧版报表评分，非经营优先级，也不是行动效果'};
  const mostImportant=completed.flatMap(x=>x.actions.map(a=>({...a,goal:x.goal,analysisId:x.analysisId})))
    .slice(0,12);
  const autoLearning=learning?.judgements||null;
@@ -71,6 +87,7 @@ function createDailyBrief({ownerId,day,source='all',goals=['activation'],
   },
   report:{
    version:'ai-growth-daily-brief-v1',title:'LogEarn AI Growth 日报 · '+day,
+   executiveFocus,
    overview:completed.length?completed.map(s=>s.goal+': '+s.summary).join('\n').slice(0,3500):
     '暂无已完成的模型分析，无法形成可信的经营日报',
    sections,priorityActions:mostImportant,

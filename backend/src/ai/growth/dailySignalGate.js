@@ -19,7 +19,12 @@ function planDailyPaidAnalysis({reports,goals,period,source='all'}={}){
    Number.isFinite(Date.parse(snapshot.eventsCompleteThrough))&&
    Date.parse(snapshot.eventsCompleteThrough)>=period.end;
   const warnings=Array.isArray(report.warnings)?report.warnings:[];
-  if(!complete||warnings.length||report.growth?.quality?.truncated){
+  // Report warnings are not all equivalent. A missing optional weekly-core
+  // source should not suppress a trustworthy daily activation investigation.
+  // History, event watermark, truncation and freshness still fail closed.
+  const lag=report.growth?.quality?.lag_ms;
+  const stale=Number.isFinite(lag)&&lag>3600000;
+  if(!complete||report.growth?.quality?.truncated||stale){
    decisions[goal]={status:'deferred',reason:'coverage-unverified',snapshotId:snapshot.id};
    continue;
   }
@@ -43,7 +48,8 @@ function planDailyPaidAnalysis({reports,goals,period,source='all'}={}){
   const specialist=goal==='conversion'||goal==='revenue';
   if(specialist||triage.signals.length){
    decisions[goal]={status:'dispatch',reason:triage.signals.length?'observed-signal':'specialist-not-in-core',
-    snapshotId:snapshot.id,signalCount:triage.signals.length};
+    snapshotId:snapshot.id,signalCount:triage.signals.length,
+    nonBlockingWarningCount:warnings.length};
   }else{
    decisions[goal]={status:'skip',reason:'no-observed-core-signal',
     snapshotId:snapshot.id,signalCount:0};

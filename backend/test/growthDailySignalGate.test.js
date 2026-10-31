@@ -89,3 +89,14 @@ test('paid autonomy uses fail-closed signal preflight by default',async()=>{
   else process.env.AI_AUTONOMY_SIGNAL_GATE_ENABLED=previous;
  }
 });
+
+test('irrelevant optional source warnings do not cancel verified activation signals',()=>{
+ const active=report('activation',{warnings:['周核心指标不可用：查询超时'],
+  candidates:[{metric:'active_users',id:'a',priority:'P1',absolute:40,change:-0.4}]});
+ const scheduled=planDailyPaidAnalysis({reports:{activation:active},goals:['activation'],period:{start,end}});
+ assert.equal(scheduled.decisions.activation.status,'dispatch');
+ assert.equal(scheduled.decisions.activation.nonBlockingWarningCount,1);
+ active.growth.quality.lag_ms=7200000;
+ assert.equal(planDailyPaidAnalysis({reports:{activation:active},goals:['activation'],period:{start,end}})
+  .decisions.activation.status,'deferred');
+});

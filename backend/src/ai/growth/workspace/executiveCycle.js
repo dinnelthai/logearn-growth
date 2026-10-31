@@ -75,12 +75,16 @@ async function runExecutiveCycle({ownerId,store,now=Date.now(),load=loadObservat
    threshold:0.2,minBaseline:20});
  }
  const found=discover(ownerId,store,{signals,at:now,maxNew:8});
+ // One investigation draft per cycle: supporting metric declines remain
+ // evidence-backed problems, not three competing versions of the same work.
+ const focus=signals.find(s=>s.metricId==='active_users')||
+  signals.find(s=>s.metricId==='new_users')||signals[0]||null;
  let proposedActions=0;
  for(const item of [...found.created,...found.updated].slice(0,8)){
   const p=store.problem(ownerId,item.id);
   if(p?.type!=='business'||!['open','monitoring'].includes(p.status))continue;
   const metric=signals.find(s=>s.metricId+':'+s.subject===p.subject)?.metricId;
-  if(!metric)continue;
+  if(!metric||metric!==focus?.metricId)continue;
   const proposed=store.proposeActionOnce(ownerId,p.id,{
    description:caseFor(metric).action,assignee:'AI Growth Agent',
    metricId:metric,definitionVersion:describeMetric(metric).version,

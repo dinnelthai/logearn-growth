@@ -27,7 +27,7 @@ test('verified North Star decline creates one owner-scoped durable problem and o
   assert.equal(first.status,'verified');
   assert.ok(first.declineSignals>=2);
   assert.equal(first.newProblems,first.declineSignals);
-  assert.equal(first.proposedActions,first.declineSignals);
+  assert.equal(first.proposedActions,1);
   const p=f.store.problems('alice').find(x=>x.subject.startsWith('active_users:')),
    a=f.store.actions('alice').find(x=>x.metric_id==='active_users');
   assert.equal(p.type,'business');
@@ -37,11 +37,11 @@ test('verified North Star decline creates one owner-scoped durable problem and o
   assert.equal(f.store.problems('bob').length,0);
   assert.equal(f.store.actions('bob').length,0);
   assert.equal((await run()).newProblems,0);
-  assert.equal(f.store.actions('alice').length,first.declineSignals);
+  assert.equal(f.store.actions('alice').length,1);
   assert.equal(f.store.problems('alice').length,first.declineSignals);
   const queue=f.store.executiveQueue('alice',{at:now});
   assert.equal(queue.northStar.metricId,'active_users');
-  assert.equal(queue.waitingApproval,first.declineSignals);
+  assert.equal(queue.waitingApproval,1);
   assert.equal(queue.priorities[0].id,p.id);
   assert.equal(first.modelCalls+first.paidCalls+first.externalActions,0);
  }finally{f.close()}
