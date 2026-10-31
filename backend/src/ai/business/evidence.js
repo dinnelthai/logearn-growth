@@ -39,11 +39,23 @@ function createEvidenceStore(db){
   const rows=db.prepare('SELECT body FROM agent_evidence WHERE owner_id=? ORDER BY rowid DESC LIMIT ?')
    .all(ownerId,limit);
   const groups=new Map(),since=now-30*86400000;
+  const currentPeriod=context.period||{},duration=currentPeriod.end-currentPeriod.start;
+  if(!Number.isSafeInteger(duration)||duration<=0)return {};
+  const allowedScope=context.scope||{source:'all'};
   for(const row of rows){
    let e;
    try{e=JSON.parse(row.body)}catch{continue}
    const tool=e?.query?.tool,t=e?.executionTiming?.elapsedMs;
    const recorded=Date.parse(e?.generatedAt||'');
+   const sampleSpan=e?.period?.end-e?.period?.start;
+   const sampleScope=e?.filters?.scope||{};
+   // Owner match is enforced in SQL. Never compare dissimilar scopes or a
+   // daily query with a 30-day query just because the tool ID is the same.
+   if(!Number.isSafeInteger(sampleSpan)||sampleSpan<=0||
+    Math.abs(sampleSpan-duration)>duration*.2||
+    ['source','activityId','cohortId'].some(k=>
+     (sampleScope[k]??(k==='source'?'all':null))!==
+     (allowedScope[k]??(k==='source'?'all':null))))continue;
    if(typeof tool!=='string'||!/^[a-z][a-z0-9_]{1,55}$/.test(tool)||
     !Number.isSafeInteger(t)||t<0||t>120000||
     !Number.isFinite(recorded)||recorded<since||recorded>now)continue;
