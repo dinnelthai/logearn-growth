@@ -29,10 +29,16 @@ test('elapsed current period sets equal previous duration without future populat
  assert.throws(()=>growthInsights([],[],{start:end,end:end+DAY},s),/尚未到达/)
 })
 test('cohort trade is restricted to mature verified users and the first 168 hours, unknown source never becomes zero',()=>{
- const rows=[row(1),row(2),row(3,{user_key:'anonymous:a'})],trade=(extra={})=>({account_id:'1',transaction_hash:'h',chain:'3',valid:true,transaction_time:new Date(start+DAY).toISOString(),trade_value:'-12.5',...extra})
- const facts={known:new Set(['user:1']),error:null,trades:[trade(),trade({transaction_time:new Date(start+7*DAY).toISOString(),trade_value:500}),trade({valid:false}),trade({trade_value:null})]}
+ const rows=[row(1),row(2),row(3,{user_key:'anonymous:a'}),row(4,{first_chip_at:null})],trade=(extra={})=>({account_id:'1',transaction_hash:'h',chain:'3',valid:true,transaction_time:new Date(start+DAY).toISOString(),trade_value:'-12.5',...extra})
+ const facts={known:new Set(['user:1']),error:null,trades:[
+  trade(),trade({transaction_time:new Date(start-DAY).toISOString(),trade_value:900}),
+  trade({transaction_time:new Date(start+7*DAY).toISOString(),trade_value:500}),
+  trade({valid:false}),trade({trade_value:null})
+ ]}
  const out=growthInsights(rows,[],{start,end},snapshot,facts),t=out.payload.channels[0].trade
  assert.equal(t.eligible,1);assert.equal(t.unmatched,2);assert.equal(t.traders,1);assert.equal(t.transactions,2);assert.equal(t.volume_usd,12.5);assert.equal(t.missing_values,1);assert.equal(t.excluded_trades,1)
+ assert.equal(t.conversion_rate,1);assert.equal(t.pending,0);assert.equal(t.not_activated,1);
+ assert.equal(t.association,'user-level-after-first-analysis')
  assert.deepEqual(out.lists[t.list_key+':traders'],['user:1'])
  const missing=growthInsights(rows,[],{start,end},snapshot).payload.channels[0].trade
  assert.equal(missing.available,false);assert.equal(missing.traders,null);assert.equal(missing.volume_usd,null)
