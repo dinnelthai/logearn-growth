@@ -209,11 +209,21 @@ function modelEvidence(row){
   filters:{source:safeText(row.filters?.scope?.source||row.filters?.source||'all',120)},
   sourceVersions:{events:safeText(row.sourceVersions?.events||'',120),
    searchConsole:safeText(row.sourceVersions?.searchConsole||'',120),
-   operatorRecords:safeText(row.sourceVersions?.operatorRecords||'',120)},
+   operatorRecords:safeText(row.sourceVersions?.operatorRecords||'',120),
+   ...(row.sourceVersions?.x?{x:safeText(row.sourceVersions.x,120)}:{}),
+   ...(row.sourceVersions?.kol?{kol:safeText(row.sourceVersions.kol,120)}:{}),
+   ...(row.sourceVersions?.followerScan?
+    {followerScan:safeText(row.sourceVersions.followerScan,120)}:{})},
   watermarks:{events:safeText(row.watermarks?.events||'',120),
    eventsCompleteThrough:safeText(row.watermarks?.eventsCompleteThrough||'',120),
    trades:safeText(row.watermarks?.trades||'',120),
-   registrations:safeText(row.watermarks?.registrations||'',120)},
+   registrations:safeText(row.watermarks?.registrations||'',120),
+   ...(row.watermarks?.searchConsole?
+    {searchConsole:safeText(row.watermarks.searchConsole,120)}:{}),
+   ...(row.watermarks?.x?{x:safeText(row.watermarks.x,120)}:{}),
+   ...(row.watermarks?.kol?{kol:safeText(row.watermarks.kol,120)}:{}),
+   ...(row.watermarks?.followerScan?
+    {followerScan:safeText(row.watermarks.followerScan,120)}:{})},
   coverage:statView(row.coverage||{status:'unknown'}),
   warnings:(row.warnings||[]).slice(0,6).map(s=>safeText(s))
  };
