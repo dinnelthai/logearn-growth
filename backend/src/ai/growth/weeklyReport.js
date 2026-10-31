@@ -2,6 +2,7 @@
 // Weekly AI report is an explicit user-initiated analysis, never a scheduled or free report.
 // Its context contains only owner-scoped aggregate counts; no user/event rows or action text.
 const {lastCompleted}=require('./workspace/period');
+const {validateRange}=require('../../analytics/businessPriorities');
 
 function weeklyModelTimeoutMs(){
  const value=Number(process.env.AI_WEEKLY_MODEL_TIMEOUT_MS||300000);
@@ -10,7 +11,33 @@ function weeklyModelTimeoutMs(){
  return value;
 }
 function weeklyPeriod(now=Date.now()){return lastCompleted('weekly',now);}
-function weeklyKey(period){return 'weekly-ai-v1:'+period.start+':'+period.end;}
+function reportPeriod(input={},now=Date.now()){
+ if(!input||typeof input!=='object'||Array.isArray(input))throw Error('报告时间范围无效');
+ const hasStart=input.start!==undefined&&input.start!==null&&input.start!=='';
+ const hasEnd=input.end!==undefined&&input.end!==null&&input.end!=='';
+ if(!hasStart&&!hasEnd){
+  const base=weeklyPeriod(now),duration=base.end-base.start;
+  return {...base,previousStart:base.start-duration,previousEnd:base.start};
+ }
+ if(hasStart!==hasEnd)throw Error('自定义报告必须同时填写开始和结束时间');
+ const parse=value=>{
+  if(typeof value==='number')return value;
+  if(typeof value==='string'&&/^\\d+$/.test(value))return Number(value);
+  return NaN;
+ };
+ const start=parse(input.start),end=parse(input.end);
+ try{validateRange(start,end,now)}catch(error){
+  throw Object.assign(Error('请选择有效的1–31天历史时间范围，且结束时间不能晚于当前时间'),{status:400});
+ }
+ const duration=end-start;
+ return {kind:'custom',start,end,previousStart:start-duration,
+  previousEnd:start,timezone:'Asia/Bangkok'};
+}
+function weeklyKey(period){
+ const prefix=period.kind==='custom'?'ai-report-custom-v1:':'weekly-ai-v1:';
+ return prefix+period.start+':'+period.end;
+}
+function reportKey(period){return weeklyKey(period);}
 function weeklyOperations(store,owner,period){
  const problems=store.problems(owner,{limit:200}),actions=store.actions(owner,{limit:200});
  const inWeek=(at)=>Number(at)>=period.start&&Number(at)<period.end;
@@ -65,6 +92,8 @@ const weeklyPromptV2=`
 `;
 // v3 changes the decision frame, not the validated output contract. It is used only by new v5 reports.
 const weeklyPromptV3=weeklyPromptV2+'\n'+"经营分析必须以 context.businessBrain 为业务语义基线：\n- 先读取 businessBrain.focus、lifecycle、productMap 和 metricDictionary，明确本期经营目标、相关阶段和指标的正式含义；northStarIntent 是经营方向，不是已验证的单一KPI。\n- 按获客→注册→首次价值/激活→产品参与→留存→真实交易→商业经济检查业务链路，但产品功能是多个价值入口，不得假设所有用户必须按同一顺序使用。\n- 重点回答“经营结果发生了什么、影响最大的环节在哪里、哪些原因已被证实、哪些仍是假设、下一步做什么”，不要把12个模块平均分配篇幅。\n- 获客渠道只有在身份和时间窗口能可靠连接时，才能继续解释注册、激活和交易；GSC、X、KOL数据默认是渠道观察，不是站内转化或增量归因。\n- 对AI策略、筹码峰、Holder和钱包交易分别解释其产品角色；没有可核对的事件和交易事实时，不得宣称某功能带来交易。\n- 读取 context.operatingMemory 时，区分提议、采纳、执行、拒绝和已复盘；它只覆盖已有AI建议/复盘记录，不代表完整运营活动。不得将人工采纳视为有效，不得重复推荐已有反证的行动。\n- 每个优先问题必须给出影响范围、事实证据、可能根因、反证/未知、置信程度和下一步验证。每个行动必须对应可测量的主指标、目标或观察条件、负责人/资源未知时明确标注未知。\n- 优先选择能解决经营关键歧义的少量调查，不为追求模块覆盖而重复调用工具；数据不足时形成条件化建议，而不是虚构经营判断。";
+const customPeriodPromptV1=weeklyPromptV3+'\\n'+
+ '本报告使用自定义统计时间范围，而非自然周。context.period.start 为开始时间（包含），context.period.end 为结束时间（不包含），时区以 context.period.timezone 为准。所有对比必须使用 context.period.previousStart 至 previousEnd 的紧邻前一段等长周期；如数据源只支持日期级聚合，必须说明时间粒度差异，不能伪装成分钟级精确。不得使用“上周/本周”替代实际日期范围。';
 // Server-derived KPIs come from the exact owner-scoped immutable evidence
 // already saved for this run. They never depend on the model inventing JSON.
 function trustedWeeklyMetrics(context){
@@ -192,4 +221,4 @@ function ensureWeeklyReport(analysis,{context=null}={}){
   return complete();
  }
 }
-module.exports={weeklyPeriod,weeklyKey,weeklyOperations,weeklyPrompt,weeklyPromptV2,weeklyPromptV3,validateWeeklyReport,ensureWeeklyReport,trustedWeeklyMetrics,weeklyModelTimeoutMs};
+module.exports={weeklyPeriod,reportPeriod,weeklyKey,reportKey,weeklyOperations,weeklyPrompt,weeklyPromptV2,weeklyPromptV3,customPeriodPromptV1,validateWeeklyReport,ensureWeeklyReport,trustedWeeklyMetrics,weeklyModelTimeoutMs};
