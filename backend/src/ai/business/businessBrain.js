@@ -98,7 +98,7 @@ function buildBusinessBrainContext({focusGoal='activation'}={}){
   experimentRule:'treatment/control是人工固定分组，不代表随机实验；送达与跨组曝光需单列，组间差异不证明增量因果'},
   focus:{goal:GOAL_FOCUS[focusGoal]?focusGoal:'activation',
    objective:focus.objective,stages:focus.stages,priorityMetrics:focus.priorityMetrics},
-  metricDictionaryVersion:'1',
+  metricDictionaryVersion:'2',
   metricDictionary:metricDictionary(),
   operatingRules:OPERATING_RULES
  };
