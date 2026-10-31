@@ -83,6 +83,8 @@ test('timeline merges existing owner-scoped records but keeps human, channel and
  assert.equal(JSON.stringify(result).includes('OUTSIDE'),false);
  const collab=result.humanOperations.find(x=>x.kind==='kol_collaboration');
  assert.equal(collab.costTotals[0].currency,'USD');
+ assert.equal(collab.id,'kol-collaboration:collab-1');
+ assert.deepEqual(collab.linkedActivityIds,['act-1']);
  assert.deepEqual(collab.linkedActivityIds,['act-1']);
  const activity=result.humanOperations.find(x=>x.kind==='growth_activity');
  assert.deepEqual(activity.linkedKols,['KOL One']);

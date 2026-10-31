@@ -52,13 +52,19 @@ function productChainSummary(payload){
 }
 function operationsTimelineSummary(payload){
  const pick=(row,keys)=>Object.fromEntries(keys.filter(k=>row?.[k]!==undefined).map(k=>[k,row[k]]));
- const human=(payload.humanOperations||[]).slice(0,30).map(row=>pick(row,[
-  'kind','layer','source','title','channel','topic','kol','startAt','endAt','eventAt',
-  'status','goal','targetMetric','targetValue','assignee','dueAt','createdAt','updatedAt',
-  'completedAt','settledAt','linkedKols','linkedActivityIds','metrics','evaluation',
-  'memberCount','plannedMemberCount','assignments','scheduleChanges','outcome',
-  'financeSource','costTotals','revenueTotals','collection'
- ]));
+ const human=(payload.humanOperations||[]).slice(0,30).map(row=>{
+  const relatedActivityRefs=Array.isArray(row.linkedActivityIds)?
+   row.linkedActivityIds.slice(0,8).map(id=>'activity:'+String(id).slice(0,100)):[];
+  return {...pick(row,[
+   'kind','layer','source','title','channel','topic','kol','startAt','endAt','eventAt',
+   'status','goal','targetMetric','targetValue','assignee','dueAt','createdAt','updatedAt',
+   'completedAt','settledAt','linkedKols','metrics','evaluation',
+   'memberCount','plannedMemberCount','assignments','scheduleChanges','outcome',
+   'financeSource','costTotals','revenueTotals','collection'
+  ]),...(row.id?{recordRef:String(row.id).slice(0,140)}:{}),
+   ...(relatedActivityRefs.length?{relatedRecordRefs:relatedActivityRefs,
+    relationshipType:'explicit-crm-activity-link'}:{})};
+ });
  const observations=(payload.channelObservations||[]).slice(0,20).map(row=>pick(row,[
   'kind','layer','source','title','startAt','endAt','startDate','endDate','observedAt',
   'metrics','samplePosts','coverage','scope','dateTimezone','attribution','warnings'

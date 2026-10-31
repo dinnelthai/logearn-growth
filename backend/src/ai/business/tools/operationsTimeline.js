@@ -151,7 +151,9 @@ function createOperationsTimeline({
    for(const r of rows){
     const f=financeById.get(r.id);
     humanOperations.push({
-     id:'kol-collaboration:'+r.id,kind:'kol_collaboration',layer:'human_operation',
+     id:'kol-collaboration:'+r.id,
+     linkedActivityIds:(linked.get(r.id)||[]).slice(0,8),
+     kind:'kol_collaboration',layer:'human_operation',
      source:'crm_collaborations',title:text(r.name,120),channel:'KOL',
      kol:text(r.kol_name,80),startAt:r.start_at,endAt:r.end_at,
      status:r.status,goal:text(r.goal,240),deliverables:text(r.deliverables,240),

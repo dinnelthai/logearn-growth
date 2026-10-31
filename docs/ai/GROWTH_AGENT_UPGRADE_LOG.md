@@ -241,3 +241,26 @@ Branch: `codex/ai-comprehensive-upgrade`
 - Link campaign/content records to channel metrics and mature outcomes only when stable identifiers and comparable windows exist.
 - Validate the new note source and its freshness against an already-authorized read-only runtime.
 - Keep community/training activity unknown unless a real source or operator note exists.
+
+
+## 2026-10-31 — Operating Memory: preserve explicit CRM activity links
+
+Branch: `codex/ai-comprehensive-upgrade`
+
+### Implemented
+
+- Preserved each growth activity's existing record reference and exposed its CRM collaboration counterpart's linked activity references in the model-safe timeline projection.
+- Added stable `recordRef` and `relatedRecordRefs` fields so the model can join collaboration, delivery, activity and settled outcome records without relying on title similarity.
+- Tagged the relationship as `explicit-crm-activity-link`; it is an operational CRM link only, not proof that a channel caused registration, activation or revenue.
+- Kept identifiers limited to internal business-record references; no user IDs, member rows, X post bodies or wallet data are introduced.
+- Added collector and registry projection regression tests.
+
+### Validation boundary
+
+- Changes committed to `codex/ai-comprehensive-upgrade`; CI is required for verification.
+- No live source query, paid model call, migration, deployment, external collection or external action was performed.
+
+### Remaining
+
+- Validate activity-to-channel relationships only where an actual shared stable identifier exists.
+- For X/GSC observations without post/campaign/landing-page identity linkage, retain temporal comparison as context and label attribution unavailable.
