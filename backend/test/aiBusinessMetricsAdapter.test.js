@@ -56,3 +56,36 @@ test('source-specific registration counts disclose observed-source attribution l
   assert.match(result.metrics[0].warnings.join(' '),/未归因账户不会计入该来源/)
  }finally{evidence.fetchGrowthInsights=original}
 })
+
+test('registration activation rate reports the mature denominator and pending registrations',async()=>{
+ const original=evidence.fetchGrowthInsights
+ try{
+  evidence.fetchGrowthInsights=async()=>({cohorts:{registration:{available:true,scope:'all',metrics:{
+   users:14,eligible:10,activated:5,pending:4,rate:.5
+  }}}})
+  const result=await metrics({start:100,end:200,source:'all'},{snapshot_id:'s'},['registration_activation_rate'],{})
+  const value=result.metrics[0]
+  assert.equal(value.value,.5)
+  assert.equal(value.numerator,5)
+  assert.equal(value.denominator,10)
+  assert.equal(value.sampleSize,10)
+  assert.equal(value.pending,4)
+  assert.match(value.warnings.join(' '),/仅已成熟注册队列进入分母/)
+ }finally{evidence.fetchGrowthInsights=original}
+})
+
+test('registration activation is unknown when no registrations have matured, not zero percent',async()=>{
+ const original=evidence.fetchGrowthInsights
+ try{
+  evidence.fetchGrowthInsights=async()=>({cohorts:{registration:{available:true,scope:'all',metrics:{
+   users:3,eligible:0,activated:0,pending:3,rate:null
+  }}}})
+  const result=await metrics({start:100,end:200,source:'all'},{snapshot_id:'s'},['registration_activation_rate'],{})
+  const value=result.metrics[0]
+  assert.equal(value.value,null)
+  assert.equal(value.numerator,0)
+  assert.equal(value.denominator,0)
+  assert.equal(value.pending,3)
+  assert.match(value.warnings.join(' '),/不是0%/)
+ }finally{evidence.fetchGrowthInsights=original}
+})
