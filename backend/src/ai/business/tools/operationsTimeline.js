@@ -237,8 +237,8 @@ function createOperationsTimeline({
    return selected;
   });
 
-  const sort=(a,b)=>(Number(b.eventAt??b.updatedAt??b.observedAt??b.startAt??b.createdAt??0)-
-    Number(a.eventAt??a.updatedAt??a.observedAt??a.startAt??a.createdAt??0));
+  const sort=(a,b)=>(Number(b.eventAt??b.updatedAt??b.observedAt??b.lastSeenAt??b.startAt??b.createdAt??0)-
+    Number(a.eventAt??a.updatedAt??a.observedAt??a.lastSeenAt??a.startAt??a.createdAt??0));
   const timeline=[...humanOperations,...channelObservations,...aiActions].sort(sort).slice(0,limit);
   const warnings=[
    '人工活动、手工内容、用户管理任务与 AI 建议/复盘分层保存；不能把 AI 建议当作已执行活动',
