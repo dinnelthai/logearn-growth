@@ -6,6 +6,31 @@ const safeJson=value=>{
  try{return JSON.parse(value)}catch{return null}
 };
 const text=(value,max=160)=>String(value??'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,max);
+const finite=(value)=>typeof value==='number'&&Number.isFinite(value)?value:null;
+function activityOutcome(row){
+ if(!row.settled_at)return {status:'not_settled'};
+ const raw=safeJson(row.settled_result);
+ if(!raw||typeof raw!=='object')return {status:'settled_unavailable'};
+ const pick=(value,keys)=>Object.fromEntries(keys.filter(key=>finite(value?.[key])!==null)
+  .map(key=>[key,finite(value[key])]));
+ const performance=raw.performance?.total&&typeof raw.performance.total==='object'?
+  pick(raw.performance.total,['users','analysis_users','analysis_events','analysis_days',
+   'returning_analysis_users','multi_day_users','trade_users','transactions','volume_usd',
+   'missing_values','excluded_trades']):null;
+ const summary=raw.summary&&typeof raw.summary==='object'?
+  pick(raw.summary,['total','eligible','completed','conversion_rate','prior','active','inactive','review']):null;
+ const progress=raw.target_progress&&typeof raw.target_progress==='object'?
+  {metric:text(raw.target_progress.metric,48),target:finite(raw.target_progress.target),
+   actual:finite(raw.target_progress.actual),ratio:finite(raw.target_progress.ratio),
+   status:text(raw.target_progress.status,24),partial:raw.target_progress.partial===true}:null;
+ const errors=raw.performance_errors&&typeof raw.performance_errors==='object'?raw.performance_errors:null;
+ const sourceCoverage=errors?Object.fromEntries(['analysis','trade','account'].map(key=>
+  [key,errors[key]?'unavailable':'available'])):{analysis:'unknown',trade:'unknown',account:'unknown'};
+ return {status:'settled',asOf:text(raw.as_of||'',48)||null,
+  snapshotCutoff:text(raw.snapshot_cutoff||'',48)||null,
+  ...(summary?{summary}:{}),...(performance?{performance}:{}),
+  targetProgress:progress,sourceCoverage};
+}
 function dateInZone(ms,zone){
  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(ms));
  const values=Object.fromEntries(parts.filter(p=>p.type!=='literal').map(p=>[p.type,p.value]));
@@ -37,7 +62,7 @@ function createOperationsTimeline({
 
   await read('growthActivities',async()=>{
    const rows=db.prepare(`SELECT id,name,start_at,cutoff_at,goal,target_metric,target_value,
-    schedule_state,schedule_error,archived_at,settled_at,parent_id
+    schedule_state,schedule_error,archived_at,settled_at,settled_result,parent_id
     FROM growth_activities WHERE owner_id=? AND start_at<? AND cutoff_at>=?
      AND id NOT IN(SELECT child_id FROM growth_activity_merged_batches WHERE owner_id=?)
     ORDER BY start_at DESC,id LIMIT ?`).all(ownerId,end,start,ownerId,limit);
@@ -100,6 +125,7 @@ function createOperationsTimeline({
     targetMetric:r.target_metric||null,targetValue:r.target_value??null,
     linkedKols:byActivity.get(r.id)||[],settledAt:r.settled_at??null,
     memberCount:memberCounts.get(r.id)??0,plannedMemberCount:plannedCounts.get(r.id)??0,
+    outcome:activityOutcome(r),
     assignments:assignmentByActivity.get(r.id)||[],
     deliveryEvidence:deliveryByActivity.get(r.id)||[],
     scheduleChanges:scheduleByActivity.get(r.id)||[],
