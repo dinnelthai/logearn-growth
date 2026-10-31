@@ -42,7 +42,7 @@ const numeric=new Set([
  'visitor_users','clicks','details','successes','day',
  'confidence_interval_low','confidence_interval_high','min','max',
  'week','weekStart','weekEnd','targetValue','effectivenessScore','evidenceCount',
- 'observedAt','sourceAsOf','followers','followerChange','measuredPosts','engagementRate',
+ 'observedAt','capturedAt','sourceAsOf','followers','followerChange','measuredPosts','engagementRate',
  'views','posts','replies','retweets','reposts','engagements',
  'viewCount','postCount','replyCount','retweetCount','repostCount',
  'likeCount','impressionCount','totalViews','totalPosts','medianViews',
