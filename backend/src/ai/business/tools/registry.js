@@ -67,7 +67,9 @@ function operationsTimelineSummary(payload){
   'updatedAt','executedAt','review','firstSeenAt','lastSeenAt','occurrences','sourceKind'
  ]));
  return {period:payload.period,humanOperations:human,channelObservations:observations,
-  aiActions:ai,coverage:payload.coverage||{},asOf:payload.asOf,
+  aiActions:ai,counts:{human_operations:human.length,channel_observations:observations.length,
+   ai_actions:ai.length,total_records:human.length+observations.length+ai.length},
+  coverage:payload.coverage||{},asOf:payload.asOf,
   warnings:payload.warnings||['各来源独立记录，未提供的数据保持未知']};
 }
 function referralSummary(payload){
