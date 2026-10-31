@@ -29,7 +29,7 @@ function createRouter({db=require('../db/connection')}={}){
   res.status(201).json(store.observeProblem(owner,{type:'user',subject:requiredString(body.subject,'研究主题',256),description:requiredString(body.description||body.subject,'研究问题',2000),scope:body.scope||{source:'all'},nextStep:'在授权范围内核对相关业务证据',priority:2}));
  }));
  router.get('/problems',h(async(req,res,owner)=>res.json({problems:store.problems(owner,{status:req.query.status||null,limit:num(req.query.limit,50)})})));
- router.get('/problems/:id',h(async(req,res,owner)=>{const p=store.problem(owner,req.params.id);res.status(p?200:404).json(p?{problem:p,history:store.problemEvents(owner,p.id)}:{error:'不存在'})}));
+ router.get('/problems/:id',h(async(req,res,owner)=>{const p=store.problem(owner,req.params.id);res.status(p?200:404).json(p?{problem:p,history:store.problemEvents(owner,p.id),linkedOperationTasks:store.linkedOperationTasks(owner,p.id)}:{error:'不存在'})}));
  router.post('/problems/:id/status',h(async(req,res,owner)=>res.json(store.setProblemStatus(owner,req.params.id,req.body?.status,{reason:req.body?.reason,expectedStatus:req.body?.expectedStatus}))));
  router.post('/problems/:id/review',h(async(req,res,owner)=>res.json(store.reviewProblem(owner,req.params.id,req.body?.verdict,req.body?.reason||''))));
  router.post('/problems/:id/investigations',h(async(req,res,owner)=>res.status(201).json(store.startRun(owner,req.params.id,{mode:'manual'}))));
