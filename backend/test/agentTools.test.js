@@ -60,6 +60,23 @@ test('collaboration economics evidence never becomes platform revenue or trade v
   assert.notEqual(describeMetric('trade_revenue').definition,describeMetric('collaboration_economics').definition);
  }finally{t.db.close()}
 });
+test('manual CRM ledger read works when unrelated Hologres snapshot is unavailable',async()=>{
+ let queriedSnapshot=false,ledgerCalls=0;
+ const t=setup({snapshot:async()=>{queriedSnapshot=true;throw Error('Hologres unavailable')},
+  economics:async()=>{ledgerCalls++;return {byCurrency:[],
+   coverage:{finance:'manual_records_only',revenue:'unknown'}}}});
+ try{
+  const out=await t.registry.executeTool('get_channel_economics',{},
+   {...t.context,scope:{source:'all'}});
+  assert.equal(out.status,'ok');
+  assert.equal(out.evidence[0].metricId,'collaboration_economics');
+  assert.equal(out.evidence[0].value.available,false);
+  assert.equal(out.evidence[0].watermarks.events,null);
+  assert.equal(out.evidence[0].watermarks.operatorRecords,null);
+  assert.equal(queriedSnapshot,false,'ledger must not ask Hologres for an unrelated watermark');
+  assert.equal(ledgerCalls,1);
+ }finally{t.db.close()}
+});
 test('global diagnostic tools cannot pretend to honor a source filter and unused parameters are rejected',async()=>{
  const t=setup();try{
  await assert.rejects(()=>t.registry.executeTool('check_data_quality',{},t.context),/来源|全来源/);
