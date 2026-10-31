@@ -168,6 +168,19 @@ test('weekly evidence projection preserves activity delivery outcomes by fixed g
  assert.ok(facts.some(x=>x.metric==='humanOperations.growth_activities.assignments.treatment.cross_exposed'&&x.value===1));
  assert.equal(facts.some(x=>JSON.stringify(x).includes('user_id')),false);
 });
+test('weekly context preserves parallel registered-cohort product engagement counts',()=>{
+ const facts=factsFromValue({cohorts:{registration:{engagement:{
+  eligible:12,pending:3,chip_analysis_users:8,holder_view_users:5,
+  strategy_started_users:4,signal_view_users:6,repeat_analysis_users:2,
+  definition:'parallel product entry metrics'
+ }}}},12);
+ for(const [metric,value] of [
+  ['registered_engagement_eligible',12],['registered_engagement_pending',3],
+  ['registered_chip_analysis_users',8],['registered_holder_view_users',5],
+  ['registered_strategy_started_users',4],['registered_signal_view_users',6],
+  ['registered_repeat_analysis_users',2]
+ ])assert.ok(facts.some(x=>x.metric===metric&&x.value===value),metric);
+});
 test('weekly evidence projection preserves registration activation numerator, mature denominator and pending cohort',()=>{
  const facts=factsFromValue({cohorts:{registration:{available:true,metrics:{
   users:20,eligible:15,activated:9,pending:5,rate:.6
