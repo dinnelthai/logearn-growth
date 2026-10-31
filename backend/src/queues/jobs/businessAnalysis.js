@@ -142,6 +142,7 @@ async function businessAnalysis(job) {
     // Pin the strict output contract into the saved snapshot; archived contexts
     // without this marker retain their original validation behavior on recovery.
     compact.analysisContractVersion=require('../../ai/business/analysisContract').ANALYSIS_CONTRACT_VERSION;
+    if(useWeeklyV5)compact.weeklyReportContractVersion='weekly-report-v2';
     // A single bounded, owner-scoped read-only manifest backs EVERY weekly
     // section. Only a subset is queried; all other modules remain explicitly
     // uninvestigated. This does not create model calls or loosen tool budgets.
