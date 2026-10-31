@@ -117,7 +117,7 @@ New v5 flags:
 
 ## 7. Validation / production boundary
 
-This upgrade has not been deployed or tested against the user's live API/Worker. Latest AI infrastructure run [41168249767](https://github.com/dinnelthai/logearn-growth/actions/runs/41168249767) passed all three jobs: AI Contract groups 32/32, 13/13, 22/22, 2/2 and 112/112; AI Integration 17/17; AI Frontend succeeded. These are fixture/service-container checks, not a real-source acceptance test.
+This upgrade has not been deployed or tested against the user's live API/Worker. Latest AI infrastructure run [41171204432](https://github.com/dinnelthai/logearn-growth/actions/runs/41171204432) passed all three jobs: AI Contract groups 41/41, 33/33, 13/13, 23/23, 2/2 and 112/112 (the aggregate harness also reported zero failures); AI Integration 17/17; AI Frontend succeeded. This includes regression coverage for hashed CRM activity references and KOL collaboration joins. These are fixture/service-container checks, not a real-source acceptance test. Current branch HEAD at this handoff update: `73ffb7574aadfdcefa081e58739ff38b8bf658c7`.
 
 Do not:
 - run paid model calls just to test projection;
