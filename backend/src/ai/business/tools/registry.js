@@ -218,7 +218,18 @@ function createToolRegistry(deps){
    if(Buffer.byteLength(JSON.stringify(safe))>maxResultBytes)
      fail('统计摘要超出大小预算，请缩小查询范围',422);
    if(id==='query_metrics'){
-    const entries=(safe.metrics||[]).map(m=>makeEvidence({...m,query:{tool:id,body},sourceVersions:{events:snapshot.snapshot_id},watermarks:{events:snapshot.as_of,trades:null,registrations:null},coverage:safe.coverage||{status:'unknown'},warnings:safe.warnings||[]},{...ctx,period}));
+    const entries=(safe.metrics||[]).map(m=>{
+     // Keep each metric's source limits and warnings with its own immutable
+     // evidence. A shared event snapshot is not a registration/trade watermark.
+     const eventBased=m.metricId!=='registered_users';
+     return makeEvidence({...m,query:{tool:id,body},
+      sourceVersions:{events:eventBased?snapshot.snapshot_id??null:null,
+       registrations:null,trades:null},
+      watermarks:{events:eventBased?snapshot.as_of:null,
+       registrations:null,trades:null},
+      coverage:m.coverage||{status:'unknown'},
+      warnings:[...(m.warnings||[]),...(safe.warnings||[])]},{...ctx,period});
+    });
     for(const e of entries)deps.evidenceStore.save(e,ctx);return {status:'ok',evidence:entries,warnings:safe.warnings||[]};
    }
    const e=makeEvidence({metricId:tool.metric,value:safe,query:{tool:id,body,metrics:input.metrics||null,dimensions:input.dimensions||null,audienceFingerprint:audience===null?null:fingerprint(audience)},sourceVersions:tool.adapter==='operations-timeline'?{operatorRecords:'multi-source-v1',searchConsole:null,x:null,kol:null}:['seo-performance','content-growth','follower-quality'].includes(tool.adapter)?{events:null,searchConsole:tool.adapter==='seo-performance'?safe.snapshotId||null:null,operatorRecords:tool.adapter==='content-growth'?(payload.xOfficial?.available?'manual+twitterapi.io':'manual'):null,followerScan:tool.adapter==='follower-quality'?'partial':null}:{events:snapshot.snapshot_id},watermarks:tool.adapter==='operations-timeline'?{events:null,trades:null,registrations:null,operatorRecords:null,searchConsole:null}: {events:['seo-performance','content-growth','follower-quality'].includes(tool.adapter)?null:snapshot.as_of,trades:payload.trade_watermark??null,registrations:payload.registration_watermark??null,searchConsole:tool.adapter==='seo-performance'?safe.importedAt||null:null},coverage:payload.coverage||payload.quality||{status:'unknown'},warnings:payload.warnings||['各源水位独立；未提供的交易及注册覆盖为未知'],reportLocator:{page:tool.adapter,period,scope}}, {...ctx,period});
