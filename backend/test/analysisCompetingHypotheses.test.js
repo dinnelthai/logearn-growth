@@ -2,7 +2,11 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {validateAnalysis}=require('../src/ai/business/analysisContract');
-const allowedCapabilities=[{id:'get_channels'},{id:'get_login_conversion'}];
+const inputSchema={type:'object',additionalProperties:false,properties:{
+ scope:{type:'object'},start:{type:'integer'},end:{type:'integer'},
+ limit:{type:'integer'},cursor:{type:'string'},hours:{type:'integer'}
+}};
+const allowedCapabilities=[{id:'get_channels',inputSchema},{id:'get_login_conversion',inputSchema}];
 const base=()=>({
  summary:'Observed activation change requires investigation',
  keyFindings:[],
@@ -26,12 +30,12 @@ const base=()=>({
 });
 test('competing hypotheses accept only tools in the current task capability set',()=>{
  const value=base();
- assert.equal(validateAnalysis(value,{capabilities:[{id:'get_channels'},{id:'get_login_conversion'}]}),value);
+ assert.equal(validateAnalysis(value,{capabilities:allowedCapabilities}),value);
 });
 test('competing hypotheses reject unauthorized tools',()=>{
  const value=base();
  value.suggestions[0].competingHypotheses[0].discriminatingQuery.tool='get_seo_performance';
- assert.throws(()=>validateAnalysis(value,{capabilities:[{id:'get_channels'}]}),/未授权调查工具/);
+ assert.throws(()=>validateAnalysis(value,{capabilities:[{id:'get_channels',inputSchema}]}),/未授权调查工具/);
 });
 test('competing hypotheses require two or three distinct explanations',()=>{
  const value=base();
@@ -114,4 +118,25 @@ test('new analysis contract requires a complete executable action and exact busi
 test('archived analysis contexts without the v2 marker keep legacy validation compatibility',()=>{
  const value=base();
  assert.equal(validateAnalysis(value,{capabilities:allowedCapabilities}),value);
+});
+
+test('discriminating query inputs must match the authorized tool schema',()=>{
+ const value=base();
+ value.suggestions[0].competingHypotheses[0].discriminatingQuery.input={notAField:true};
+ assert.throws(()=>validateAnalysis(value,{capabilities:allowedCapabilities}),/不符合当前工具schema/);
+});
+test('discriminating queries cannot escape the task source or date window',()=>{
+ const value=base();
+ value.suggestions[0].competingHypotheses[0].discriminatingQuery.input={scope:{source:'twitter'}};
+ assert.throws(()=>validateAnalysis(value,{capabilities:allowedCapabilities,
+  business:{scope:{source:'all'}},period:{start:100,end:200}}),/超出当前任务来源/);
+ const outside=base();
+ outside.suggestions[0].competingHypotheses[0].discriminatingQuery.input={start:-1,end:200};
+ assert.throws(()=>validateAnalysis(outside,{capabilities:allowedCapabilities,
+  business:{scope:{source:'all'}},period:{start:100,end:200}}),/调查期间超出/);
+});
+test('competing root-cause hypotheses must be genuinely distinct',()=>{
+ const value=base();
+ value.suggestions[0].competingHypotheses[1].cause=value.suggestions[0].competingHypotheses[0].cause;
+ assert.throws(()=>validateAnalysis(value,{capabilities:allowedCapabilities}),/不同的解释/);
 });
