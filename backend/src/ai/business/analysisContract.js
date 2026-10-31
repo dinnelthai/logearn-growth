@@ -49,6 +49,12 @@ function validateEvidenceReferences(analysis,context,store,validateClaims){
   if(!Array.isArray(suggestion.evidence?.evidenceIds)||!suggestion.evidence.evidenceIds.length)
    throw Error('建议必须引用证据ID');
   for(const id of suggestion.evidence.evidenceIds)store.get(id,context);
+  for(const hypothesis of suggestion.competingHypotheses||[]){
+   for(const id of [...hypothesis.supportingEvidenceIds,...hypothesis.contradictingEvidenceIds]){
+    if(typeof id!=='string'||!id)throw Error('竞争性根因假设引用的证据ID无效');
+    store.get(id,context);
+   }
+  }
  }
 }
 module.exports={ANALYSIS_CONTRACT_VERSION,analysisPrompt,validateAnalysis,validateEvidenceReferences};
