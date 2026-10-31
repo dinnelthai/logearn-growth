@@ -8,6 +8,7 @@ All dates use repository commit time / recorded work date. This log is append-on
 - Added `src/ai/business/savedContextAudit.js`, `scripts/auditSavedWeeklyContext.js`, and `test/aiSavedContextAudit.test.js` in backend. They reject v4/12-module or missing saved-v5 marker, validate projected Business Brain and 22KB, and emit only status booleans without raw evidence. No database/Worker/model network activity.
 - Added `docs/ai/GROWTH_V5_SAVED_CONTEXT_AUDIT.md` describing safe, no-paid manual evaluation of an **already saved** authorized context and what is still necessary to close Phase 1.
 - Read-only local browser observation: existing selected 2026-10-19 to 2026-10-25 report is an archived v4/12-module report with unknown historical completeness and a failed trade read. Not a v5 model validation.
+- Follow-up CI gate: `.github/workflows/ai-infrastructure.yml` explicitly runs `backend/test/aiSavedContextAudit.test.js` in AI Contract; prior commit's initial CI did not exercise this new test.
 - **Progress remains 46/48 (95.8%); Phase 1 two open.** This is acceptance tooling, not verified real-source or operator signoff. New CI outcome is pending; do not describe this commit as tested green before checking GitHub Actions.
 ## 2026-10-31 — Business Brain v1 foundation
 

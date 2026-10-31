@@ -9,6 +9,7 @@ Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace 
 
 - **Starting branch HEAD:** `5b957a1b10e27fb5f648b01c9e08622e046d3791`. Added a zero-network, read-only `savedContextAudit` + stdin CLI and focused Node regressions. It refuses to reinterpret an archived 12-module/v4 report as a saved 13-module/v5 weekly context. The CLI returns only booleans, never evidence text, owner identifiers, business numbers or model prompts.
 - **Observed operator page (read-only):** existing selected weekly report is `aggregated-business-v4` with 12 historical modules and unknown source completeness; this is **not** new v5 report or real-model acceptance. Detailed secure steps: `docs/ai/GROWTH_V5_SAVED_CONTEXT_AUDIT.md`.
+- **CI inclusion:** `aiSavedContextAudit.test.js` is added to the AI Contract workflow, so pass/fail is traceable to the post-gate commit, not inferred from a prior unrelated CI run.
 - **Checklist unchanged:** **46/48 (95.8%)** code/CI evidence; the two unchecked Phase 1 gates still require genuine source observations and operator product/North Star confirmation. The new checker is a **pre-acceptance aid**, not a third gate or a shortcut to accepting either open checkbox. New test/CI status must be verified on this commit; no claim of green CI in advance.
 - No paid model call, GSC/X/KOL sync, production migration, deployment or `master` modification.
 ## Product definition
