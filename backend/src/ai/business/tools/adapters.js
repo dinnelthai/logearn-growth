@@ -62,6 +62,29 @@ async function metrics(body,snapshot,ids,context){
    if(!tradeAvailable)warnings.push('真实交易或账号身份关联不可用，交易转化未知而非零');
    if(registration.scope==='observed_source')
     warnings.push('来源归因仅覆盖已观测来源；未归因账户不会计入该来源');
+   const grouped=body.dimensions?.includes('source');
+   const bySource=grouped?Array.isArray(registration.bySource)?
+    registration.bySource.slice(0,6).map(row=>{
+     const act=row.activation||{},part=row.engagement||{};
+     const e=finite(part.eligible)?part.eligible:null;
+     const number=field=>finite(part[field])?part[field]:null;
+     const groupRate=field=>e>0&&number(field)!==null?number(field)/e:null;
+     return {source:row.source,users:row.users,
+      activation:{eligible:act.eligible??null,activated:act.activated??null,
+       pending:act.pending??null,rate:act.rate??null},
+      engagement:{eligible:e,pending:part.pending??null,
+       chip_analysis_users:number('chip_analysis_users'),
+       holder_view_users:number('holder_view_users'),
+       strategy_started_users:number('strategy_started_users'),
+       signal_view_users:number('signal_view_users'),
+       repeat_analysis_users:number('repeat_analysis_users'),
+       chip_analysis_rate:groupRate('chip_analysis_users'),
+       holder_view_rate:groupRate('holder_view_users'),
+       strategy_started_rate:groupRate('strategy_started_users'),
+       signal_view_rate:groupRate('signal_view_users'),
+       repeat_analysis_rate:groupRate('repeat_analysis_users')}}}):null:null;
+   if(grouped)warnings.push('按已观测来源对注册队列分组；未知来源单列，最多4个已观测来源，其余合并other；不证明渠道真实获客或增量');
+   if(grouped)warnings.push('来源分组仅有注册、24小时激活和并行7日产品观测；交易事实无逐来源完整归因，不输出来源交易率');
    return {metricId:m.id,value:{available:true,registration:{
     users:finite(activation.users)?activation.users:null,
     activation:{eligible:finite(activation.eligible)?activation.eligible:null,
@@ -69,6 +92,7 @@ async function metrics(body,snapshot,ids,context){
      pending:finite(activation.pending)?activation.pending:null,
      rate:finite(activation.rate)?activation.rate:null,window_ms:86400000},
     engagement:productEngagement,trade:tradeConversion,
+    ...(grouped?{bySource}:{}),
     coverage:{status:'partial',
      historyComplete:growth?.quality?.history_complete===true,
      eventsCompleteThrough:growth?.quality?.events_complete_through||null,
