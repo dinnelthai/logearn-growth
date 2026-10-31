@@ -116,7 +116,7 @@ function validateAnalysis(a,context={}) {
            !hypothesis.discriminatingQuery.why.trim()||
            hypothesis.discriminatingQuery.why.length>240)
           throw Error('竞争性根因假设缺少证据或使用了未授权调查工具');
-        assertDiscriminatingQuery(hypothesis.discriminatingQuery,context);
+        if(strictContract)assertDiscriminatingQuery(hypothesis.discriminatingQuery,context);
       }
     }
     if(strictContract){
