@@ -2,7 +2,7 @@
 // Triage is deterministic and uses ONLY existing business report candidates.
 // It deliberately does not call a model or infer causal effects.
 const {createHash}=require('node:crypto');
-const ALLOWED_METRICS=new Set(['active_users','new_users','returning_users','activation_rate','d7','weekly_core']);
+const ALLOWED_METRICS=new Set(['active_users','new_users','returning_users','activation_rate','d7','weekly_core','registered_users','registration_activation_rate','registered_trade_conversion_rate']);
 function detectGrowthSignals(report,{maxSignals=10,minAbsoluteUsers=5,minRelativeChange=0.2}={}){
  if(!report?.business?.scope||!report.period||!Array.isArray(report.candidates))throw Error('必须提供现有业务报告');
  if(!Number.isSafeInteger(maxSignals)||maxSignals<1||maxSignals>30||
@@ -17,7 +17,7 @@ function detectGrowthSignals(report,{maxSignals=10,minAbsoluteUsers=5,minRelativ
   const goalGap=c.metric==='weekly_core'&&Number.isFinite(c.gap)&&c.gap>0;
   const movement=Number.isFinite(c.absolute)&&Math.abs(c.absolute)>=minAbsoluteUsers&&
     Number.isFinite(c.change)&&Math.abs(c.change)>=minRelativeChange;
-  const rateConcern=['activation_rate','d7'].includes(c.metric)&&
+  const rateConcern=['activation_rate','d7','registration_activation_rate','registered_trade_conversion_rate'].includes(c.metric)&&
     c.priority!=='P2'&&Number.isFinite(c.score)&&c.score>0;
   if(!goalGap&&!movement&&!rateConcern)continue;
   const risk=warnings.length>0?'needs-data-quality-review':'requires-corroboration';
