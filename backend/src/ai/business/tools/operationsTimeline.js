@@ -205,12 +205,20 @@ function createOperationsTimeline({
   await read('xOfficial',async()=>{
    const overview=xMonitor.overview(ownerId);
    let count=0,truncated=false;
+   const accountCoverage=[];
    for(const account of overview.accounts||[]){
-    const oldest=Date.parse((account.posts||[]).at(-1)?.published_at||'');
+    const postsAvailable=Array.isArray(account.posts)?account.posts:[];
+    const lastSynced=Date.parse(account.lastSynced||'');
+    const accountStatus=!overview.configured?'not_configured':
+     Number.isFinite(lastSynced)?'synced':
+      account.error||account.lastAttempt?'unavailable':'not_synced';
+    const oldest=Date.parse(postsAvailable.at(-1)?.published_at||'');
     if((account.posts||[]).length===20&&Number.isFinite(oldest)&&start<oldest)truncated=true;
-    const posts=(account.posts||[]).filter(p=>{
+    const posts=postsAvailable.filter(p=>{
      const at=Date.parse(p.published_at);return Number.isFinite(at)&&at>=start&&at<end;
     });
+    accountCoverage.push({account:text(account.label||account.id,60),status:accountStatus,
+     lastSynced:Number.isFinite(lastSynced)?lastSynced:null,posts:posts.length});
     const measured=posts.filter(p=>Number(p.impressions)>0&&
      [p.likes,p.replies,p.reposts].every(v=>v!=null));
     const views=measured.reduce((n,p)=>n+Number(p.impressions),0);
@@ -231,8 +239,14 @@ function createOperationsTimeline({
       attribution:overview.attribution||'not-verified'}
     });
    }
-   coverage.xOfficial={status:count?'available':overview.configured?'empty':'not_configured',
-    count,limitPerAccount:20,truncated,source:overview.source||'twitterapi.io',limit:'最多最近20条/账号；公开指标非转化归因'};
+   const statuses=accountCoverage.map(row=>row.status);
+   const overallStatus=!overview.configured?'not_configured':
+    statuses.includes('synced')?'available':
+     statuses.includes('unavailable')?'unavailable':
+      statuses.includes('not_synced')?'not_synced':'empty';
+   coverage.xOfficial={status:overallStatus,count,accounts:accountCoverage,
+    limitPerAccount:20,truncated,source:overview.source||'twitterapi.io',
+    limit:'最多最近20条/账号；公开指标非转化归因'};
    return overview;
   });
 
