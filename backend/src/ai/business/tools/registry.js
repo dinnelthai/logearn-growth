@@ -348,8 +348,10 @@ function createToolRegistry(deps){
     return deps.runAnalysis(tool.adapter,body,snapshot,audience,owner(ctx));
    };
    operationStarted=true;
+   const operationStartedAt=process.hrtime.bigint();
    const running=operation().finally(()=>{budget.active--;});
    const result=await Promise.race([running,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(Error('工具执行超时'),{status:503})),timeoutMs);})]);
+   const elapsedMs=Number((process.hrtime.bigint()-operationStartedAt)/1000000n);
    const rawPayload=result.payload??result;
    // The dedicated business job may contain row-level events and membership
    // lists needed for internal analytics. Only archive a statistics-only
@@ -369,11 +371,12 @@ function createToolRegistry(deps){
    if(Buffer.byteLength(JSON.stringify(safe))>maxResultBytes)
      fail('统计摘要超出大小预算，请缩小查询范围',422);
    if(id==='query_metrics'){
-    const entries=(safe.metrics||[]).map(m=>{
+    const entries=(safe.metrics||[]).map((m,i)=>{
      // Keep each metric's source limits and warnings with its own immutable
      // evidence. A shared event snapshot is not a registration/trade watermark.
      const eventBased=m.metricId!=='registered_users';
      return makeEvidence({...m,query:{tool:id,body},
+      ...(i===0?{executionTiming:{elapsedMs}}:{}),
       sourceVersions:{events:eventBased?snapshot.snapshot_id??null:null,
        registrations:null,trades:null},
       watermarks:{events:eventBased?snapshot.as_of:null,
@@ -386,6 +389,7 @@ function createToolRegistry(deps){
    }
    const provenance=specialtyProvenance(id,rawPayload,snapshot);
    const e=makeEvidence({metricId:tool.metric,value:safe,
+    executionTiming:{elapsedMs},
     query:{tool:id,body,metrics:input.metrics||null,dimensions:input.dimensions||null,
      audienceFingerprint:audience===null?null:fingerprint(audience)},
     sourceVersions:provenance.sourceVersions,
@@ -407,7 +411,11 @@ function createToolRegistry(deps){
  const catalog=createCapabilityCatalog({legacyIds:Object.keys(definitions),extensions:deps.extensions||[],assertOwner:owner,
   evidenceStore:deps.evidenceStore,makeExternalEvidence:require('./externalEvidence').makeExternalEvidence});
  const registry={listCapabilities:context=>catalog.list(context,listLegacyCapabilities),
-  executeTool:(id,input,context)=>catalog.execute(id,input,context,executeLegacyTool),describeMetric};
+  executeTool:(id,input,context)=>catalog.execute(id,input,context,executeLegacyTool),
+  observedToolTimings:context=>{
+   owner(context);
+   return deps.evidenceStore?.recentToolTimings?.(context)||{};
+  },describeMetric};
  const moduleCatalog=require('./businessModuleCatalog');
  return {...registry,
   listBusinessModules:context=>moduleCatalog.listBusinessModules(registry,context),
