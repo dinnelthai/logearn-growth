@@ -22,7 +22,7 @@ function reportPeriod(input={},now=Date.now()){
  if(hasStart!==hasEnd)throw Error('自定义报告必须同时填写开始和结束时间');
  const parse=value=>{
   if(typeof value==='number')return value;
-  if(typeof value==='string'&&/^\\d+$/.test(value))return Number(value);
+  if(typeof value==='string'&&/^\d+$/.test(value))return Number(value);
   return NaN;
  };
  const start=parse(input.start),end=parse(input.end);
