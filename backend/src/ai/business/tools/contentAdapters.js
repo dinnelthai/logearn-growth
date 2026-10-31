@@ -44,7 +44,7 @@ function contentGrowth(body,ctx){
    const startDay=new Date(lookbackStart+7*3600000).toISOString().slice(0,10);
    const endDay=new Date(end-1+7*3600000).toISOString().slice(0,10);
    const history=tables.has('x_official_follower_daily')?
-    db.prepare('SELECT day,followers FROM x_official_follower_daily WHERE owner_id=? AND account=? AND day>=? AND day<=? ORDER BY day DESC LIMIT 30').all(owner,a.id,startDay,endDay).reverse():[];
+    db.prepare('SELECT day,followers FROM x_official_follower_daily WHERE owner_id=? AND account=? AND day>=? AND day<=? AND observed_at<? ORDER BY day DESC LIMIT 30').all(owner,a.id,startDay,endDay,end).reverse():[];
    const followers=history.length?history.at(-1).followers:
     info?.last_synced<end?(info.followers??null):null;
    const updatedAt=posts.reduce((max,p)=>Math.max(max,p.observed_at||0),0)||null;
@@ -101,17 +101,27 @@ function contentGrowth(body,ctx){
 function followerQuality(body,ctx){
  const owner=String(ctx.ownerId||'');
  if(!owner)throw Object.assign(Error('缺少用户范围'),{status:403});
- const rows=db.prepare(`SELECT account,category,COUNT(*) n,
-   SUM(CASE WHEN posts_at IS NOT NULL THEN 1 ELSE 0 END) analyzed,
-   SUM(CASE WHEN reviewed=1 THEN 1 ELSE 0 END) reviewed
+ // The audit table stores the LATEST row, not an append-only history.
+ // A historical report must not reuse future post classification, scan
+ // completion or a reviewed boolean without a reviewed_at timestamp.
+ const rows=db.prepare(`SELECT account,
+   CASE WHEN posts_at>=? THEN 'unknown' ELSE category END category,
+   COUNT(*) n,
+   SUM(CASE WHEN posts_at IS NOT NULL AND posts_at<? THEN 1 ELSE 0 END) analyzed,
+   NULL reviewed
    FROM x_follower_audit WHERE owner_id=? AND seen_at>=? AND seen_at<?
-   GROUP BY account,category`).all(owner,body.start,body.end);
- const progress=db.prepare('SELECT account,complete,state,updated_at FROM x_follower_progress WHERE owner_id=?').all(owner);
+   GROUP BY account,CASE WHEN posts_at>=? THEN 'unknown' ELSE category END`)
+   .all(body.end,body.end,owner,body.start,body.end,body.end);
+ const progress=db.prepare('SELECT account,complete,state,updated_at FROM x_follower_progress WHERE owner_id=? AND updated_at IS NOT NULL AND updated_at<?')
+   .all(owner,body.end);
  return {available:rows.length>0,segments:rows,progress,
    coverage:{status:'partial',complete:progress.length>0&&progress.every(x=>x.complete===1),
-    sampledPosts:true,thirdPartySource:true},
-   warnings:['仅包含已扫描粉丝和部分历史帖子；类别为关键词启发式，不是身份真实性或购买意图',
-    '粉丝分类不是转化归因，不能把关联当作新增交易贡献']};
+    sampledPosts:true,thirdPartySource:true,
+    reviewedHistoricalStatus:'unknown-no-review-timestamp',
+    scanStateAsOf:'only-if-latest-update-before-period-end'},
+   warnings:['仅包含在窗口内最近一次见到的已扫描粉丝；旧记录可能被后续覆盖，不能视为完整历史快照',
+    '无 reviewed_at，历史已审阅人数未知；截止时间后才完成的扫描/分类不能回填进旧报表',
+    '粉丝类别为启发式，不是身份真实性或购买意图；粉丝分类不证明新增交易贡献']};
 }
 return {contentGrowth,followerQuality};
 }
