@@ -441,3 +441,10 @@ Final validation update: run [41177187712](https://github.com/dinnelthai/logearn
 - Added owner-scoped read-only Executive cycle and durable problem→internal-action draft mapping, integrated into the opt-in workspace scheduler. One primary investigation draft per cycle, no automatic paid/external operations.
 - Added decision queue and owner UI with review-due, approval and overdue-task reminders. Correctly separates verified *daily* North Star from *monthly* unique-user target; `report.executiveFocus` is separate from legacy four-goal grade.
 - Read [GROWTH_EXECUTIVE_DECISION_LOOP_V1.md](./GROWTH_EXECUTIVE_DECISION_LOOP_V1.md) for feature gates, tests and remaining gaps. The existing 47/48 live-source signoff is not advanced by this implementation.
+
+### 2026-10-31 — One-turn Growth Executive follow-through
+
+- The Executive upgrade now includes a bounded read-only investigation record, deduplicated notices and optional authenticated webhook delivery, a visible opportunity portfolio with unknown-ROI safeguards, version-aware monthly vs daily goal comparison, mature-evidence learning checks, and sequenced internal action delivery work items.
+- Read [GROWTH_EXECUTIVE_UNIFIED_ACCEPTANCE.md](./GROWTH_EXECUTIVE_UNIFIED_ACCEPTANCE.md) for **seven workstreams**, corresponding code, opt-in env gates, migration prerequisites and exact outstanding live acceptance.
+- CI covers owner/privacy/maturity contracts, but **real v5 saved source context, actual Worker/Hologres/GSC/X/KOL**, webhook delivery and environment migration are **not** accepted. The Growth Agent 2.0 original checklist remains **47/48**.
+- Never claim cross-DB atomic target updates, random-experiment causal ROI, paid model stability or automatic external execution was implemented. No production migration, paid model call, publishing or master merge was performed.
