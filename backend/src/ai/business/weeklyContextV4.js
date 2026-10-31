@@ -149,11 +149,11 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
   }).focus:null;
  const goalRank=metricId=>{
   const index=goalFocus?.priorityMetrics?.indexOf(metricId)??-1;
-  return index<0?100:index;
+  return index<0?null:index+1;
  };
  const signalOrder=(a,b)=>{
   if(!includeDecisionSignals)return reviewRevision>=2?0:b.score-a.score;
-  return goalRank(a.id)-goalRank(b.id)||
+  return (goalRank(a.id)??100)-(goalRank(b.id)??100)||
    (a.coverage==='period-evidence'?0:1)-(b.coverage==='period-evidence'?0:1)||
    Math.abs(b.changePct)-Math.abs(a.changePct);
  };
@@ -161,7 +161,7 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
   .sort(signalOrder).slice(0,4)
   .map(({id,label,current,previous,changePct,evidenceIds,coverage})=>
    ({metricId:id,label,current,previous,changePct,evidenceIds,coverage,
-    ...(includeDecisionSignals?{goalRank:goalRank(id)+1}:{}),
+    ...(includeDecisionSignals?{goalRank:goalRank(id)}:{}),
     classification:coverage==='period-evidence'?'observed-decline;cause-unverified':
      'snapshot-decline;period-evidence-incomplete'}));
  const growthOpportunities=includeDecisionSignals?core
@@ -169,7 +169,7 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
   .sort(signalOrder).slice(0,4)
   .map(({id,label,current,previous,changePct,evidenceIds,coverage})=>({
    metricId:id,label,current,previous,changePct,evidenceIds,coverage,
-   goalRank:goalRank(id)+1,
+   goalRank:goalRank(id),
    classification:coverage==='period-evidence'?'observed-increase;replicability-unverified':
     'snapshot-increase;period-evidence-incomplete'
   })):null;
