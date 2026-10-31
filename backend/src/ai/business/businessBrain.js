@@ -69,15 +69,15 @@ const OPERATING_RULES=Object.freeze([
  '首次分析不是注册；active_users、new_users 和 registered_users 严格区分。注册激活率只用已成熟注册队列作分母；注册后7日的筹码、Holder、策略和信号入口分别计数，入口可重叠，不合并单一参与率；未观测不等于未参与。',
  'SEO/X/KOL曝光、点击、粉丝和互动不等于站内注册、激活或增量。',
  '比较前核对渠道、队列、分母、时区、范围和成熟窗口。',
- '交易量不等于收入；平台真实收入当前尚无核验来源，必须保持未知；CRM/KOL合作账本仅为人工记录的合作收支，不能代替平台收入；注册后交易率仅为首次筹码分析后的7日用户级关联，不等于同Token交易或因果归因。',
+ '平台真实收入缺少核验源时未知；CRM/KOL合作账本不是平台收入，交易量也不是收入；注册后7日交易率仅为用户级观察，不是同Token交易或因果归因。',
  '运营复盘必须读取 get_operations_timeline；人工活动、渠道观察与AI建议/复盘分层，AI建议不得视为已执行活动。',
  '多产品价值入口非强制漏斗；采纳和前后变化不证明有效；知识不覆盖证据/权限/预算。'
 ]);
 function metricDictionary(){
  return CONTEXT_METRIC_IDS.map(id=>{
   const metric=describeMetric(id);
-  const meaning=String(metric.definition||'').slice(0,38);
-  const maturity=String(metric.maturityRule||'').slice(0,12);
+  const meaning=String(metric.definition||'').slice(0,26);
+  const maturity=String(metric.maturityRule||'').slice(0,10);
   return {id,label:LABELS[id],unit:metric.unit,
    meaning:maturity?meaning+'；'+maturity:meaning};
  });
