@@ -28,7 +28,7 @@ const PRODUCTS=Object.freeze([
 ]);
 const LIFECYCLE=Object.freeze([
  {id:'acquisition',name:'获客',metricIds:['channels','seo_search','kol_performance','content_growth','referral'],caveat:'渠道曝光互动不等于站内激活。'},
- {id:'registration',name:'注册/登录',metricIds:['registered_users','login_conversion','invite_conversion'],caveat:'注册、登录、首次分析是不同事实。'},
+ {id:'registration',name:'注册/登录',metricIds:['registered_users','registration_activation_rate','login_conversion','invite_conversion'],caveat:'注册、登录、首次分析是不同事实。'},
  {id:'activation',name:'首次价值/激活',metricIds:['new_users','activation_rate','active_users'],caveat:'new_users 是首次观测分析，不是新注册。'},
  {id:'engagement',name:'产品参与',productIds:['ai_strategy','chip_distribution','holder_ranking'],metricIds:['product_chain','paths'],caveat:'多价值入口，不是强制线性漏斗。'},
  {id:'retention',name:'留存',metricIds:['d7','retention'],caveat:'只比较成熟队列。'},
@@ -38,7 +38,7 @@ const LIFECYCLE=Object.freeze([
 const LABELS=Object.freeze({
  active_users:'分析活跃用户',new_users:'首次分析用户',returning_users:'回访分析用户',
  activation_rate:'激活率',d7:'D7 留存',weekly_core:'周核心用户',
- registered_users:'注册用户',trade_revenue:'已登记合作收入',
+ registered_users:'注册用户',registration_activation_rate:'注册后24小时激活率',trade_revenue:'已登记合作收入',
  funnel:'转化漏斗',paths:'行为路径',product_chain:'产品到交易链路',
  retention:'用户留存',channels:'渠道获客',segments:'用户分群',
  activities:'运营活动',quality:'数据质量',seo_search:'SEO / Search Console',
@@ -48,13 +48,13 @@ const LABELS=Object.freeze({
 });
 const METRIC_IDS=Object.freeze(Object.keys(LABELS));
 const CONTEXT_METRIC_IDS=Object.freeze([
- 'registered_users','new_users','active_users','returning_users','activation_rate',
+ 'registered_users','registration_activation_rate','new_users','active_users','returning_users','activation_rate',
  'd7','channels','seo_search','kol_performance','content_growth',
  'product_chain','trade_revenue','login_conversion','retention'
 ]);
 const GOAL_FOCUS=Object.freeze({
  activation:{objective:'提高首次有效产品分析用户，同时辨别注册、访问、登录与首次分析之间的真实断点。',
-  stages:['acquisition','registration','activation'],priorityMetrics:['new_users','registered_users','activation_rate','active_users']},
+  stages:['acquisition','registration','activation'],priorityMetrics:['registered_users','registration_activation_rate','new_users','activation_rate','active_users']},
  retention:{objective:'提高成熟用户的持续产品使用，先确认队列成熟度和可观测覆盖。',
   stages:['engagement','retention'],priorityMetrics:['active_users','returning_users','d7','retention']},
  conversion:{objective:'理解从产品价值行为到真实交易的可验证转化，不把点击意图当成成交。',
@@ -66,7 +66,7 @@ const OPERATING_RULES=Object.freeze([
  '围绕经营目标分析，再选能解决关键歧义的已授权模块；不机械罗列。',
  '事实、假设和行动分开；重要事实必须有证据，相关性不等于因果。',
  '未观测、未同步、未调查、查询失败和真实零值分别表示。',
- '首次分析不是注册；active_users、new_users 和 registered_users 严格区分。',
+ '首次分析不是注册；active_users、new_users 和 registered_users 严格区分。注册激活率只用已成熟注册队列作分母，未成熟单列。',
  'SEO/X/KOL曝光、点击、粉丝和互动不等于站内注册、激活或增量。',
  '比较前核对渠道、队列、分母、时区、范围和成熟窗口。',
  '交易量不等于收入；合作账本不等于全平台收入；关联不足不声称归因。',
