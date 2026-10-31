@@ -448,3 +448,10 @@ Final validation update: run [41177187712](https://github.com/dinnelthai/logearn
 - Read [GROWTH_EXECUTIVE_UNIFIED_ACCEPTANCE.md](./GROWTH_EXECUTIVE_UNIFIED_ACCEPTANCE.md) for **seven workstreams**, corresponding code, opt-in env gates, migration prerequisites and exact outstanding live acceptance.
 - CI covers owner/privacy/maturity contracts, but **real v5 saved source context, actual Worker/Hologres/GSC/X/KOL**, webhook delivery and environment migration are **not** accepted. The Growth Agent 2.0 original checklist remains **47/48**.
 - Never claim cross-DB atomic target updates, random-experiment causal ROI, paid model stability or automatic external execution was implemented. No production migration, paid model call, publishing or master merge was performed.
+
+### 2026-10-31 — 准备转交 Codex 的剩余真实验收任务
+
+- 本轮在现有 Executive 能力上修补调查失败快照重试、无证据误判成功、分指标动态只读工具选择、证据期间与来源一致性、假设到模块/证据引用关系、行动实效与执行顺序、过期提醒、目标冲突、研究插件故障隔离，并提供界面可提交证据的内部交付步骤。
+- 全部工作继续在 `codex/ai-comprehensive-upgrade`；无 `master` 合并、生产迁移、付费模型调用、外部消息、生产部署。
+- **Codex 接手清单：**[GROWTH_EXECUTIVE_CODEX_REMAINING_ACCEPTANCE.md](./GROWTH_EXECUTIVE_CODEX_REMAINING_ACCEPTANCE.md)。严格区分已完成代码与仍需本机环境/操作授权的真实来源、Worker、数据库、周期对齐、经济效益验证。
+- 旧 `GROWTH_AGENT_2_0_IMPLEMENTATION_PLAN.md` 仍为 **47/48**；只能使用已存档的真实 v5 上下文、数据来源水位与真实模型记录关闭最后一项。当前浏览器所见历史 v4/12 模块不能代替。
