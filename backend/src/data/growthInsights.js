@@ -112,14 +112,29 @@ function cohortTradeSql(){
  ].join('\n');
  return tradeIdentityCte(scope)+', '+groups;
 }
-async function cohortTrades(s,rows,{start,end}){
+async function cohortTrades(s,rows,{start,end},registration={available:false,rows:[]}){
  const asOf=Date.parse(s.as_of),effectiveEnd=Math.min(end,asOf+1);
  const entrants=rows.filter(r=>r.first_seen_at>=start&&r.first_seen_at<effectiveEnd);
- const activated=entrants.filter(r=>r.first_chip_at!=null&&Number.isFinite(Number(r.first_chip_at))&&Number.isFinite(Number(r.first_seen_at))&&Number(r.first_chip_at)>=Number(r.first_seen_at)&&Number(r.first_chip_at)<=asOf);
- const mature=activated.filter(r=>Number(r.first_chip_at)+7*DAY<=asOf+1);
- const windows=mature.filter(r=>/^user:[1-9]\d{0,19}$/.test(r.user_key)).map(r=>({accountId:r.user_key.slice(5),start:Number(r.first_chip_at),end:Number(r.first_chip_at)+7*DAY}));
- const targets=[...new Set(windows.map(w=>w.accountId))];
- if(!targets.length)return {trades:[],known:new Set(),error:null,windows:0,association:'user-level-after-first-analysis'};
+ const registered=registration?.available===true&&Array.isArray(registration.rows)?registration.rows:[];
+ const candidates=[...entrants,...registered];
+ const engaged=candidates.filter(r=>{
+  const anchor=r.registered_at!=null?Number(r.registered_at):Number(r.first_seen_at);
+  return r.first_chip_at!=null&&Number.isFinite(Number(r.first_chip_at))&&
+   Number.isFinite(anchor)&&Number(r.first_chip_at)>=anchor&&Number(r.first_chip_at)<=asOf;
+ });
+ const mature=engaged.filter(r=>Number(r.first_chip_at)+7*DAY<=asOf+1);
+ const uniqueWindows=new Map();
+ for(const r of mature){
+  const match=String(r.user_key||'').match(/^user:([1-9]\d{0,19})$/);
+  if(!match)continue;
+  const accountId=match[1],firstChip=Number(r.first_chip_at);
+  uniqueWindows.set(accountId+':'+firstChip,{accountId,start:firstChip,end:firstChip+7*DAY});
+ }
+ const windows=[...uniqueWindows.values()],targets=[...new Set(windows.map(w=>w.accountId))];
+ if(!targets.length){
+  if(mature.length)return {trades:[],known:null,error:'成熟产品参与用户没有可验证账号身份，交易关联未知',windows:0,association:'user-level-after-first-analysis'};
+  return {trades:[],known:new Set(),error:null,windows:0,association:'user-level-after-first-analysis'};
+ }
  if(windows.length>5000)return {trades:[],known:null,error:'成熟首次分析用户超过5000人预算，结果未知',windows:windows.length};
  try{
   const {budget}=require('./memberMetrics');
@@ -127,7 +142,8 @@ async function cohortTrades(s,rows,{start,end}){
   const params=[s.snapshot_cutoff,minStart,maxEnd,targets,windows.map(w=>w.accountId),windows.map(w=>w.start),windows.map(w=>w.end)];
   const [trades,known]=await Promise.all([
    remote.query(cohortTradeSql(),params).then(r=>budget(r,20000,'首次分析后交易记录')),
-   remote.query('SELECT account_id::text AS account_id FROM public.account_v2 WHERE account_id::text=ANY($2::text[]) AND created_at<=$1::timestamptz',[s.snapshot_cutoff,targets])
+   remote.query('SELECT account_id::text AS account_id FROM public.account_v2 WHERE account_id::text=ANY($2::text[]) AND created_at<=$1::timestamptz',
+    [s.snapshot_cutoff,targets])
   ]);
   return {trades,known:new Set(known.map(r=>'user:'+r.account_id)),error:null,windows:windows.length,association:'user-level-after-first-analysis'};
  }catch(e){
