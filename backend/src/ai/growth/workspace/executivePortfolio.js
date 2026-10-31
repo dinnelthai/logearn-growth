@@ -49,7 +49,7 @@ function opportunityPortfolio(owner,store){
    Number(a.kind==='business'&&a.subject.startsWith('active_users:'))||
   b.priority-a.priority||a.firstSeenAt-b.firstSeenAt);
  return {version:'executive-opportunity-portfolio-v1',items:entries.slice(0,10),
-  knownROI:0,investmentDecision:'manual-review-required',
+  knownROI:null,investmentDecision:'manual-review-required',
   noAttributionClaims:true};
 }
 function shouldRepeatCandidate(metricId,learning,actionText){

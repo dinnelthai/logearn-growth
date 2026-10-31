@@ -32,3 +32,35 @@ test('accepted actions produce durable, ordered, owner-scoped internal work item
   assert.equal(s.executiveReminders('alice',{at:now+6*DAY,record:true}).pending.length,r.pending.length);
  }finally{db.close()}
 });
+
+test('the final outcome step requires a real executed action and after-execution evidence',()=>{
+ const db=new DatabaseSync(':memory:');try{
+  const s=workspaceStore(db,{initialize:true,clock:()=>now});
+  const p=s.observeProblem('alice',{type:'business',subject:'decline',scope:{source:'all'}});
+  const a=s.proposeActionOnce('alice',p.id,{description:'Investigation',assignee:'growth',
+   metricId:'active_users',definitionVersion:'1'});
+  s.updateAction('alice',a.id,'accepted');
+  s.ensureExecutiveWorkItems('alice',a.id);
+  const evidence={id:'e',source:'test',metricId:'active_users',unit:'users',definitionVersion:'1',
+   state:'verified',value:42,scope:{source:'all'},
+   period:{start:now-2*DAY,end:now-DAY,timezone:'Asia/Bangkok'},observedAt:now};
+  s.saveEvidence('alice',evidence);
+  const get=step=>s.workItems('alice').find(x=>x.step===step);
+  s.completeExecutiveWorkItem('alice',get('verify-evidence').id,{evidenceId:'e'});
+  s.completeExecutiveWorkItem('alice',get('prepare-execution').id,{note:'Reviewed'});
+  assert.throws(()=>s.completeExecutiveWorkItem('alice',get('record-outcome').id,{evidenceId:'e'}),/真实行动执行事实/);
+ }finally{db.close()}
+});
+test('stale approval reminder disappears after action acceptance and is not regenerated',()=>{
+ const db=new DatabaseSync(':memory:');try{
+  const s=workspaceStore(db,{initialize:true,clock:()=>now});
+  const p=s.observeProblem('alice',{type:'user',subject:'example',scope:{source:'all'}});
+  const a=s.proposeActionOnce('alice',p.id,{description:'Check',assignee:'growth'});
+  const original=s.executiveReminders('alice',{at:now+2*DAY,record:true});
+  assert.equal(original.pending.length,1);
+  s.updateAction('alice',a.id,'accepted');
+  const next=s.executiveReminders('alice',{at:now+2*DAY,record:true});
+  assert.equal(next.pending.filter(x=>x.kind==='approval').length,0);
+  assert.equal(s.executiveReminders('alice',{at:now+2*DAY,record:true}).pending.filter(x=>x.kind==='approval').length,0);
+ }finally{db.close()}
+});

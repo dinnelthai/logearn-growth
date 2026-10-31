@@ -168,7 +168,7 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
   if(!getEvidence(owner,sourceEvidenceId))throw Object.assign(Error('调查来源证据不存在'),{status:404});
   const rows=all("SELECT * FROM gw_runs WHERE owner_id=? AND problem_id=? ORDER BY created_at DESC LIMIT 20",owner,problemId);
   const prior=rows.find(r=>r.mode==='executive-readonly'&&
-   ['completed','running','queued'].includes(r.state)&&
+   ['completed','running','queued','failed'].includes(r.state)&&
    safeJSON(r.result_json)?.sourceEvidenceId===sourceEvidenceId);
   if(prior)return {...run(owner,prior.id),reused:true};
   // An active manual review is not hijacked by the scheduler.
@@ -190,7 +190,7 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
   const ids=[...new Set((input.evidenceIds||[]).slice(0,20))];
   if(ids.some(x=>typeof x!=='string'||!x||!verifyExternalEvidence(owner,x)))throw Error('调查引用了未授权的外部证据');
   const summary={version:'executive-investigation-v1',sourceEvidenceId:snapshotId,
-   status:steps.length&&steps.every(x=>x.status==='ok')?'evidence-collected':'partial',
+   status:ids.length>0&&steps.length>0&&steps.every(x=>x.status==='ok')?'evidence-collected':'partial',
    steps:steps.map(x=>({moduleId:x.moduleId,status:x.status})),agentEvidenceIds:ids,
    hypotheses:[
     {kind:'acquisition-mix',status:'unverified'},
@@ -246,6 +246,11 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
   const evidence=evidenceId?getEvidence(owner,evidenceId):null;
   if(['verify-evidence','record-outcome'].includes(row.step)&&!evidence)throw Error('请提供真实的已保存指标证据');
   const linkedAction=action(owner,row.action_id);
+  if(row.step==='record-outcome'&&(!linkedAction||
+   linkedAction.status!=='executed'||!Number.isSafeInteger(linkedAction.executed_at)))
+   throw Error('尚无经过人工确认的真实行动执行事实，不得交付效果');
+  if(row.step==='record-outcome'&&evidence&&evidence.period?.start<linkedAction.executed_at)
+   throw Error('效果观察必须发生在真实执行后');
   if(evidence&&(!linkedAction||evidence.state!=='verified'||
    evidence.period?.end>getNow()||
    linkedAction.metric_id&&evidence.metricId!==linkedAction.metric_id||
@@ -289,6 +294,14 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
   const hasNotice=fetch("SELECT 1 n FROM sqlite_master WHERE type='table' AND name='gw_executive_notices'");
   if(record&&!hasNotice)throw Error('经营通知表未迁移，不能虚报持久提醒');
   if(record){
+   // An old approval/overdue reminder must disappear when its task is
+   // accepted/completed; do not keep stale states in the owner's inbox.
+   const currentIds=new Set(due.map(item=>key([owner,item.kind,item.resourceId,item.dueAt])));
+   for(const old of all("SELECT id FROM gw_executive_notices WHERE owner_id=? AND acknowledged_at IS NULL",owner)){
+    if(!currentIds.has(old.id))
+     db.prepare("UPDATE gw_executive_notices SET acknowledged_at=? WHERE owner_id=? AND id=? AND acknowledged_at IS NULL")
+      .run(at,owner,old.id);
+   }
    const insert=db.prepare("INSERT OR IGNORE INTO gw_executive_notices(owner_id,id,kind,resource_id,due_at,body_json,created_at) VALUES(?,?,?,?,?,?,?)");
    for(const item of due){
     const id=key([owner,item.kind,item.resourceId,item.dueAt]);

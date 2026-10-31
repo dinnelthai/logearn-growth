@@ -66,3 +66,32 @@ test('reminders dedupe, can acknowledge only owner records, and learning retains
   assert.equal(f.store.executiveLearning('alice').reviewed,0);
  }finally{f.close()}
 });
+
+test('a failed read-only investigation is not blindly retried against the same immutable evidence',()=>{
+ const f=setup();try{
+  f.store.saveEvidence('alice',evidence('base',100,start));
+  f.store.saveEvidence('alice',evidence('current',50,start+DAY));
+  const p=f.store.observeProblem('alice',{type:'business',subject:'decline',
+   scope:{source:'all'},evidenceIds:['base','current']});
+  const first=f.store.executiveInvestigationStart('alice',p.id,'current');
+  assert.equal(first.state,'running');
+  assert.equal(f.store.executiveInvestigationFail('alice',first.id).state,'failed');
+  const again=f.store.executiveInvestigationStart('alice',p.id,'current');
+  assert.equal(again.reused,true);
+  assert.equal(again.id,first.id);
+  assert.equal(again.state,'failed');
+ }finally{f.close()}
+});
+test('success requires verified external evidence, not only status=ok',()=>{
+ const f=setup();try{
+  f.store.saveEvidence('alice',evidence('base',100,start));
+  f.store.saveEvidence('alice',evidence('current',50,start+DAY));
+  const p=f.store.observeProblem('alice',{type:'business',subject:'decline',
+   scope:{source:'all'},evidenceIds:['base','current']});
+  const run=f.store.executiveInvestigationStart('alice',p.id,'current');
+  const saved=f.store.executiveInvestigationFinish('alice',run.id,
+   {sourceEvidenceId:'current',steps:[{moduleId:'growth.activation',status:'ok'}],evidenceIds:[]},
+   {verifyExternalEvidence:()=>true});
+  assert.equal(saved.result.status,'partial');
+ }finally{f.close()}
+});
