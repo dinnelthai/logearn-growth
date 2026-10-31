@@ -90,3 +90,21 @@ Redis用于Bull异步队列；不需要Qdrant。`queue:dev`只启动API，不启
 - `GET /api/ai-analysis/jobs/:jobId/status`；`GET /api/ai-analysis/cost-stats`。
 
 所有入口通过现有会话认证，记录和任务均校验所有者。模型不能执行运营写操作或对外发送消息。
+
+
+---
+
+## Growth Agent 2.0 — 当前升级入口（2026-10-31）
+
+当前开发分支：`codex/ai-comprehensive-upgrade`。这次升级目标是把 Growth Agent 从统计分析助手推进为理解 LogEarn 经营、制定增长决策并跟踪行动的虚拟增长负责人。
+
+**新 Agent 接手顺序：**
+
+1. [Growth Agent Handoff](./GROWTH_AGENT_HANDOFF.md) — 当前分支、代码入口、限制和下一步。
+2. [LogEarn Business Brain](./LOGEARN_BUSINESS_BRAIN.md) — 产品知识、生命周期、指标语义和运营规则。
+3. [Growth Agent 2.0 Implementation Plan](./GROWTH_AGENT_2_0_IMPLEMENTATION_PLAN.md) — 分阶段范围和验收。
+4. [Growth Agent Upgrade Log](./GROWTH_AGENT_UPGRADE_LOG.md) — 已实现内容和真实验证记录。
+
+**当前代码状态：** Business Brain v1 和模型上下文 v5 已加入指定分支。新建分析默认使用 v5；历史任务保留原有 v1-v4 协议。此状态不代表已在用户本地 Worker 或生产环境完成真实模型验收。
+
+历史基础设施规划和早期 Phase 报告仅作历史背景，当前实现以代码、上述交接文档和最新测试结果为准。
