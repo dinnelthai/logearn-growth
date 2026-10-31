@@ -104,3 +104,32 @@ describe('decision-first weekly view',()=>{
   expect(trustedMetrics(wrong).find(x=>x.metricId==='new_users').evidenceIds.length).toBe(1);
  });
 });
+
+ it('renders lifecycle, evidence-backed opportunities and previous action reviews before the next-step list',()=>{
+  const data={...base,result:{...base.result,weeklyReport:{
+   ...base.result.weeklyReport,
+   lifecycle:[
+    {stage:'acquisition',status:'partial',finding:'GSC 日期未完全匹配',evidenceIds:['new_users-current']},
+    {stage:'registration',status:'unknown',finding:'注册队列证据不足',evidenceIds:[]},
+    {stage:'activation',status:'observed',finding:'首次分析用户下降',evidenceIds:['new_users-current']},
+    {stage:'engagement',status:'not-investigated',finding:'未调查',evidenceIds:[]},
+    {stage:'retention',status:'unknown',finding:'队列未成熟',evidenceIds:[]},
+    {stage:'trading',status:'unknown',finding:'交易关联不足',evidenceIds:[]},
+    {stage:'economics',status:'not-investigated',finding:'未调查收入',evidenceIds:[]}
+   ],
+   opportunities:[{text:'回访分析用户增加，需验证是否持续',evidenceIds:['new_users-current']}],
+   previousActions:[{action:'修复首次分析引导',status:'executed',review:'insufficient',
+    outcome:'固定人群证据尚不足',metric:'active_users',evidenceIds:['new_users-current']}]
+  }}};
+  const html=renderWeeklyDecisionReport({...options,data,record});
+  expect(html).toContain('经营生命周期');
+  expect(html).toContain('增长机会');
+  expect(html).toContain('历史行动与复盘');
+  expect(html).toContain('已执行');
+  expect(html).toContain('证据不足');
+  expect(html.indexOf('经营生命周期')).toBeLessThan(html.indexOf('增长机会'));
+  expect(html.indexOf('增长机会')).toBeLessThan(html.indexOf('历史行动与复盘'));
+  expect(html.indexOf('历史行动与复盘')).toBeLessThan(html.indexOf('下周行动清单'));
+  expect(html).toContain('<details class="ai-weekly-details ai-weekly-coverage-details"');
+  expect(html).toContain('id="weekly-coverage"');
+ });
