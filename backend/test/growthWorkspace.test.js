@@ -137,3 +137,14 @@ test('dashboard batch reuses one owner-scoped evidence scan and preserves per-go
   assert.equal(byId.get(x.id).observed,17);
  }finally{close()}
 });
+
+test('daily North Star evidence is not silently substituted for monthly distinct progress',()=>{
+ const {s,close}=setup();try{
+  const monthly=s.saveGoal('alice',{...target(),metricId:'active_users',definitionVersion:'1'});
+  s.saveEvidence('alice',{...evidence('north-day','verified',60),
+   metricId:'active_users',definitionVersion:'1',
+   period:{start:atBangkok(2026,9,19),end:atBangkok(2026,9,20),timezone:'Asia/Bangkok'}});
+  assert.equal(s.progress('alice',monthly.id).progress.status,'unknown');
+  assert.equal(s.progress('alice',monthly.id).progress.observed,null);
+ }finally{close()}
+});

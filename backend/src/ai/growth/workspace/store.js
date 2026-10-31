@@ -182,9 +182,15 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
   if(!Number.isSafeInteger(at)||at<0)throw Error('经营看板时间无效');
   const month=currentMonth(at);
   const northStar=listGoals(owner,{asOf:at,start:month.start,end:month.end})
-   .find(g=>g.metric_id==='active_users'&&g.scope?.source==='all');
+   .find(g=>g.metric_id==='active_users'&&g.definition_version==='1'&&g.kind==='north'&&g.scope?.source==='all');
   const open=problems(owner,{limit:200}).filter(p=>['open','monitoring'].includes(p.status));
   const acts=actions(owner,{limit:200});
+  const observations=all('SELECT payload FROM gw_evidence WHERE owner_id=? ORDER BY observed_at DESC LIMIT 200',owner)
+   .map(row=>safeJSON(row.payload)).filter(e=>e?.metricId==='active_users'&&
+    e.source==='hologres-north-star'&&e.scope?.source==='all'&&
+    e.state==='verified'&&Number.isSafeInteger(e.period?.end))
+   .sort((a,b)=>b.period.end-a.period.end);
+  const mostRecent=observations[0]||null;
   const awaiting=acts.filter(a=>a.status==='proposed');
   const dueReviews=acts.filter(a=>a.status==='executed'&&!a.review&&
    Number.isSafeInteger(a.observe_until)&&a.observe_until<=at);
@@ -200,6 +206,7 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
     goalId:northStar?.id||null,target:northStar?.target_value??null,
     targetStatus:northStar?'workspace-configured':'not-configured',
     note:'只统计报告期筹码峰查看/下钻的去重用户；交易是独立结果'},
+   latestVerifiedNorthStar:mostRecent?{value:mostRecent.value,period:mostRecent.period,evidenceId:mostRecent.id}:null,
    priorities,unresolvedProblems:open.length,waitingApproval:awaiting.length,
    awaitingApproval:awaiting.slice(0,8).map(a=>({id:a.id,problemId:a.problem_id,description:a.description,assignee:a.assignee})),
    reviewsDue:dueReviews.slice(0,8).map(a=>({id:a.id,problemId:a.problem_id,observeUntil:a.observe_until})),

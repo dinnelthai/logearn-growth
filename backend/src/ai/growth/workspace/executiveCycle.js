@@ -60,7 +60,7 @@ async function runExecutiveCycle({ownerId,store,now=Date.now(),load=loadObservat
  const {baseline,current,health}=observation;
  const month=currentMonth(now);
  const goal=store.listGoals(ownerId,{asOf:now,start:month.start,end:month.end})
-  .find(g=>g.metric_id==='active_users'&&g.scope?.source==='all')||null;
+  .find(g=>g.metric_id==='active_users'&&g.definition_version==='1'&&g.kind==='north'&&g.scope?.source==='all')||null;
  const signals=[];
  for(const metric of METRICS){
   const base=baseline.totals[metric],value=current.totals[metric];

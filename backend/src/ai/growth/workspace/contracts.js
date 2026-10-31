@@ -29,6 +29,10 @@ function goalProgress(goal,evidence,at=Date.now()){if(!goal)return {status:'no-g
  const e=normalizeEvidence(evidence);
  if(e.metricId!==goal.metric_id||e.unit!==goal.unit||!e.scope||scopeKey(e.scope)!==scopeKey(goal.scope)||e.period.timezone!=='Asia/Bangkok'||e.period.end>at||e.period.end-1<goal.period_start||e.period.end>goal.period_end)
   return {status:'unknown',reason:'evidence-context-mismatch',observed:null,delta:null};
+ // Daily distinct counts never satisfy a monthly distinct North Star target.
+ if(goal.metric_id==='active_users'&&goal.kind==='north'&&
+   (e.period.start!==goal.period_start||e.period.end!==goal.period_end))
+  return {status:'unknown',reason:'north-star-period-mismatch',observed:null,delta:null};
  if(e.definitionVersion!==goal.definition_version)return {status:'unknown',reason:'definition-version-mismatch',observed:null,delta:null};
  if(e.state==='partial'&&e.value!==null)return {status:'partial',reason:'coverage-unverified',observed:e.value,delta:null,met:null,evidenceId:e.id};
  if(e.state!=='verified'||e.value===null)return {status:e.state,reason:'insufficient-or-immature',observed:null,delta:null,evidenceId:e.id};

@@ -76,6 +76,11 @@ test('month goal is linked without minting fictitious targets; problem and actio
   assert.equal(result.northStarTargetConfigured,true);
   assert.equal(f.store.problems('alice')[0].goal_id,goal.id);
   assert.equal(f.store.executiveQueue('alice').northStar.goalId,goal.id);
+  const daily=f.store.executiveQueue('alice').latestVerifiedNorthStar;
+  assert.equal(daily.value,60);
+  assert.equal(daily.period.end,d.end);
+  assert.equal(f.store.progress('alice',goal.id).progress.status,'unknown',
+   'daily unique viewers cannot be compared with a monthly distinct target');
   assert.equal(f.store.executiveQueue('bob').northStar.targetStatus,'not-configured');
  }finally{f.close()}
 });
