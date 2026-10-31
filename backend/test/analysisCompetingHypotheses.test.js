@@ -61,7 +61,7 @@ test('analysis permits the same action in a different business scope',()=>{
  const value=base();
  const memory=[{user_status:'executed',validation_metrics:{primary:'new_users'},
   applicable_scope:{source:'telegram'},action:'Run the smallest authorized investigation'}];
- assert.equal(validateAnalysis(value,{memory}),value);
+ assert.equal(validateAnalysis(value,{memory,capabilities:allowedCapabilities}),value);
 });
 
 function strictValue(){
