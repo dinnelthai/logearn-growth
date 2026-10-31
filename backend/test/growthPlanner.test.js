@@ -148,15 +148,16 @@ test('question priority reports goal relevance, real affected population and own
   availableCapabilityIds:['query_metrics','get_funnel','get_retention']});
  assert.equal(ownerCtx.length,1);
  assert.equal(ownerCtx[0].ownerId,'owner-1');
- assert.deepEqual(p.questionRanking.questions.slice(0,3).map(q=>q.candidateId),['b','c','d']);
- assert.equal(p.questionRanking.questions.at(-1).evidenceConfidence,'unknown',
+ assert.deepEqual(p.questionRanking.questions.map(q=>q.candidateId),['a','b','c','d'],
+  'North Star active user count is now goal-relevant and P0 before supporting activation rates');
+ assert.equal(p.questionRanking.questions[0].evidenceConfidence,'unknown',
   'self-declared confidence without evidence IDs cannot become verified');
- assert.equal(p.questionRanking.questions[0].affectedUsers,40);
- assert.equal(p.questionRanking.questions[0].observedChangeMagnitude,null,
+ assert.equal(p.questionRanking.questions[1].affectedUsers,40);
+ assert.equal(p.questionRanking.questions[1].observedChangeMagnitude,null,
   'rate delta is not 40 impacted people');
- assert.equal(p.questionRanking.questions[1].observedChangeMagnitude,20);
- assert.equal(p.questionRanking.questions[1].observedLatency.medianMs,9);
- assert.equal(p.questionRanking.questions[1].queryMonetaryCost,'unknown');
+ assert.equal(p.questionRanking.questions[2].observedChangeMagnitude,20);
+ assert.equal(p.questionRanking.questions[2].observedLatency.medianMs,9);
+ assert.equal(p.questionRanking.questions[2].queryMonetaryCost,'unknown');
  assert.match(require('../src/ai/growth/planner').formatPlanForPrompt(p),/货币查询费用=未知/);
  assert.match(require('../src/ai/growth/planner').formatPlanForPrompt(p),/受影响人数=40/);
  const missing=planGrowthInvestigation({goal:'activation',report:input,
