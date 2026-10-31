@@ -2,7 +2,7 @@
 
 Branch: `codex/ai-comprehensive-upgrade`  
 Scope: Business Brain, Growth Intelligence, Operating Memory, Decision Engine and Learning Loop.  
-Progress snapshot (2026-10-31): 25 / 48 implementation checklist items have code and CI coverage in place (52%); live-source acceptance is tracked separately.  
+Progress snapshot (2026-10-31): 26 / 48 implementation checklist items have code and CI coverage in place (54%); live-source acceptance is tracked separately.  
 Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace and storage.
 
 ## Product definition
@@ -104,7 +104,7 @@ Acceptance:
 
 - [ ] Prioritize business questions by goal relevance, affected population, change magnitude, evidence confidence and query cost.
 - [ ] Generate competing root-cause hypotheses and identify the cheapest authorized query that distinguishes them.
-- [ ] Look for growth opportunities as well as declines.
+- [x] Look for growth opportunities as well as declines (v5-only, goal-ranked observed increases; not proof of replicability).
 - [ ] Generate actions with problem, hypothesis, expected impact basis, resource/owner, primary metric, target, maturity window and review condition.
 - [ ] Validate each suggested metric against the registry and the actual retrospective service.
 - [ ] Avoid duplicate or already-disproved actions.
