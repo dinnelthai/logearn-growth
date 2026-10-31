@@ -202,7 +202,7 @@ test('bounded channel and funnel buckets keep numeric evidence without private r
 
 test('raw-only tool results cannot be counted as collected statistics',async()=>{
  const ctx=context();
- const result=await collectWeeklyCoverage({context:ctx,allowedTools:toolIds,maxQueries:2,
+ const result=await collectWeeklyCoverage({context:ctx,allowedTools:toolIds,maxQueries:3,
   investigate:async({tool})=>tool==='get_seo_performance'?
    {status:'ok',evidence:[{id:'seo-unmatched',metricId:'seo_search',
     value:{metrics:{clicks:8}},coverage:{periodMatched:false}}]}:
