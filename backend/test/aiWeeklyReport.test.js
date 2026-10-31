@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {weeklyPeriod,weeklyKey,weeklyOperations,validateWeeklyReport,ensureWeeklyReport}=require('../src/ai/growth/weeklyReport');
+const {weeklyPeriod,reportPeriod,weeklyKey,weeklyOperations,validateWeeklyReport,ensureWeeklyReport}=require('../src/ai/growth/weeklyReport');
 
 test('weekly report uses last complete Monday-Sunday Bangkok week',()=>{
  const period=weeklyPeriod(Date.parse('2026-10-29T09:00:00+07:00'));
