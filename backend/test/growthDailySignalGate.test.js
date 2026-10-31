@@ -73,3 +73,19 @@ test('missing mature samples defer payment rather than producing a false quiet d
  assert.equal(plan.decisions.activation.status,'deferred');
  assert.equal(plan.decisions.activation.reason,'insufficient-mature-samples');
 });
+
+test('paid autonomy uses fail-closed signal preflight by default',async()=>{
+ const x=fixture();
+ const previous=process.env.AI_AUTONOMY_SIGNAL_GATE_ENABLED;
+ delete process.env.AI_AUTONOMY_SIGNAL_GATE_ENABLED;
+ try{
+  const out=await tickAutonomousOwner({ownerId:'alice',now,goals:['activation'],
+   allowPaidDispatch:true,store:x.store,records:x.records,enqueue:x.enqueue,
+   preflight:async()=>{throw Error('missing data')}});
+  assert.equal(x.state.queued,0);
+  assert.equal(out.enqueued[0].status,'deferred-evidence-quality');
+ }finally{
+  if(previous===undefined)delete process.env.AI_AUTONOMY_SIGNAL_GATE_ENABLED;
+  else process.env.AI_AUTONOMY_SIGNAL_GATE_ENABLED=previous;
+ }
+});

@@ -193,8 +193,10 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
          (!Number.isSafeInteger(c.tokens)||c.tokens<=0)))
         throw Error('模型Token账本不完整，禁止再次付费调用；请人工核对');
       const budgetEstimateExceeded=estimatedInputTokens+outputBudget>remainingTokens;
+      // A new paid round must fit the remaining task allowance. A provider
+      // may still report more usage than requested; never retry that overage.
       if(budgetEstimateExceeded)
-        console.warn(`Token预估超出参考预算：输入 ${estimatedInputTokens}、输出预留 ${outputBudget}、任务剩余 ${remainingTokens}；记录告警并继续，不自动重试已发起调用。`);
+        throw Error(`模型Token预算不足：预计输入 ${estimatedInputTokens}、输出预留 ${outputBudget}，任务剩余 ${remainingTokens}；未发起本轮付费请求`);
       const inputAttribution=attributeModelInput(messages,estimatedInputTokens);
       await beforeStep('model',round);
       // Shared PostgreSQL gate must be written before the SQLite marker or
@@ -235,7 +237,8 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
       await paidCalls?.finish?.(round,'received');
     }
     if(Date.now()>deadline)throw Error('分析时间预算已达上限，未保存为成功结果');
-    if(calls.reduce((n,c)=>n+c.tokens,0)>maxTokens)console.warn(`累计实际 Token 已超过参考预算 ${maxTokens}；记录告警并继续完成分析，不自动重发任何模型请求。`);
+    if(calls.reduce((n,c)=>n+c.tokens,0)>maxTokens)
+      console.warn(`模型实际Token超过任务上限 ${maxTokens}；保留已收到的响应，本任务禁止新的付费轮次`);
     let value;
     try { value=parseJSON(response.content); }
     catch(error) { lastError=error;lastFailureKind='parse'; routing={tier:'complex',reason:'模型输出无法解析，由当前模型重试'}; const correction='输出无法解析，请完成原任务并返回完整合法 JSON。'; if(saved){if(saved.result?.followup?.kind!=='parse-error'||saved.result.followup.content!==correction)throw Error('解析纠正消息断点不一致');}

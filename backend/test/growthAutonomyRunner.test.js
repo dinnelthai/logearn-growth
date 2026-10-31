@@ -43,7 +43,7 @@ test('autonomy readonly tick consolidates a blocked brief without dispatching pa
 });
 test('paid opt-in only enqueues missing goals and reuses durable source analysis ids',async()=>{
  const fixture=fake(),input={ownerId:'alice',now,goals:['activation'],
-  allowPaidDispatch:true,...fixture};
+  allowPaidDispatch:true,signalGateEnabled:false,...fixture};
  let result=await tickAutonomousOwner(input);
  assert.equal(result.enqueued.length,1);
  assert.equal(fixture.state.queued,1);
@@ -66,6 +66,9 @@ test('scheduler goals and paid flags require explicit authorization',()=>{
  assert.equal(config.paidEnabled,true);
  assert.throws(()=>autonomyConfig({AI_AUTONOMY_OWNER_IDS:'alice',AI_AUTONOMY_PAID_DAILY_ENABLED:'1'}),/必须配置/);
  assert.deepEqual(config.goals,['activation','retention']);
+ assert.throws(()=>autonomyConfig({AI_AUTONOMY_OWNER_IDS:'alice',
+  AI_AUTONOMY_PAID_DAILY_ENABLED:'1',AI_AUTONOMY_PAID_CALLS_PER_DAY:'12',
+  AI_AUTONOMY_SIGNAL_GATE_ENABLED:'0'}),/不能关闭业务信号预检/);
  assert.throws(()=>autonomyConfig({AI_AUTONOMY_OWNER_IDS:'alice,alice'}),/不重复/);
 });
 
@@ -100,7 +103,7 @@ test('failed daily runs are retried only after an explicit zero-paid-call claim'
   date_range_start:now-86400000,date_range_end:now,business_scope:{source:'all'},
   user_question:'retry',created_at:now};
  f.state.rows.push(record);
- const input={ownerId:'alice',now,goals:['activation'],allowPaidDispatch:true,
+ const input={ownerId:'alice',now,goals:['activation'],allowPaidDispatch:true,signalGateEnabled:false,
   store:f.store,records:f.records,enqueue:f.enqueue};
  let value=await tickAutonomousOwner(input);
  assert.equal(value.enqueued[0].status,'failed-needs-safe-retry-review');

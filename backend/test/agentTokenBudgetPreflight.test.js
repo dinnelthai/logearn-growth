@@ -43,30 +43,27 @@ test('50k task accepts bounded Chinese input without a paid retry',async()=>{
   assert.ok(result.calls[0].modelInputBytes>50000);
  });
 });
-test('preflight over budget warns and continues despite actual overage',async()=>{
+test('over-budget preflight blocks the provider and paid-call journal',async()=>{
  await withEnv({AI_TASK_MAX_TOKENS:50000,AI_TASK_MAX_OUTPUT_TOKENS:4096},async()=>{
-  let calls=0; const warnings=[]; const original=console.warn; console.warn=x=>warnings.push(x);
-  try {
-   const result=await runTask(request('增长'.repeat(18000),{
-    clientFactory:()=>({chat:async()=>{calls++;return {content:JSON.stringify(completion),usage:{totalTokens:51000}}}})
-   }));
-   assert.equal(calls,1);assert.equal(result.analysis.summary,'ok');
-   assert.ok(warnings.some(x=>/Token预估超出参考预算/.test(x)));
-   assert.ok(warnings.some(x=>/累计实际 Token 已超过参考预算/.test(x)));
-   assert.equal(result.calls[0].budgetActualTotalAfterCall,51000);
-  } finally {console.warn=original}
+  let calls=0,paid=0;
+  await assert.rejects(()=>runTask(request('增长'.repeat(18000),{
+   paidCalls:{begin:async()=>{paid++}},
+   clientFactory:()=>({chat:async()=>{calls++;return {content:JSON.stringify(completion)}}})
+  })),/模型Token预算不足/);
+  assert.equal(calls,0);assert.equal(paid,0);
  });
 });
-test('follow-up continues after actual usage exceeds budget',async()=>{
+test('actual provider overage is preserved but blocks a second paid round',async()=>{
  await withEnv({AI_TASK_MAX_TOKENS:10000,AI_TASK_MAX_OUTPUT_TOKENS:4096},async()=>{
-  let calls=0; const original=console.warn; console.warn=()=>{};
-  try {
-   const result=await runTask(request('增长分析'.repeat(450),{
+  let calls=0; const warnings=[];const original=console.warn;console.warn=x=>warnings.push(x);
+  try{
+   await assert.rejects(()=>runTask(request('增长分析'.repeat(450),{
     clientFactory:()=>({chat:async()=>({content:JSON.stringify(++calls===1?{investigations:[{kind:'north'}]}:completion),usage:{totalTokens:11000}})}),
     investigate:async()=>({status:'ok',evidence:[]})
-   }));
-   assert.equal(calls,2);assert.equal(result.analysis.summary,'ok');
-  } finally {console.warn=original}
+   })),/模型Token预算不足/);
+   assert.equal(calls,1);
+   assert.ok(warnings.some(x=>/实际Token超过任务上限/.test(x)));
+  }finally{console.warn=original}
  });
 });
 test('invalid message data fails closed',()=>{

@@ -17,7 +17,7 @@ async function tickAutonomousOwner({
  store=createAgentStore(),records=require('../../db/aiRecords'),
  enqueue=null,
  notify=null,proposeCandidate=null,
- preflight=null,signalGateEnabled=process.env.AI_AUTONOMY_SIGNAL_GATE_ENABLED==='1'
+ preflight=null,signalGateEnabled=process.env.AI_AUTONOMY_SIGNAL_GATE_ENABLED!=='0'
 }={}){
  if(typeof ownerId!=='string'||!ownerId||!Number.isSafeInteger(now))
   throw Error('自动运营任务身份和日期无效');
@@ -133,6 +133,9 @@ function autonomyConfig(env=process.env){
  const source=env.AI_AUTONOMY_SOURCE||'all';
  if(typeof source!=='string'||!source||source.length>200)throw Error('Agent 来源范围无效');
  const paidEnabled=env.AI_AUTONOMY_PAID_DAILY_ENABLED==='1';
+ // Safety first: require explicit signal preflight for scheduled paid work.
+ if(paidEnabled&&env.AI_AUTONOMY_SIGNAL_GATE_ENABLED==='0')
+  throw Error('自动付费分析不能关闭业务信号预检；可关闭自动付费而非绕过来源验证');
  if(paidEnabled&&require('./autonomyBudget').dailyAutonomyLimit(env)===0)
   throw Error('开启自动付费分析时必须配置 AI_AUTONOMY_PAID_CALLS_PER_DAY 为正整数');
  return {owners,goals,source,paidEnabled};
