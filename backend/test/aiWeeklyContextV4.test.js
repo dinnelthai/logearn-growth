@@ -144,6 +144,8 @@ test('new v5 weekly prompt adds business-owner reasoning without changing v4 pro
  assert.ok(next.includes('token-efficiency-v5'));
  assert.ok(next.includes('Business Brain v1'));
  assert.ok(next.includes('operatingMemory'));
+ assert.ok(next.includes('正向变化与下降'));
+ assert.ok(next.includes('可复制的增长机会'));
 });
 test('old v3 remains structurally distinct, v4 does not mutate archived source',()=>{
  const raw=fixture();
