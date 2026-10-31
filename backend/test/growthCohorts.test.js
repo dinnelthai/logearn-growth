@@ -76,3 +76,50 @@ test('registered trade cohort excludes first chip analysis outside its registrat
  assert.equal(out.trade.conversion_rate,.5);
  assert.deepEqual(out.trade.association,'user-level-after-first-analysis');
 });
+
+test('registered source groups reconcile mature 24h activation and parallel seven-day product counts without identities',()=>{
+ const registration={available:true,scope:'all',rows:[
+  {user_key:'user:1',source:'x',registered_at:start,first_chip_at:start+1000,
+   first_holder_at:start+3000,first_strategy_at:null,first_signal_at:null,first_repeat_chip_at:null},
+  {user_key:'user:2',source:'x',registered_at:start,first_chip_at:null,
+   first_holder_at:start+DAY,first_strategy_at:start+DAY,first_signal_at:null,first_repeat_chip_at:null},
+  {user_key:'user:3',source:'未知',registered_at:start,first_chip_at:start+DAY,
+   first_holder_at:null,first_strategy_at:null,first_signal_at:start+2*DAY,first_repeat_chip_at:null},
+  {user_key:'user:4',source:'https://private.example.test/account',registered_at:start,
+   first_chip_at:null,first_holder_at:null,first_strategy_at:null,first_signal_at:null,first_repeat_chip_at:null},
+  {user_key:'user:5',source:'direct',registered_at:start+DAY*2,first_chip_at:start+DAY*2+2000,
+   first_holder_at:null,first_strategy_at:null,first_signal_at:null,first_repeat_chip_at:null}
+ ]};
+ const observed=run([],start+8*DAY,{registration}).payload.cohorts.registration;
+ const groups=observed.bySource, x=groups.find(g=>g.source==='x'),
+  missing=groups.find(g=>g.source==='unknown'),other=groups.find(g=>g.source==='other'),
+  direct=groups.find(g=>g.source==='direct');
+ assert.equal(groups.reduce((n,g)=>n+g.users,0),observed.metrics.users);
+ assert.equal(groups.reduce((n,g)=>n+g.activation.eligible,0),observed.metrics.eligible);
+ assert.equal(groups.reduce((n,g)=>n+g.engagement.eligible,0),observed.engagement.eligible);
+ assert.equal(x.users,2);assert.equal(x.activation.activated,1);assert.equal(x.activation.rate,.5);
+ assert.equal(x.engagement.eligible,2);assert.equal(x.engagement.chip_analysis_users,1);
+ assert.equal(x.engagement.holder_view_users,2);
+ assert.equal(x.engagement.strategy_started_users,1);
+ assert.equal(missing.users,1);assert.equal(missing.activation.activated,0);
+ assert.equal(missing.engagement.chip_analysis_users,1);
+ assert.equal(other.users,1);assert.equal(other.activation.activated,0);
+ assert.equal(direct.users,1);assert.equal(direct.engagement.eligible,0);
+ assert.equal(direct.engagement.pending,1);
+ assert.doesNotMatch(JSON.stringify(groups),/user:|https?:\/\/|private\.example/);
+});
+
+test('registered observed-source grouping is bounded and conserves population in overflow',()=>{
+ const sources=['x','youtube','telegram','reddit','seo','direct','未知','account:secret'];
+ const registration={available:true,scope:'all',rows:sources.map((source,i)=>({
+  user_key:'user:'+(i+1),source,registered_at:start,first_chip_at:null
+ }))};
+ const result=run([],start+10*DAY,{registration}).payload.cohorts.registration;
+ const groups=result.bySource;
+ assert.ok(groups.length<=6);
+ assert.equal(groups.reduce((n,g)=>n+g.users,0),8);
+ assert.equal(groups.find(g=>g.source==='unknown').users,1);
+ assert.equal(groups.find(g=>g.source==='other').users,3);
+ assert.ok(groups.every(g=>/^[a-z][a-z0-9_-]*$/.test(g.source)));
+ assert.doesNotMatch(JSON.stringify(groups),/account:secret/);
+});
