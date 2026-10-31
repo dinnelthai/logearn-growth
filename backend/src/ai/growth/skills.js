@@ -4,7 +4,7 @@
 // Versions are explicit so future skill changes can be reviewed independently.
 const skills=Object.freeze([
  {id:'growth-overview',version:'1',goal:'activation',label:'每日增长概览',
-  tools:['query_metrics','check_data_quality'],signals:['active_users','new_users','returning_users'],
+  tools:['query_metrics','check_data_quality','get_operations_timeline'],signals:['active_users','new_users','returning_users'],
   instructions:'核对人数、连续采集和覆盖；未观测不等于流失'},
  {id:'activation-funnel',version:'1',goal:'activation',label:'激活漏斗诊断',
   tools:['get_funnel','get_paths','get_product_chain','check_data_quality'],signals:['activation_rate'],
