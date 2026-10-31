@@ -138,6 +138,10 @@ jobs:
           node --check src/ai/business/weeklyContextV4.js
           node --check src/ai/growth/weeklyReport.js
           node --check src/routes/growthWorkspace.js
+          node --check src/data/productChainTrades.js
+          node --check src/analytics/productChain.js
+          node --check src/workers/remoteAnalysis.js
+          node --check test/productChainTrades.test.js
           node --check test/aiBusinessBrain.test.js
           node --check test/aiWeeklyReport.test.js
           node --check test/aiWeeklyContextV4.test.js
@@ -151,6 +155,11 @@ jobs:
         env:
           NODE_ENV: test
         run: node --test test/aiBusinessBrain.test.js test/aiWeeklyReport.test.js test/aiWeeklyContextV4.test.js
+
+      - name: Run product-to-trade evidence regression tests
+        env:
+          NODE_ENV: test
+        run: node --test test/productChainTrades.test.js test/productChain.test.js
 
       - name: Run Growth Workspace and Token efficiency regression tests
         env:
