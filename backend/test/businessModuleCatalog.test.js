@@ -8,7 +8,7 @@ function registry(result={status:'ok',evidence:[{id:'ev-1',metricId:'channels',
  definitionVersion:'1',value:{count:0},coverage:{status:'partial'},watermarks:{events:null}}]}){
  const calls=[];
  return {calls,
-  listCapabilities:()=>['get_channels','get_funnel','get_seo_performance','get_paths']
+  listCapabilities:()=>['get_channels','get_funnel','get_seo_performance','get_paths','get_operations_timeline']
    .map(id=>({id,version:'1',description:id,supportedScopes:['source'],
     permission:'authenticated owner and scope',inputSchema:{type:'object'}})),
   executeTool:async(...args)=>{calls.push(args);return result;}};
@@ -17,6 +17,10 @@ test('live discovery respects task permissions and global-only restrictions',()=
  const r=registry(),all=listBusinessModules(r,ctx);
  assert.equal(all.find(x=>x.moduleId==='growth.referral').status,'unavailable');
  assert.equal(all.find(x=>x.moduleId==='growth.seo').capabilities[0].id,'get_seo_performance');
+ assert.equal(all.find(x=>x.moduleId==='growth.operations').status,'available');
+ assert.equal(all.find(x=>x.moduleId==='growth.operations').capabilities[0].id,'get_operations_timeline');
+ assert.equal(listBusinessModules(r,{...ctx,scope:{source:'direct'}})
+  .find(x=>x.moduleId==='growth.operations').status,'unavailable');
  assert.equal(listBusinessModules(r,{...ctx,taskAllowedTools:['get_channels']})
   .find(x=>x.moduleId==='growth.activation').status,'unavailable');
  assert.equal(listBusinessModules(r,{...ctx,scope:{source:'direct'}})
