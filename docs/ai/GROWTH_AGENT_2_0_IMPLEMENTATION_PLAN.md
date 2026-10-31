@@ -2,7 +2,7 @@
 
 Branch: `codex/ai-comprehensive-upgrade`  
 Scope: Business Brain, Growth Intelligence, Operating Memory, Decision Engine and Learning Loop.  
-Progress snapshot (2026-10-31): 26 / 48 implementation checklist items have code and CI coverage in place (54%); live-source acceptance is tracked separately.  
+Progress snapshot (2026-10-31): 29 / 48 implementation checklist items have code and CI coverage in place (60%); live-source acceptance is tracked separately.  
 Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace and storage.
 
 ## Product definition
@@ -131,7 +131,7 @@ Acceptance:
 
 ### Phase 6 — Learning Loop
 
-- [ ] Connect accepted actions to the existing operation task workflow.
+- [x] Connect accepted AI suggestions to the existing owner-scoped operation task workflow through explicit linking; require an already-created fixed-cohort task and exact source-scope match.
 - [ ] Record actual execution, baseline evidence, observe-until date and after-period evidence.
 - [ ] Review only after the metric’s maturity window.
 - [ ] Store observed-supported / observed-contradicted / insufficient outcomes separately.
