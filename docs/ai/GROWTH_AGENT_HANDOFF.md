@@ -198,7 +198,7 @@ Final validation update: run [41177187712](https://github.com/dinnelthai/logearn
 - Retrospective persistence stores the cohort baseline, post-completion metrics, metric changes, snapshot and period anchors inside existing retrospective JSON fields; no schema migration.
 - Tests: `operationTaskEvidence.test.js` covers equal-length windows, pre-task/post-completion anchors, maturity, owner isolation, execution timestamp match and source-scope drift. `operationTasks.test.js` covers task lifecycle sync.
 - CI [41179371875](https://github.com/dinnelthai/logearn-growth/actions/runs/41179371875): Contract, Integration and Frontend all passed; dedicated task/evidence tests 10/10.
-- Remaining: classify observational outcomes as observed-supported / observed-contradicted / insufficient independently from causal effectiveness; connect those classifications to the existing learning index without treating correlation as causality. Live-source acceptance remains separate.
+- Completed 2026-10-31: v2 observational outcome classification now feeds the owner-scoped learning index and next investigation planner; action-level anti-repeat protections are also in place. Live-source acceptance remains separate.
 
 
 ## 2026-10-31 — Fixed-cohort observational outcome learning
@@ -236,5 +236,5 @@ Final validation update: run [41177187712](https://github.com/dinnelthai/logearn
 - Investigation attention now weights contradicted reviews more strongly than insufficient reviews.
 - `analysisContract.assertActionNovelty` now checks exact normalized action text against both the original proposal and the recorded actual executed action, scoped to primary metric and source. Similarity-based blocking is deliberately not used to avoid false positives.
 - Tests cover contradicted-action prompt guidance, insufficient-evidence handling, and deterministic rejection of exact repeats of the actual executed action.
-- Latest code CI run: [41181045783](https://github.com/dinnelthai/logearn-growth/actions/runs/41181045783) — verify all jobs before treating as passed.
+- Latest code CI run [41181045783](https://github.com/dinnelthai/logearn-growth/actions/runs/41181045783) completed successfully: AI Contract, AI Frontend and AI Integration all passed.
 - No schema migration, deployment, paid call, production data collection or external write.
