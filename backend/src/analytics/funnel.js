@@ -36,6 +36,7 @@ function computeFunnel(users, {
       ))
     )
     let dataIncomplete = false
+    let incompleteAt = null
     const times = [step0.t]
     let lastT = step0.t
     const windowEnd = step0.t + conversionWindowMs
@@ -46,6 +47,7 @@ function computeFunnel(users, {
       const next = candidates.find(matchesAssociation)
       if (!next) {
         dataIncomplete = !!field && candidates.some(e => !validId(e[field]))
+        if(dataIncomplete)incompleteAt=i
         break
       }
       times.push(next.t)
@@ -57,22 +59,29 @@ function computeFunnel(users, {
       source: u.source,
       association_id: field ? step0[field] : null,
       dataIncomplete,
+      incompleteAt,
       times,
-      pending: times.length < steps.length && windowEnd > (asOf ?? Date.now()),
+      pending: !dataIncomplete && times.length < steps.length && windowEnd > (asOf ?? Date.now()),
     })
   }
 
   const stepCounts = steps.map((_, i) => rows.filter(r => r.times.length > i).length)
-  const dropOffs = steps.slice(1).map((_, i) =>
-    rows.filter(r => r.times.length === i + 1 && !r.pending && !r.dataIncomplete).length
-  )
-  const funnelSteps = steps.map((key, i) => ({
-    key,
-    users: stepCounts[i],
-    previous_conversion_rate: i === 0 ? 1 : stepCounts[i - 1] > 0 ? stepCounts[i] / stepCounts[i - 1] : 0,
-    total_conversion_rate: stepCounts[0] > 0 ? stepCounts[i] / stepCounts[0] : 0,
-    drop_off_users: i < steps.length - 1 ? dropOffs[i] : 0,
-  }))
+  const funnelSteps = steps.map((key, i) => {
+    const previousRows=i===0?rows:rows.filter(r=>r.times.length>=i)
+    const unknown=i===0?0:previousRows.filter(r=>r.incompleteAt===i).length
+    const pending=i===0?rows.filter(r=>r.pending).length:
+      previousRows.filter(r=>r.times.length===i&&r.pending&&r.incompleteAt!==i).length
+    const eligibleRows=previousRows.filter(r=>!r.pending&&(i===0||r.incompleteAt!==i))
+    const convertedRows=eligibleRows.filter(r=>r.times.length>i)
+    const totalEligible=rows.filter(r=>!r.pending&&(r.incompleteAt==null||r.incompleteAt>i))
+    const totalConverted=totalEligible.filter(r=>r.times.length>i)
+    return {key,users:stepCounts[i],eligible:eligibleRows.length,converted:convertedRows.length,
+      pending,unknown,
+      previous_conversion_rate:eligibleRows.length?convertedRows.length/eligibleRows.length:null,
+      total_eligible:totalEligible.length,
+      total_conversion_rate:totalEligible.length?totalConverted.length/totalEligible.length:null,
+      drop_off_users:i<steps.length-1?eligibleRows.length-convertedRows.length:0}
+  })
   const complete = rows.filter(r => r.times.length === steps.length)
   const conversionTimes = complete.map(r => r.times[r.times.length - 1] - r.times[0])
 
