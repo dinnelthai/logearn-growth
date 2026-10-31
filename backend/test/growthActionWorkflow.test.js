@@ -42,14 +42,14 @@ test('execution brief requires bounded ownership, effort, steps and review condi
  const plan={ownerRole:'Growth 负责人',effort:'约1人日，需先确认',resourceNeeds:['现有站内漏斗数据'],
   dependencies:['登录事件口径已确认'],steps:['核对成熟分母','检查首次分析步骤','小范围验证'],
   target:'先验证登录到首次分析的主要损失点',successCriteria:'成熟队列转化率可复核且不低于基线',
-  observeDays:7,stopConditions:['数据覆盖不足时停止','关键指标恶化时回滚']};
+  suggestedObservationDays:7,stopConditions:['数据覆盖不足时停止','关键指标恶化时回滚']};
  assert.equal(validateExecutionPlan(plan),plan);
  const rendered=formatActionExecutionPlan('优化首次分析引导',plan);
  assert.match(rendered,/负责人角色：Growth 负责人/);
  assert.match(rendered,/观察窗口：7天/);
  assert.match(rendered,/停止\/回滚条件/);
  assert.throws(()=>validateExecutionPlan({...plan,steps:[]}),/执行计划/);
- assert.throws(()=>validateExecutionPlan({...plan,observeDays:90}),/执行计划/);
+ assert.throws(()=>validateExecutionPlan({...plan,suggestedObservationDays:90}),/执行计划/);
 });
 test('legacy action without a structured plan remains readable and unchanged',()=>{
  assert.equal(formatActionExecutionPlan('复核登录漏斗',null),'复核登录漏斗');
