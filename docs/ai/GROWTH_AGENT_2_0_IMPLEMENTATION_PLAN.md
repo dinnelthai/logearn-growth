@@ -135,8 +135,8 @@ Acceptance:
 - [ ] Record actual execution, baseline evidence, observe-until date and after-period evidence.
 - [ ] Review only after the metric’s maturity window.
 - [ ] Store observed-supported / observed-contradicted / insufficient outcomes separately.
-- [ ] Use validated review outcomes to adjust investigation focus; do not auto-rewrite KPIs or model weights.
-- [ ] Maintain versioned strategy notes with expiry, scope, counter-evidence and rollback.
+- [x] Use validated review outcomes to adjust investigation focus; do not auto-rewrite KPIs or model weights.
+- [x] Maintain versioned strategy notes with expiry, scope, counter-evidence and rollback.
 
 Acceptance:
 - an executed action can be reviewed from baseline and after evidence;
