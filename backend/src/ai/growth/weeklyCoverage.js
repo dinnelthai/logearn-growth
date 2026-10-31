@@ -43,6 +43,7 @@ const ALLOWED_NUMBERS=new Set([
  'profilesWithTrade','maxObservedUsers','observedAccounts','measuredPosts',
  'measuredImpressions','measuredEngagementRate','sampledPosts',
  'scannedRecords','analyzedRecords','reviewedRecords','records','reviewed','analyzed','human_operations','channel_observations','ai_actions','total_records',
+ 'completed','prior','active','inactive','review','analysis_users','analysis_events','analysis_days','returning_analysis_users','multi_day_users','trade_users','actual','ratio','target',
  'human_operations_shown','channel_observations_shown','ai_actions_shown','total_records_shown',
  'assigned','delivered','sent_unconfirmed','not_delivered','delivery_unknown','cross_exposed','retrospective_records'
 ]);
@@ -50,7 +51,7 @@ const AGGREGATE_OBJECTS=new Set([
  'metrics','summary','totals','global','conversion','product_chain',
  'first_value','referral','window','trade','xOfficial','contentSignals',
  'counts','retention','growth','current','previous','funnel','attribution',
- 'humanOperations','assignments','scheduleChanges',
+ 'humanOperations','assignments','scheduleChanges','outcome','targetProgress','performance','sourceCoverage',
  'registration','association','first_value','exposure','entrance',
  'byCurrency','bySource','dimensions','rates','d7','d30',
  'channels','sources','steps','stages','drops','groups','cohorts',
@@ -124,9 +125,19 @@ function factsFromEvidence(evidence){
      add('steps.'+step+'.'+key,row?.[key],e.id);
    }
   }else if(e.metricId==='activities'&&Array.isArray(value?.humanOperations)){
-   // Activity delivery status is more decision-relevant than a count of records.
-   // Put the two fixed experiment groups first; all values remain aggregate-only.
-   visit({humanOperations:value.humanOperations,counts:value.counts},e.id);
+   // Prioritize settled outcomes, then aggregate delivery states by fixed group.
+   const row=value.humanOperations.find(x=>x?.kind==='growth_activity');
+   const outcome=row?.outcome;
+   for(const key of ['completed','eligible','conversion_rate'])
+    add('humanOperations.growth_activities.outcome.summary.'+key,outcome?.summary?.[key],e.id);
+   for(const key of ['trade_users','transactions','volume_usd'])
+    add('humanOperations.growth_activities.outcome.performance.'+key,outcome?.performance?.[key],e.id);
+   for(const assignment of (row?.assignments||[]).slice(0,2)){
+    const group=safeDimension(assignment.group)||'group';
+    for(const key of ['assigned','delivered','not_delivered'])
+     add('humanOperations.growth_activities.assignments.'+group+'.'+key,assignment[key],e.id);
+   }
+   visit({counts:value.counts},e.id);
   }else visit(value,e?.id);
  }
  return facts;
