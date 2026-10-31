@@ -15,50 +15,37 @@ const BUSINESS=Object.freeze({
   caveat:'在身份关联、有效分析定义、交易事实覆盖和观察窗口统一前，不得将其合并成一个未经验证的单一数值。'
  }
 });
-const PRODUCTS=Object.freeze([
- {id:'ai_strategy',name:'AI 策略',job:'帮助用户创建和启用策略、接收并查看策略信号。',
-  role:'策略发现与持续使用入口。',
-  observableBehaviors:['策略创建','策略开启','信号接收','信号查看'],
-  measurementCaveat:'策略创建、开启、信号接收和查看是不同事件；不得互相替代。'},
- {id:'chip_distribution',name:'筹码分布 / 筹码峰',job:'帮助用户查看 Token 的筹码分布和持仓结构。',
-  role:'核心分析与产品激活入口。',
-  observableBehaviors:['Token 详情访问','主动筹码分析','分析成功','筹码下钻'],
-  measurementCaveat:'当前 active_users/new_users 的正式口径与筹码查看/首次观测分析有关，不等于注册人数。'},
- {id:'holder_ranking',name:'Holder 榜单',job:'帮助用户查看 Holder 排名和大户持仓信息。',
-  role:'补充持仓结构研究入口。',
-  observableBehaviors:['Holder 榜单查看','Holder 明细查看'],
-  measurementCaveat:'只有在对应事件和身份覆盖已验证时，才能计算独立使用人数和后续转化。'},
- {id:'wallet_trading',name:'钱包交易',job:'让用户通过钱包进行链上交易。',
-  role:'产品使用到真实交易行为的商业结果入口。',
-  observableBehaviors:['交易意图','业务交易事实'],
-  measurementCaveat:'真实交易结果以业务交易数据为准；缺少前端交易终态不代表没有真实交易。'}
-]);
 const CHAINS=Object.freeze(['BSC','Solana']);
+const PRODUCTS=Object.freeze([
+ {id:'ai_strategy',name:'AI 策略',role:'策略创建、开启、信号接收与查看。',
+  events:['策略创建','策略开启','信号接收','信号查看'],
+  caveat:'四种行为分别统计，不互相替代。'},
+ {id:'chip_distribution',name:'筹码分布 / 筹码峰',role:'Token 筹码分布和持仓结构分析，是核心分析入口。',
+  events:['Token详情','主动筹码分析','分析成功','筹码下钻'],
+  caveat:'首次分析不是注册；需按正式事件口径统计。'},
+ {id:'holder_ranking',name:'Holder 榜单',role:'Holder 排名和大户持仓信息分析。',
+  events:['榜单查看','Holder明细查看'],
+  caveat:'身份及事件覆盖不足时，不推断独立使用和后续转化。'},
+ {id:'wallet_trading',name:'钱包交易',role:'通过钱包执行链上交易。',
+  events:['交易意图','业务交易事实'],
+  caveat:'交易结果以业务交易数据为准。'}
+]);
 const LIFECYCLE=Object.freeze([
- {id:'acquisition',name:'获客',question:'用户从哪里发现 LogEarn？',
-  metricIds:['channels','seo_search','kol_performance','content_growth','referral'],
-  channels:['SEO','X','KOL','社群','活动','推荐/邀请','自然及直接访问'],
-  caveat:'曝光、点击、粉丝数和内容互动不等于注册、激活或增量获客。'},
- {id:'registration',name:'注册与登录',question:'访问者是否完成真实注册并成功登录？',
-  metricIds:['registered_users','login_conversion','invite_conversion'],
-  caveat:'首次观测分析不是新注册；登录请求、登录成功和注册账户是不同口径。'},
- {id:'activation',name:'首次价值 / 激活',question:'用户是否完成首次有效产品分析？',
-  metricIds:['new_users','activation_rate','active_users'],
-  caveat:'new_users 是首次观测到分析的用户口径，不得标成新注册；成熟窗口和历史覆盖必须检查。'},
- {id:'engagement',name:'产品参与',question:'用户是否持续使用核心产品功能？',
-  productIds:['ai_strategy','chip_distribution','holder_ranking'],
+ {id:'acquisition',name:'获客',metricIds:['channels','seo_search','kol_performance','content_growth','referral'],
+  caveat:'曝光、点击、粉丝及互动不等于注册、激活或增量获客。'},
+ {id:'registration',name:'注册与登录',metricIds:['registered_users','login_conversion','invite_conversion'],
+  caveat:'注册、登录和首次分析是不同事实。'},
+ {id:'activation',name:'首次价值 / 激活',metricIds:['new_users','activation_rate','active_users'],
+  caveat:'new_users 是首次观测分析，不是新注册。'},
+ {id:'engagement',name:'产品参与',productIds:['ai_strategy','chip_distribution','holder_ranking'],
   metricIds:['product_chain','paths'],
-  caveat:'各功能是不同价值入口，不假设所有用户必须按同一线性顺序使用。'},
- {id:'retention',name:'留存',question:'用户是否在成熟观察窗口内再次使用核心功能？',
-  metricIds:['d7','retention'],
-  caveat:'只统计成熟队列；未成熟、未观测和零必须区分。'},
- {id:'trading',name:'真实交易',question:'产品分析和策略使用是否与真实交易行为相关联？',
-  productIds:['wallet_trading'],
-  metricIds:['product_chain'],
-  caveat:'交易结果以业务交易表为准；若缺少可靠身份或访问关联，只能报告可验证的交易事实，不能声称精确归因。'},
- {id:'economics',name:'商业经济',question:'获客和运营投入是否产生可验证的经济结果？',
-  metricIds:['trade_revenue'],
-  caveat:'交易量不等于收入；合作账本收入也不等于全平台收入。'}
+  caveat:'产品功能是多个价值入口，不是所有用户的强制线性漏斗。'},
+ {id:'retention',name:'留存',metricIds:['d7','retention'],
+  caveat:'只比较成熟队列；未成熟和未观测不等于流失。'},
+ {id:'trading',name:'真实交易',productIds:['wallet_trading'],metricIds:['product_chain'],
+  caveat:'身份/访问关联不足时，只报告可验证交易事实，不声称精确归因。'},
+ {id:'economics',name:'商业经济',metricIds:['trade_revenue'],
+  caveat:'交易量不等于收入；合作账本不等于全平台收入。'}
 ]);
 const LABELS=Object.freeze({
  active_users:'分析活跃用户',new_users:'首次分析用户',returning_users:'回访分析用户',
@@ -73,10 +60,10 @@ const LABELS=Object.freeze({
 });
 const METRIC_IDS=Object.freeze(Object.keys(LABELS));
 const CONTEXT_METRIC_IDS=Object.freeze([
- 'active_users','new_users','returning_users','activation_rate','d7',
- 'registered_users','product_chain','retention','channels','seo_search',
- 'kol_performance','content_growth','trade_revenue','login_conversion',
- 'invite_conversion','referral','funnel','paths','quality'
+ 'registered_users','new_users','active_users','returning_users','activation_rate',
+ 'd7','channels','seo_search','kol_performance','content_growth',
+ 'product_chain','trade_revenue','login_conversion','invite_conversion',
+ 'referral','retention'
 ]);
 const GOAL_FOCUS=Object.freeze({
  activation:{objective:'提高首次有效产品分析用户，同时辨别注册、访问、登录与首次分析之间的真实断点。',
@@ -89,27 +76,24 @@ const GOAL_FOCUS=Object.freeze({
   stages:['trading','economics'],priorityMetrics:['product_chain','trade_revenue']}
 });
 const OPERATING_RULES=Object.freeze([
- '先围绕经营目标提出问题，再选择最有区分力的已授权数据模块；不要把12个模块机械地平均写一遍。',
- '先陈述数据事实，再提出假设；每个重要结论必须有对应证据，因果关系需要实验或独立识别设计。',
- '未观测、未同步、未调查、查询失败和真实零值必须分别表示；缺少数据不代表业务没有发生。',
- 'new_users 表示首次观测到分析，不是注册新增；registered_users 必须来自真实注册事实。',
- 'active_users 是按正式指标定义观测到的分析行为用户，不等于所有登录用户或付费用户。',
- 'SEO曝光/点击、X曝光/互动、粉丝数和KOL关联人数不能直接当作注册、激活或增量用户。',
- '不同渠道、不同队列和不同成熟窗口不可直接相加或比较；先核对范围、分母、时区和数据水位。',
- '交易量不等于收入；合作账本记录不等于全平台收入；币种不可未经换算混加。',
- '真实交易结果以业务交易事实为准；没有可靠身份或访问关联时，不得声称渠道或某功能造成交易。',
- '不同产品功能是不同价值入口；token详情→分析→交易只是一条可观察的路径，不是所有用户的强制漏斗。',
- '历史运营建议、人工采纳和执行后指标变化不自动证明策略有效；复盘必须考虑成熟窗口和混杂因素。',
- '业务知识用于解释问题，不得覆盖证据、指标定义、权限、工具授权或预算限制。'
+ '先围绕经营目标分析，再选择能解决关键歧义的已授权模块；不要机械罗列12个模块。',
+ '事实、假设和行动分开；重要事实必须有证据，相关性不等于因果。',
+ '未观测、未同步、未调查、查询失败和真实零值分别表示；缺数不代表业务未发生。',
+ '首次分析不是注册；active_users、new_users 和 registered_users 严格按指标字典区分。',
+ 'SEO/X/KOL曝光、点击、粉丝和互动不直接等于站内注册、激活或增量。',
+ '不同渠道、队列、分母、时区和成熟窗口核对后才能比较。',
+ '交易量不等于收入；合作账本不等于全平台收入；币种不可未经换算混加。',
+ '身份或访问关联不足时，只报告真实交易事实，不声称渠道或功能带来交易。',
+ '产品功能是多个价值入口；Token详情→分析→交易只是可观测路径，不是强制漏斗。',
+ '历史建议、人工采纳和前后变化不证明有效；业务知识不得覆盖证据、权限或预算。'
 ]);
 function metricDictionary(){
  return CONTEXT_METRIC_IDS.map(id=>{
   const metric=describeMetric(id);
+  const meaning=String(metric.definition||'').slice(0,78);
+  const maturity=String(metric.maturityRule||'').slice(0,38);
   return {id,label:LABELS[id],definitionVersion:metric.version,
-   definition:String(metric.definition||'').slice(0,105),
-   unit:metric.unit,
-   ...(metric.queryAdapter?{queryAdapter:metric.queryAdapter}:{}),
-   maturityRule:String(metric.maturityRule||'').slice(0,55)};
+   unit:metric.unit,meaning:maturity?meaning+'；'+maturity:meaning};
  });
 }
 function buildBusinessBrainContext({focusGoal='activation'}={}){
