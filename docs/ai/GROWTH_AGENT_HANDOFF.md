@@ -6,10 +6,10 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
-- Last code-validation commit: `82059ee940680fba40a7f49a3cffeec09368cda5` (all AI infrastructure CI jobs green).
-- Documentation baseline before this handoff refresh: `409791810e6d0a6a9c2f2885f8c648541d7fa6ee`; fetch the live branch HEAD before every new edit.
-- Latest successful CI: AI infrastructure run [41169637765](https://github.com/dinnelthai/logearn-growth/actions/runs/41169637765) — AI Contract, AI Frontend and AI Integration all succeeded.
-- Checklist progress: 22 / 45 implementation items (49%); live-source acceptance is not included in that percentage.
+- Latest code-validation commit: `8d53c76ffe5ae33ab913ebb1a625d1690d5b8399`; subsequent commits in this handoff sequence update documentation only.
+- Fetch the live branch HEAD before every new edit; do not rely on this document's historical commit reference.
+- Latest successful CI: AI infrastructure run [41175597697](https://github.com/dinnelthai/logearn-growth/actions/runs/41175597697) — AI Contract, AI Frontend and AI Integration all succeeded.
+- Checklist progress: 26 / 48 implementation items (54%); live-source acceptance is not included in that percentage.
 - Do not switch to or commit to `master`.
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
 - Always verify the branch HEAD before editing and fetch each target file from this branch.
@@ -117,7 +117,7 @@ New v5 flags:
 
 ## 7. Validation / production boundary
 
-This upgrade has not been deployed or tested against the user's live API/Worker. Latest AI infrastructure run [41175597697](https://github.com/dinnelthai/logearn-growth/actions/runs/41175597697) passed all three jobs: AI Contract groups 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112 (the aggregate harness reported zero failures); AI Integration 17/17; AI Frontend succeeded. This includes regression coverage for hashed CRM activity references, KOL collaboration joins, goal-ranked positive growth signals, impact-aware investigation focus, and competing hypotheses restricted to task-authorized tools. These are fixture/service-container checks, not a real-source acceptance test. Implementation code SHA verified by CI: `b801acbb5e0532d8e74d7f6ce979a803b3a27ff7`; subsequent commits in this handoff sequence update documentation only.
+This upgrade has not been deployed or tested against the user's live API/Worker. Latest AI infrastructure run [41175597697](https://github.com/dinnelthai/logearn-growth/actions/runs/41175597697) passed all three jobs: AI Contract groups 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112 (the aggregate harness reported zero failures); AI Integration 17/17; AI Frontend succeeded. This includes regression coverage for hashed CRM activity references, KOL collaboration joins, goal-ranked positive growth signals, impact-aware investigation focus, and competing hypotheses restricted to task-authorized tools. These are fixture/service-container checks, not a real-source acceptance test. Implementation code SHA verified by CI: `8d53c76ffe5ae33ab913ebb1a625d1690d5b8399`; subsequent commits in this handoff sequence update documentation only.
 
 Do not:
 - run paid model calls just to test projection;
