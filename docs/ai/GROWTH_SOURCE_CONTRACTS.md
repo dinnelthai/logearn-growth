@@ -72,3 +72,39 @@ The only new dimension supported by the Growth Agent metric query is `query_metr
 **Remaining acceptance:** inspect the real `first_entry_source` data dictionary and representative values, historical source assignment drift, missing-attribution rates, registration account deduplication, event capture completeness and verified Hologres trade matching. This code/CI milestone is not a claim of incremental acquisition or verified channel attribution. Source segmentation is a business observation, not an experiment.
 
 Source/test HEAD `7044ef3859c551002f543c0d8d178cbd142877dc`; [AI CI 41198640425](https://github.com/dinnelthai/logearn-growth/actions/runs/41198640425) passed contract/integration/frontend.
+
+## 2026-10-31 — Full built-in tool-to-source audit (18 of 18)
+
+**Authority:** `backend/src/ai/business/tools/sourceContracts.js` maps the complete `backend/src/ai/business/tools/registry.js#listToolIds()` catalog (18 built-in tools) to their own *source type, observation clock, and interpretation limitation*. `backend/test/businessModuleCatalog.test.js` refuses omissions/extra IDs and confirms audited module return values. This mapping is reviewed code, not an assertion that sources are configured or fresh.
+
+| Built-in tool | Audited source | Time / cohort contract | Required limit on AI interpretation |
+| --- | --- | --- | --- |
+| `query_metrics` | Event + registered-account + verified trade aggregates (metric-dependent) | Per-metric source clocks, maturation and observed source scope | A shared events watermark cannot establish account/trade completeness |
+| `get_funnel` | Hologres observed ordered events | Windowed event snapshot and maturity | Missing association and pending steps are not confirmed drop-off |
+| `get_paths` | Hologres observed paths | Observed event snapshot | Not guaranteed whole-user history |
+| `get_product_chain` | Observed analysis and separate verified transactions | Event, enrichment and real-trade matching windows | User association alone does not prove same-token or causal trading |
+| `get_retention` | Hologres observed cohorts | Mature Bangkok business days | Immature/absent history is unknown rather than zero retention |
+| `get_channels` | First observed analytics source and visits | Event snapshot | Source label is not first-touch acquisition or causal lift |
+| `get_segments` | Fixed observed cohort/user set | Event snapshot | Segment overlaps cannot be added as unique users |
+| `get_activity` | CRM activity fixed audience + observed member facts | Activity intersection and event as-of | Activity membership is not proof of channel-attributed trade |
+| `get_operations_timeline` | CRM activities/KOL/content/tasks + GSC/X observations + AI record memory | Independent source clocks with bounded records | No common complete-through watermark or causal link implied |
+| `get_channel_economics` | Owner CRM manually recorded collaboration ledger | Human-entered records/currencies | Not trading fees or platform revenue; no independent freshness watermark |
+| `check_data_quality` | Hologres diagnostic events | Event snapshot and telemetry family coverage | History-complete flag does not prove every event family deployed |
+| `get_seo_performance` | Selected property GSC API or limited manual import | PT calendar-day stored snapshot, collection timestamp separate | API sync is not final-day coverage; no site registration attribution |
+| `get_kol_performance` | CRM KOL tags + Hologres observed linked accounts | Event snapshot and independent CRM association | Associations can overlap and are not incremental KOL acquisition |
+| `get_content_growth` | Manual content ledger + third-party X public post sample | Bounded posts with actual observation cutoff | Accumulated views not week-incremental impressions or X ranking score |
+| `get_follower_quality` | Mutable third-party sampled follower/post scan | Scan progress and classification timestamps | Past manual review/status may be unknown, not 0 |
+| `get_referral` | Verified binding relationship + observed downstream facts | **Cumulative all-time as-of** by default, even inside a weekly report | Cannot be compared as the week's new referral acquisitions |
+| `get_login_conversion` | Login request/terminal observed events | Windowed observed attempts, maturity and separate stages | Event history alone does not prove all login terminal events |
+| `get_invite_conversion` | Invite visits/flow events + verified bindings + registration associations | Event window plus separate relationship/registration source | Binding, account existence and newly acquired registration differ |
+
+### Code and transport findings
+
+1. **Misleading conversion coverage fixed.** `conversionSummary()` previously set `coverage.status='verified'` when `history_complete` was true; that only describes one event-history condition and cannot establish complete login/invite terminal and registration/binding associations. It now reports `partial` with a separate `historyComplete` flag. `backend/test/agentTools.test.js` verifies that incomplete registration/binding stays explicitly unavailable.
+2. **Association availability was not model-visible.** `modelTransport.statView` had no positive allowlist entry for the aggregated `association` object returned by invite conversion. It now retains only allowlisted `association.available/status/reason` while continuing to drop raw user/binding lists. This lets the AI see missing relationship support instead of assuming that a numeric invite event implies successful verified binding.
+3. **Module origin was conflated.** `businessModuleCatalog.sourceType()` previously defaulted every non-SEO built-in tool to the single `logearn_business_observation` label, including CRM manual finance and third-party X scans. It now consumes the audited source types, and `listBusinessModules/executeBusinessModule` expose the concise source-clock/limitation contract for each built-in capability. GSC still distinguishes actual API observation from a manual export when the evidence itself identifies the source; missing GSC origin remains unknown.
+4. **No new ingestion or attribution** was created. All 18 mappings refer to existing tool/adapters; CI verifies exact registry parity, source metadata propagation and the invite conversion boundary, but **not** real Hologres/Google/X/CRM availability.
+
+**Audited implementation/test HEAD:** `1f6ca609ac864cb3877208136e8e9c8dae29ddae`. [AI infrastructure run 41199595293](https://github.com/dinnelthai/logearn-growth/actions/runs/41199595293) is the final code/test CI run; check its final conclusion before claiming all jobs passed.
+
+**Remaining independent acceptance:** read-only reconciliation of actual events/registrations/trades, real source freshness and late-arrival coverage for each metric, GSC PT-day completeness, X/KOL retention, invite binding history, operator-confirmed attribution definitions and measured integration latency. These are not proven by the offline catalog audit; the separate Phase 2 independent-watermark/freshness checklist stays open.
