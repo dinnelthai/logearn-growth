@@ -84,16 +84,32 @@ async function run({kind,body,snapshot:s,audience,owner}){
       conversionWindowMs:(Number(body.hours)||24)*3600000,association:body.association||'user',
       sourceFilter:source,strategyFilter:body.strategy||'all'})
     lists.missing_start=r.quality.missingStartUserIds;lists.incomplete=r.quality.incompleteUserIds
-    steps.forEach((_,i)=>lists[`reached:${i}`]=r.rows.filter(x=>x.times.length>i).map(x=>x.userId))
+    steps.forEach((_,i)=>{
+      lists[`reached:${i}`]=r.rows.filter(x=>x.times.length>i).map(x=>x.userId)
+      lists[`mature_reached:${i}`]=r.rows.filter(x=>x.times.length>i&&!x.pending&&(x.incompleteAt==null||x.incompleteAt>i)).map(x=>x.userId)
+    })
     steps.slice(1).forEach((_,i)=>lists[`drop:${i}`]=r.rows.filter(x=>x.times.length===i+1&&!x.pending&&!x.dataIncomplete).map(x=>x.userId))
     const bySource={}
     for(const row of r.rows){(bySource[row.source]??=[]).push(row)}
-    for(const [sourceName,rows]of Object.entries(bySource))lists[`source:${sourceName}`]=rows.map(r=>r.userId)
+    for(const [sourceName,rows]of Object.entries(bySource)){
+      lists[`source:${sourceName}`]=rows.map(r=>r.userId)
+      lists[`mature_source:${sourceName}`]=rows.filter(r=>!r.pending&&!r.dataIncomplete).map(r=>r.userId)
+    }
+    const bySourceSummary=Object.entries(bySource).map(([source,rows])=>{
+      const mature=rows.filter(r=>!r.pending&&!r.dataIncomplete)
+      const converted=mature.filter(r=>r.times.length===steps.length).length
+      return {source,entered:rows.length,converted:rows.filter(r=>r.times.length===steps.length).length,
+       mature_entered:mature.length,mature_converted:converted,
+       mature_conversion_rate:mature.length?converted/mature.length:null,
+       pending:rows.filter(r=>r.pending).length,unknown:rows.filter(r=>r.dataIncomplete).length}
+    })
     return {lists,payload:{association:body.association||'user',steps:r.steps,total_entered:r.total_entered,
-      total_converted:r.total_converted,pending_count:r.pending_count,median_conversion_ms:r.median_conversion_ms,
+      total_converted:r.total_converted,mature_entered:r.mature_entered,mature_converted:r.mature_converted,
+      mature_conversion_rate:r.mature_conversion_rate,pending_count:r.pending_count,
+      median_conversion_ms:r.median_conversion_ms,
+      warnings:['转化率仅使用已成熟且关联可验证的用户；待成熟和关联未知单独排除','原始到达人数可包含待成熟用户，不等同于成熟转化分母'],
       quality:{missing_start:lists.missing_start.length,incomplete:lists.incomplete.length},
-      by_source:Object.entries(bySource).map(([source,rows])=>({source,entered:rows.length,converted:rows.filter(r=>r.times.length===steps.length).length})),
-      candidate_count:users.length,truncated:false}}
+      by_source:bySourceSummary,candidate_count:users.length,truncated:false}}
   }
   if(kind==='retention')return require('../analytics/retentionCurves').computeRetentionCurves(users,{start,end,asOf,initial:body.initial||'chip',returning:body.returning||'chip',source,maxDailyPeriods:body.maxDailyPeriods??7,historyComplete:!!s.history_complete})
   throw Error('Unknown analysis')
