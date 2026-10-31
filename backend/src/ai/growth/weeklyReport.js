@@ -10,27 +10,38 @@ function weeklyModelTimeoutMs(){
  return value;
 }
 function weeklyPeriod(now=Date.now()){return lastCompleted('weekly',now);}
+function reportPeriod(input={},now=Date.now()){
+ const hasStart=input?.start!=null&&input.start!=='';
+ const hasEnd=input?.end!=null&&input.end!=='';
+ if(!hasStart&&!hasEnd)return weeklyPeriod(now);
+ if(!hasStart||!hasEnd)throw Object.assign(Error('请同时填写开始时间和结束时间'),{status:400});
+ const start=Number(input.start),end=Number(input.end),duration=end-start;
+ if(!Number.isSafeInteger(start)||!Number.isSafeInteger(end)||start<0||
+  end<=start||end>now||duration>31*86400000||start-duration<0)
+  throw Object.assign(Error('请选择有效的1–31天历史时间范围，结束时间不能晚于当前时间'),{status:400});
+ return {kind:'custom',start,end,timezone:'Asia/Bangkok'};
+}
 function weeklyKey(period){return 'weekly-ai-v1:'+period.start+':'+period.end;}
 function weeklyOperations(store,owner,period){
  const problems=store.problems(owner,{limit:200}),actions=store.actions(owner,{limit:200});
- const inWeek=(at)=>Number(at)>=period.start&&Number(at)<period.end;
+ const inPeriod=(at)=>Number(at)>=period.start&&Number(at)<period.end;
  return {
   source:'saved-workspace-aggregate',observedAt:Date.now(),
   goalsCount:store.listGoals(owner,{start:period.start,end:period.end,versions:true}).length,
-  newProblemCount:problems.filter(p=>inWeek(p.first_seen)).length,
+  newProblemCount:problems.filter(p=>inPeriod(p.first_seen)).length,
   unresolvedCount:problems.filter(p=>['open','monitoring'].includes(p.status)).length,
   dataQualityCount:problems.filter(p=>p.type==='data-quality'&&['open','monitoring'].includes(p.status)).length,
-  newActionCount:actions.filter(a=>inWeek(a.created_at)).length,
-  executedActionCount:actions.filter(a=>a.status==='executed'&&inWeek(a.executed_at)).length,
-  reviewedActionCount:actions.filter(a=>a.review&&inWeek(a.updated_at)).length,
+  newActionCount:actions.filter(a=>inPeriod(a.created_at)).length,
+  executedActionCount:actions.filter(a=>a.status==='executed'&&inPeriod(a.executed_at)).length,
+  reviewedActionCount:actions.filter(a=>a.review&&inPeriod(a.updated_at)).length,
   pendingActionCount:actions.filter(a=>['proposed','accepted','executing'].includes(a.status)).length,
-  note:'新增/执行按已保存时间筛选完整周；未解决/待办为报告生成时的当前状态；列表最多200条，数量仅为已保存记录，不代表全站总量。'
+  note:'新增/执行按所选分析周期的已保存时间筛选；未解决/待办为报告生成时的当前状态；列表最多200条，数量仅为已保存记录，不代表全站总量。'
  };
 }
 const weeklyPrompt=`
-本任务是 LogEarn「真实 AI 运营周报」，不是泛化建议或模板重排。仅分析 context.period 的最后一个完整自然周（周一00:00至下周一00:00，Asia/Bangkok），对比同口径前一周已观测数据。先判定来源、数据新鲜度、业务事件覆盖，不能把缺失观测记为0，不能把SEO曝光/点击当作注册和交易，不得把相关性写成因果。
+本任务是 LogEarn「真实 AI 运营周报」，不是泛化建议或模板重排。仅分析 context.period 指定的时间范围（Asia/Bangkok），并与紧邻其前方、时长完全相同的上一周期对比。先判定来源、数据新鲜度、业务事件覆盖，不能把缺失观测记为0，不能把SEO曝光/点击当作注册和交易，不得把相关性写成因果。
 结合 context.weeklyOperations（仅存储记录的聚合数量，未覆盖全量运营系统）与 context.evidence：
-1. 本周业务概览及与前周的真实变化；
+1. 本期业务概览及与上一周期的真实变化；
 2. 核心业务指标及证据ID，绝不凭空写当前/环比数字；
 3. 重要发现、增长阻碍、渠道观察；无法验证的明确标记；
 4. 保存的运营决策工作量、执行复盘覆盖；缺失就说明；
@@ -52,7 +63,7 @@ const weeklyPrompt=`
 // items are derived from the already-validated canonical claims/suggestions.
 // This avoids paying the model to write the same ideas twice.
 const weeklyPromptV2=`
-本任务是 LogEarn 完整自然周（Asia/Bangkok 周一至周日）的 AI 运营周报。比较当前周与同口径上一周，优先依据证据判断趋势、数据质量和下周动作。未观测不是0；SEO曝光/点击不是注册或交易；不得把相关性当因果。
+本任务是 LogEarn 所选时间范围（Asia/Bangkok）的 AI 运营报告。比较当前周期与紧邻其前、时长相同的上一周期，优先依据证据判断趋势、数据质量和下周动作。未观测不是0；SEO曝光/点击不是注册或交易；不得把相关性当因果。
 输出必须保留基础契约的 summary、keyFindings、suggestions、claims；其中 claims 的 evidenceIds 与 values 引用必须准确，suggestions 只写可验证的高优先级行动，不得重复堆叠。不要把同一段发现再写成另一套长篇周报正文。
 额外只输出周报特有的 weeklyReport 字段：
 {"executiveSummary":"不超过180字的关键判断",
@@ -61,7 +72,7 @@ const weeklyPromptV2=`
 "dataGaps":["数据覆盖、归因、口径与有效期的明确限制"]}
 首先阅读 context.weeklyCoverage：它包含12个模块的调查状态与证据ID。已取数的模块优先直接核对现有证据；不要无必要地重复调用相同工具。未调查或未连接不能冒充已分析；只对影响最大且缺少关键证据的问题发起有限补查。周报结构化输出不必重复12组指标明细，模块状态由服务端按真实查询日志和证据引用生成。
 结合业务目标、影响范围和证据强度识别重要增长异常与用户流失信号，不直接比较不同单位指标的绝对变化。为每个核心问题交代影响规模、已知证据、未证实假设和下周核查动作。增长周报需要覆盖 SEO（GSC）、渠道获客、激活、留存、产品到交易；对不可用来源明确列出缺口，不能因为主要目标是 activation 就忽略 SEO。GSC 可能使用 PT 日期，不得对不匹配的快照计算本业务周环比，更不能把搜索点击当作注册或交易。
-本周亮点将从事实型 claims 自动生成；风险从假设型 claims 自动生成；下周行动从 suggestions 自动生成，不要重复输出 highlights、issues、nextWeek。必须保留每项真实数值对应证据 ID；无验证数据用 null，不编造周环比；changePct 为相对百分数（10→12 为20，前周0或未知时为null）。运营执行统计只表示已保存记录，不等于全部工作量。
+本期亮点将从事实型 claims 自动生成；风险从假设型 claims 自动生成；下周行动从 suggestions 自动生成，不要重复输出 highlights、issues、nextWeek。必须保留每项真实数值对应证据 ID；无验证数据用 null，不编造周环比；changePct 为相对百分数（10→12 为20，前周0或未知时为null）。运营执行统计只表示已保存记录，不等于全部工作量。
 `;
 // Server-derived KPIs come from the exact owner-scoped immutable evidence
 // already saved for this run. They never depend on the model inventing JSON.
@@ -155,8 +166,8 @@ function ensureWeeklyReport(analysis,{context=null}={}){
   w.metrics=[...derived,...w.metrics.filter(x=>
    !derived.some(d=>d.label===x.label||d.metricId===x.metricId))].slice(0,25);
   if(derived.length)w.dataGaps=w.dataGaps.map(gap=>
-   gap.startsWith('周度 KPI 对照和渠道分项未能形成完整证据表')?
-    '模型未提供完整的渠道分项；核心业务指标由已保存的周度证据补齐，仍需核验覆盖与归因。':gap);
+   gap.startsWith('周期 KPI 对照和渠道分项未能形成完整证据表')?
+    '模型未提供完整的渠道分项；核心业务指标由已保存的周期证据补齐，仍需核验覆盖与归因。':gap);
   const seo=context?.weeklySources?.seo;
   if(seo&&seo.status!=='period-matched'){
    const reason=seo.status==='reference-only'?
@@ -190,4 +201,4 @@ function ensureWeeklyReport(analysis,{context=null}={}){
   return complete();
  }
 }
-module.exports={weeklyPeriod,weeklyKey,weeklyOperations,weeklyPrompt,weeklyPromptV2,validateWeeklyReport,ensureWeeklyReport,trustedWeeklyMetrics,weeklyModelTimeoutMs};
+module.exports={weeklyPeriod,reportPeriod,weeklyKey,weeklyOperations,weeklyPrompt,weeklyPromptV2,validateWeeklyReport,ensureWeeklyReport,trustedWeeklyMetrics,weeklyModelTimeoutMs};
