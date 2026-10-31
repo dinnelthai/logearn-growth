@@ -2,6 +2,7 @@
 
 Branch: `codex/ai-comprehensive-upgrade`  
 Scope: Business Brain, Growth Intelligence, Operating Memory, Decision Engine and Learning Loop.  
+Progress snapshot (2026-10-31): 13 / 44 implementation checklist items have code or documentation in place (about 30%); test and live-source acceptance are tracked separately.  
 Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace and storage.
 
 ## Product definition
@@ -112,9 +113,9 @@ Acceptance:
 
 - [ ] Reframe weekly report around executive judgment, business health, lifecycle funnel, channel effectiveness, root causes, opportunities, next actions, previous-action review and data gaps.
 - [ ] Keep module coverage and technical audit information in secondary / collapsible sections.
-- [ ] Preserve custom start/end collection windows; weekly is only the default preset.
-- [ ] Compare with the immediately preceding equal-length window only when metrics are comparable.
-- [ ] Clearly show the timezone and whether end time is inclusive/exclusive.
+- [x] Preserve custom start/end collection windows; weekly is only the default preset.
+- [x] Compare with the immediately preceding equal-length window only when metrics are comparable.
+- [x] Clearly show the timezone and whether end time is inclusive/exclusive.
 
 Acceptance:
 - the report leads with the most important business decision, not a list of 12 module statuses;
