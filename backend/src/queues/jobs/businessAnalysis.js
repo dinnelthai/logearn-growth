@@ -189,7 +189,7 @@ async function businessAnalysis(job) {
        (useWeeklyV5?weeklyReport.customPeriodPromptV1:weeklyReport.customPeriodPromptV0):
        (useWeeklyV5?weeklyReport.weeklyPromptV3:useContextV3?weeklyReport.weeklyPromptV2:weeklyReport.weeklyPrompt)):
       currentPrompt;
-    const result=await runTask({context:compact,prompt:isWeeklyReport?currentPrompt+'\\n'+reportPrompt:currentPrompt,
+    const result=await runTask({context:compact,prompt:isWeeklyReport?currentPrompt+'\n'+reportPrompt:currentPrompt,
       ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
       contextVersion:useWeeklyV5?'v5':useWeeklyV4?'v4':useBusinessBrainV5?'v5':useContextV3?'v3':'v1',
       ...(isWeeklyReport?{modelTimeoutMs:weeklyReport.weeklyModelTimeoutMs()}:{}),
