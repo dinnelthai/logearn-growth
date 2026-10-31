@@ -32,13 +32,15 @@ test('login preserves observed successes, requests and unknown without event row
  assert.doesNotMatch(JSON.stringify(e),/private-login/);
 });
 test('economics exposes ledger entries and ROI but does not cast decimal money',()=>{
- const e=make('trade_revenue',economicsSummary({byCurrency:[
+  assert.equal(DEFINITIONS.find(x=>x.id==='revenue').metric,'collaboration_economics');
+  assert.match(DEFINITIONS.find(x=>x.id==='revenue').label,/合作账本/);
+ const e=make('collaboration_economics',economicsSummary({byCurrency:[
   {currency:'USD',income_entries:4,roi:.4,net_revenue:'999999999999999.99'}
  ]}));
  assertMetric(e,'economics.receivedEntries',4);
  assertMetric(e,'groups.usd.roi',.4);
  assert.doesNotMatch(JSON.stringify(e),/999999999999999/);
- const empty=make('trade_revenue',economicsSummary({byCurrency:[]}));
+ const empty=make('collaboration_economics',economicsSummary({byCurrency:[]}));
  assert.equal(empty.value.available,false);
  assert.deepEqual(factsFromEvidence([empty]),[]);
 });
@@ -79,7 +81,7 @@ test('the five projected modules are model-visible but never imply success witho
  const entries=[
   ['login-conversion',make('login_conversion',loginSummary({
    login:{requests:5,users:3,counts:{success:2}}}))],
-  ['revenue',make('trade_revenue',economicsSummary({byCurrency:[
+  ['revenue',make('collaboration_economics',economicsSummary({byCurrency:[
    {currency:'USD',income_entries:1,roi:.2}]}))],
   ['kol-impact',make('kol_performance',kolSummary({available:true,rows:[
    {observedUsers:8,analysisUsers:2,tradeUsers:null}]}))],
