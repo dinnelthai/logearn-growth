@@ -50,7 +50,8 @@ test('operating memory is owner-scoped, bounded, and distinguishes executed from
  assert.equal(projected.items[0].effectiveness,'unknown');
  assert.deepEqual(projected.items[0].validationMetrics,{primary:'new_users',secondary:['active_users']});
  assert.doesNotMatch(JSON.stringify(projected),/private@example\.test|private\.example\.test/);
- assert.match(projected.limitation,/不代表完整/);
+ assert.match(projected.limitation,/不是全部/);
+ assert.match(projected.limitation,/未记录不代表未执行/);
 });
 test('v5 general analysis receives business knowledge and safe memory; v3 stays unchanged',()=>{
  const value=raw();
