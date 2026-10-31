@@ -32,9 +32,9 @@ async function run({kind,body,snapshot:s,audience,owner}){
   if(kind==='growth-insights'){
     const {growthFacts,growthQuality,cohortTrades}=require('../data/growthInsights')
     const rows=await growthFacts(s,body,audience),quality=await growthQuality(s,body,audience)
-    const trades=await cohortTrades(s,rows,body)
     const {registrationFacts,diagnosticCoverage}=require('../data/growthEvidence')
     const registration=await registrationFacts(s,body,audience),coverage=await diagnosticCoverage(s,body,audience)
+    const trades=await cohortTrades(s,rows,body,registration)
     return require('../analytics/growthInsights').growthInsights(rows,quality,body,s,trades,{registration,coverage})
   }
   if(['login-conversion','invite-conversion'].includes(kind)){
