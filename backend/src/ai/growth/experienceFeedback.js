@@ -24,22 +24,35 @@ function summarizeExperience(history,{source='all',now=Date.now(),lookbackDays=1
    if(item.has_improvement===true&&change.effect>change.baseline)outcome='effective';
    else if(item.has_improvement===false&&change.effect<=change.baseline)outcome='ineffective';
   }
-  if(!['effective','ineffective'].includes(outcome))continue;
+  if(!['effective','ineffective'].includes(outcome)&&!(item.review_context_version==='2'&&outcome==='unknown'))continue;
   const itemSource=item.action_scope?.source||item.applicable_scope?.source||'all';
   if(itemSource!==source)continue;
   const reviewed=Number(item.reviewed_at);
   if(!Number.isSafeInteger(reviewed)||reviewed>now||reviewed<now-lookbackDays*86400000)continue;
   if(!byMetric.has(metric))byMetric.set(metric,{
-   metric,effectiveReviews:0,ineffectiveReviews:0,observedSupportedReviews:0,
-   observedContradictedReviews:0,recentLessons:[],
+   metric,effectiveReviews:0,ineffectiveReviews:0,insufficientReviews:0,
+   observedSupportedReviews:0,observedContradictedReviews:0,recentLessons:[],
    outcomeBasis:item.review_context_version==='2'?'fixed-cohort-observation':'legacy-business-observation',
    interpretation:'复盘为非实验观测结论，不代表该策略有确定因果效果'
   });
   const entry=byMetric.get(metric);
-  if(outcome==='effective'){entry.effectiveReviews++;entry.observedSupportedReviews++;}
-  else {entry.ineffectiveReviews++;entry.observedContradictedReviews++;}
-  if(typeof item.result_summary==='string'&&item.result_summary.trim()&&entry.recentLessons.length<3)
-   entry.recentLessons.push(item.result_summary.slice(0,240));
+  const assessment=outcome==='effective'?'observed-supported':
+   outcome==='ineffective'?'observed-contradicted':'insufficient';
+  if(assessment==='observed-supported'){entry.effectiveReviews++;entry.observedSupportedReviews++;}
+  else if(assessment==='observed-contradicted'){entry.ineffectiveReviews++;entry.observedContradictedReviews++;}
+  else entry.insufficientReviews++;
+  if(entry.recentLessons.length<3){
+   const lesson={
+    suggestionId:String(item.suggestion_id||'').slice(0,100),
+    businessProblem:String(item.business_problem||'').slice(0,180),
+    actualAction:String(item.actual_action||'').slice(0,220),
+    assessment,reason:observed?.reason||'legacy-review-evidence-insufficient',
+    reviewedAt:reviewed,
+    resultSummary:String(item.result_summary||'').slice(0,180)
+   };
+   if(lesson.businessProblem||lesson.actualAction||lesson.resultSummary)
+    entry.recentLessons.push(lesson);
+  }
  }
  return [...byMetric.values()].sort((a,b)=>a.metric.localeCompare(b.metric));
 }
