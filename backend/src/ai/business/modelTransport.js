@@ -488,7 +488,7 @@ function modelContext(raw,{transportVersion='v1',reviewRevision=0,reserveBytes=0
  if(!Number.isSafeInteger(reserveBytes)||reserveBytes<0||reserveBytes>12000)throw Error('上下文预留预算无效');
  if(transportVersion==='v5'){
   const memoryRows=Array.isArray(raw.memory)?Math.min(3,raw.memory.length):0;
-  const reserve=reserveBytes||7000+memoryRows*900;
+  const reserve=reserveBytes||7500+memoryRows*1000;
   const base=raw.weeklyCoverage?.version==='weekly-coverage-v1'?
    require('./weeklyContextV4').buildWeeklyContextV4(raw,{
     modelEvidence,compactCapabilities,safeText,reviewRevision,reserveBytes:reserve
