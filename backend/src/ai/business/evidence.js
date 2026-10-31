@@ -20,13 +20,46 @@ function makeEvidence(input,context){
  const sourceMetadata=buildSourceMetadata({metricId:metric.id,query:input.query,
   watermarks:input.watermarks,coverage:input.coverage,scope:metadataScope});
  return JSON.parse(JSON.stringify({id:randomUUID(),ownerId,...query,unit:metric.unit,value:input.value??null,numerator:input.numerator??null,denominator:input.denominator??null,sampleSize:input.sampleSize??null,
- sourceVersions:input.sourceVersions||context.sourceVersions||{},watermarks:input.watermarks||{},coverage:input.coverage||{status:'unknown'},sourceMetadata,warnings:input.warnings||[],queryFingerprint:fingerprint(query),generatedAt:new Date().toISOString(),
+ sourceVersions:input.sourceVersions||context.sourceVersions||{},watermarks:input.watermarks||{},coverage:input.coverage||{status:'unknown'},sourceMetadata,
+ executionTiming:Number.isSafeInteger(input.executionTiming?.elapsedMs)&&input.executionTiming.elapsedMs>=0&&input.executionTiming.elapsedMs<=120000?
+  {elapsedMs:input.executionTiming.elapsedMs,kind:'observed-server-wall-time',monetaryCostKnown:false}:null,
+ warnings:input.warnings||[],queryFingerprint:fingerprint(query),generatedAt:new Date().toISOString(),
  reportLocator:input.reportLocator||{page:'businessAnalysis',...period,scope:query.filters.scope},supersedesId:input.supersedesId||null}));
 }
 function createEvidenceStore(db){
  function save(e,context){authorize(e,context);const body=JSON.stringify(e),existing=db.prepare('SELECT body FROM agent_evidence WHERE id=?').get(e.id);if(existing){if(existing.body!==body)fail('证据档案不可变',409);return e;}db.prepare('INSERT INTO agent_evidence VALUES(?,?,?)').run(e.id,owner(context),body);return e;}
  function get(id,context){const row=db.prepare('SELECT body FROM agent_evidence WHERE id=? AND owner_id=?').get(id,owner(context));if(!row)fail('证据不存在或无权限',404);const e=JSON.parse(row.body);authorize(e,context);return e;}
- return {save,get};
+ // Owner-isolated, read-only telemetry from successful archived executions.
+ // A timeout cap or billed LLM token log is NOT the SQL tool's observed cost.
+ function recentToolTimings(context,{now=Date.now(),minSamples=3,limit=400}={}){
+  const ownerId=owner(context);
+  if(!Number.isSafeInteger(now)||!Number.isSafeInteger(minSamples)||
+   minSamples<2||minSamples>20||!Number.isSafeInteger(limit)||limit<1||limit>1000)
+   fail('调查耗时采样参数无效');
+  const rows=db.prepare('SELECT body FROM agent_evidence WHERE owner_id=? ORDER BY rowid DESC LIMIT ?')
+   .all(ownerId,limit);
+  const groups=new Map(),since=now-30*86400000;
+  for(const row of rows){
+   let e;
+   try{e=JSON.parse(row.body)}catch{continue}
+   const tool=e?.query?.tool,t=e?.executionTiming?.elapsedMs;
+   const recorded=Date.parse(e?.generatedAt||'');
+   if(typeof tool!=='string'||!/^[a-z][a-z0-9_]{1,55}$/.test(tool)||
+    !Number.isSafeInteger(t)||t<0||t>120000||
+    !Number.isFinite(recorded)||recorded<since||recorded>now)continue;
+   if(!groups.has(tool))groups.set(tool,[]);
+   if(groups.get(tool).length<30)groups.get(tool).push(t);
+  }
+  const result={};
+  for(const [tool,samples]of groups){
+   if(samples.length<minSamples)continue;
+   const sorted=[...samples].sort((a,b)=>a-b);
+   result[tool]={sampleCount:sorted.length,medianMs:sorted[Math.floor(sorted.length/2)],
+    basis:'owner-archived-successful-tool-wall-time',monetaryCostKnown:false};
+  }
+  return result;
+ }
+ return {save,get,recentToolTimings};
 }
 function validateClaims(claims,context,store){
  if(!Array.isArray(claims))fail('结论必须为数组');
