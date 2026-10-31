@@ -75,7 +75,7 @@ function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[
   steps:selected.map(({skill})=>({
    skillId:skill.id,skillVersion:skill.version,label:skill.label,
    tools:skill.tools.filter(id=>supportedTools.has(id)&&(
-    report.business.scope.source==='all'||!['check_data_quality','get_channel_economics','get_seo_performance','get_kol_performance'].includes(id))),
+    report.business.scope.source==='all'||!['check_data_quality','get_channel_economics','get_seo_performance','get_kol_performance','get_operations_timeline'].includes(id))),
    investigation:skill.instructions,mode:'read-only',
    experienceChecks:experience.filter(e=>skill.signals.includes(e.metric)).map(e=>({
     metric:e.metric,observedEffective:e.effectiveReviews,observedIneffective:e.ineffectiveReviews,
