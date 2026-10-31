@@ -22,7 +22,7 @@ const numeric=new Set([
  'conversion_rate','previous_conversion_rate','total_conversion_rate',
  'actual_cost','net_revenue','targetValue','dueAt','createdAt','updatedAt','completedAt','settledAt','startAt','endAt','eventAt',
  'samplePosts','profiles','observedUsers','analysisEvents','accountPostCap','audienceFit','actionability','warningCount','occurrences','quotes',
- 'human_operations','channel_observations','ai_actions','total_records',
+ 'human_operations','channel_observations','ai_actions','total_records','memberCount','plannedMemberCount','firstAt','lastAt',
  'activation_rate','activation_interval','median_age_days','retention_rate',
  'registeredUsers','clicks','impressions','ctr','position','likes','shares','comments',
  'duration_ms','value_usd','daily_count','day_count','sample_size','size',
@@ -68,7 +68,7 @@ const categories=new Set(['source','device','version','app_version','user_stage'
  'scope','qualityStatus','category','name','period','state','browser',
  'coverage','quality','scene',
  'os','event_name','group','metricName','currency','trafficSource',
- 'list_type','page_name','layer','targetMetric','financeSource','collection','siteUrl','startDate','endDate','dateTimezone','attribution','sourceKind','publishedAt']);
+ 'list_type','page_name','layer','targetMetric','financeSource','collection','siteUrl','startDate','endDate','dateTimezone','attribution','sourceKind','publishedAt','group','action','channel']);
 const notes=new Set(['definition','warnings','warning','reason','error','interpretation',
  'priorityExplanation','scoreExplanation','summary','note','description',
  'notAvailableReason','coverageNote','qualityNote','title','topic','kol','assignee','reportTitle','conclusion']);
@@ -79,6 +79,7 @@ const groups=new Set(['totals','days','growth','change','dimensions','channels',
  'exposure','entrance','entrance_breakdown','page_clicks_summary','retention_summary',
  'funnels','paths','pages','summary','sample','byCurrency','trends','rates','counts',
  'humanOperations','channelObservations','aiActions','timeline','warnings','samplePosts',
+ 'assignments','deliveryEvidence','scheduleChanges',
  'linkedKols','linkedActivityIds','costTotals','revenueTotals','evaluation','review',
  'metrics','series','distribution','sources','bySource','period','filters',
  'sourceVersions','watermarks','goal','current','previous','weekly','northStar',
