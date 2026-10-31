@@ -172,3 +172,16 @@ Branch: codex/ai-comprehensive-upgrade
 - AI infrastructure run [41168785078](https://github.com/dinnelthai/logearn-growth/actions/runs/41168785078) — **success** across AI Contract, AI Frontend and AI Integration.
 - AI Contract groups: 32/32, 13/13, 22/22, 2/2 and 112/112; AI Integration: 17/17; AI Frontend succeeded.
 - No live Hologres read, paid model call, paid collection, migration or deployment was performed.
+
+## 2026-10-31 — Registration metrics enter the formal Growth decision vocabulary
+
+- Added formal definitions for `registered_users`, `registration_activation_rate` and `registered_trade_conversion_rate` to the shared business metric definitions. The definitions explicitly distinguish registration from first observed analysis, require mature denominators and preserve user-level (not same-Token or causal) trade attribution.
+- The Growth planner now accepts these metrics as reviewed investigation focus hints, and the Agent Learning metric allowlist recognizes them through the shared definition registry.
+- The Business Brain metric dictionary was compacted slightly to preserve the hard 22KB context budget after expanding the formal metric vocabulary.
+- The registration cohort is still not a single end-to-end product-engagement funnel; see the prior section for the remaining boundary.
+
+### CI validation
+
+- AI infrastructure run [41169098472](https://github.com/dinnelthai/logearn-growth/actions/runs/41169098472) — **success** across AI Contract, AI Frontend and AI Integration.
+- AI Contract groups: 32/32, 13/13, 22/22, 2/2 and 112/112; AI Integration: 17/17; AI Frontend succeeded.
+- The earlier run [41169006336](https://github.com/dinnelthai/logearn-growth/actions/runs/41169006336) caught the context-size regression before this compaction; the corrected code passed the complete run above.
