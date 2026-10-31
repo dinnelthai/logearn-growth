@@ -329,6 +329,17 @@ function compactWeeklyValue(value){
   const numbers=extract(value[name],name==='metrics'?10:6);
   if(numbers)result[name]=numbers;
  }
+ if(Array.isArray(value.steps)){
+  const steps=value.steps.slice(0,8).map(row=>{
+   const out={};
+   if(typeof row?.key==='string')out.key=safeText(row.key,60);
+   for(const key of ['users','eligible','converted','pending','unknown',
+    'previous_conversion_rate','total_eligible','total_conversion_rate','drop_off_users'])
+    if(typeof row?.[key]==='number'&&Number.isFinite(row[key]))out[key]=row[key];
+   return out;
+  }).filter(row=>Object.keys(row).length);
+  if(steps.length)result.steps=steps;
+ }
  if(value.registration&&typeof value.registration==='object'){
   const registration=value.registration,compactRegistration={};
   const users=extract(registration,4);
