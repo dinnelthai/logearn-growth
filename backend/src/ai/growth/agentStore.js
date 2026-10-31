@@ -103,7 +103,7 @@ function createAgentStore(db=pool){
  async function feedback(ownerId,{source='all',limit=100}={}){
   if(!ownerId||!Number.isSafeInteger(limit)||limit<1||limit>300)
    bad('学习反馈查询参数无效');
-  const r=await db.query(`SELECT s.id AS suggestion_id,s.analysis_id,s.user_status,
+  const r=await db.query(`SELECT s.id AS suggestion_id,s.analysis_id,s.business_problem,s.actual_action,s.user_status,
     s.validation_metrics,s.forecast,s.priority,s.created_at,s.executed_at,s.action_scope,s.applicable_scope,
     a.business_scope,a.filter_conditions,
     r.id AS retrospective_id,r.created_at AS reviewed_at,
