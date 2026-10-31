@@ -60,10 +60,11 @@ function sources(db,{xError=false}={}){
  }
 }
 test('timeline merges existing owner-scoped records but keeps human, channel and AI layers separate',async()=>{
- const db=fakeDb(),deps=sources(db);
- const timeline=createOperationsTimeline({...deps,clock:()=>now});
+ const db=fakeDb(),deps=sources(db),errors=[];
+ const timeline=createOperationsTimeline({...deps,clock:()=>now,onReadError:(key,error)=>errors.push({key,message:error.message})});
  const result=await timeline.collect({start,end,source:'all',limit:60},{ownerId:'owner-1'});
  assert.deepEqual(result.period,{start,end,timezone:'Asia/Bangkok',endExclusive:true});
+ assert.deepEqual(errors,[]);
  assert.equal(result.humanOperations.length,4);
  assert.equal(result.channelObservations.length,3);
  assert.equal(result.aiActions.length,2);
@@ -105,10 +106,11 @@ test('timeline merges existing owner-scoped records but keeps human, channel and
 });
 
 test('one source failure is isolated and does not erase the other operating records',async()=>{
- const db=fakeDb(),deps=sources(db,{xError:true});
- const result=await createOperationsTimeline({...deps,clock:()=>now})
+ const db=fakeDb(),deps=sources(db,{xError:true}),errors=[];
+ const result=await createOperationsTimeline({...deps,clock:()=>now,onReadError:(key,error)=>errors.push({key,message:error.message})})
   .collect({start,end,source:'all',limit:60},{ownerId:'owner-1'});
  assert.equal(result.coverage.xOfficial.status,'unavailable');
+ assert.deepEqual(errors.map(x=>x.key),['xOfficial']);
  assert.equal(result.humanOperations.length,4);
  assert.equal(result.channelObservations.length,2);
  assert.equal(result.aiActions.length,2);
