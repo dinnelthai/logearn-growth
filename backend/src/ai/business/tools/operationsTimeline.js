@@ -202,6 +202,26 @@ function createOperationsTimeline({
    return rows;
   });
 
+  // Reuse the existing owner-scoped business-change store as operating memory.
+  // Operator-authored note text is untrusted and is sanitized by modelTransport.
+  await read('operatorNotes',async()=>{
+   const rows=db.prepare('SELECT body FROM agent_changes WHERE owner_id=? ORDER BY rowid DESC LIMIT 100').all(ownerId);
+   const parsed=rows.map(row=>safeJson(row.body)).filter(row=>
+    row&&typeof row==='object'&&Number.isSafeInteger(row.occurredAt)&&
+    row.occurredAt>=start&&row.occurredAt<end);
+   const selected=parsed.slice(0,limit);
+   for(const row of selected)humanOperations.push({
+    kind:'operator_note',layer:'human_operation',source:'agent_changes',
+    title:text(row.content,120),channel:'operator_memory',topic:text(row.kind,24),
+    eventAt:row.occurredAt,observedAt:Number.isSafeInteger(row.recordedAt)?row.recordedAt:null,
+    status:'recorded',collection:'operator-authored'
+   });
+   coverage.operatorNotes={status:status(selected.length),count:selected.length,
+    limit,ownerScoped:true,truncated:rows.length===100||parsed.length>limit,
+    source:'agent_changes',verification:'self-reported'};
+   return selected;
+  });
+
   await read('xOfficial',async()=>{
    const overview=xMonitor.overview(ownerId);
    let count=0,truncated=false;

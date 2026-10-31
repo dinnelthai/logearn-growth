@@ -32,6 +32,7 @@ function fakeDb(){
   if(sql.includes('FROM crm_collaboration_activities'))return [{collaboration_id:'collab-1',activity_id:'act-1'}]
   if(sql.includes('FROM content_growth_items'))return [{id:'content-1',platform:'x',title:'Launch thread',topic:'product',published_at:new Date(start+1000).toISOString(),created_at:new Date(start+1000).toISOString(),impressions:100,likes:5,comments:2,shares:3,audience_fit:4,actionability:5}]
   if(sql.includes('FROM operation_tasks'))return [{id:'task-1',title:'Review activation cohort',assignee:'Alex',priority:'P1',status:'done',due_at:end,created_at:start,updated_at:end,completed_at:end}]
+  if(sql.includes('FROM agent_changes'))return [{body:JSON.stringify({id:'change-1',kind:'activity',content:'Completed onboarding workshop for the community',source:'operator-note',occurredAt:start+2000,validUntil:end,recordedAt:now})}]
   if(sql.includes('FROM business_analysis_actions'))return [{id:'ai-action-1',title:'Test onboarding',priority:'P1',status:'executed',executed_at:end,created_at:start,updated_at:end,review_json:JSON.stringify({conclusion:'improved',warnings:[]}),report_title:'Weekly growth report'}]
   return []
  }} }};
@@ -65,10 +66,10 @@ test('timeline merges existing owner-scoped records but keeps human, channel and
  const result=await timeline.collect({start,end,source:'all',limit:60},{ownerId:'owner-1'});
  assert.deepEqual(result.period,{start,end,timezone:'Asia/Bangkok',endExclusive:true});
  assert.deepEqual(errors,[]);
- assert.equal(result.humanOperations.length,4);
+ assert.equal(result.humanOperations.length,5);
  assert.equal(result.channelObservations.length,3);
  assert.equal(result.aiActions.length,2);
- assert.equal(result.timeline.length,9);
+ assert.equal(result.timeline.length,10);
  assert.ok(result.humanOperations.every(x=>['human_operation','human_managed_task'].includes(x.layer)));
  assert.ok(result.channelObservations.every(x=>x.layer==='channel_observation'));
  assert.ok(result.aiActions.every(x=>x.layer==='ai_suggestion_or_review'));
@@ -100,6 +101,12 @@ test('timeline merges existing owner-scoped records but keeps human, channel and
  assert.equal(JSON.stringify(activity).includes('user-123'),false);
  assert.equal(result.coverage.searchConsole.periodMatched,false);
  assert.equal(result.coverage.contentRecords.collection,'manual');
+ const operatorNote=result.humanOperations.find(x=>x.kind==='operator_note');
+ assert.equal(operatorNote.title,'Completed onboarding workshop for the community');
+ assert.equal(operatorNote.topic,'activity');
+ assert.equal(operatorNote.status,'recorded');
+ assert.equal(result.coverage.operatorNotes.verification,'self-reported');
+
  assert.ok(db.calls.some(c=>c.sql.includes('FROM growth_activities')&&c.args[0]==='owner-1'));
  assert.ok(db.calls.some(c=>c.sql.includes('growth_activity_assignments')&&c.args[0]==='owner-1'));
  assert.ok(db.calls.some(c=>c.sql.includes('growth_activity_delivery_evidence')&&c.args[0]==='owner-1'));
@@ -113,7 +120,7 @@ test('one source failure is isolated and does not erase the other operating reco
   .collect({start,end,source:'all',limit:60},{ownerId:'owner-1'});
  assert.equal(result.coverage.xOfficial.status,'unavailable');
  assert.deepEqual(errors.map(x=>x.key),['xOfficial']);
- assert.equal(result.humanOperations.length,4);
+ assert.equal(result.humanOperations.length,5);
  assert.equal(result.channelObservations.length,2);
  assert.equal(result.aiActions.length,2);
 });

@@ -91,6 +91,7 @@ Acceptance:
 - [ ] Link activity records to channel metrics and mature outcomes only where stable identifiers and comparable time windows exist; current KOL/activity links and settled activity outcomes do not establish cross-channel attribution.
 - [x] Keep AI suggestion/review records in a separate layer from human-entered activities and channel observations.
 - [x] Expose per-source available/empty/not-configured/unavailable/truncated coverage; missing community/training connectors remain unknown, not zero.
+- [x] Reuse existing owner-scoped operator-authored business-change notes in the timeline as bounded, self-reported memory; no parallel journal or migration.
 
 Acceptance:
 - report can say which known activities occurred during a period;
