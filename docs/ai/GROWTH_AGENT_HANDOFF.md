@@ -6,10 +6,10 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
-- Latest code-validation commit: `8d53c76ffe5ae33ab913ebb1a625d1690d5b8399`; subsequent commits in this handoff sequence update documentation only.
+- Latest code-validation commit: `55494b02cb9f4f298ad615f96fad069b1e15ac6a`; subsequent commits in this handoff sequence update documentation only.
 - Fetch the live branch HEAD before every new edit; do not rely on this document's historical commit reference.
-- Latest successful CI: AI infrastructure run [41175597697](https://github.com/dinnelthai/logearn-growth/actions/runs/41175597697) — AI Contract, AI Frontend and AI Integration all succeeded.
-- Checklist progress: 26 / 48 implementation items (54%); live-source acceptance is not included in that percentage.
+- Latest successful CI: AI infrastructure run [41177009626](https://github.com/dinnelthai/logearn-growth/actions/runs/41177009626) — AI Contract, AI Frontend and AI Integration all succeeded.
+- Checklist progress: 28 / 48 implementation items (58%); live-source acceptance is not included in that percentage.
 - Do not switch to or commit to `master`.
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
 - Always verify the branch HEAD before editing and fetch each target file from this branch.
@@ -154,3 +154,11 @@ Decision Engine update (2026-10-31): v5 now ranks positive and negative signals 
 - Tests added: `growthActionWorkflow.test.js`, `analysisCompetingHypotheses.test.js`, `growthPlanner.test.js`, and `agentLearningLifecycle.test.js`.
 - Known gaps: exact-text duplicate protection is not semantic; operation-task creation requires a fixed registered-user cohort cache and is not safe for generic recommendations; suggested observation days do not change the existing 3-business-day + watermark review gate; query-cost ranking remains unavailable without trusted cost/latency metadata.
 - No migration, deployment, paid model call, paid data collection or external action. Continue by checking latest CI, then review whether a recommendation has a valid existing cohort cache before considering a link into operation tasks.
+
+
+### Latest validation (2026-10-31)
+
+- Run [41177009626](https://github.com/dinnelthai/logearn-growth/actions/runs/41177009626), head `55494b02cb9f4f298ad615f96fad069b1e15ac6a`: all AI Contract, AI Integration and AI Frontend jobs passed.
+- Contract: 172 tests, 171 pass, 0 fail, 1 skipped; additional regression groups 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112. Integration: 17/17 with PostgreSQL/Redis containers. Frontend: success.
+- Initial v3/v4 compatibility test failure was corrected: identical feedback digest no longer blocks writing a new strategy contract version.
+- No live-source acceptance, migration, deployment, paid model call, paid collection or external action.
