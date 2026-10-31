@@ -92,7 +92,18 @@ const weeklyPromptV2=`
 `;
 // v3 changes the decision frame, not the validated output contract. It is used only by new v5 reports.
 const businessBrainPromptV1="经营分析必须以 context.businessBrain 为业务语义基线：\n- 先读取 businessBrain.focus、lifecycle、productMap、operatingModel 和 metricDictionary，明确本期经营目标、相关阶段、运营数据层次和指标的正式含义；northStarIntent 是经营方向，不是已验证的单一KPI。\n- 按获客→注册→首次价值/激活→产品参与→留存→真实交易→商业经济检查业务链路，但产品功能是多个价值入口，不得假设所有用户必须按同一顺序使用。\n- 重点回答“经营结果发生了什么、影响最大的环节在哪里、哪些原因已被证实、哪些仍是假设、下一步做什么”，不要把13个模块平均分配篇幅。\n- 获客渠道只有在身份和时间窗口能可靠连接时，才能继续解释注册、激活和交易；GSC、X、KOL数据默认是渠道观察，不是站内转化或增量归因。\n- 对AI策略、筹码峰、Holder和钱包交易分别解释其产品角色；没有可核对的事件和交易事实时，不得宣称某功能带来交易。\n- 优先读取 weeklyCoverage 中的 operations-timeline 模块复盘实际运营；人工活动、渠道观察、AI建议/执行/复盘必须分层。未收集、未连接或读取失败不等于没有运营。\n- 活动效果只采用已结算冻结汇总；未结算或分析/交易来源覆盖缺失时保持未知。treatment/control 是人工固定分组，不是随机实验；送达状态、跨组曝光与分组结果不证明增量因果。\n- 读取 context.operatingMemory 时，区分提议、采纳、执行、拒绝和已复盘；它只覆盖已有AI建议/复盘记录，不代表完整运营活动。不得将人工采纳视为有效，不得重复推荐已有反证的行动。\n- 每个优先问题必须给出影响范围、事实证据、可能根因、反证/未知、置信程度和下一步验证。每个行动必须对应可测量的主指标、目标或观察条件、负责人/资源未知时明确标注未知。\n- 优先选择能解决经营关键歧义的少量调查，不为追求模块覆盖而重复调用工具；数据不足时形成条件化建议，而不是虚构经营判断。";
-const weeklyPromptV3=weeklyPromptV2+'\n'+businessBrainPromptV1;
+const weeklyDecisionPromptV2=`
+周报还必须提供经营生命周期、正向机会和历史行动复盘三个区块：
+- lifecycle 必须覆盖 acquisition、registration、activation、engagement、retention、trading、economics 七个阶段，每阶段一项。status 只能为 observed、partial、unknown、not-investigated；只有有直接证据时才写 observed/partial 并引用证据。它是多入口经营地图，不是强制线性漏斗。
+- opportunities 只列出有真实正向观测证据、样本成熟且范围/持续性值得进一步验证的机会；正向变化不等于可复制增长或因果贡献。没有证据时返回空数组，不要凑数。
+- previousActions 只读取 context.operatingMemory 和 operations-timeline 已记录的行动；区分 executed、executing、accepted、rejected。采纳不等于执行，建议不等于行动。review 只能为 observed-supported、observed-contradicted、insufficient、not-reviewed、not-applicable；未复盘或证据不足不得标为有效/无效。没有可核对记录时返回空数组，并在 dataGaps 说明“现有记录不足，不代表没有运营”。
+每项 opportunities 和 previousActions 必须引用已经出现在 claims 中的证据ID；lifecycle 中 observed/partial 阶段也必须引用 claims 证据。unknown/not-investigated 阶段可以 evidenceIds 为空。
+weeklyReport 额外字段：
+"lifecycle":[{"stage":"acquisition|registration|activation|engagement|retention|trading|economics","status":"observed|partial|unknown|not-investigated","finding":"事实或缺口说明","evidenceIds":[]}],
+"opportunities":[{"text":"有证据支持的正向机会或待验证方向","evidenceIds":["证据ID"]}],
+"previousActions":[{"action":"已记录的实际行动或决策","status":"executed|executing|accepted|rejected","review":"observed-supported|observed-contradicted|insufficient|not-reviewed|not-applicable","outcome":"复盘结论或尚未复盘","metric":"相关指标或未知","evidenceIds":["证据ID"]}]。
+`;
+const weeklyPromptV3=weeklyPromptV2+'\n'+businessBrainPromptV1+'\n'+weeklyDecisionPromptV2;
 const customPeriodInstruction='本报告使用自定义统计时间范围，而非自然周。context.period.start 为开始时间（包含），context.period.end 为结束时间（不包含），时区以 context.period.timezone 为准。所有对比必须使用 context.period.previousStart 至 previousEnd 的紧邻前一段等长周期；如数据源只支持日期级聚合，必须说明时间粒度差异，不能伪装成分钟级精确。不得使用“上周/本周”替代实际日期范围。';
 const customPeriodBaseV2=weeklyPromptV2
  .replace('完整自然周（Asia/Bangkok 周一至周日）','自定义时间范围（Asia/Bangkok）')
@@ -105,7 +116,7 @@ const customPeriodBaseV2=weeklyPromptV2
  .replaceAll('周度','报告期')
  .replaceAll('周报','报告');
 const customPeriodPromptV0=customPeriodBaseV2+'\n'+customPeriodInstruction;
-const customPeriodPromptV1=customPeriodBaseV2+'\n'+businessBrainPromptV1+'\n'+customPeriodInstruction;
+const customPeriodPromptV1=customPeriodBaseV2+'\n'+businessBrainPromptV1+'\n'+weeklyDecisionPromptV2+'\n'+customPeriodInstruction;
 // Server-derived KPIs come from the exact owner-scoped immutable evidence
 // already saved for this run. They never depend on the model inventing JSON.
 function trustedWeeklyMetrics(context){
@@ -130,7 +141,8 @@ function trustedWeeklyMetrics(context){
    evidenceIds:[now?.id,before?.id].filter(Boolean)};
  }).filter(Boolean);
 }
-function hydrateWeeklyReport(analysis){
+const LIFECYCLE_STAGES=Object.freeze(['acquisition','registration','activation','engagement','retention','trading','economics']);
+function hydrateWeeklyReport(analysis,{strict=false}={}){
  const w=analysis?.weeklyReport;
  if(!w||typeof w!=='object'||Array.isArray(w))return;
  const known=new Set((analysis.claims||[]).flatMap(claim=>claim.evidenceIds||[]));
@@ -149,7 +161,7 @@ function hydrateWeeklyReport(analysis){
    evidenceIds:refs(s.evidence?.evidenceIds)
   }));
 }
-function validateWeeklyReport(analysis){
+function validateWeeklyReport(analysis,{strict=false}={}){
  const r=analysis?.weeklyReport;
  const required=['metrics','highlights','issues','channelFindings','nextWeek','dataGaps'];
  if(!r||typeof r.executiveSummary!=='string'||!r.executiveSummary.trim()||
@@ -182,6 +194,40 @@ function validateWeeklyReport(analysis){
   if(!Array.isArray(row.evidenceIds)||row.evidenceIds.length>12||row.evidenceIds.some(id=>!cited.has(id)))
    throw Error('周报行动引用了无效证据');
  });
+ if(strict){
+  if(!Array.isArray(r.lifecycle)||r.lifecycle.length!==LIFECYCLE_STAGES.length||
+   !Array.isArray(r.opportunities)||r.opportunities.length>10||
+   !Array.isArray(r.previousActions)||r.previousActions.length>10)
+   throw Error('新周报必须包含完整生命周期、机会和历史行动区块');
+  const stages=new Set();
+  for(const row of r.lifecycle){
+   if(!row||!LIFECYCLE_STAGES.includes(row.stage)||stages.has(row.stage)||
+    !['observed','partial','unknown','not-investigated'].includes(row.status)||
+    typeof row.finding!=='string'||!row.finding.trim()||
+    !Array.isArray(row.evidenceIds)||row.evidenceIds.length>12||
+    row.evidenceIds.some(id=>typeof id!=='string'||!cited.has(id))||
+    ['observed','partial'].includes(row.status)&&!row.evidenceIds.length)
+    throw Error('生命周期阶段缺少有效状态或证据');
+   stages.add(row.stage);
+  }
+  if(stages.size!==LIFECYCLE_STAGES.length)throw Error('生命周期阶段不完整');
+  for(const row of r.opportunities){
+   if(!row||typeof row.text!=='string'||!row.text.trim()||
+    !Array.isArray(row.evidenceIds)||!row.evidenceIds.length||row.evidenceIds.length>12||
+    row.evidenceIds.some(id=>typeof id!=='string'||!cited.has(id)))
+    throw Error('增长机会必须引用已验证证据');
+  }
+  for(const row of r.previousActions){
+   if(!row||typeof row.action!=='string'||!row.action.trim()||
+    !['executed','executing','accepted','rejected'].includes(row.status)||
+    !['observed-supported','observed-contradicted','insufficient','not-reviewed','not-applicable'].includes(row.review)||
+    typeof row.outcome!=='string'||!row.outcome.trim()||
+    typeof row.metric!=='string'||!Array.isArray(row.evidenceIds)||
+    !row.evidenceIds.length||row.evidenceIds.length>12||
+    row.evidenceIds.some(id=>typeof id!=='string'||!cited.has(id)))
+    throw Error('历史行动复盘必须区分执行状态、观察结论并引用证据');
+  }
+ }
  if(r.dataGaps.some(x=>typeof x!=='string'))throw Error('周报数据限制格式无效');
  return r;
 }
@@ -189,7 +235,8 @@ function validateWeeklyReport(analysis){
 // schema, preserve the paid, evidence-validated result as a clearly partial report.
 // Never retry automatically or reuse unverifiable numbers and citations.
 function ensureWeeklyReport(analysis,{context=null}={}){
- hydrateWeeklyReport(analysis);
+ const strict=context?.weeklyReportContractVersion==='weekly-report-v2';
+ hydrateWeeklyReport(analysis,{strict});
  const derived=trustedWeeklyMetrics(context);
  const complete=()=>{
   // The report contract was separately validated against model-cited claims.
@@ -233,4 +280,4 @@ function ensureWeeklyReport(analysis,{context=null}={}){
   return complete();
  }
 }
-module.exports={weeklyPeriod,reportPeriod,weeklyKey,reportKey,weeklyOperations,weeklyPrompt,weeklyPromptV2,weeklyPromptV3,customPeriodPromptV0,customPeriodPromptV1,validateWeeklyReport,ensureWeeklyReport,trustedWeeklyMetrics,weeklyModelTimeoutMs};
+module.exports={weeklyPeriod,reportPeriod,weeklyKey,reportKey,weeklyOperations,weeklyPrompt,weeklyPromptV2,weeklyPromptV3,customPeriodPromptV0,customPeriodPromptV1,validateWeeklyReport,ensureWeeklyReport,trustedWeeklyMetrics,weeklyModelTimeoutMs,LIFECYCLE_STAGES};
