@@ -698,6 +698,12 @@ function modelContext(raw,{transportVersion='v1',reviewRevision=0,reserveBytes=0
  // Strict transport byte cap for the first model message, independent of
  // the multilingual token preflight. Do not hide unknown data as zeros.
  const fits=()=>Buffer.byteLength(JSON.stringify(context),'utf8')<=limit;
+ // Query ranking is optional explanatory context. Never evict verified KPI
+ // evidence, provenance or the authorized catalog just to retain cost hints.
+ if(!fits()&&context.questionPriority?.length>2)
+  context.questionPriority=context.questionPriority.slice(0,2);
+ if(!fits()&&context.questionPriority?.length)
+  context.questionPriority=[];
  if(!fits()){
   context.evidence=context.evidence.slice(0,18);
   if(transportVersion!=='v1')shareEvidenceProvenance(context);
