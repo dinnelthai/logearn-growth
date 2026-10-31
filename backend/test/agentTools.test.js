@@ -38,6 +38,41 @@ test('each queried metric keeps its own identity and definition',async()=>{
  const r=await t.registry.executeTool('query_metrics',{metrics:['d7']},t.context);assert.equal(r.evidence[0].metricId,'d7');assert.equal(r.evidence[0].value,null);assert.equal(r.evidence[0].denominator,0);
  }finally{t.db.close()}
 });
+test('metric evidence retains per-source caveats instead of replacing them with shared warnings',async()=>{
+ const t=setup({metrics:async()=>({
+  metrics:[
+   {metricId:'registered_users',value:0,coverage:{status:'partial',
+    reason:'注册事实水位尚未独立验证'},warnings:['注册来自 account_v2.created_at']},
+   {metricId:'registered_trade_conversion_rate',value:null,
+    coverage:{status:'unavailable',reason:'交易身份关联未知'},
+    warnings:['交易覆盖未知，不代表零交易']}
+  ],coverage:{events:'partial',registrations:'unknown',trades:'unknown'},
+  warnings:['本次聚合来源须核对']
+ })});
+ try{
+  const result=await t.registry.executeTool('query_metrics',
+   {metrics:['registered_users','registered_trade_conversion_rate']},t.context);
+  assert.equal(result.status,'ok');
+  const [registration,trade]=result.evidence;
+  assert.equal(registration.value,0);
+  assert.equal(registration.coverage.status,'partial');
+  assert.match(registration.coverage.reason,/注册事实/);
+  assert.equal(registration.watermarks.events,null,
+   'shared Hologres event cutoff must not masquerade as registration freshness');
+  assert.equal(registration.sourceVersions.events,null);
+  assert.equal(registration.watermarks.registrations,null);
+  assert.ok(registration.warnings.some(w=>w.includes('account_v2.created_at')));
+  assert.ok(registration.warnings.some(w=>w.includes('本次聚合')));
+  assert.equal(trade.value,null);
+  assert.equal(trade.coverage.status,'unavailable');
+  assert.match(trade.coverage.reason,/交易身份/);
+  assert.equal(trade.watermarks.events,'2026-10-20T00:00:00Z');
+  assert.equal(trade.watermarks.trades,null);
+  assert.ok(trade.warnings.some(w=>w.includes('不代表零交易')));
+  assert.equal(registration.filters.scope.source,'twitter');
+  assert.equal(typeof trade.definitionVersion,'string');
+ }finally{t.db.close()}
+});
 test('advertised tool input fields match execution validation',()=>{
  const t=setup();try{const capabilities=t.registry.listCapabilities(t.context);const schema=id=>capabilities.find(x=>x.id===id).inputSchema.properties;
  assert.equal('dimensions' in schema('check_data_quality'),false);
