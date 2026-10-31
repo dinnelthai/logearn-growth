@@ -2,7 +2,7 @@
 
 Branch: `codex/ai-comprehensive-upgrade`  
 Scope: Business Brain, Growth Intelligence, Operating Memory, Decision Engine and Learning Loop.  
-Progress snapshot (2026-10-31): 18 / 45 implementation checklist items have code and CI coverage in place (40%); live-source acceptance is tracked separately.  
+Progress snapshot (2026-10-31): 22 / 45 implementation checklist items have code and CI coverage in place (49%); live-source acceptance is tracked separately.  
 Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace and storage.
 
 ## Product definition
@@ -85,11 +85,11 @@ Acceptance:
 
 ### Phase 3 — Operating Memory
 
-- [ ] Build an operations timeline by reusing existing KOL, SEO, X/content, campaign, community, training and operation-task records.
-- [ ] Normalize activity identity, channel, target, period, spend, owner, execution status and outcome without copying duplicate CRM/task systems.
-- [ ] Link activity records to channel metrics and mature outcomes where identifiers and windows allow.
-- [ ] Keep AI suggestion/review memory distinct from human-entered activity records.
-- [ ] Display missing activity coverage explicitly.
+- [x] Build an owner-scoped operations timeline by reusing existing growth activities, KOL collaborations, manual content, operation tasks, X, Search Console, KOL observations, AI report actions and specialist signals.
+- [x] Normalize source, activity type, channel, period, target, assignee/status, KOL ledger amounts, activity delivery state and frozen outcomes without creating a parallel CRM/task manager.
+- [ ] Link activity records to channel metrics and mature outcomes only where stable identifiers and comparable time windows exist; current KOL/activity links and settled activity outcomes do not establish cross-channel attribution.
+- [x] Keep AI suggestion/review records in a separate layer from human-entered activities and channel observations.
+- [x] Expose per-source available/empty/not-configured/unavailable/truncated coverage; missing community/training connectors remain unknown, not zero.
 
 Acceptance:
 - report can say which known activities occurred during a period;
