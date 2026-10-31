@@ -313,8 +313,8 @@ function createOperationsTimeline({
      metrics:{profiles:rows.length,observedUsers,analysisEvents},
      kolSummaries:linkedKols.map(row=>({kolRef:'kol:'+String(row.id),label:text(row.label,80),
       stage:text(row.stage,24),metrics:{observedUsers:finite(row.observedUsers),
-       analysisUsers:finite(row.analysisUsers),analysisEvents:finite(row.analysisEvents),
-       tradeUsers:finite(row.tradeUsers),transactions:finite(row.transactions),volume_usd:finite(row.volumeUsd)},
+       analysis_users:finite(row.analysisUsers),analysis_events:finite(row.analysisEvents),
+       trade_users:finite(row.tradeUsers),transactions:finite(row.transactions),volume_usd:finite(row.volumeUsd)},
       linkedCollaborationRefs:(collaborationRefsByKol.get(String(row.id))||[]).slice(0,4)})),
      coverage:safeJson(record.coverage)||{},scope:evidence.scope||'tagged',
      attribution:'observational-not-causal',relationshipType:linkedKols.length?'crm-kol-id-match':'unlinked'
