@@ -60,13 +60,14 @@ function factsFromValue(value,max=4){
   'engagementRate','replyRate','repostRate','likeRate','h24Views','h48Views',
   'measuredPosts','followerChange','comments','shares',
   'converted','rate','eligible','returned','pending','trades','volume_usd',
+  'completed','prior','active','inactive','review','analysis_users','analysis_events','analysis_days','returning_analysis_users','multi_day_users','trade_users','actual','ratio','target',
   'volume','revenue','cost','cost_usd','total','count','started','success','failed'
  ]);
  const visit=(obj,prefix='',depth=0)=>{
   if(depth>2||!obj||typeof obj!=='object'||Array.isArray(obj))return;
   for(const [key,v] of Object.entries(obj).slice(0,40)){
    if(valid(v)&&allowed.has(key))matches.push({metric:prefix?prefix+'.'+key:key,value:v});
-   else if(depth<2&&['metrics','totals','summary','counts','contentSignals',
+   else if(depth<2&&['metrics','totals','summary','counts','contentSignals','outcome','targetProgress','performance','sourceCoverage',
      'xOfficial','global','conversion','retention','trade','product_chain','cohorts','registration'].includes(key))
     visit(v,prefix?prefix+'.'+key:key,depth+1);
   }
