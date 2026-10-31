@@ -488,3 +488,18 @@ Branch: `codex/ai-comprehensive-upgrade`
 - CI [41181045783](https://github.com/dinnelthai/logearn-growth/actions/runs/41181045783) completed successfully: AI Contract, AI Frontend and AI Integration all passed.
 - Contract test groups: 177 tests (176 pass, 0 fail, 1 skipped), plus 26/26, 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112.
 - No schema migration, deployment, production collection, paid call or external write.
+
+
+## 2026-10-31 — Reviewable metric and complete action-plan contract
+
+### Implemented
+- Added `backend/src/ai/growth/reviewMetrics.js` as the shared source for the metrics the current retrospective job can directly reconstruct: `active_users`, `new_users`, `returning_users`, `activation_rate`, `d7`.
+- Extracted the retrospective value projection into `buildRetrospectiveValues`; the actual retrospective job now uses it. The metric registry derives its `reviewAdapter` from the same map and checks that its declarations remain in sync.
+- Corrected false reviewability declarations: `registration_activation_rate` and `registered_trade_conversion_rate` remain valid business metrics but are not yet computable by the current retrospective service; `registered_users` is also not directly reviewable there. New suggestions cannot use these as primary or secondary review metrics until a real direct-read path exists.
+- Versioned the new output contract as `analysis-contract-v2` and pinned it into newly created analysis snapshots. New suggestions require supported review metrics, a complete structured execution plan, expected-impact basis, exact source scope and non-empty review conditions.
+- Archived snapshots without the v2 marker keep legacy validation, preserving finalization/recovery compatibility.
+
+### Validation
+- CI [41182874411](https://github.com/dinnelthai/logearn-growth/actions/runs/41182874411) passed AI Contract, AI Frontend and AI Integration.
+- Contract groups: 177 tests (176 pass, 0 fail, 1 skipped), plus 26/26, 16/16, 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112.
+- No database migration, deployment, live data collection, paid model call or external write.
