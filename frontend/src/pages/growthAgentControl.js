@@ -102,6 +102,10 @@ export function createGrowthAgentControl(ctx){
   <section class="a-card a-details"><h2>自我评价与下一轮策略</h2>${err(learning)}
    <p>成熟复盘 ${learning.assessment?.reviewed??'未知'} · 观察支持 ${learning.assessment?.observedSupported??'未知'} · 观察不支持 ${learning.assessment?.observedContradicted??'未知'} · 证据不足 ${learning.assessment?.insufficient??'未知'}</p>
    <p class="a-muted">“观察支持 / 不支持”仅表示固定人群的前后指标变化与复盘判断是否一致，不代表行动因果效果。当前只有语义可直接对齐的活跃用户指标参与 v2 判断；其他指标或覆盖不完整的样本计为证据不足。</p>
+   <h3>最近复盘判断</h3>
+   <div class="a-scroll"><table><thead><tr><th>运营行动</th><th>指标</th><th>观察判断</th><th>基线 → 观察后</th><th>固定人数</th></tr></thead><tbody>
+    ${(learning.judgements||[]).map(j=>{const change=j.evidence?.change||{};const labels={'observed-supported':'观察支持','observed-contradicted':'观察不支持','insufficient':'证据不足'};return '<tr><td>'+safe(j.businessProblem||j.actualAction||'运营行动')+'</td><td>'+safe(j.metric)+'</td><td>'+safe(labels[j.assessment]||j.assessment)+'</td><td>'+(change.baseline==null||change.effect==null?'—':safe(change.baseline)+' → '+safe(change.effect))+'</td><td>'+(change.requestedUsers==null?'—':safe(change.requestedUsers))+'</td></tr>'}).join('')||'<tr><td colspan="5">暂无已复盘的运营行动</td></tr>'}
+   </tbody></table></div>
    <div class="a-scroll"><table><thead><tr><th>目标</th><th>策略版本</th><th>待重新检查指标</th></tr></thead><tbody>
    ${['activation','retention','conversion','revenue'].map(g=>`<tr><td>${g}</td><td>${safe(policies[g]?.version)}</td><td>${safe(policies[g]?.policy?.focusMetrics?.join(', ')||'无成熟反证')}</td></tr>`).join('')}
    </tbody></table></div>
