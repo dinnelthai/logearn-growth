@@ -25,7 +25,8 @@ function activityOutcome(row){
    status:text(raw.target_progress.status,24),partial:raw.target_progress.partial===true}:null;
  const errors=raw.performance_errors&&typeof raw.performance_errors==='object'?raw.performance_errors:null;
  const sourceCoverage=errors?Object.fromEntries(['analysis','trade','account'].map(key=>
-  [key,errors[key]?'unavailable':'available'])):{analysis:'unknown',trade:'unknown',account:'unknown'};
+  [key,Object.hasOwn(errors,key)?errors[key]?'unavailable':'available':'unknown'])):
+  {analysis:'unknown',trade:'unknown',account:'unknown'};
  return {status:'settled',asOf:text(raw.as_of||'',48)||null,
   snapshotCutoff:text(raw.snapshot_cutoff||'',48)||null,
   ...(summary?{summary}:{}),...(performance?{performance}:{}),
