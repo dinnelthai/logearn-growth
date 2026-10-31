@@ -2,7 +2,7 @@
 // A weekly decision context is statistics-first, not a twelve-skill data dump.
 // Full evidence/tool schemas stay in the owner-scoped read-only registry and
 // paid-call journal. This projection does not query or mutate external sources.
-const CAP=22000;
+const DEFAULT_CAP=22000;
 const METRICS=[
  ['new_users','首次分析用户',5],['active_users','分析活跃用户',5],
  ['returning_users','回访分析用户',3],['activation_rate','激活率',5],
@@ -45,9 +45,12 @@ function factsFromValue(value,max=4){
  });
  return matches.slice(0,max);
 }
-function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,reviewRevision=0}){
+function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,reviewRevision=0,reserveBytes=0}){
  if(raw?.weeklyCoverage?.version!=='weekly-coverage-v1')
   throw Error('周报 Context v4 缺少可信的服务端模块覆盖记录');
+ if(!Number.isSafeInteger(reserveBytes)||reserveBytes<0||reserveBytes>6000)
+  throw Error('周报上下文预留预算无效');
+ const CAP=DEFAULT_CAP-reserveBytes;
  const period=compactPeriod(raw.period);
  const source=Array.isArray(raw.evidence)?raw.evidence:[];
  const byId=new Map(source.filter(e=>typeof e?.id==='string').map(e=>[e.id,e]));
