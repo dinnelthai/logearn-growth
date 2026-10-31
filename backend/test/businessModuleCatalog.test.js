@@ -119,3 +119,38 @@ test('business module exposes its actual source contract rather than a generic b
  assert.deepEqual(manual.sources,['manual_search_observation']);
  assert.equal(manual.sourceContract.clock,'pt_calendar_snapshot');
 });
+
+test('all eighteen built-in tools archive independently labeled source, scope, coverage and version',()=>{
+ const {SOURCE_CONTRACTS}=require('../src/ai/business/tools/sourceContracts');
+ const {makeEvidence}=require('../src/ai/business/evidence');
+ const {modelEvidence}=require('../src/ai/business/modelTransport');
+ const metric={
+  query_metrics:'active_users',get_funnel:'funnel',get_paths:'paths',
+  get_product_chain:'product_chain',get_retention:'retention',
+  get_channels:'channels',get_segments:'segments',get_activity:'activities',
+  get_operations_timeline:'activities',get_channel_economics:'collaboration_economics',
+  check_data_quality:'quality',get_seo_performance:'seo_search',
+  get_kol_performance:'kol_performance',get_content_growth:'content_growth',
+  get_follower_quality:'follower_quality',get_referral:'referral',
+  get_login_conversion:'login_conversion',get_invite_conversion:'invite_conversion'
+ };
+ assert.deepEqual(Object.keys(metric).sort(),Object.keys(SOURCE_CONTRACTS).sort());
+ for(const [tool,metricId] of Object.entries(metric)){
+  const e=makeEvidence({metricId,query:{tool},value:null,
+   coverage:{status:'partial'},watermarks:{events:null,registrations:null,trades:null}},ctx);
+  const contract=SOURCE_CONTRACTS[tool],model=modelEvidence(e);
+  assert.equal(e.definitionVersion,require('../src/ai/business/metricRegistry')
+   .describeMetric(metricId).version,tool);
+  assert.equal(e.sourceMetadata.sourceType,tool==='query_metrics'?
+   'hologres_observed_events':contract.sourceType,tool);
+  assert.equal(model.sourceMetadata.scope,'all',tool);
+  assert.equal(model.sourceMetadata.coverageStatus,'partial',tool);
+  assert.equal(model.sourceMetadata.freshness.status,'unknown',tool);
+  assert.equal(model.sourceMetadata.freshness.referenceAt,null,tool);
+  assert.equal(model.sourceMetadata.freshness.reportedCompleteThrough,null,tool);
+  assert.equal(model.period.start,ctx.period.start,tool);
+  assert.equal(model.period.end,ctx.period.end,tool);
+  assert.equal(model.value,null,tool);
+  assert.equal(typeof e.queryFingerprint,'string',tool);
+ }
+});
