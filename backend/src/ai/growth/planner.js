@@ -61,7 +61,7 @@ function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[
  const available=[...(focusSkillId?[getSkill(focusSkillId)]:[]),...defaultIds.filter(id=>id!==focusSkillId).map(getSkill)];
  const ordered=available.map((skill,i)=>({
   skill,match:ranked.findIndex(c=>skill.signals.includes(c.metric)),order:i,
-  attention:experience.filter(e=>skill.signals.includes(e.metric)).reduce((n,e)=>n+e.ineffectiveReviews,0),
+  attention:experience.filter(e=>skill.signals.includes(e.metric)).reduce((n,e)=>n+e.ineffectiveReviews*2+(e.insufficientReviews||0),0),
   strategyFocus:skill.signals.some(m=>focus.has(m))?1:0
  })).sort((a,b)=>(a.skill.id===focusSkillId?0:1)-(b.skill.id===focusSkillId?0:1)||
    Number(additional.includes(b.skill.id))-Number(additional.includes(a.skill.id))||
@@ -92,7 +92,16 @@ function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[
    investigation:skill.instructions,mode:'read-only',
    experienceChecks:experience.filter(e=>skill.signals.includes(e.metric)).map(e=>({
     metric:e.metric,observedEffective:e.effectiveReviews,observedIneffective:e.ineffectiveReviews,
-    instruction:e.ineffectiveReviews?'历史观察未显示改善，应提出可验证的新假设并避免直接重复旧动作':'历史改善仅为观察相关，不可宣称因果'
+    insufficientReviews:e.insufficientReviews||0,
+    priorActions:(e.recentLessons||[]).slice(0,3).map(lesson=>({
+     businessProblem:lesson.businessProblem,actualAction:lesson.actualAction,
+     assessment:lesson.assessment,reason:lesson.reason,reviewedAt:lesson.reviewedAt
+    })),
+    instruction:e.ineffectiveReviews
+     ?'历史观察未显示改善；禁止原样重复同一行动，除非提出不同假设、明确变化机制并补充新证据'
+     :e.insufficientReviews
+      ?'历史复盘证据不足；不得把旧行动当作已验证方案，先补齐缺失证据或改变干预设计'
+      :'历史改善仅为观察相关，不可宣称因果；再次执行需独立验证'
    })),
    relatedCandidates:priority.filter(c=>skill.signals.includes(c.metric)).map(c=>c.id).filter(Boolean).slice(0,5)
   })),
@@ -104,7 +113,12 @@ function formatPlanForPrompt(plan){
  if(plan?.version!=='growth-plan-v1'||!Array.isArray(plan.steps))throw Error('计划版本不支持');
  return '优先核查这些已配置的只读增长技能（不是必须全部调用）：\n'+
   plan.steps.map(s=>s.label+' ['+s.skillId+'@'+s.skillVersion+'] 工具：'+s.tools.join(',')+'；'+s.investigation+
-  (s.experienceChecks?.length?'；历史验证注意：'+s.experienceChecks.map(x=>x.metric+':'+x.instruction).join('；'):'')).join('\n')+
+  (s.experienceChecks?.length?'；历史验证注意：'+s.experienceChecks.map(x=>{
+   const actions=(x.priorActions||[]).map(a=>
+    (a.actualAction||a.businessProblem||'未记录行动')+'（'+a.assessment+'；'+a.reason+'）'
+   ).join('；');
+   return x.metric+':'+x.instruction+(actions?'；近期相关行动：'+actions:'');
+  }).join('；'):'')).join('\n')+
   (plan.learningStrategy?'\n历史策略版本 '+plan.learningStrategy.version+'，优先核查指标：'+
     plan.learningStrategy.focusMetrics.join(',')+'。'+plan.learningStrategy.instructions:
     '')+
