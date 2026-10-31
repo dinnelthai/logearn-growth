@@ -76,6 +76,9 @@ jobs:
           node --check src/ai/business/modelTransport.js
           node --check src/ai/business/modelEvidence.js
           node --check src/ai/business/tools/registry.js
+          node --check src/ai/business/tools/operationsTimeline.js
+          node --check src/ai/business/tools/businessModuleCatalog.js
+          node --check test/operationsTimeline.test.js
           node --check src/ai/business/runner.js
           node --check src/ai/business/tokenBudget.js
           node --check src/ai/business/checkpointState.js
@@ -161,6 +164,11 @@ jobs:
           NODE_ENV: test
         run: |
           node --test test/promptReplay.test.js test/promptfooAdapter.test.js test/promptRegistry.test.js test/autonomyBudget.test.js test/researchQuestions.test.js test/promptGate.test.js test/growthSchedulerHealth.test.js test/growthAgentForecast.test.js test/growthAgentWebhook.test.js test/growthAutonomyHttp.test.js test/growthAutonomyRunner.test.js test/growthAgentAutonomy.test.js test/gscHttp.test.js test/gscClient.test.js test/gscOAuth.test.js test/gscService.test.js test/growthSpecialtyAnalyzeHttp.test.js test/growthSpecialistHttp.test.js test/growthSeo.test.js test/growthKolReader.test.js test/growthSpecialistTools.test.js test/growthInboxHttp.test.js test/growthInvestigationTimelineHttp.test.js test/growthInvestigationTimeline.test.js test/growthProposalHttp.test.js test/growthBudgetIntegration.test.js test/growthAlertHttp.test.js test/growthMonitorControlHttp.test.js test/growthExperience.test.js test/growthCrossDay.test.js test/growthInbox.test.js test/growthReviewHttp.test.js test/growthActionWorkflow.test.js test/growthTriage.test.js test/growthPlanner.test.js test/growthDaily.test.js test/analysisRecoveryIsolation.test.js test/analysisResumeHttp.test.js test/resumePlan.test.js test/partialInvestigationResume.test.js test/analysisCancelHttp.test.js test/validatedFinalCheckpoint.test.js test/validatedFinalRecovery.test.js test/workerStart.test.js test/recoveryDecision.test.js test/agentKilledWorker.test.js test/agentRestartPersistence.test.js test/agentFollowupCheckpoint.test.js             test/agentFollowupRunner.test.js             test/agentTrace.test.js             test/agentResponseCheckpoint.test.js             test/agentInvestigationCheckpoint.test.js             test/checkpointState.test.js             test/transcriptRecovery.test.js             test/checkpointHttp.test.js             test/jobStatus.test.js             test/jobStatusHttp.test.js             test/retrySafety.test.js             test/retrySafetyHttp.test.js
+
+      - name: Run operating timeline and module discovery tests
+        env:
+          NODE_ENV: test
+        run: node --test test/operationsTimeline.test.js test/businessModuleCatalog.test.js
 
       - name: Run Business Brain and custom report regression tests
         env:
