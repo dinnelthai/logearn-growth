@@ -2,7 +2,7 @@
 
 Branch: `codex/ai-comprehensive-upgrade`  
 Scope: Business Brain, Growth Intelligence, Operating Memory, Decision Engine and Learning Loop.  
-Progress snapshot (2026-10-31): 31 / 48 implementation checklist items have code and CI coverage in place (65%); live-source acceptance is tracked separately.  
+Progress snapshot (2026-10-31): 32 / 48 implementation checklist items have code and CI coverage in place (67%); live-source acceptance is tracked separately.  
 Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace and storage.
 
 ## Product definition
@@ -136,7 +136,9 @@ Acceptance:
 - [x] Review only after the metric’s maturity window; the fixed-cohort evidence requires at least three complete post-completion business days.
 
 Implementation note (2026-10-31): AI retrospective now resolves the single owner-scoped operation task linked to an executed suggestion. It revalidates the source scope and exact task/suggestion completion timestamp, then queries the same frozen audience over equal-length (3–14 complete Bangkok business days) windows: baseline ends before task creation; observation begins on the first complete business day after task completion. Both windows use one Hologres snapshot. The model receives aggregate-only cohort metrics, coverage and the observe-until timestamp; no member IDs or user-level rows are projected. Multiple linked tasks, source mismatches, incomplete source reads and immature windows are explicitly unavailable/waiting. This is observational evidence, not causal attribution.
-- [ ] Store observed-supported / observed-contradicted / insufficient outcomes separately.
+- [x] Store observed-supported / observed-contradicted / insufficient outcomes separately; feed fixed-cohort observational labels into the learning index and next investigation planner.
+
+Implementation note (2026-10-31): Learning now accepts retrospective context v2 and reads the fixed-cohort baseline/effect payloads. The v2 classifier deliberately maps only `active_users → analysis_users`, whose semantics are directly comparable. It requires equal frozen audience size, zero unmatched accounts in both periods, and medium/high review confidence. All other primary metrics (including new_users, activation_rate, retention and trade conversion) remain `insufficient` until a valid cohort-level equivalent is implemented; global business metrics are never substituted. The same labels feed the owner-scoped judgement store and planner experience feedback. `getAnalysisMemory` now projects the baseline/effect JSON needed by the planner.
 - [x] Use validated review outcomes to adjust investigation focus; do not auto-rewrite KPIs or model weights.
 - [x] Maintain versioned strategy notes with expiry, scope, counter-evidence and rollback.
 
