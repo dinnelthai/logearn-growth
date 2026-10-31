@@ -160,7 +160,7 @@ test('registered user journey exposes 24h activation, parallel 7d product entrie
    trade:{available:true,engaged:10,eligible:8,unmatched:2,traders:3,
     conversion_rate:3/8,pending:2,not_engaged:6,
     association:'user-level-after-first-analysis'}
-  }},quality:{history_complete:false}}});
+  }},quality:{history_complete:false}});
   const result=await metrics({start:100,end:200,source:'all'},
    {snapshot_id:'events-v1',as_of:'2026-10-20T00:00:00Z'},
    ['registered_user_journey'],{});
