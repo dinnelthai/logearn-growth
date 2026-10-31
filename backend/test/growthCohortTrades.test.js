@@ -53,7 +53,7 @@ test('no mature first-analysis cohort skips trade and account queries',async()=>
   remote.query=async()=>{throw Error('must not query')}
   const result=await cohortTrades(snapshot,[
    row('user:1',start+100,null),
-   row('user:2',start+200,start+300),
+   row('user:2',start+200,asOf-3*DAY),
    row('user:3',start+400,asOf)
   ],{start,end})
   assert.deepEqual(result.trades,[])
