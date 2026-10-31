@@ -268,6 +268,8 @@ function createOperationsTimeline({
    '活动、社群与培训仅在现有 growth_activities / operation_tasks 等记录中可见；没有专门平台连接时不代表不存在活动',
    '内容增长记录是人工登记，不是平台完整采集'
   ];
+  const limited=Object.entries(coverage).filter(([,value])=>value?.truncated===true).map(([key])=>key);
+  if(limited.length)warnings.push('以下来源达到本次读取上限，返回的是有界样本而非完整清单：'+limited.join(', '));
   return {
    period:{start,end,timezone:'Asia/Bangkok',endExclusive:true},
    asOf:clock(),humanOperations:humanOperations.slice(0,limit),
