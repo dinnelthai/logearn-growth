@@ -1,0 +1,156 @@
+# LogEarn Growth Agent 2.0 — 实施路线图
+
+Branch: `codex/ai-comprehensive-upgrade`  
+Scope: Business Brain, Growth Intelligence, Operating Memory, Decision Engine and Learning Loop.  
+Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace and storage.
+
+## Product definition
+
+The goal is not “write a weekly report”. The goal is a virtual Head of Growth that can explain:
+1. what changed in the business;
+2. where the most important growth constraint or opportunity is;
+3. which causes are supported vs. still hypotheses;
+4. what should be done next, with owner/resources/validation;
+5. whether prior actions were actually executed and what was observed afterward.
+
+The report is only one interface to this operating capability.
+
+## Current architecture to reuse
+
+| Responsibility | Existing implementation |
+|---|---|
+| Formal metric semantics | `backend/src/ai/business/metricRegistry.js`, `backend/src/analytics/businessPriorities.js` |
+| Business aggregate reports | `backend/src/services/businessReport.js`, `backend/src/data/*`, `backend/src/analytics/*` |
+| Tool authorization and evidence | `backend/src/ai/business/tools/registry.js`, `foundation.js`, `evidence.js`, `modelEvidence.js` |
+| Weekly module manifest | `backend/src/ai/growth/weeklyCoverage.js` |
+| Weekly model context | `backend/src/ai/business/weeklyContextV4.js` |
+| Historical AI suggestion memory | `backend/src/db/aiRecords.js#getAnalysisMemory`, `contextBudget.js#compactMemory` |
+| Growth problems, actions and reviews | `backend/src/ai/growth/workspace/store.js` |
+| Action suggestion workflow | `backend/src/ai/growth/actionWorkflow.js` |
+| Learning from mature reviews | `backend/src/ai/growth/agentLearning.js` |
+| Existing KOL / SEO operations | `backend/src/ai/growth/kolOperations.js`, `seoOperations.js` |
+| Existing user operation tasks | `backend/src/routes/operationTasks.js`, `backend/src/analytics/activityMonitor.js` |
+
+Do not build a second analytics engine, CRM, operations task manager, metric registry or evidence store.
+
+## Phases and acceptance
+
+### Phase 0 — Baseline and handoff (in progress)
+
+- [x] Confirm target branch and current repository architecture.
+- [x] Inventory existing modules, metrics, evidence and action/review stores.
+- [x] Add durable architecture and handoff documents.
+- [ ] Run focused tests in a local checkout.
+- [ ] Record exact pre-existing test failures separately from regressions.
+
+Acceptance: a new agent can start from the handoff document without asking for project history again.
+
+### Phase 1 — Business Brain (v1 implementation started)
+
+- [x] Versioned LogEarn product baseline.
+- [x] Four product capability roles and seven lifecycle stages.
+- [x] Compact metric dictionary reused from the existing registry.
+- [x] Explicit reasoning rules for zero/unknown, first-analysis vs registration, trade volume vs revenue and causality.
+- [x] Bounded operating-memory projection from existing AI suggestions/reviews.
+- [x] New v5 context protocol for new analysis tasks; old v1-v4 prompts remain replayable.
+- [x] New weekly prompt framing around business outcomes rather than equal module coverage.
+- [ ] Run focused Node tests and validate the real worker context under the 22KB cap.
+- [ ] Verify the new context on a real, already-authorized business report without starting an unnecessary paid model call.
+- [ ] Review the product map and North Star intent with the operator; do not invent formal KPI definitions.
+
+Acceptance:
+- model can explain product roles and lifecycle stages;
+- model distinguishes registered users, first observed analysis, active users, mature retention, trade volume and revenue;
+- Business Brain is present in new v5 model input but absent from archived v1-v4 input;
+- context remains <=22KB and contains only allowlisted aggregates / bounded history text;
+- no new database migration or external paid call is required.
+
+### Phase 2 — Growth Intelligence and source coverage
+
+- [ ] Audit all existing business modules and their source contracts.
+- [ ] Fix product-to-trade analysis to use authoritative transaction facts; report identity/visit association separately.
+- [ ] Establish the registration → activation → product engagement → trade funnel with verified denominators and maturity.
+- [ ] Validate SEO/GSC date semantics, X snapshot semantics, KOL CRM association and referral/invite contracts.
+- [ ] Add channel / product / cohort breakdowns only where the source supports them.
+- [ ] Keep source watermark, coverage, freshness, scope and definition version with each metric.
+- [ ] Separate platform revenue from trade volume and partner/collaboration ledger records.
+
+Acceptance:
+- dashboard and AI use the same underlying analytics service;
+- all important values trace to an evidence ID and formal metric definition;
+- unknown or unmatched trade association is not reported as zero trades;
+- channel exposure is not claimed as downstream conversion without identity/time evidence.
+
+### Phase 3 — Operating Memory
+
+- [ ] Build an operations timeline by reusing existing KOL, SEO, X/content, campaign, community, training and operation-task records.
+- [ ] Normalize activity identity, channel, target, period, spend, owner, execution status and outcome without copying duplicate CRM/task systems.
+- [ ] Link activity records to channel metrics and mature outcomes where identifiers and windows allow.
+- [ ] Keep AI suggestion/review memory distinct from human-entered activity records.
+- [ ] Display missing activity coverage explicitly.
+
+Acceptance:
+- report can say which known activities occurred during a period;
+- it does not say “no operations” just because the AI workspace has zero records;
+- it can compare activity and outcomes without claiming causality by default.
+
+### Phase 4 — Decision Engine
+
+- [ ] Prioritize business questions by goal relevance, affected population, change magnitude, evidence confidence and query cost.
+- [ ] Generate competing root-cause hypotheses and identify the cheapest authorized query that distinguishes them.
+- [ ] Look for growth opportunities as well as declines.
+- [ ] Generate actions with problem, hypothesis, expected impact basis, resource/owner, primary metric, target, maturity window and review condition.
+- [ ] Validate each suggested metric against the registry and the actual retrospective service.
+- [ ] Avoid duplicate or already-disproved actions.
+
+Acceptance:
+- a conclusion distinguishes fact, hypothesis and unknown;
+- each recommendation is actionable and tied to a valid review metric;
+- no causal or ROI claim is generated without supporting design/data.
+
+### Phase 5 — Operating Report and custom periods
+
+- [ ] Reframe weekly report around executive judgment, business health, lifecycle funnel, channel effectiveness, root causes, opportunities, next actions, previous-action review and data gaps.
+- [ ] Keep module coverage and technical audit information in secondary / collapsible sections.
+- [ ] Preserve custom start/end collection windows; weekly is only the default preset.
+- [ ] Compare with the immediately preceding equal-length window only when metrics are comparable.
+- [ ] Clearly show the timezone and whether end time is inclusive/exclusive.
+
+Acceptance:
+- the report leads with the most important business decision, not a list of 12 module statuses;
+- the operator can choose a custom collection period;
+- each number remains evidence-linked and date-aligned.
+
+### Phase 6 — Learning Loop
+
+- [ ] Connect accepted actions to the existing operation task workflow.
+- [ ] Record actual execution, baseline evidence, observe-until date and after-period evidence.
+- [ ] Review only after the metric’s maturity window.
+- [ ] Store observed-supported / observed-contradicted / insufficient outcomes separately.
+- [ ] Use validated review outcomes to adjust investigation focus; do not auto-rewrite KPIs or model weights.
+- [ ] Maintain versioned strategy notes with expiry, scope, counter-evidence and rollback.
+
+Acceptance:
+- an executed action can be reviewed from baseline and after evidence;
+- adoption alone is not success;
+- ordinary before/after movement is not causal proof;
+- prior negative or insufficient reviews can prevent blind repetition.
+
+## Cross-cutting engineering constraints
+
+- Keep existing analytics SQL and business semantics as the source of truth.
+- Preserve owner isolation and tool permission boundaries.
+- Model input remains aggregate-only; no raw user/event rows, wallet addresses, credentials or X post bodies.
+- Keep the 22KB context budget, model-call limits, paid-call journal, timeout and recovery safety.
+- Do not replay paid calls blindly.
+- No migrations, deployments, production config changes, external paid collection or public posting without explicit approval.
+- Use Node tests and the existing frontend test/build commands; do not call mock tests real-source acceptance.
+
+## Handoff checklist
+
+Before continuing:
+1. Read `docs/ai/GROWTH_AGENT_HANDOFF.md`.
+2. Read `docs/ai/LOGEARN_BUSINESS_BRAIN.md`.
+3. Read this roadmap and `docs/ai/GROWTH_AGENT_UPGRADE_LOG.md`.
+4. Confirm branch and HEAD.
+5. Fetch current files before modifying; do not assume this plan supersedes code.
