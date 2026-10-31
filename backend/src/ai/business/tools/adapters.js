@@ -13,13 +13,24 @@ async function metrics(body,snapshot,ids,context){
  const entries=metrics.map(m=>{
   if(m.queryAdapter==='north')return {metricId:m.id,value:north.totals[m.id]??null};
   if(m.queryAdapter==='weekly')return {metricId:m.id,value:weekly.available?weekly.users:null,warnings:weekly.available?[]:['周核心指标不可用']};
-  if(m.id==='registered_users')return {metricId:m.id,value:null,warnings:['注册聚合尚未适配，不用首次观测替代']};
+  if(m.id==='registered_users'){
+   const registration=growth?.cohorts?.registration;
+   const available=registration?.available===true;
+   const count=available&&Number.isFinite(registration.metrics?.users)?registration.metrics.users:null;
+   const warnings=['注册人数来自 account_v2.created_at，不使用首次分析用户替代'];
+   if(!available||count===null)warnings.push('注册事实不可用或不完整，未知不能解释为0');
+   if(registration?.scope==='observed_source')warnings.push('来源归因仅覆盖已观测来源；未归因账户不会计入该来源');
+   return {metricId:m.id,value:count,warnings};
+  }
   const channels=growth.channels||[],rows=channels.map(c=>m.id==='d7'?c.d7:{eligible:c.eligible,returned:c.activated});
   const known=rows.length>0&&rows.every(r=>Number.isFinite(r?.eligible)&&Number.isFinite(r?.returned));
   const numerator=known?rows.reduce((n,r)=>n+r.returned,0):null,denominator=known?rows.reduce((n,r)=>n+r.eligible,0):null;
   return {metricId:m.id,value:denominator>0?numerator/denominator:null,numerator,denominator,sampleSize:denominator,warnings:denominator>0?[]:['没有成熟分母或成熟覆盖未知']};
  });
- return {metrics:entries,coverage:{events:'partial',registrations:'unknown',trades:'unknown'}};
+ const registration=growth?.cohorts?.registration;
+ return {metrics:entries,coverage:{events:'partial',
+  registrations:registration?.available===true?(registration.scope||'partial'):'unknown',
+  trades:'unknown'}};
 }
 async function economics(body,context){
  const db=require('../../../db/connection');
