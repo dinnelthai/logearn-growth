@@ -69,7 +69,7 @@ function operationsTimelineSummary(payload){
  });
  const observations=(payload.channelObservations||[]).slice(0,20).map(row=>{
   const base=pick(row,[
-   'kind','layer','source','title','startAt','endAt','startDate','endDate','observedAt',
+   'kind','layer','source','title','startAt','endAt','startDate','endDate','observedAt','capturedAt',
    'metrics','samplePosts','coverage','scope','dateTimezone','attribution','warnings','relationshipType'
   ]);
   const kolSummaries=(row.kolSummaries||[]).slice(0,8).map(k=>({
@@ -136,6 +136,7 @@ function operationsTimelineSummary(payload){
   const asOf=Number.isSafeInteger(observation.observedAt)?observation.observedAt:
    Date.parse(observation.observedAt||'');
   if(!Number.isSafeInteger(asOf)||asOf>reportEnd||
+   !Number.isSafeInteger(observation.capturedAt)||observation.capturedAt>reportEnd||
    observation.coverage?.status==='unavailable')continue;
   for(const profile of (observation.kolSummaries||[])){
    if(channelLinks.length>=8)break;
