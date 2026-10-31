@@ -218,6 +218,7 @@ function createToolRegistry(deps){
     input.metrics?.length===1&&input.metrics[0]==='registered_user_journey'&&
     input.dimensions.length===1&&input.dimensions[0]==='source'))
    fail('指标分组不支持该维度；注册旅程仅允许单指标按已观测来源 source 分组，不支持设备/版本分组');
+  if(id==='query_metrics'&&input.dimensions?.length)body.dimensions=input.dimensions.slice();
   if(input.metrics!=null&&(!Array.isArray(input.metrics)||!input.metrics.length||input.metrics.length>10))fail('指标列表无效');
   for(const m of input.metrics||[])describeMetric(m);
   if(input.cursor){
