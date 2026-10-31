@@ -60,3 +60,14 @@ test('cohort evidence waits for three complete business days after task completi
   assert.equal(result.reason,'cohort-observation-window-not-mature');
  }finally{db.close()}
 });
+
+test('cohort evidence revalidates the suggestion source scope at review time',async()=>{
+ const {db,completedAt}=fixture();try{
+  const now=Date.now(),result=await loadLinkedTaskEvidence({db,ownerId:'alice',
+   suggestionId:'suggestion-1',executedAt:completedAt,expectedSource:'twitter',now,
+   snapshot:{snapshot_id:'snap-1',as_of:new Date(now).toISOString(),
+    snapshot_cutoff:new Date(now).toISOString()}});
+  assert.equal(result.status,'unavailable');
+  assert.equal(result.reason,'task-and-suggestion-source-mismatch');
+ }finally{db.close()}
+});
