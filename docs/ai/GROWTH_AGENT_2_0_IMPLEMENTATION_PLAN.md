@@ -109,7 +109,9 @@ Implementation note (2026-10-31): v5 now ranks observed positive and negative si
 - [x] Look for growth opportunities as well as declines (v5-only, goal-ranked observed increases; not proof of replicability).
 - [ ] Generate actions with problem, hypothesis, expected impact basis, resource/owner, primary metric, target, maturity window and review condition.
 - [ ] Validate each suggested metric against the registry and the actual retrospective service.
-- [ ] Avoid duplicate or already-disproved actions.
+- [x] Avoid duplicate or already-disproved actions: retain recent executed action labels (including insufficient reviews), instruct the planner not to repeat contradicted actions, and reject exact duplicates against both proposed and actual executed action text.
+
+Implementation note (2026-10-31): Learning now retains up to three recent action records per metric, including the bounded business problem, actual executed action, observational label and reason. Contradicted actions are explicitly marked “do not repeat as-is”; insufficient reviews instead require evidence completion or a materially changed intervention, without being treated as disproved. Planner skills receive these action-level lessons, and their relevance contributes to investigation attention. The analysis contract also performs deterministic exact-text duplicate detection against both the original proposal and the recorded actual action, scoped by primary metric and source. Similarity-based rejection is intentionally not used to avoid false positives; the model is instructed to distinguish materially changed validation steps.
 
 Acceptance:
 - a conclusion distinguishes fact, hypothesis and unknown;
