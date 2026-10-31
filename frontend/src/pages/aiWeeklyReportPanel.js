@@ -44,7 +44,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
  const section=(title,items,render)=>
   '<section class="ai-weekly-section"><h4>'+safe(title)+'</h4>'+
   (items?.length?'<ul>'+items.map(render).join('')+'</ul>':'<p class="a-muted">暂无经验证的内容，不能据此断定该项正常。</p>')+'</section>';
- const reportBody=(data,record)=>renderWeeklyDecisionReport({data,record,safe,fmt,date,links,canCreateProblem:typeof onCreateProblem==='function'});
+ const reportBody=(data,record)=>renderWeeklyDecisionReport({data,record,safe,fmt,date,dateTime,links,canCreateProblem:typeof onCreateProblem==='function'});
 
  async function showReport(row,token,currentPeriod){
   const target=root.querySelector('[data-weekly-body]');if(!target)return;
