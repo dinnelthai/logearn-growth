@@ -156,6 +156,18 @@ test('old v3 remains structurally distinct, v4 does not mutate archived source',
  assert.equal(v3.coreMetrics,undefined);
 });
 
+test('weekly evidence projection preserves activity delivery outcomes by fixed group without identities',()=>{
+ const facts=factsFromValue({humanOperations:[{
+  kind:'growth_activity',source:'growth_activities',assignments:[
+   {group:'treatment',assigned:4,delivered:3,sent_unconfirmed:0,not_delivered:0,delivery_unknown:1,cross_exposed:1},
+   {group:'control',assigned:3,delivered:1,sent_unconfirmed:1,not_delivered:0,delivery_unknown:1,cross_exposed:0}
+  ]}
+ ]},12);
+ assert.ok(facts.some(x=>x.metric==='humanOperations.growth_activities.assignments.treatment.delivered'&&x.value===3));
+ assert.ok(facts.some(x=>x.metric==='humanOperations.growth_activities.assignments.control.delivered'&&x.value===1));
+ assert.ok(facts.some(x=>x.metric==='humanOperations.growth_activities.assignments.treatment.cross_exposed'&&x.value===1));
+ assert.equal(facts.some(x=>JSON.stringify(x).includes('user_id')),false);
+});
 test('weekly evidence projection preserves registration activation numerator, mature denominator and pending cohort',()=>{
  const facts=factsFromValue({cohorts:{registration:{available:true,metrics:{
   users:20,eligible:15,activated:9,pending:5,rate:.6
