@@ -319,3 +319,10 @@ Final validation update: run [41177187712](https://github.com/dinnelthai/logearn
 - **Tests:** `aiBusinessMetricsAdapter.test.js`, `agentTools.test.js`, `aiWeeklyCoverage.test.js`; underlying maturity/identity semantics also covered by `growthInsights.test.js` and `growthCohortTrades.test.js`.
 - **Checklist:** **40/48 (83.3%), 8 open; Phase 2 5/8**. Live event completeness, registration/trade freshness, identity coverage and production acceptance remain pending. Next: exhaustive module/source audit, supported breakdowns and complete per-metric provenance.
 - No migrations, paid calls, production deployment, external collection or writes.
+
+## 2026-10-31 — Registration-to-trade seven-day cohort clock correction
+
+- Source/test HEAD `a0a7f210ad28dc710062b5907255eacfa1ddceca`; [AI CI 41191137847](https://github.com/dinnelthai/logearn-growth/actions/runs/41191137847) passed all Contract/Integration/Frontend jobs.
+- In `backend/src/analytics/growthInsights.js`, the **registered** cohort's trade branch now requires first observed chip analysis in the half-open `[registered_at, registered_at + 7 days)` window. The subsequent **trade** follow-up still uses its separate mature `[first_chip_at, first_chip_at + 7 days)` window. Users first analysing after registration day seven are `not_engaged` for this specific registered cohort, not silently added to the trade conversion denominator; other observed/channel cohorts preserve their existing first-analysis anchor.
+- In `backend/src/data/growthInsights.js`, `cohortTrades()` excludes these late registered-first-analysis records from remote trade lookup windows to match the analytical numerator and avoid unnecessary reads. Tests: `backend/test/growthCohorts.test.js`, `backend/test/growthCohortTrades.test.js` cover strict day-seven boundary and query parameters.
+- The branch already included `registered_user_journey` as a completed code/CI checklist task before this correction. This update hardens that contract; **40/48 (83.3%), 8 open** remains unchanged. Live registration and trading data coverage/watermark acceptance is not established; no paid call, deployment or migration.
