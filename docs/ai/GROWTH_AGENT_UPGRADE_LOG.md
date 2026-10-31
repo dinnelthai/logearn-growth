@@ -605,3 +605,25 @@ These are **code-complete/CI-validated**, not a guarantee that an actual new v5 
 
 - Phase 2 checkbox “Separate platform revenue from trade volume and partner/collaboration ledger records”: **completed at code/CI contract level**. It does NOT mean verified platform revenue data is available; that data remains unknown until a direct source is designed, connected and accepted.
 - Phase 2 now **3/8**; entire 48-item roadmap **38/48 = 79.2%**, **10 unchecked**. Remaining Phase 2: module source-contract audit; mature funnel/event completeness; GSC/X/KOL/referral time semantics; supported channel/product/cohort splits; per-metric source watermarks/freshness across all skills. Cross-source real Hologres/Worker/model acceptance remains separate.
+
+## 2026-10-31 — Phase 2 source-date and historical snapshot evidence (39/48)
+
+### Findings and implementation
+
+- **Historical X account followers could include future captures.** `get_content_growth` previously selected `x_official_follower_daily` by its Bangkok day string only, without checking `observed_at`; reports ending before the actual collection could display followers learned later. Fixed in `backend/src/ai/business/tools/contentAdapters.js` with strict `observed_at < period.end`.
+- **Historical X follower audit could inherit later state.** A mutable `x_follower_progress` row might show `complete` although it was updated after report cutoff; now only latest states with `updated_at < period.end` are shown. The mutable audit row's post-classification timestamp is considered: if `posts_at >= end`, historical category becomes `unknown` and analyzed count excludes it. `reviewed` is only a boolean without `reviewed_at`, therefore historical reviewed count cannot be recovered.
+- **Model summary could invent zero historical manual reviews.** `backend/src/ai/business/tools/weeklyModuleSummaries.js` now omits reviewed metrics when source values are unknown, instead of `SUM([]) = 0`. It still preserves actual independently observed zero/numeric review counts where a trusted source can provide them.
+- Owner-scoping and read-only behavior preserved. Legacy saved evidence is not rewritten, source data is not migrated and no paid API collector is called.
+
+### Source test gate and verified scope
+
+- Added regression fixtures: `backend/test/contentAgentEvidence.test.js`, `backend/test/xContentAgentEvidence.test.js`, `backend/test/aiWeeklyModuleSummaries.test.js`.
+- Updated `.github/workflows/ai-infrastructure.yml` to run all of `contentAgentEvidence`, `xContentAgentEvidence`, `aiWeeklyModuleSummaries`, `gscWeeklyWindow`, `growthKolReader`, `inviteAssociation`, `inviteRegistration`, and `referralInsights` in the **required AI Contract CI job**. This validates GSC PT-date completeness, saved X observation cutoffs, owner KOL CRM/Hologres watermark, verified invitation binding, referral periods and no ungrounded conversion.
+- Source/test HEAD `14f42ba61c785866e918df3ca841bf4525f35bc2`; [AI infrastructure 41185823229](https://github.com/dinnelthai/logearn-growth/actions/runs/41185823229) **successful** for AI Contract, AI Integration and AI Frontend.
+- New detailed source matrix: `docs/ai/GROWTH_SOURCE_CONTRACTS.md`. Contains explicit live-acceptance gates, scopes, maturity and non-attribution limits. The contract gate is offline; no real business/Google/X/Hologres read, actual completed trade matching, paid model response or production run is claimed.
+
+### Progress accounting and remaining work
+
+- Original Phase 2 checklist task “Validate SEO/GSC date semantics, X snapshot semantics, KOL CRM association and referral/invite contracts” is now **checked at code+CI contract level**. This does not mark real third-party collector freshness, registration linkage or production coverage as accepted.
+- **Overall 39/48 (81.3%); 9 unchecked; Phase 2 4/8.** Remaining Phase 2: exhaustive module source contract audit; mature registration→activation→multiple product engagement→verified trade coverage; source-supported cohort/channel/product breakdowns; independent watermarks/freshness/version/scope per metric. The separate live-read acceptance and operator approval still require authorization.
+- No deployment, DB migration, schema change, paid model calls, paid third-party collection, external post or branch merge.
