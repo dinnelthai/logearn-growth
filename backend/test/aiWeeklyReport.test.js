@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {weeklyPeriod,reportPeriod,weeklyKey,reportKey,weeklyOperations,customPeriodPromptV0,customPeriodPromptV1,validateWeeklyReport,ensureWeeklyReport}=require('../src/ai/growth/weeklyReport');
+const {weeklyPeriod,reportPeriod,weeklyKey,reportKey,weeklyOperations,customPeriodPromptV0,customPeriodPromptV1,trustedWeeklyMetrics,validateWeeklyReport,ensureWeeklyReport}=require('../src/ai/growth/weeklyReport');
 
 test('weekly report uses last complete Monday-Sunday Bangkok week',()=>{
  const period=weeklyPeriod(Date.parse('2026-10-29T09:00:00+07:00'));
@@ -35,6 +35,20 @@ test('31-day custom period is valid and its prompt is not constrained to a natur
  assert.ok(customPeriodPromptV1.includes('紧邻前一段等长周期'));
  assert.equal(customPeriodPromptV1.includes('完整自然周'),false);
  assert.equal(customPeriodPromptV1.includes('本任务是 LogEarn 完整自然周'),false);
+});
+test('custom-period KPI comparison uses the exact immediately preceding equal-length window',()=>{
+ const now=Date.parse('2026-10-31T07:15:00+07:00');
+ const start=Date.parse('2026-10-24T09:30:00+07:00');
+ const end=Date.parse('2026-10-31T06:45:00+07:00');
+ const period=reportPeriod({start:String(start),end:String(end)},now);
+ const metrics=trustedWeeklyMetrics({period,evidence:[
+  {id:'current-new',metricId:'new_users',value:20,period:{start,end}},
+  {id:'previous-new',metricId:'new_users',value:10,period:{start:period.previousStart,end:period.previousEnd}}
+ ]});
+ assert.deepEqual(metrics,[{
+  metricId:'new_users',label:'首次分析用户',current:20,previous:10,
+  changePct:100,evidenceIds:['current-new','previous-new']
+ }]);
 });
 test('custom report periods reject incomplete, future, reversed and overlong ranges',()=>{
  const now=Date.parse('2026-10-31T07:15:00+07:00');
