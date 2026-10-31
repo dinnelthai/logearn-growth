@@ -138,8 +138,8 @@ function conversionSummary(payload){
    retention:(payload.retention||[]).slice(0,4).map(r=>pick(r,['day','eligible','returned','pending','rate'])),
    registration:pick(payload.registration,['available','status','reason']),
    association:pick(payload.association,['available','status','reason'])},
-  coverage:{status:payload.history_complete?'verified':'partial',
-   reason:'仅已观测的转化事件；无法由未观测推导未使用'},
+  coverage:{status:'partial',historyComplete:payload.history_complete===true,
+   reason:'事件历史完整性不能证明登录终态、邀请绑定和注册关系完整；仅已观测转化，无法由未观测推导未使用'},
   warnings:['登录或邀请的未成熟/无关联事件不当作失败；事实、估算与来源分开']};
 }
 // Preserve only independently observed source timestamps and bounded IDs.
