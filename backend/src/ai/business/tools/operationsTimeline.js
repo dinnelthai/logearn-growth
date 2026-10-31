@@ -41,17 +41,34 @@ function createOperationsTimeline({
     FROM growth_activities WHERE owner_id=? AND start_at<? AND cutoff_at>=?
      AND id NOT IN(SELECT child_id FROM growth_activity_merged_batches WHERE owner_id=?)
     ORDER BY start_at DESC,id LIMIT ?`).all(ownerId,end,start,ownerId,limit);
-   const ids=rows.map(r=>r.id),links=ids.length?db.prepare(
-    'SELECT l.activity_id,k.name FROM crm_activity_links l JOIN crm_kols k ON k.id=l.kol_id AND k.owner_id=? WHERE l.activity_id IN ('+ids.map(()=>'?').join(',')+') ORDER BY k.name'
+   const ids=rows.map(r=>r.id),placeholders=ids.map(()=>'?').join(',');
+   const links=ids.length?db.prepare(
+    'SELECT l.activity_id,k.name FROM crm_activity_links l JOIN crm_kols k ON k.id=l.kol_id AND k.owner_id=? WHERE l.activity_id IN ('+placeholders+') ORDER BY k.name'
    ).all(ownerId,...ids):[];
    const byActivity=new Map();
    for(const link of links){if(!byActivity.has(link.activity_id))byActivity.set(link.activity_id,[]);byActivity.get(link.activity_id).push(text(link.name,80))}
+   const aggregate=(sql,...args)=>ids.length?db.prepare(sql.replaceAll('__IDS__',placeholders)).all(...args,...ids):[];
+   const members=aggregate('SELECT activity_id,COUNT(*) AS count FROM growth_activity_members WHERE activity_id IN (__IDS__) GROUP BY activity_id',...[]);
+   const planned=aggregate('SELECT activity_id,COUNT(*) AS count FROM growth_activity_planned_members WHERE activity_id IN (__IDS__) GROUP BY activity_id',...[]);
+   const assignments=aggregate('SELECT x.activity_id,x.group_key,COUNT(*) AS count FROM growth_activity_assignments x JOIN growth_activities a ON a.id=x.activity_id WHERE a.owner_id=? AND x.assigned_at>=? AND x.assigned_at<? AND x.activity_id IN (__IDS__) GROUP BY x.activity_id,x.group_key',ownerId,start,end);
+   const deliveries=aggregate('SELECT e.activity_id,e.kind,e.channel,COUNT(*) AS count,MIN(e.occurred_at) AS first_at,MAX(e.occurred_at) AS last_at FROM growth_activity_delivery_evidence e JOIN growth_activities a ON a.id=e.activity_id WHERE a.owner_id=? AND e.occurred_at>=? AND e.occurred_at<? AND e.activity_id IN (__IDS__) GROUP BY e.activity_id,e.kind,e.channel',ownerId,start,end);
+   const scheduleChanges=aggregate('SELECT h.activity_id,h.action,COUNT(*) AS count,MIN(h.created_at) AS first_at,MAX(h.created_at) AS last_at FROM growth_activity_schedule_history h JOIN growth_activities a ON a.id=h.activity_id WHERE a.owner_id=? AND h.created_at>=? AND h.created_at<? AND h.activity_id IN (__IDS__) GROUP BY h.activity_id,h.action',ownerId,start,end);
+   const group=(values,key)=>{const map=new Map();for(const item of values){if(!map.has(item.activity_id))map.set(item.activity_id,[]);map.get(item.activity_id).push(key(item))}return map};
+   const memberCounts=new Map(members.map(x=>[x.activity_id,x.count]));
+   const plannedCounts=new Map(planned.map(x=>[x.activity_id,x.count]));
+   const assignmentByActivity=group(assignments,x=>({group:text(x.group_key,20),count:x.count}));
+   const deliveryByActivity=group(deliveries,x=>({kind:text(x.kind,24),channel:text(x.channel,32),count:x.count,firstAt:x.first_at,lastAt:x.last_at}));
+   const scheduleByActivity=group(scheduleChanges,x=>({action:text(x.action,32),count:x.count,firstAt:x.first_at,lastAt:x.last_at}));
    for(const r of rows)humanOperations.push({
     id:'activity:'+r.id,kind:'growth_activity',layer:'human_operation',source:'growth_activities',
     title:text(r.name,120),channel:'owned_activity',startAt:r.start_at,endAt:r.cutoff_at,
     status:r.archived_at?'archived':r.schedule_state||'active',goal:text(r.goal,80),
     targetMetric:r.target_metric||null,targetValue:r.target_value??null,
     linkedKols:byActivity.get(r.id)||[],settledAt:r.settled_at??null,
+    memberCount:memberCounts.get(r.id)??0,plannedMemberCount:plannedCounts.get(r.id)??0,
+    assignments:assignmentByActivity.get(r.id)||[],
+    deliveryEvidence:deliveryByActivity.get(r.id)||[],
+    scheduleChanges:scheduleByActivity.get(r.id)||[],
     scheduleIssue:!!r.schedule_error
    });
    coverage.growthActivities={status:status(rows.length),count:rows.length,ownerScoped:true};
