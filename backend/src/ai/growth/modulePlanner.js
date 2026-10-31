@@ -1,6 +1,7 @@
 'use strict';
 // A deterministic, no-model, no-payment investigation planner. All reads still
 // pass through the owner-scoped registry, which owns budget/evidence controls.
+const {compareQueries,timingFor}=require('./queryEconomics');
 const INTERNAL=new Set(['get_seo_performance','get_channels','get_funnel','get_paths',
  'get_product_chain','get_retention','get_segments','query_metrics','check_data_quality',
  'get_channel_economics','get_referral','get_invite_conversion','get_login_conversion']);
@@ -32,6 +33,8 @@ function makePlan(registry,context,{mode='full',goal='activation',question='',mo
  const live=new Map(registered.map(m=>[m.moduleId,m]));
  const selected=moduleIds||(mode==='full'?[...new Set([...goalModules[goal],...Object.keys(prefers)])]:goalModules[goal]);
  if(mode==='focused'&&(!selected.length||!question.trim()))fail('定向调查需要明确问题与模块');
+ const timings=typeof registry.observedToolTimings==='function'?
+  registry.observedToolTimings(context):{};
  const steps=[],missing=[];
  for(const id of [...new Set(selected)]){
   if(steps.length>=maxCalls){missing.push({moduleId:id,reason:'budget_exceeded'});continue;}
@@ -39,18 +42,25 @@ function makePlan(registry,context,{mode='full',goal='activation',question='',mo
   if(!module){missing.push({moduleId:id,reason:'unknown_module'});continue;}
   if(module.status!=='available'){missing.push({moduleId:id,reason:'unavailable_or_not_authorized'});continue;}
   const allowed=(prefers[id]||[]).filter(tool=>INTERNAL.has(tool));
-  const cap=allowed.map(tool=>module.capabilities.find(c=>c.id===tool&&c.cost!=='paid'&&c.cost!=='unknown'))
-   .find(Boolean);
+  const options=allowed.map(tool=>module.capabilities.find(c=>c.id===tool&&
+   c.cost!=='paid'&&c.cost!=='unknown')).filter(Boolean);
+  // Choose an alternative only when ALL authorized choices have at least
+  // three owner-local observed durations. Unknowns preserve reviewed order.
+  const local=compareQueries(options.map(c=>({tool:c.id})),timings);
+  const cap=local.bestObservedLatencyTool?
+   options.find(c=>c.id===local.bestObservedLatencyTool):options[0];
   if(!cap){missing.push({moduleId:id,reason:'no_safe_capability'});continue;}
   // Query constraints are inherited from context, never from model-provided
   // scopes, project IDs, connection URLs, arbitrary SQL or credentials.
   const input=id==='growth.activation'&&cap.id==='get_funnel'?{steps:['token','chip']}:{};
   steps.push({moduleId:id,moduleVersion:module.version,
    capabilityId:cap.id,capabilityVersion:cap.version,input,
+   observedLatency:timingFor(cap.id,timings),monetaryQueryCost:'unknown',
    purpose:module.description});
  }
+ const queryEfficiency=compareQueries(steps.map(x=>({tool:x.capabilityId})),timings);
  return {version:'growth-module-plan-v1',mode,goal,question,
-  period:context.period,scope:context.scope,steps,missing,
+  period:context.period,scope:context.scope,steps,missing,queryEfficiency,
   limits:{maxCalls,maxFollowUps:1,paidCalls:0,externalWrites:0}};
 }
 async function runPlan(registry,context,plan){
