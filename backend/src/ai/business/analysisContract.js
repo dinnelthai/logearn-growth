@@ -27,6 +27,67 @@ function assertActionNovelty(suggestion,history){
   ['pending','adopted','executing','executed','rejected','invalid'].includes(row.user_status));
  if(duplicate)throw Error('建议与历史行动完全重复；必须提出不同的验证步骤或行动方案');
 }
+function plainObject(value){
+ return value!==null&&typeof value==='object'&&!Array.isArray(value)&&
+  (Object.getPrototypeOf(value)===Object.prototype||Object.getPrototypeOf(value)===null);
+}
+function matchesInputSchema(schema,value,depth=0){
+ if(!schema||typeof schema!=='object'||depth>6)return false;
+ if(Array.isArray(schema.enum)&&!schema.enum.includes(value))return false;
+ switch(schema.type){
+  case 'object':{
+   if(!plainObject(value))return false;
+   const properties=schema.properties||{};
+   if(schema.additionalProperties===false&&Object.keys(value).some(k=>!Object.hasOwn(properties,k)))return false;
+   if(Array.isArray(schema.required)&&schema.required.some(k=>!Object.hasOwn(value,k)))return false;
+   return Object.entries(value).every(([key,item])=>
+    !Object.hasOwn(properties,key)||matchesInputSchema(properties[key],item,depth+1));
+  }
+  case 'array':
+   return Array.isArray(value)&&
+    (schema.maxItems===undefined||value.length<=schema.maxItems)&&
+    (schema.minItems===undefined||value.length>=schema.minItems)&&
+    (!schema.items||value.every(item=>matchesInputSchema(schema.items,item,depth+1)));
+  case 'string':
+   return typeof value==='string'&&
+    (schema.maxLength===undefined||value.length<=schema.maxLength)&&
+    (schema.minLength===undefined||value.length>=schema.minLength);
+  case 'integer':
+   return Number.isSafeInteger(value)&&
+    (schema.minimum===undefined||value>=schema.minimum)&&
+    (schema.maximum===undefined||value<=schema.maximum);
+  case 'number':
+   return typeof value==='number'&&Number.isFinite(value)&&
+    (schema.minimum===undefined||value>=schema.minimum)&&
+    (schema.maximum===undefined||value<=schema.maximum);
+  case 'boolean':return typeof value==='boolean';
+  case 'null':return value===null;
+  default:return false;
+ }
+}
+function assertDiscriminatingQuery(query,context){
+ const capabilities=Array.isArray(context?.capabilities)?context.capabilities:[];
+ const capability=capabilities.find(item=>item?.id===query?.tool);
+ if(!capability)throw Error('竞争性假设的调查工具不属于当前任务授权集合');
+ if(!plainObject(query.input)||!matchesInputSchema(capability.inputSchema,query.input))
+  throw Error('竞争性假设的调查输入不符合当前工具schema');
+ const expectedSource=context.business?.scope?.source||'all';
+ const scope=query.input.scope;
+ if(scope!==undefined&&(!plainObject(scope)||Object.keys(scope).some(k=>k!=='source')||
+  (scope.source!==undefined&&scope.source!==expectedSource)))
+  throw Error('竞争性假设的调查范围超出当前任务来源');
+ const period=context.period;
+ if(period&&Number.isSafeInteger(period.start)&&Number.isSafeInteger(period.end)){
+  const start=query.input.start??period.start,end=query.input.end??period.end;
+  const duration=period.end-period.start;
+  if(!Number.isSafeInteger(start)||!Number.isSafeInteger(end)||end<=start||
+   start<period.start-duration||end>period.end)
+   throw Error('竞争性假设的调查期间超出当前任务授权范围');
+ }
+ if(query.tool==='query_metrics'&&Array.isArray(query.input.metrics)){
+  for(const id of query.input.metrics)require('./metricRegistry').describeMetric(id);
+ }
+}
 function validateAnalysis(a,context={}) {
   const strictContract=context?.analysisContractVersion===ANALYSIS_CONTRACT_VERSION;
   if (typeof a.summary !== 'string' || !Array.isArray(a.keyFindings) || !Array.isArray(a.suggestions)) throw Error('分析结果缺少摘要、发现或建议');
@@ -37,6 +98,9 @@ function validateAnalysis(a,context={}) {
     if(s.competingHypotheses!==undefined){
       if(!Array.isArray(s.competingHypotheses)||s.competingHypotheses.length<2||
          s.competingHypotheses.length>3)throw Error('竞争性根因假设必须为2至3项');
+      const causes=s.competingHypotheses.map(item=>String(item?.cause||'').normalize('NFKC').trim().toLowerCase());
+      if(causes.some(x=>!x)||new Set(causes).size!==causes.length)
+       throw Error('竞争性根因假设必须是不同的解释');
       for(const hypothesis of s.competingHypotheses){
         if(!hypothesis||typeof hypothesis.cause!=='string'||!hypothesis.cause.trim()||
            !Array.isArray(hypothesis.supportingEvidenceIds)||
@@ -49,8 +113,10 @@ function validateAnalysis(a,context={}) {
            typeof hypothesis.discriminatingQuery.input!=='object'||
            Array.isArray(hypothesis.discriminatingQuery.input)||
            typeof hypothesis.discriminatingQuery.why!=='string'||
-           !hypothesis.discriminatingQuery.why.trim())
+           !hypothesis.discriminatingQuery.why.trim()||
+           hypothesis.discriminatingQuery.why.length>240)
           throw Error('竞争性根因假设缺少证据或使用了未授权调查工具');
+        assertDiscriminatingQuery(hypothesis.discriminatingQuery,context);
       }
     }
     if(strictContract){
