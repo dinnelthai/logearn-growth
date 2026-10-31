@@ -627,3 +627,26 @@ These are **code-complete/CI-validated**, not a guarantee that an actual new v5 
 - Original Phase 2 checklist task “Validate SEO/GSC date semantics, X snapshot semantics, KOL CRM association and referral/invite contracts” is now **checked at code+CI contract level**. This does not mark real third-party collector freshness, registration linkage or production coverage as accepted.
 - **Overall 39/48 (81.3%); 9 unchecked; Phase 2 4/8.** Remaining Phase 2: exhaustive module source contract audit; mature registration→activation→multiple product engagement→verified trade coverage; source-supported cohort/channel/product breakdowns; independent watermarks/freshness/version/scope per metric. The separate live-read acceptance and operator approval still require authorization.
 - No deployment, DB migration, schema change, paid model calls, paid third-party collection, external post or branch merge.
+
+## 2026-10-31 — Phase 2 specialist provenance propagation and independent CRM ledger
+
+### Bug and implementation
+
+- The Agent tool registry previously used a generic Hologres event `snapshot.as_of` as source watermark for multiple unrelated specialist tools, and populated `watermarks.searchConsole` from `safe.importedAt`. The API GSC adapter actually supplies `syncedAt`, while the model-safe `statView` projection can remove import timestamps; the resulting formal evidence gave incomplete/misleading source provenance.
+- Added `specialtyProvenance(id,rawPayload,snapshot)` to `backend/src/ai/business/tools/registry.js`. It extracts only validated, bounded source metadata from the authenticated read-only adapter before statistics projection and builds per-source versions/watermarks. GSC API uses `snapshotId/syncedAt`, manually imported GSC uses `snapshotId/importedAt` (not Google verified freshness); X official sampled posts use recorded account observation timestamps, not day-increment or all-account currency; follower-scan uses actual update timestamp where available; KOL observed stats use its own remote snapshot/asOf only when available. Missing timestamps remain null.
+- The owner-scoped manual CRM/KOL ledger `get_channel_economics` now has `sourceVersions.operatorRecords='crm-manual-collaboration-ledger'`, `watermarks.operatorRecords=null`, `watermarks.events=null`, and does **not call Hologres status** because that data is local CRM, not event analytics. This fixes an unrelated event-source outage making local accounting unavailable.
+- `backend/src/ai/business/modelTransport.js` now allows the measured GSC/X/KOL/followerScan provenance to be projected into model-visible evidence, and not arbitrary unknown source fields. Historical evidence is not rewritten, raw/user-level records remain excluded, and no source has a fabricated complete-through watermark.
+- The only changed runtime paths are `backend/src/ai/business/tools/registry.js` and `backend/src/ai/business/modelTransport.js`. No changes to Growth's underlying analytics SQL or calculated KPI semantics.
+
+### Tests and CI
+
+- Added `backend/test/growthSpecialistTools.test.js` cases for API-vs-manual GSC timestamps, X bounded post observation, KOL snapshot, follower scan progress, null provenance when source absent, and strictly bounded model projection.
+- Extended `backend/test/agentTools.test.js` to confirm collaboration economics evidence is not falsely stamped with Hologres freshness, and that local CRM ledger continues to report owner-scoped read-only aggregates while Hologres health is unavailable.
+- Final implementation/test HEAD `8a7f71c98fce502b68a056671ee9a95304507abb`; [GitHub Actions AI infrastructure 41186244825](https://github.com/dinnelthai/logearn-growth/actions/runs/41186244825) **passed AI Contract, AI Integration, AI Frontend**. This is CI fixture/container validation, **not** verification of actual live source freshness, Hologres trade matching, revenue data, Worker or paid model behavior.
+
+### Checklist / remaining scope
+
+- **39/48 (81.3%) stays unchanged; 9 open; Phase 2 4/8.** This closes a demonstrable *subtask* under the unchecked per-metric source watermark/coverage/freshness/scope/version item. It does **not** complete comprehensive provenance for compound referral, invitation, product/trade, manual CRM membership or real-source acceptance.
+- `docs/ai/GROWTH_SOURCE_CONTRACTS.md` documents the per-tool metadata contract and limits.
+- Next: inspect every remaining compound module against independent source watermarks, preserve scope and mature cohort denominators end-to-end, accept source-supported channel/product/cohort dimensions, then use only authorized real read-only data for acceptance.
+- No deployment, schema migration, paid AI/API call, external sync or posting, or merge to another branch.
