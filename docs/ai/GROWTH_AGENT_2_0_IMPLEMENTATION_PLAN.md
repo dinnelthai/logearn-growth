@@ -2,7 +2,7 @@
 
 Branch: `codex/ai-comprehensive-upgrade`  
 Scope: Business Brain, Growth Intelligence, Operating Memory, Decision Engine and Learning Loop.  
-Progress snapshot (2026-10-31): 35 / 48 implementation checklist items have code and CI coverage in place (73%); live-source acceptance is tracked separately.  
+Progress snapshot (2026-10-31, audited against code HEAD `030c0ed8993a049485f4a064d48cef1f661dfa05`): **37 / 48 implementation checklist items (77.1%)** have code/CI evidence; **11 remain open**. This is NOT the live-source or model-acceptance rate.  
 Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace and storage.
 
 ## Product definition
@@ -34,9 +34,34 @@ The report is only one interface to this operating capability.
 
 Do not build a second analytics engine, CRM, operations task manager, metric registry or evidence store.
 
+## Progress audit — 2026-10-31 (branch-only)
+
+**Scope and accounting.** Source-of-truth is this branch's 48 checkboxes, not comparison with `master`. A checked item means implementation with focused/CI evidence; it **does not** mean the live LogEarn sources, Worker, paid model, external collectors or operator outcomes have passed acceptance. Newly checked items in this audit: the two Phase 5 weekly-report UI/contract items, backed by implementation/test files. No business code was changed in this documentation pass.
+
+| Phase | Code/CI checked | Open | Remaining boundary |
+|---|---:|---:|---|
+| 0 — Baseline/handoff | 5/5 | 0 | Maintain handoff after changes |
+| 1 — Business Brain | 8/10 | 2 | Real authorized context check; operator approval of North Star/product map |
+| 2 — Growth Intelligence | 2/8 | 6 | Source contracts, mature funnel, channel semantics, metadata and economics |
+| 3 — Operating Memory | 7/8 | 1 | Cross-channel outcome links only with reliable keys and windows |
+| 4 — Decision Engine | 4/6 | 2 | Cost-aware ranking / cheapest discriminating query lack trusted cost metadata |
+| 5 — Operating Report | 5/5 | 0 | New v5 report contract/UI exist, **live model and report-quality acceptance pending** |
+| 6 — Learning Loop | 6/6 | 0 | Frozen-cohort end-to-end acceptance pending; v2 direct cohort review currently maps only `active_users → analysis_users` |
+| **Total** | **37/48 (77.1%)** | **11** | **Do not equate code completion with production readiness** |
+
+**Latest verified checks:** AI infrastructure [run 41184069508](https://github.com/dinnelthai/logearn-growth/actions/runs/41184069508) passed on `76ec311df688860f93b72b930641cf1c3cd3ef03` (strict v5 weekly partial-report fallback); frontend [run 41184123727](https://github.com/dinnelthai/logearn-growth/actions/runs/41184123727) passed on exact audited HEAD `030c0ed8993a049485f4a064d48cef1f661dfa05`. Earlier intermediate AI CI runs failed before corrective commits; do not cite them as final failures. No full real-source / Worker / paid-model acceptance was performed in this review.
+
+**Known code/UI debt, not counted as new roadmap checkboxes:**
+- `frontend/src/pages/aiWeeklyDecisionView.js` hardcodes “12 个增长模块” in its collapsed summary, while the v5 `weeklyCoverage.js` catalog includes a 13th operations-timeline module. Correct the label from the real manifest count in a future code change; do not change business logic as part of documentation reconciliation.
+- New v5 reports require seven lifecycle stages and evidence-linked opportunity/previous-action blocks. Invalid new-model sections are saved as an explicitly **partial** report, not silently accepted as fully validated, and not automatically re-billed; an archived v4 weekly report viewed in the browser is not evidence that v5 ran successfully.
+- `reviewMetrics.js` permits `active_users`, `new_users`, `returning_users`, `activation_rate` and `d7` in the existing retrospective service, but the separate fixed-cohort v2 observational classifier currently makes a direct semantic comparison only for `active_users`. Do not claim cohort learning for registration/trade/retention metrics.
+- Read-only source acceptance must establish data freshness, identity/match coverage, mature denominators, real Hologres query latency, GSC PT-day alignment and X/KOL/invite snapshots. Missing data is unknown, never zero.
+
+**Execution order:** (1) Phase 2 audit and source-safe funnel/economics, (2) Phase 3 stable operational outcome links, (3) Phase 4 query-cost ranking only after measured metadata exists, (4) already-authorized read-only v5/Operating Memory/fixed-cohort acceptance plus operator confirmation. Keep paid calls, deployments, migrations and external writes separately approval-gated.
+
 ## Phases and acceptance
 
-### Phase 0 — Baseline and handoff (in progress)
+### Phase 0 — Baseline and handoff (code/CI complete; documents maintained continuously)
 
 - [x] Confirm target branch and current repository architecture.
 - [x] Inventory existing modules, metrics, evidence and action/review stores.
@@ -46,7 +71,7 @@ Do not build a second analytics engine, CRM, operations task manager, metric reg
 
 Acceptance: a new agent can start from the handoff document without asking for project history again.
 
-### Phase 1 — Business Brain (v1 implementation started)
+### Phase 1 — Business Brain (v1 code/CI in place; real-source and operator confirmation pending)
 
 - [x] Versioned LogEarn product baseline.
 - [x] Four product capability roles and seven lifecycle stages.
@@ -122,14 +147,14 @@ Acceptance:
 
 ### Phase 5 — Operating Report and custom periods
 
-- [ ] Reframe weekly report around executive judgment, business health, lifecycle funnel, channel effectiveness, root causes, opportunities, next actions, previous-action review and data gaps.
-- [ ] Keep module coverage and technical audit information in secondary / collapsible sections.
+- [x] Reframe newly created v5 weekly reports around executive judgment, lifecycle, channel findings, competing explanations, observed growth opportunities, next actions, previous-action review and data gaps (**code + fixture CI only; real model/output quality unverified**). Evidence: `weeklyReport.js` strict `weekly-report-v2` contract, `businessAnalysis.js` v5 snapshot gate, `aiWeeklyDecisionView.js`, `backend/test/aiWeeklyReport.test.js`, `frontend/src/pages/__tests__/aiWeeklyDecisionView.test.js`.
+- [x] Keep module coverage and technical audit information in secondary / collapsible sections (**UI code + frontend CI only; manual live UI acceptance open**). Evidence: `<details>` sections in `frontend/src/pages/aiWeeklyDecisionView.js` and frontend regression tests.
 - [x] Preserve custom start/end collection windows; weekly is only the default preset.
 - [x] Compare with the immediately preceding equal-length window only when metrics are comparable.
 - [x] Clearly show the timezone and whether end time is inclusive/exclusive.
 
 Acceptance:
-- the report leads with the most important business decision, not a list of 12 module statuses;
+- the report leads with the most important business decision, not an exhaustive list of module statuses; the coverage manifest has 13 modules for new v5 snapshots, while legacy saved reports may contain 12;
 - the operator can choose a custom collection period;
 - each number remains evidence-linked and date-aligned.
 
