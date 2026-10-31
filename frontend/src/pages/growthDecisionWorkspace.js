@@ -57,7 +57,7 @@ export function mountGrowthDecisionWorkspace(root,{navigate=null}={}){
    const topIssues=issues.filter(x=>['open','monitoring'].includes(x.status)).slice(0,3);
    const moreIssues=issues.filter(x=>!topIssues.includes(x));
    const business=moreIssues.filter(x=>x.type==='business'),data=moreIssues.filter(x=>x.type==='data-quality'),other=moreIssues.filter(x=>!['business','data-quality'].includes(x.type))
-   root.innerHTML=`<section class="a-card a-details ga-ws-executive" aria-label="AI 增长执行官待办">
+   root.innerHTML=`<section class="a-card a-details ga-ws-executive" style="grid-column:1/-1;grid-row:auto;min-width:0" aria-label="AI 增长执行官待办">
     <div class="ga-ws-section-title"><div class="ga-ws-heading"><span class="ga-ws-kicker">GROWTH INTELLIGENCE</span><h2>增长大脑 · 今日判断</h2></div><span>证据优先 · 重要行动由你审批</span></div>
     <p class="ga-ws-decision-intro">围绕筹码峰有效分析用户做增长判断；真实交易独立评价。月目标：${executive.northStar?.target==null?'未配置':fmt(executive.northStar.target)+' 人'}。</p>
     <div class="ga-ws-decision-state ${north?'is-verified':'is-unverified'}" role="status"><strong>${north?'有可信指标观察':'关键数据尚未通过完整性核验'}</strong><span>${north?'优先审阅待批准行动、到期复盘与本轮问题；前后变化不等于因果。':'当前不能确认真实增长升降，也不能把没有新问题理解成业务正常；请先核验来源覆盖。'}</span></div>

@@ -93,7 +93,8 @@
   box-shadow: var(--ga-shadow);
 }
 #la-studio .ga-workspace > section.ga-ws-weekly,
-#la-studio .ga-workspace > section.ga-ws-overview { grid-column: 1 / -1; }
+#la-studio .ga-workspace > section.ga-ws-executive,
+#la-studio .ga-workspace > section.ga-ws-overview { grid-column: 1 / -1; grid-row: auto; min-width: 0; }
 #la-studio .ga-workspace > section.ga-ws-issues { grid-column: 1 / span 7; grid-row: 3; }
 #la-studio .ga-workspace > section.ga-ws-goals { grid-column: 8 / -1; grid-row: 3; }
 #la-studio .ga-workspace > section.ga-ws-actions,
