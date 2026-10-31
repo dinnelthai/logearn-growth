@@ -268,6 +268,9 @@ function ensureWeeklyReport(analysis,{context=null}={}){
   analysis.weeklyReport={
    executiveSummary:analysis.summary||'AI 调查完成，但摘要缺失。',
    metrics:[],
+   lifecycle:LIFECYCLE_STAGES.map(stage=>({stage,status:'not-investigated',finding:'本次未形成可验证的生命周期阶段结论',evidenceIds:[]})),
+   opportunities:[],
+   previousActions:[],
    highlights:(analysis.claims||[]).filter(c=>c.kind==='fact'&&typeof c.text==='string'&&references(c).length)
     .slice(0,8).map(c=>({text:c.text,evidenceIds:references(c)})),
    issues:(analysis.claims||[]).filter(c=>c.kind==='hypothesis'&&typeof c.text==='string')
@@ -278,7 +281,8 @@ function ensureWeeklyReport(analysis,{context=null}={}){
     reviewCondition:(s.reviewConditions||[]).join('；')||'需人工确定观察条件',
     evidenceIds:references(s.evidence||{})})),
    dataGaps:['本次 AI 返回的结构化周报不完整，已按通过验证的 AI 结论生成部分版；未重新调用模型。',
-    '周度 KPI 对照和渠道分项未能形成完整证据表，不能视为零增长。'],
+    '周度 KPI 对照和渠道分项未能形成完整证据表，不能视为零增长。',
+    '生命周期、增长机会或历史行动复盘结构不完整；未记录不代表没有运营。'],
    partial:true
   };
   validateWeeklyReport(analysis,{strict});
