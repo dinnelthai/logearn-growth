@@ -45,8 +45,8 @@ function createRouter({db=require('../db/connection')}={}){
  // All report queries use the shared, owner-scoped AI record store.
  router.get('/ai-weekly-reports',h(async(req,res,owner)=>{
   const records=require('../db/aiRecords');
-  const {weeklyPeriod}=require('../ai/growth/weeklyReport');
-  const period=weeklyPeriod();
+  const {reportPeriod}=require('../ai/growth/weeklyReport');
+  const period=reportPeriod(req.query);
   const [reports,archivedCurrentWeek,archivedFailed]=await Promise.all([
    records.listWeeklyReportRecords(owner,{limit:20}),
    records.hasHiddenWeeklyReport(owner,period),
@@ -58,9 +58,9 @@ function createRouter({db=require('../db/connection')}={}){
    canRegenerateArchivedFailed:!hasCurrent&&!!archivedFailed,paidGeneration:false});
  }));
  router.post('/ai-weekly-reports',h(async(req,res,owner)=>{
-  const {weeklyPeriod,weeklyKey,weeklyOperations}=require('../ai/growth/weeklyReport');
+  const {reportPeriod,reportKey,weeklyOperations}=require('../ai/growth/weeklyReport');
   const records=require('../db/aiRecords');
-  const period=weeklyPeriod();
+  const period=reportPeriod(req.body||{});
   const prior=await records.listWeeklyReportRecords(owner,{limit:50});
   const existing=prior.find(row=>Number(row.date_range_start)===period.start&&Number(row.date_range_end)===period.end);
   if(existing)return res.json({analysisId:existing.id,status:existing.status,reused:true,notice:'本周已有周报任务，不会重复触发模型'});
@@ -72,14 +72,19 @@ function createRouter({db=require('../db/connection')}={}){
   // Deterministic key per archived failure: repeated clicks enqueue only once.
   // Every attempt preserves the original task, evidence and paid-call ledger.
   const requestKey=archivedFailed?
-   weeklyKey(period)+':regenerate-archived:'+archivedFailed.id:weeklyKey(period);
+   reportKey(period)+':regenerate-archived:'+archivedFailed.id:reportKey(period);
   const operations=weeklyOperations(store,owner,period);
-  const userQuestion='请对本周 LogEarn 业务增长与运营工作输出可核对的完整 AI 运营周报：本周变化、核心漏斗、重要异常、渠道证据、人工运营工作量、下周优先事项和数据缺口。严禁无数据归因或编造业务指标。';
-  const focusGoal='activation',scope={source:'all'},modelMode='auto',title='AI 运营周报 · '+new Date(period.start+25200000).toISOString().slice(0,10);
+  const userQuestion=period.kind==='custom'?
+   '请分析 LogEarn 在指定自定义时间范围内的经营变化、增长漏斗、渠道效果、产品使用、真实交易、运营行动与数据缺口。严格使用报告期间和等长前置对比期，不得套用自然周。':
+   '请对本周 LogEarn 业务增长与运营工作输出可核对的完整 AI 运营周报：本周变化、核心漏斗、重要异常、渠道证据、人工运营工作量、下周优先事项和数据缺口。严禁无数据归因或编造业务指标。';
+  const focusGoal='activation',scope={source:'all'},modelMode='auto',
+   title=(period.kind==='custom'?'AI 运营报告 · ':'AI 运营周报 · ')+
+    new Date(period.start+25200000).toISOString().slice(0,10);
   const {record,created}=await records.createWeeklyReportRecord({
    ownerId:owner,requestKey,title,start:period.start,end:period.end,question:userQuestion,
    conditions:{businessScope:scope,focusGoal,modelMode,evidenceReportId:null,
-    goalRef:null,skillId:null,weeklyReport:'v1',weeklyOperations:operations,
+    goalRef:null,skillId:null,weeklyReport:'v1',
+    reportPeriod:period.kind==='custom'?'custom-v1':'weekly-v1',weeklyOperations:operations,
     ...(archivedFailed?{weeklyReissueOf:archivedFailed.id}: {})}
   });
   if(record.filter_conditions?.weeklyReport!=='v1'||
