@@ -19,6 +19,27 @@ function createAgentOutbox(db=pool){
     RETURNING id`,[id,ownerId,'daily-'+status,briefId,now,JSON.stringify(payload)]);
   return {id,status:r.rows.length?'queued':'existing'};
  }
+ // Explicitly authorized owner webhooks only; no private member contents.
+ async function enqueueExecutiveNotice({ownerId,notice},now=Date.now()){
+  const kinds=['approval','accepted-not-started','execution-stalled','review-due','task-overdue'];
+  if(typeof ownerId!=='string'||!ownerId||
+   !/^[a-f0-9]{64}$/.test(notice?.id||'')||!kinds.includes(notice.kind)||
+   !Number.isSafeInteger(notice.dueAt)||!Number.isSafeInteger(now))
+   throw Error('经营提醒身份或类型无效');
+  const id='agent-out-'+createHash('sha256').update(JSON.stringify(
+   [ownerId,'executive-reminder',notice.id])).digest('hex').slice(0,32);
+  const payload={version:'growth-executive-reminder-v1',noticeId:notice.id,
+   kind:notice.kind,dueAt:notice.dueAt,
+   summary:'LogEarn 有一项已到期的增长运营事项，请登录工作台处理',
+   requiresHumanApproval:true,causalProof:false,externalActions:0};
+  const result=await db.query(`INSERT INTO ai_growth_delivery_outbox
+    (id,owner_id,channel,source_kind,source_id,state,next_attempt_at,
+      payload,created_at,updated_at)
+    VALUES($1,$2,'webhook','executive-reminder',$3,'pending',$4,$5::jsonb,$4,$4)
+    ON CONFLICT(owner_id,channel,source_kind,source_id) DO NOTHING RETURNING id`,
+    [id,ownerId,notice.id,now,JSON.stringify(payload)]);
+  return {id,status:result.rows.length?'queued':'existing'};
+ }
  async function claim(ownerIds,{now=Date.now(),limit=10}={}){
   if(!Array.isArray(ownerIds)||!ownerIds.length||!Number.isSafeInteger(limit)||
      limit<1||limit>20)throw Error('投递出队授权范围无效');
@@ -47,6 +68,6 @@ function createAgentOutbox(db=pool){
       httpStatus,delivered?now:retry,now,item.attempts]);
   return r.rows[0]||null;
  }
- return {enqueue,claim,finish};
+ return {enqueue,enqueueExecutiveNotice,claim,finish};
 }
 module.exports={createAgentOutbox};

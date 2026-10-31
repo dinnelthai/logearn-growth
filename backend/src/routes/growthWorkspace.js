@@ -5,7 +5,7 @@ const express=require('express');
 const {workspaceStore}=require('../ai/growth/workspace/store');
 const {currentMonth}=require('../ai/growth/workspace/period');
 const {requiredString}=require('../ai/growth/workspace/contracts');
-function createRouter({db=require('../db/connection')}={}){
+function createRouter({db=require('../db/connection'),readAgentTargets=null}={}){
  const router=express.Router();const store=workspaceStore(db);
  const h=fn=>async(req,res)=>{try{
   if(!req.user?.user_id)return res.status(401).json({error:'未登录'});
@@ -21,7 +21,11 @@ function createRouter({db=require('../db/connection')}={}){
   // A read-only cross-store policy view: distinct reporting horizons remain
   // independent. API failures must never fabricate target alignment.
   let dailyTargets=null;
-  try{dailyTargets=await require('../ai/growth/agentStore').createAgentStore().targets(owner,{source:'all'})}
+  try{
+   if(readAgentTargets)dailyTargets=await readAgentTargets(owner);
+   else if(process.env.GROWTH_EXECUTIVE_GOAL_ALIGNMENT_ENABLED==='1')
+    dailyTargets=await require('../ai/growth/agentStore').createAgentStore().targets(owner,{source:'all'});
+  }
   catch{dailyTargets=null}
   executive.goalAlignment=require('../ai/growth/workspace/executivePortfolio')
    .goalAlignment(goals.map(x=>x.goal),dailyTargets);

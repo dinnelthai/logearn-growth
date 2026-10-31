@@ -50,6 +50,8 @@ export function mountGrowthDecisionWorkspace(root,{navigate=null}={}){
    const executive=d.executive||{},north=executive.latestVerifiedNorthStar||null
    const waiting=Array.isArray(executive.awaitingApproval)?executive.awaitingApproval:[]
    const reviews=Array.isArray(executive.reviewsDue)?executive.reviewsDue:[]
+   const reminders=Array.isArray(executive.reminders?.pending)?executive.reminders.pending:[]
+   const portfolio=Array.isArray(executive.portfolio?.items)?executive.portfolio.items:[]
    const topIssues=issues.filter(x=>['open','monitoring'].includes(x.status)).slice(0,3);
    const moreIssues=issues.filter(x=>!topIssues.includes(x));
    const business=moreIssues.filter(x=>x.type==='business'),data=moreIssues.filter(x=>x.type==='data-quality'),other=moreIssues.filter(x=>!['business','data-quality'].includes(x.type))
@@ -66,6 +68,14 @@ export function mountGrowthDecisionWorkspace(root,{navigate=null}={}){
     ${(executive.priorities||[]).length?'<h3>本轮优先问题</h3>'+executive.priorities.slice(0,3).map(p=>'<p><strong>'+safe(p.subject)+'</strong> · 优先级 '+safe(p.priority)+'/5 · '+safe(p.nextStep||'待调查')+'</p>').join(''):'<p>暂无可信新增问题；未知来源不代表经营正常。</p>'}
     ${waiting.length?'<h3>待批准的内部行动</h3>'+waiting.map(a=>'<div class="ga-ws-action"><strong>'+safe(a.description)+'</strong><span>'+safe(a.assignee)+'</span><button class="a-button" data-executive-approve="'+safe(a.id)+'">采纳为待执行（不对外操作）</button></div>').join(''):'<p>暂无待批准的内部建议。</p>'}
     ${reviews.length?'<p role="status">有 '+reviews.length+' 项行动观察期已到；须提供匹配的后续证据后才能复盘，不会自动宣称改善。</p>':''}
+    <details class="ga-ws-accordion"><summary>经营机会与调查队列（${portfolio.length}）</summary><div class="ga-ws-expand">
+    ${portfolio.slice(0,8).map(p=>'<div class="ga-ws-action"><strong>'+safe(p.subject)+'</strong><span>'+safe(p.decision)+' · 影响人数未知 · 预计ROI未核验 · '+safe(p.evidenceStrength)+'</span></div>').join('')||'<p>暂无可比较的机会。</p>'}
+    </div></details>
+    <details class="ga-ws-accordion"><summary>运营学习与目标核对</summary><div class="ga-ws-expand">
+     <p>已复盘 ${fmt(executive.learning?.reviewed??0)}，观察改善 ${fmt(executive.learning?.observedImprovement??0)}，观察下降 ${fmt(executive.learning?.observedDecline??0)}。前后变化不代表因果。</p>
+     <p>目标核对：${safe(executive.goalAlignment?.status||'未核验')}；不同周期目标不会相加或覆盖。</p>
+    </div></details>
+    ${reminders.length?'<h3>站内待办提醒（'+reminders.length+'）</h3>'+reminders.slice(0,8).map(n=>'<div class="ga-ws-action"><strong>'+safe(n.kind)+'</strong><span>到期 '+safe(dateTime(n.dueAt))+'</span><button class="a-button" data-exec-notice="'+safe(n.id)+'">已知悉</button></div>').join(''):'<p>暂无新的站内提醒。</p>'}
     <small>自动只读观察、问题追踪与内部建议；不会自动发布、付费或修改生产环境。数据不完整时不制造下降结论。</small>
    </section><section class="a-card a-details ga-ws-overview"><div class="ga-ws-section-title"><h2>本月工作概览</h2><span>基于已保存的数据和人工记录</span></div>
    <div class="ga-ws-stats">
@@ -108,6 +118,11 @@ export function mountGrowthDecisionWorkspace(root,{navigate=null}={}){
     ${reports.slice(0,20).map(r=>`<p>${safe(r.kind)} · ${safe(new Date(r.period_start+25200000).toISOString().slice(0,10))} · 修订 v${r.revision} · ${safe(r.status)} · 问题 ${r.snapshot?.problemIds?.length??'未知'} 项</p>`).join('')||'<p>尚无业务快照。</p>'}
    </details></section>`
    bind(d)
+   root.querySelectorAll('[data-exec-notice]').forEach(btn=>btn.addEventListener('click',async()=>{
+    btn.disabled=true
+    try{await api('/executive/reminders/'+encodeURIComponent(btn.dataset.execNotice)+'/ack','POST',{});await draw()}
+    catch(error){const message=root.querySelector('[data-workspace-message]');if(message)message.textContent=error.message;btn.disabled=false}
+   }))
    root.querySelectorAll('[data-executive-approve]').forEach(btn=>btn.addEventListener('click',async()=>{
     btn.disabled=true
     try{

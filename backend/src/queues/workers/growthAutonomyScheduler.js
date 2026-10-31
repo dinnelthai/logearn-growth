@@ -72,7 +72,14 @@ async function tick({now=Date.now(),dryRun=false,runOwner=tickAutonomousOwner,cl
      const evidence=await require('../../ai/growth/workspace/dailyTick').dailyWorkspaceTickWithMetrics({
       db:require('../../db/connection'),ownerId,now
      });
-     results.push({ownerId,status:'workspace',newProblems:evidence.newProblems,reportId:evidence.reportId,paidCalls:0});
+     results.push({ownerId,status:'workspace',
+      newProblems:evidence.newProblems,reportId:evidence.reportId,
+      executiveInvestigation:evidence.investigation?.status||'disabled',paidCalls:0});
+     if(outbox&&webhookConfig[ownerId]&&process.env.GROWTH_EXECUTIVE_EXTERNAL_REMINDERS_ENABLED==='1'){
+      const store=require('../../ai/growth/workspace/store').workspaceStore(require('../../db/connection'));
+      for(const notice of store.executiveReminders(ownerId,{at:now}).pending.slice(0,10))
+       await outbox.enqueueExecutiveNotice({ownerId,notice},now);
+     }
     }catch(error){results.push({ownerId,status:'error',reason:'workspace: '+error.message})}
    }
    if(process.env.AI_GROWTH_MODULE_SCAN_ENABLED==='1'&&!leaseLost&&!exceededBudget){
@@ -108,7 +115,7 @@ async function tick({now=Date.now(),dryRun=false,runOwner=tickAutonomousOwner,cl
     try{
      const httpStatus=await sendAgentWebhook(item,{config:webhookConfig});
      await outbox.finish(item,{delivered:true,httpStatus});
-     results.push({ownerId:item.owner_id,delivery:'delivered',briefId:item.payload.briefId});
+     results.push({ownerId:item.owner_id,delivery:'delivered',resourceId:item.payload.briefId||item.payload.noticeId||null});
     }catch(error){
      await outbox.finish(item,{delivered:false,error,httpStatus:error.httpStatus||null});
      results.push({ownerId:item.owner_id,delivery:'retry-scheduled',reason:error.message});
