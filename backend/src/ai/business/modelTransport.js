@@ -42,7 +42,7 @@ const numeric=new Set([
  'visitor_users','clicks','details','successes','day',
  'confidence_interval_low','confidence_interval_high','min','max',
  'week','weekStart','weekEnd','targetValue','effectivenessScore','evidenceCount',
- 'observedAt','followers','followerChange','measuredPosts','engagementRate',
+ 'observedAt','sourceAsOf','followers','followerChange','measuredPosts','engagementRate',
  'views','posts','replies','retweets','reposts','engagements',
  'viewCount','postCount','replyCount','retweetCount','repostCount',
  'likeCount','impressionCount','totalViews','totalPosts','medianViews',
@@ -84,8 +84,8 @@ const groups=new Set(['total','totals','days','growth','change','dimensions','ch
  'product_chain','first_value','trade','d7','d30','registration','association','attribution',
  'exposure','entrance','entrance_breakdown','page_clicks_summary','retention_summary',
  'funnels','paths','pages','summary','sample','byCurrency','trends','rates','counts',
- 'humanOperations','channelObservations','aiActions','timeline','warnings','samplePosts',
- 'outcome','targetProgress','performance','sourceCoverage',
+ 'humanOperations','channelObservations','outcomeLinks','aiActions','timeline','warnings','samplePosts',
+ 'outcome','targetProgress','performance','sourceCoverage','observed','window',
  'assignments','scheduleChanges',
  'linkedKols','linkedActivityIds','relatedRecordRefs','kolSummaries','linkedCollaborationRefs','costTotals','revenueTotals','evaluation','review',
  'metrics','series','distribution','sources','bySource','by_source','period','filters',
@@ -96,7 +96,7 @@ const groups=new Set(['total','totals','days','growth','change','dimensions','ch
  'manual','official','economics',
  'growthActivities','kolCollaborations','contentRecords','operationTasks','accounts',
  'xOfficial','searchConsole','kolObservations','aiReportActions','specialistSignals']);
-const ids=new Set(['recordRef','kolRef','snapshot_id','snapshotId','as_of','eventsCompleteThrough',
+const ids=new Set(['recordRef','kolRef','collaborationRef','activityRef','snapshot_id','snapshotId','as_of','eventsCompleteThrough',
  'events_complete_through','cutoff','asOf','factsAsOf','queryFingerprint']);
 const privacy=/\b(?:user|session|wallet|account|token_visit|strategy_run|user_id|session_id|cookie|email|phone)[:=][^\s,;]+|[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}|\b0x[a-fA-F0-9]{35,}\b|\b(?:[0-9a-fA-F]{8}-){4}[0-9a-fA-F]{12}\b|https?:\/\/\S+|\b(?:\d[\s-]?){12,}\b/gi;
 const safeText=(x,max=MAX_TEXT)=>typeof x==='string'
