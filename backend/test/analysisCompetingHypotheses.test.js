@@ -141,3 +141,37 @@ test('competing root-cause hypotheses must be genuinely distinct',()=>{
  value.suggestions[0].competingHypotheses[1].cause=value.suggestions[0].competingHypotheses[0].cause;
  assert.throws(()=>validateAnalysis(value,{capabilities:allowedCapabilities}),/不同的解释/);
 });
+
+test('strict competing causes choose lowest observed latency only after schema, task and source checks',()=>{
+ const value=strictValue();
+ const sample=(medianMs)=>({sampleCount:4,medianMs,
+  basis:'owner-archived-successful-tool-wall-time',monetaryCostKnown:false});
+ const context={analysisContractVersion:'analysis-contract-v2',
+  business:{scope:{source:'all'}},capabilities:allowedCapabilities,
+  trustedToolTimings:{get_channels:sample(31),get_login_conversion:sample(10)}};
+ validateAnalysis(value,context);
+ const comparison=value.suggestions[0].discriminatingQueryEfficiency;
+ assert.equal(comparison.status,'observed-latency-comparable');
+ assert.equal(comparison.bestObservedLatencyTool,'get_login_conversion');
+ assert.equal(comparison.measuredMedianMs,10);
+ assert.equal(comparison.monetaryCost,'unknown');
+ assert.match(comparison.interpretation,/信息增益/);
+ const unknown=strictValue();
+ validateAnalysis(unknown,{...context,trustedToolTimings:{get_channels:sample(31)}});
+ assert.equal(unknown.suggestions[0].discriminatingQueryEfficiency.bestObservedLatencyTool,null);
+ assert.equal(unknown.suggestions[0].discriminatingQueryEfficiency.status,'insufficient-observed-cost-data');
+ assert.deepEqual(unknown.suggestions[0].discriminatingQueryEfficiency.unknownTools,['get_login_conversion']);
+});
+test('unknown or paid capability cost never becomes a cheapest recommended query',()=>{
+ const value=strictValue();
+ const sample=(medianMs)=>({sampleCount:4,medianMs,
+  basis:'owner-archived-successful-tool-wall-time',monetaryCostKnown:false});
+ validateAnalysis(value,{analysisContractVersion:'analysis-contract-v2',
+  business:{scope:{source:'all'}},
+  capabilities:[allowedCapabilities[0],{...allowedCapabilities[1],cost:'paid'}],
+  trustedToolTimings:{get_channels:sample(25),get_login_conversion:sample(1)}});
+ const recommendation=value.suggestions[0].discriminatingQueryEfficiency;
+ assert.equal(recommendation.bestObservedLatencyTool,null);
+ assert.equal(recommendation.status,'paid-or-unknown-capability-cost');
+ assert.equal(recommendation.monetaryCost,'unknown');
+});
