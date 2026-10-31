@@ -2,7 +2,7 @@
 
 Branch: `codex/ai-comprehensive-upgrade`  
 Scope: Business Brain, Growth Intelligence, Operating Memory, Decision Engine and Learning Loop.  
-Progress snapshot (2026-10-31, latest source/test HEAD `e5a08a39d4668d2895c23bc5997946885292a9a0`): **43 / 48 implementation checklist items (89.6%)** have code and focused CI-contract evidence; **5 remain open**. This is NOT live-source, platform-revenue availability or real-model acceptance.  
+Progress snapshot (2026-10-31, latest source/test HEAD `81bc9a06fba358c484eed9bb620ab303110d8ed5`): **44 / 48 implementation checklist items (91.7%)** have code and focused CI-contract evidence; **4 remain open**. This is NOT live-source, platform-revenue availability or real-model acceptance.  
 Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace and storage.
 
 ## Product definition
@@ -43,13 +43,13 @@ Do not build a second analytics engine, CRM, operations task manager, metric reg
 | 0 — Baseline/handoff | 5/5 | 0 | Maintain handoff after changes |
 | 1 — Business Brain | 8/10 | 2 | Real authorized context check; operator approval of North Star/product map |
 | 2 — Growth Intelligence | 8/8 | 0 | Contract complete; independent **live** source freshness still unverified |
-| 3 — Operating Memory | 7/8 | 1 | Cross-channel outcome links only with reliable keys and windows |
+| 3 — Operating Memory | 8/8 | 0 | Bounded links code-complete; real source/outcome causal acceptance still pending |
 | 4 — Decision Engine | 4/6 | 2 | Cost-aware ranking / cheapest discriminating query lack trusted cost metadata |
 | 5 — Operating Report | 5/5 | 0 | New v5 report contract/UI exist, **live model and report-quality acceptance pending** |
 | 6 — Learning Loop | 6/6 | 0 | Frozen-cohort end-to-end acceptance pending; v2 direct cohort review currently maps only `active_users → analysis_users` |
-| **Total** | **43/48 (89.6%)** | **5** | **No real-source/Worker/paid-model acceptance implied** |
+| **Total** | **44/48 (91.7%)** | **4** | **No real-source/Worker/paid-model acceptance implied** |
 
-**Latest verified checks:** AI infrastructure [run 41200563427](https://github.com/dinnelthai/logearn-growth/actions/runs/41200563427) passed **AI Contract, AI Integration and AI Frontend** on source/test HEAD `e5a08a39d4668d2895c23bc5997946885292a9a0`. No full real-source / Worker / paid-model acceptance was performed.
+**Latest verified checks:** AI infrastructure [run 41201630015](https://github.com/dinnelthai/logearn-growth/actions/runs/41201630015) passed **AI Contract, AI Integration and AI Frontend** on source/test HEAD `81bc9a06fba358c484eed9bb620ab303110d8ed5`. No full real-source / Worker / paid-model acceptance was performed.
 
 **Known code/UI debt, not counted as new roadmap checkboxes:**
 - **Resolved in subsequent code:** weekly UI now derives the count from the persisted manifest and retains the 13th `operations-timeline` module without inventing a 13th module for historical 12-module snapshots. Frontend regression [41184785074](https://github.com/dinnelthai/logearn-growth/actions/runs/41184785074) passed.
@@ -58,6 +58,13 @@ Do not build a second analytics engine, CRM, operations task manager, metric reg
 - Read-only source acceptance must establish data freshness, identity/match coverage, mature denominators, real Hologres query latency, GSC PT-day alignment and X/KOL/invite snapshots. Missing data is unknown, never zero.
 
 **Execution order:** (1) complete Phase 2 module/source audit, supported channel/product/cohort breakdowns and per-source metadata, (2) Phase 3 stable operational outcome links, (3) Phase 4 query-cost ranking only after measured metadata exists, (4) already-authorized read-only v5/Operating Memory/fixed-cohort acceptance plus operator confirmation. Keep paid calls, deployments, migrations and external writes separately approval-gated.
+
+### Continuation checkpoint — 2026-10-31 (Operating Memory: stable mature outcome associations)
+
+- **Source/test HEAD:** `81bc9a06fba358c484eed9bb620ab303110d8ed5`; [AI CI 41201630015](https://github.com/dinnelthai/logearn-growth/actions/runs/41201630015) **passed** AI Contract, AI Integration and AI Frontend.
+- **Implemented:** `backend/src/ai/business/tools/operationsTimeline.js` prevents after-cutoff settled-activity leakage and retains separate KOL snapshot `capturedAt`. `registry.js` `operationsTimelineSummary()` now projects **bounded stable-key `outcomeLinks` and `channelLinks`** only with explicitly matched CRM IDs, aligned complete activity/collaboration/KOL windows and pre-cutoff evidence collection, using opaque refs and strictly aggregate numeric observations. `modelTransport` extends its positive allowlist for these two structured non-causal relationships only; no arbitrary joined user rows, new queries or extra CRM.
+- **No causal attribution:** even valid links state only that a KOL profile had observed aggregate activity in an aligned period and/or that a linked growth activity had separately settled aggregate outcomes. Multiple KOL collaborations can overlap; no individual collaboration's incremental users/trades can be determined from these records.
+- **Progress:** Phase 3 **8/8 code/CI**; overall **44/48 = 91.7%, 4 open** (Phase 1 two, Phase 4 two). Live source completeness, true attribution, actual Worker/model report and paid-provider acceptance remain unverified. No migration, paid call, deployment, external write or `master` merge.
 
 ### Continuation checkpoint — 2026-10-31 (universal per-metric freshness and source scope)
 
@@ -177,7 +184,10 @@ Acceptance:
 
 - [x] Build an owner-scoped operations timeline by reusing existing growth activities, KOL collaborations, manual content, operation tasks, X, Search Console, KOL observations, AI report actions and specialist signals.
 - [x] Normalize source, activity type, channel, period, target, assignee/status, KOL ledger amounts, activity delivery state and frozen outcomes without creating a parallel CRM/task manager.
-- [ ] Link activity records to channel metrics and mature outcomes only where stable identifiers and comparable time windows exist; current KOL/activity links and settled activity outcomes do not establish cross-channel attribution.
+- [x] Link activity records to channel metrics and mature outcomes only where stable identifiers and comparable time windows exist (**bounded, explicit-link code/CI; not causal attribution or live-source acceptance**).
+  - `operationsTimelineSummary` now exposes up to 8 `outcomeLinks` from an **explicit same-owner CRM collaboration→activity ID** when collaboration window fully contains the growth activity, the activity is settled before the report cutoff, its snapshot `asOf` covers the activity window but does not exceed the report end, and relevant account/analysis/trade source coverage is explicitly available. Only observed aggregate `completed`, `analysis_users`, `trade_users` and `transactions` are transported, never member IDs. The link uses opaque hashed record refs and `attribution:'observed-non-causal'`; no KOL-specific incremental success is claimed.
+  - Up to 8 independent `channelLinks` require an **explicit matching CRM KOL profile + collaboration ref**, a KOL observation period containing the **entire collaboration period**, a source observation timestamp covering the period, and separately proven `capturedAt <= reportEnd`. Overlapping KOL samples remain observed cohort aggregates, not individual collaboration credit. Unmatched, immature, after-cutoff, missing capture time and unavailable-source cases produce **no links**. No time-only joins to X/GSC, no funnel or finance metric redefinitions.
+  - The activity timeline now guards `settled_at < report.end` and rejects settlement source timestamps after report end, preventing historical lookahead. Positive allowlist exports only the bounded opaque refs, comparison windows, allowed aggregates and non-causal relationship types. Regression: `operationsTimeline.test.js` and `operationsTimelineRegistry.test.js` cover historic future settlement rejection, explicit keys, time alignment, source failures, capture timestamps, wrong KOL key and privacy. [AI CI 41201630015](https://github.com/dinnelthai/logearn-growth/actions/runs/41201630015) **success**.
 - [x] Keep AI suggestion/review records in a separate layer from human-entered activities and channel observations.
 - [x] Expose per-source available/empty/not-configured/unavailable/truncated coverage; missing community/training connectors remain unknown, not zero.
 - [x] Reuse existing owner-scoped operator-authored business-change notes in the timeline as bounded, self-reported memory; no parallel journal or migration.
