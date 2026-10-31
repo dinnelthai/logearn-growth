@@ -10,6 +10,8 @@
 - Fetch the live branch HEAD before every new edit; do not rely on this document's historical commit reference.
 - Latest successful AI CI: [41204481078](https://github.com/dinnelthai/logearn-growth/actions/runs/41204481078) — **AI Contract, AI Integration, AI Frontend passed** on source/test HEAD `6540a7a353b5fadb080f016afa2aa2b8795ece0f`. Includes persisted owner-scoped latency and ranking/discriminator privacy regression. No live Hologres, X, GSC, Worker, real-model or paid-model acceptance implied.
 - Latest canonical checklist: **46 / 48 (95.8%) code/CI checkboxes; 2 open**, Phase 2 **8/8**, Phase 3 **8/8**, Phase 4 **6/6**. Last two are Phase 1 already-authorized genuine context acceptance and operator product-map/North Star signoff; neither can be auto-certified by CI.
+- **Current continuation (post-`5b957a1`):** `backend/src/ai/business/savedContextAudit.js`, `backend/scripts/auditSavedWeeklyContext.js`, `backend/test/aiSavedContextAudit.test.js` and `docs/ai/GROWTH_V5_SAVED_CONTEXT_AUDIT.md` add an offline, non-paying *saved v5 snapshot* audit. **Not** live source or paid-model acceptance. A current local browser view displays an archived `aggregated-business-v4` report with 12 modules, not new v5. Recheck branch HEAD and CI after this documentation commit.
+- **Do not retroactively claim operator signoff:** the current four-product map is a provisional documented operating baseline, while a formal effective-analysis/North Star composite definition remains pending explicit approval. The two Phase 1 checklist gates stay open.
 - Do not switch to or commit to `master`.
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
 - Always verify the branch HEAD before editing and fetch each target file from this branch.
@@ -42,7 +44,7 @@ New model protocol:
 - `backend/src/ai/growth/weeklyReport.js` — v5 `weekly-report-v2` contract: seven lifecycle stages, evidence-backed growth opportunities and previous-action reviews; strict validation and explicitly partial fallback rather than automatic paid retry.
 - `backend/src/ai/business/tools/operationsTimeline.js` — owner-scoped read-only operating timeline over existing activities, KOL collaborations, manual content, operation tasks, X/GSC/KOL observations and AI actions; includes aggregate delivery states and frozen settled outcomes only.
 - `backend/src/ai/growth/weeklyCoverage.js` — 13th weekly module, with outcome-first aggregate facts and per-source coverage.
-- `frontend/src/pages/aiWeeklyDecisionView.js` — lifecycle, positive opportunities, operating-memory reviews, and collapsed technical/coverage sections. Note known hardcoded '12 modules' summary despite a 13-module v5 manifest.
+- `frontend/src/pages/aiWeeklyDecisionView.js` — lifecycle, positive opportunities, operating-memory reviews, and collapsed technical/coverage sections. Legacy 12-module saved reports remain 12; new manifests are 13, and the current UI reads the persisted manifest count.
 - `backend/src/queues/jobs/businessAnalysis.js` — new v5 weekly snapshots pin `weeklyReportContractVersion='weekly-report-v2'`; archived v1-v4 reports remain replayable and may not display the new report sections.
 - Tests: `backend/test/aiBusinessBrain.test.js`, `aiWeeklyContextV4.test.js`, `aiWeeklyCoverage.test.js`, `operationsTimeline.test.js`, `operationsTimelineRegistry.test.js`, `aiWeeklyReport.test.js`, `frontend/src/pages/__tests__/aiWeeklyDecisionView.test.js`.
 
