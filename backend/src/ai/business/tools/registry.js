@@ -124,16 +124,55 @@ function operationsTimelineSummary(payload){
      trade:source.trade||'unknown'}});
   }
  }
+ // A KOL period snapshot can be *associated* with a collaboration
+ // only by the same CRM profile and an explicit collaboration ref, with an
+ // observation window containing the entire collaboration. Never apportion
+ // totals across multiple collaborations or infer incremental acquisition.
+ const channelLinks=[];
+ const collaborations=(payload.humanOperations||[])
+  .filter(row=>row?.kind==='kol_collaboration'&&typeof row.id==='string');
+ for(const observation of (payload.channelObservations||[])){
+  if(observation?.kind!=='kol_period_observation')continue;
+  const asOf=Number.isSafeInteger(observation.observedAt)?observation.observedAt:
+   Date.parse(observation.observedAt||'');
+  if(!Number.isSafeInteger(asOf)||asOf>reportEnd||
+   observation.coverage?.status==='unavailable')continue;
+  for(const profile of (observation.kolSummaries||[])){
+   if(channelLinks.length>=8)break;
+   const metrics=pick(profile.metrics||{},['observedUsers','analysis_users',
+    'analysis_events','trade_users','transactions']);
+   if(!Object.keys(metrics).length)continue;
+   for(const collaboration of collaborations){
+    if(channelLinks.length>=8)break;
+    if(profile.kolRef!==collaboration.kolRef||
+     !Array.isArray(profile.linkedCollaborationRefs)||
+     !profile.linkedCollaborationRefs.includes(collaboration.id)||
+     ![observation.startAt,observation.endAt,
+       collaboration.startAt,collaboration.endAt,reportEnd].every(Number.isSafeInteger)||
+     collaboration.startAt>=collaboration.endAt||
+     observation.startAt>collaboration.startAt||
+     observation.endAt<collaboration.endAt||
+     collaboration.endAt>reportEnd||asOf<collaboration.endAt)continue;
+    channelLinks.push({collaborationRef:opaqueRef(collaboration.id),
+     relationshipType:'crm-kol-id-match',
+     attribution:'observed-overlap-not-causal',
+     window:{start:collaboration.startAt,end:collaboration.endAt},
+     sourceAsOf:asOf,metrics,
+     coverage:{status:observation.coverage?.status||'unknown'}});
+   }
+  }
+ }
  const ai=(payload.aiActions||[]).slice(0,20).map(row=>pick(row,[
   'kind','layer','source','title','reportTitle','priority','status','createdAt',
   'updatedAt','executedAt','review','firstSeenAt','lastSeenAt','occurrences','sourceKind'
  ]));
  return {period:payload.period,humanOperations:human,channelObservations:observations,
-  outcomeLinks,aiActions:ai,counts:{human_operations_shown:human.length,channel_observations_shown:observations.length,
+  outcomeLinks,channelLinks,aiActions:ai,counts:{human_operations_shown:human.length,channel_observations_shown:observations.length,
    ai_actions_shown:ai.length,total_records_shown:human.length+observations.length+ai.length},
   coverage:payload.coverage||{},asOf:payload.asOf,
   warnings:[...(payload.warnings||['各来源独立记录，未提供的数据保持未知']),
-   '跨运营记录的结果关联仅基于显式CRM活动键、完整覆盖窗口与已结算活动统计；属于相关观察，非KOL带来的增量或因果贡献']};
+   '跨运营记录的结果关联仅基于显式CRM活动键、完整覆盖窗口与已结算活动统计；属于相关观察，非KOL带来的增量或因果贡献',
+   'KOL渠道观察只有在同CRM档案键及完整合作期对齐时才建立关联；共享归组样本不得分摊到合作或解释为增量归因']};
 }
 function referralSummary(payload){
  const pick=(o,keys)=>Object.fromEntries(keys.filter(k=>o?.[k]!==undefined).map(k=>[k,o[k]]));
