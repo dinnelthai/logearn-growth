@@ -117,7 +117,7 @@ New v5 flags:
 
 ## 7. Validation / production boundary
 
-This upgrade has not been deployed or tested against the user's live API/Worker. Latest AI infrastructure run [41171641824](https://github.com/dinnelthai/logearn-growth/actions/runs/41171641824) passed all three jobs: AI Contract groups 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112 (the aggregate harness reported zero failures); AI Integration 17/17; AI Frontend succeeded. This includes regression coverage for hashed CRM activity references, KOL collaboration joins, and v5 goal-ranked positive growth signals. These are fixture/service-container checks, not a real-source acceptance test. Current branch HEAD before this handoff refresh: `366c10e363af03562f9af4b774d5605d61d0e3a7`.
+This upgrade has not been deployed or tested against the user's live API/Worker. Latest AI infrastructure run [41171641824](https://github.com/dinnelthai/logearn-growth/actions/runs/41171641824) passed all three jobs: AI Contract groups 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112 (the aggregate harness reported zero failures); AI Integration 17/17; AI Frontend succeeded. This includes regression coverage for hashed CRM activity references, KOL collaboration joins, and v5 goal-ranked positive growth signals. These are fixture/service-container checks, not a real-source acceptance test. Implementation code SHA verified by CI: `b801acbb5e0532d8e74d7f6ce979a803b3a27ff7`; subsequent commits in this handoff sequence update documentation only.
 
 Do not:
 - run paid model calls just to test projection;
