@@ -60,6 +60,35 @@ test('collaboration economics evidence never becomes platform revenue or trade v
   assert.notEqual(describeMetric('trade_revenue').definition,describeMetric('collaboration_economics').definition);
  }finally{t.db.close()}
 });
+test('referral evidence declares cumulative all-time scope instead of impersonating the report period',async()=>{
+ const payload={scope:'all',start:0,end:Date.parse('2026-10-20T00:00:00Z'),
+  as_of:'2026-10-20T00:00:00Z',facts_as_of:'2026-10-20T00:01:00Z',
+  summary:{users:40,inviters:12,trade:3},
+  global:{registered:40,inviters:12,bound:30,output:4},
+  window:{days:28,users:20,pending:5,observed_output:2}};
+ const t=setup({runAnalysis:async(kind,body,snapshot,audience,owner)=>{
+  assert.equal(kind,'referral');assert.equal(body.source,'all');
+  return {payload};
+ }});
+ try{
+  const context={...t.context,scope:{source:'all'}};
+  const result=await t.registry.executeTool('get_referral',{},context);
+  const evidence=result.evidence[0];
+  assert.equal(result.status,'ok');
+  assert.equal(evidence.value.scope,'all');
+  assert.equal(evidence.value.periodMatched,false);
+  assert.equal(evidence.value.asOf,payload.as_of);
+  assert.equal(evidence.value.factsAsOf,payload.facts_as_of);
+  assert.equal(evidence.coverage.periodMatched,false);
+  assert.match(evidence.coverage.reason,/累计全量推荐关系/);
+  assert.ok(evidence.warnings.some(x=>x.includes('不是当前报告期间数据')));
+  assert.equal(evidence.period.start,period.start);
+  assert.equal(evidence.period.end,period.end);
+  assert.equal(evidence.watermarks.trades,null);
+  assert.equal(evidence.watermarks.registrations,null);
+ }finally{t.db.close()}
+});
+
 test('query_metrics archives the complete registration journey with independent source limits',async()=>{
  const t=setup({metrics:async()=>({metrics:[{metricId:'registered_user_journey',
   value:{available:true,registration:{
