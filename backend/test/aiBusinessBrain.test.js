@@ -25,6 +25,7 @@ test('Business Brain exposes the four LogEarn product roles and complete lifecyc
  assert.ok(value.metricDictionary.some(x=>x.id==='registered_users'));
  assert.ok(value.metricDictionary.some(x=>x.id==='registration_activation_rate'));
  assert.ok(value.metricDictionary.some(x=>x.id==='registered_trade_conversion_rate'));
+ assert.ok(value.metricDictionary.some(x=>x.id==='activities'));
  assert.ok(value.lifecycle.find(x=>x.id==='registration').metricIds.includes('registration_activation_rate'));
  assert.ok(value.lifecycle.find(x=>x.id==='trading').metricIds.includes('registered_trade_conversion_rate'));
  assert.ok(value.metricDictionary.some(x=>x.id==='new_users'));
