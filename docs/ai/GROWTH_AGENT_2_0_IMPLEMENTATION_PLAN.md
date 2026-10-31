@@ -2,7 +2,7 @@
 
 Branch: `codex/ai-comprehensive-upgrade`  
 Scope: Business Brain, Growth Intelligence, Operating Memory, Decision Engine and Learning Loop.  
-Progress snapshot (2026-10-31, latest source/test HEAD `a4f421400160d1a895e5032d7614062946e6f731`): **40 / 48 implementation checklist items (83.3%)** have code and focused CI-contract evidence; **8 remain open**. This is NOT live-source, platform-revenue availability or real-model acceptance.  
+Progress snapshot (2026-10-31, latest source/test HEAD `7044ef3859c551002f543c0d8d178cbd142877dc`): **41 / 48 implementation checklist items (85.4%)** have code and focused CI-contract evidence; **7 remain open**. This is NOT live-source, platform-revenue availability or real-model acceptance.  
 Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace and storage.
 
 ## Product definition
@@ -42,14 +42,14 @@ Do not build a second analytics engine, CRM, operations task manager, metric reg
 |---|---:|---:|---|
 | 0 — Baseline/handoff | 5/5 | 0 | Maintain handoff after changes |
 | 1 — Business Brain | 8/10 | 2 | Real authorized context check; operator approval of North Star/product map |
-| 2 — Growth Intelligence | 5/8 | 3 | Full module audit, supported breakdowns, per-source metadata |
+| 2 — Growth Intelligence | 6/8 | 2 | Full module audit and independently verified cross-source freshness |
 | 3 — Operating Memory | 7/8 | 1 | Cross-channel outcome links only with reliable keys and windows |
 | 4 — Decision Engine | 4/6 | 2 | Cost-aware ranking / cheapest discriminating query lack trusted cost metadata |
 | 5 — Operating Report | 5/5 | 0 | New v5 report contract/UI exist, **live model and report-quality acceptance pending** |
 | 6 — Learning Loop | 6/6 | 0 | Frozen-cohort end-to-end acceptance pending; v2 direct cohort review currently maps only `active_users → analysis_users` |
-| **Total** | **40/48 (83.3%)** | **8** | **No real-source/Worker/paid-model acceptance implied** |
+| **Total** | **41/48 (85.4%)** | **7** | **No real-source/Worker/paid-model acceptance implied** |
 
-**Latest verified checks:** AI infrastructure [run 41187724624](https://github.com/dinnelthai/logearn-growth/actions/runs/41187724624) passed **AI Contract, AI Integration and AI Frontend** on source/test HEAD `a4f421400160d1a895e5032d7614062946e6f731`. No full real-source / Worker / paid-model acceptance was performed.
+**Latest verified checks:** AI infrastructure [run 41198640425](https://github.com/dinnelthai/logearn-growth/actions/runs/41198640425) passed **AI Contract, AI Integration and AI Frontend** on source/test HEAD `7044ef3859c551002f543c0d8d178cbd142877dc`. No full real-source / Worker / paid-model acceptance was performed.
 
 **Known code/UI debt, not counted as new roadmap checkboxes:**
 - **Resolved in subsequent code:** weekly UI now derives the count from the persisted manifest and retains the 13th `operations-timeline` module without inventing a 13th module for historical 12-module snapshots. Frontend regression [41184785074](https://github.com/dinnelthai/logearn-growth/actions/runs/41184785074) passed.
@@ -58,6 +58,13 @@ Do not build a second analytics engine, CRM, operations task manager, metric reg
 - Read-only source acceptance must establish data freshness, identity/match coverage, mature denominators, real Hologres query latency, GSC PT-day alignment and X/KOL/invite snapshots. Missing data is unknown, never zero.
 
 **Execution order:** (1) complete Phase 2 module/source audit, supported channel/product/cohort breakdowns and per-source metadata, (2) Phase 3 stable operational outcome links, (3) Phase 4 query-cost ranking only after measured metadata exists, (4) already-authorized read-only v5/Operating Memory/fixed-cohort acceptance plus operator confirmation. Keep paid calls, deployments, migrations and external writes separately approval-gated.
+
+### Continuation checkpoint — 2026-10-31 (source-supported registered cohorts)
+
+- **Code/test HEAD:** `7044ef3859c551002f543c0d8d178cbd142877dc`; [AI infrastructure 41198640425](https://github.com/dinnelthai/logearn-growth/actions/runs/41198640425) **success** for Contract/Integration/Frontend after correcting a test fixture typo and ensuring `dimensions` enters the immutable query body/fingerprint.
+- **Implemented:** bounded, non-identifying `registration.bySource` counts with per-source mature 24h activation and separate 7d product entry facts; only explicit `query_metrics({metrics:['registered_user_journey'],dimensions:['source']})` may request it. The overall business journey and trade conversion remain unchanged. The AI fact projector provides valid, citation-linked source numbers while rejecting raw user IDs and unsupported device/version dimensions.
+- **Not implemented (by design):** historical first-touch acquisition, per-source verified trade conversion, unsupported device/version cohort dimensions, and causal channel-to-trade attribution. Source labels are observed associations and must never be called confirmed acquisition channels.
+- **Progress: 41/48 (85.4%), 7 open, Phase 2 6/8.** The outstanding two Phase 2 checkboxes are exhaustive module source audit and per-metric independent watermark/freshness/coverage across all compound sources. No live Hologres source reconciliation, paid calls, migrations, deployment or `master` changes.
 
 ### Continuation checkpoint — 2026-10-31 (source-specific provenance / CRM independence)
 
@@ -130,7 +137,9 @@ Acceptance:
   - **2026-10-31 post-completion boundary fix:** registration-cohort trade association now requires the first chip analysis to occur within the same half-open registration-to-day-7 entry window as the parallel product-entry metrics. Previously, a much later first analysis could enter the registration trade numerator/denominator, silently mixing cohort clocks. The trade query window builder now omits such late entries too. The post-analysis trade follow-up still matures for a separate 7 days. Added strict 7-day boundary fixtures in `growthCohorts.test.js` and `growthCohortTrades.test.js`. This tightens the already-checked cohort item; it does not add another checklist completion. CI [41191137847](https://github.com/dinnelthai/logearn-growth/actions/runs/41191137847) is the full verification target; inspect its final status.
 - [x] Validate SEO/GSC date semantics, X snapshot semantics, KOL CRM association and referral/invite contracts (**code + fixture CI only; independent live-source acceptance pending**).
   - GSC uses PT day labels and read-only stored-day coverage; nonmatching/partial days cannot be promoted into verified full-week totals or site conversion. X historical post and daily follower snapshots require `observed_at<end`, and mutable scan progress after end is omitted; historical `reviewed` without a timestamp remains unknown, never zero. KOL uses owner CRM tagged accounts and an end-covering Hologres watermark, without claiming causal attribution. Referral/invite tests verify binding identity and mature windows, not newly registered users. Source matrix: `docs/ai/GROWTH_SOURCE_CONTRACTS.md`; [CI run 41185823229](https://github.com/dinnelthai/logearn-growth/actions/runs/41185823229) passed AI Contract, AI Integration and AI Frontend.
-- [ ] Add channel / product / cohort breakdowns only where the source supports them.
+- [x] Add channel / product / cohort breakdowns only where the source supports them (**code/fixture CI; not verified acquisition attribution**).
+  - The existing mature registration journey supports **one explicit `dimensions:['source']` query** (and still supports the overall ungrouped query). The registration SQL already has one observed analytics-source label per account. `growthCohorts` now bounds this to the 4 largest safe named sources, plus `other` and `unknown`, and computes actual 24-hour activation and independent 7-day chip/Holder/strategy/signal/repeat-analysis entry counts with each group's mature denominator. Source bucket counts reconcile with total registration/eligible counts; unknown and pending are separate. `query_metrics` allows this dimension only for the single `registered_user_journey` metric; other source/device/version dimensions are rejected before data lookup rather than silently ignored. `modelTransport` exposes only aggregated allowlisted values; `weeklyCoverage` reserves up to 12 citeable numeric facts, including two bounded source groups when explicitly present. No user identifiers, fabricated group trade rates or causal attribution are added.
+  - **Coverage boundary:** source labels are the *currently observed analytics association*, not first-touch registered acquisition. Sources may be missing/overwritten and registration or trade source freshness is not independently verified. Trade identity matching remains **overall-only**, not by source; distinct parallel product entries cannot be summed. This closes the source-supported code contract, not live channel attribution or comprehensive source metadata. Tests: `growthCohorts.test.js`, `aiBusinessMetricsAdapter.test.js`, `agentTools.test.js`, `aiWeeklyCoverage.test.js`. [AI CI 41198640425](https://github.com/dinnelthai/logearn-growth/actions/runs/41198640425) passed.
 - [ ] Keep source watermark, coverage, freshness, scope and definition version with each metric.
   - **Incremental code milestone (2026-10-31):** `query_metrics` now archives per-metric coverage/limits and keeps metric-specific warnings (registration scope, mature cohort, trade identity) alongside common warnings. The event snapshot no longer masquerades as a separate registration watermark; registration/trade watermarks remain explicitly `null` pending measured source freshness. `makeEvidence` already pins definition version, owner scope and period. Still open: standardize independent source watermarks/freshness across every non-metric specialty and validate against live sources. AI CI [41184881554](https://github.com/dinnelthai/logearn-growth/actions/runs/41184881554) passed (Contract, Integration, Frontend).
 - [x] Separate platform revenue from trade volume and partner/collaboration ledger records (**code + contract tests; actual platform revenue remains unavailable**).
