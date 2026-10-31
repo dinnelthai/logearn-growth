@@ -11,11 +11,12 @@ const MODULES=Object.freeze([
  {moduleId:'growth.quality',version:'1.0.0',description:'数据质量与来源水位；不保证跨源一致',capabilities:['check_data_quality']},
  {moduleId:'growth.economics',version:'1.0.0',description:'合作账本成本与已记录收入；交易量不是收入',capabilities:['get_channel_economics']},
  {moduleId:'growth.referral',version:'1.0.0',description:'复用现有推荐绑定与邀请转化；绑定不等于注册',capabilities:['get_referral','get_invite_conversion']},
- {moduleId:'growth.login',version:'1.0.0',description:'复用现有登录转化与终态覆盖',capabilities:['get_login_conversion']}
+ {moduleId:'growth.login',version:'1.0.0',description:'复用现有登录转化与终态覆盖',capabilities:['get_login_conversion']},
+ {moduleId:'growth.operations',version:'1.0.0',description:'只读回顾人工运营、渠道观测和AI建议；各来源独立并明确覆盖',capabilities:['get_operations_timeline']}
 ]);
 const byModule=new Map(MODULES.map(m=>[m.moduleId,m]));
 const globalOnly=new Set(['check_data_quality','get_channel_economics','get_seo_performance',
- 'get_kol_performance','get_content_growth','get_follower_quality']);
+ 'get_kol_performance','get_content_growth','get_follower_quality','get_operations_timeline']);
 const FUNNEL_STEPS=Object.freeze(['token','chip','drill','ai','trade','logged_in_visit','login','visit']);
 const validFields=new Set(['scope','start','end','metrics','dimensions','filters','steps',
  'hours','initial','returning','limit','cursor','siteUrl']);
