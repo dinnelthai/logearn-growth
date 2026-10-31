@@ -36,3 +36,29 @@ test('AI content evidence includes observed X action rates and snapshots, scoped
   assert.equal(JSON.stringify(response).includes('99999'),false);
  }finally{db.close()}
 });
+
+test('historical X follower totals only use daily snapshots observed before cutoff',()=>{
+ const db=new DatabaseSync(':memory:');
+ try{
+  db.exec(`CREATE TABLE content_growth_items(owner_id TEXT,platform TEXT,published_at TEXT,impressions INTEGER,likes INTEGER,comments INTEGER,shares INTEGER);
+   CREATE TABLE x_official_account_sync(owner_id TEXT,account TEXT,followers INTEGER,last_synced INTEGER);
+   CREATE TABLE x_official_posts(owner_id TEXT,account TEXT,post_id TEXT,published_at TEXT,body TEXT,impressions INTEGER,likes INTEGER,replies INTEGER,reposts INTEGER,quotes INTEGER,observed_at INTEGER);
+   CREATE TABLE x_official_follower_daily(owner_id TEXT,account TEXT,day TEXT,followers INTEGER,observed_at INTEGER);`);
+  const cutoff=Date.parse('2026-10-21T00:00:00Z');
+  const add=db.prepare('INSERT INTO x_official_follower_daily VALUES(?,?,?,?,?)');
+  add.run('alice','logearn_cn','2026-10-19',100,cutoff-7200000);
+  add.run('alice','logearn_cn','2026-10-20',999,cutoff+3600000);
+  add.run('bob','logearn_cn','2026-10-20',5000,cutoff-3600000);
+  db.prepare('INSERT INTO x_official_account_sync VALUES(?,?,?,?)').run(
+   'alice','logearn_cn',999,cutoff+3600000);
+  const result=createContentAdapters(db).contentGrowth(
+   {start:cutoff-86400000,end:cutoff},{ownerId:'alice'});
+  const account=result.xOfficial.accounts.find(a=>a.account==='logearn_cn');
+  assert.equal(account.followers,100);
+  assert.equal(account.followerHistory.length,1);
+  assert.equal(account.followerHistory[0].day,'2026-10-19');
+  assert.equal(account.followerChange,null);
+  assert.equal(result.xOfficial.available,true);
+  assert.doesNotMatch(JSON.stringify(result.contentSignals),/5000|999/);
+ }finally{db.close()}
+});
