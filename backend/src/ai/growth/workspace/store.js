@@ -245,6 +245,12 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
   if(row.status!=='ready')throw Object.assign(Error('前置任务未完成'),{status:409});
   const evidence=evidenceId?getEvidence(owner,evidenceId):null;
   if(['verify-evidence','record-outcome'].includes(row.step)&&!evidence)throw Error('请提供真实的已保存指标证据');
+  const linkedAction=action(owner,row.action_id);
+  if(evidence&&(!linkedAction||evidence.state!=='verified'||
+   evidence.period?.end>getNow()||
+   linkedAction.metric_id&&evidence.metricId!==linkedAction.metric_id||
+   linkedAction.definition_version&&evidence.definitionVersion!==linkedAction.definition_version))
+   throw Error('交付证据的指标、版本或成熟时间与行动不一致');
   if(row.step==='prepare-execution'&&!String(note).trim())throw Error('交付方案不能为空');
   db.prepare("UPDATE gw_executive_workitems SET status='completed',evidence_id=?,completion_note=?,updated_at=? WHERE owner_id=? AND id=? AND status='ready'")
    .run(evidence?.id||null,String(note).slice(0,1000),getNow(),owner,id);
@@ -398,7 +404,7 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
   const after=getEvidence(owner,afterEvidenceId),base=a.baseline?.evidence;
   let outcome='insufficient-evidence',delta=null;
   if(after&&base&&after.state==='verified'&&base.state==='verified'&&after.definitionVersion===base.definitionVersion&&
-   after.metricId===base.metricId&&after.unit===base.unit&&
+   after.metricId===base.metricId&&after.unit===base.unit&&after.source===base.source&&
    scopeKey(after.scope)===scopeKey(base.scope)&&
    after.period.timezone===base.period.timezone&&
    after.period.start>=base.period.end&&after.period.end<=getNow()&&
