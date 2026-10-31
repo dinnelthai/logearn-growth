@@ -375,3 +375,10 @@ Branch: `codex/ai-comprehensive-upgrade`
 - AI Contract passed all groups (172 tests, 171 pass, 0 fail; one skipped), and existing groups 41/41, 34/34, 13/13, 23/23, 2/2, 112/112. AI Integration passed 17/17 with real PostgreSQL and Redis service containers. AI Frontend passed.
 - The first integration run exposed a legacy v3 strategy fixture; updated it to prove a v4 strategy upgrades from v3 even when the feedback digest is unchanged. Latest run passes.
 - Validation is still fixture/service-container validation, not a live LogEarn API/Worker acceptance test.
+
+
+### Final validation update — 2026-10-31
+
+- Latest successful run: [41177187712](https://github.com/dinnelthai/logearn-growth/actions/runs/41177187712), code head `27604c06ef103880350743723f5351c78d938d90`; all three jobs passed.
+- AI Contract: 172 tests, 171 pass, 0 fail, 1 skipped; regression groups 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112. AI Integration: 17/17 with PostgreSQL/Redis containers. AI Frontend: success.
+- No live LogEarn source acceptance, migration, deployment, paid model call, paid collection or external action.
