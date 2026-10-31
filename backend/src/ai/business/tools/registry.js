@@ -214,7 +214,10 @@ function createToolRegistry(deps){
   const period={start,end,timezone:'Asia/Bangkok'},body={start,end,source:scope.source};
   if(input.filters&&Object.keys(input.filters).length)fail('不支持 filters 自定义筛选；来源请用 scope.source，例如 {"scope":{"source":"direct"}}；固定人群请用 scope.activityId 或 scope.cohortId');
   if(input.dimensions!=null&&(!Array.isArray(input.dimensions)||input.dimensions.some(d=>!['source','device','version'].includes(d))))fail('未知分组维度');
-  if(id==='query_metrics'&&input.dimensions?.length&&input.metrics?.includes('registered_user_journey'))fail('注册旅程目前仅支持总体统计与来源范围筛选，不支持设备/版本分组；产品入口为并行口径');
+  if(input.dimensions?.length&&!(id==='query_metrics'&&
+    input.metrics?.length===1&&input.metrics[0]==='registered_user_journey'&&
+    input.dimensions.length===1&&input.dimensions[0]==='source'))
+   fail('指标分组不支持该维度；注册旅程仅允许单指标按已观测来源 source 分组，不支持设备/版本分组');
   if(input.metrics!=null&&(!Array.isArray(input.metrics)||!input.metrics.length||input.metrics.length>10))fail('指标列表无效');
   for(const m of input.metrics||[])describeMetric(m);
   if(input.cursor){
@@ -246,7 +249,7 @@ function createToolRegistry(deps){
    const snapshot=['get_seo_performance','get_content_growth','get_follower_quality','get_operations_timeline','get_channel_economics'].includes(id)?{snapshot_id:null,as_of:new Date().toISOString()}:await deps.snapshot();
    if(!Number.isFinite(Date.parse(snapshot.as_of))||end>Date.parse(snapshot.as_of)+1)fail('所选期间超出数据水位');
    const operation=async()=>{
-    if(tool.adapter==='metrics')return deps.metrics(body,snapshot,input.metrics||['active_users','new_users','returning_users'],ctx);
+    if(tool.adapter==='metrics')return deps.metrics({...body,dimensions:input.dimensions||[]},snapshot,input.metrics||['active_users','new_users','returning_users'],ctx);
     if(tool.adapter==='economics')return deps.economics(body,ctx);
     if(tool.adapter==='activities')return deps.activities(body,snapshot,audience,ctx);
     if(tool.adapter==='seo-performance')return deps.seoPerformance({...body,limit,siteUrl:input.siteUrl},ctx);
