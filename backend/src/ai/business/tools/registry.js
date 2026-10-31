@@ -22,7 +22,7 @@ const definitions={
  get_kol_performance:{metric:'kol_performance',adapter:'kol-performance',scopes:['source'],description:'复用已有 KOL CRM 归组和真实观察行为；不等于因果归因'},
  get_content_growth:{metric:'content_growth',adapter:'content-growth',scopes:['source'],description:'只读已采集的LogEarn双账号X内容：近30天有界公开浏览、回复/转发/点赞率、快照和覆盖；人工登记独立，非推荐分及转化归因'},
  get_follower_quality:{metric:'follower_quality',adapter:'follower-quality',scopes:['source'],description:'只读粉丝采集分类汇总，无个人资料外传，数据覆盖可能不足'},
- get_referral:{metric:'referral',adapter:'referral',scopes:['source'],description:'已有推荐绑定关系与成熟观察；推荐绑定不等于新增获客'},
+ get_referral:{metric:'referral',adapter:'referral',scopes:['source'],description:'累计推荐绑定关系与成熟观察；默认全量截至快照，不代表当前报告期间；推荐绑定不等于新增获客'},
  get_login_conversion:{metric:'login_conversion',adapter:'login-conversion',scopes:['source'],description:'已有登录转化聚合，待确认与异常单列'},
  get_invite_conversion:{metric:'invite_conversion',adapter:'invite-conversion',scopes:['source'],description:'已有邀请链接转化与注册关系事实；不推断因果'}
 };
@@ -90,7 +90,9 @@ function operationsTimelineSummary(payload){
 }
 function referralSummary(payload){
  const pick=(o,keys)=>Object.fromEntries(keys.filter(k=>o?.[k]!==undefined).map(k=>[k,o[k]]));
+ const scope=payload.scope||'all',periodMatched=scope==='period';
  return {
+  scope,asOf:payload.as_of||null,factsAsOf:payload.facts_as_of||null,periodMatched,
   referral:{
    summary:pick(payload.summary,['users','inviters','analysis','strategy','used','trade','continued',
     'nearby','stored','next_generation','next_used']),
@@ -98,8 +100,11 @@ function referralSummary(payload){
     'participation_rate','continuation_rate','output']),
    window:pick(payload.window,['days','users','next_generation','new_nearby','pending',
     'observed_output','confirmed_new_registration_rate','coverage'])},
-  coverage:{status:'partial',reason:'推荐绑定不证明新客归因；用户级关系和排名明细不发送给模型'},
-  warnings:['推荐绑定不等于新注册；历史首次/绑定顺序可能缺失；交易量不是收入']
+  coverage:{status:'partial',periodMatched,
+   reason:periodMatched?'推荐关系按邀请绑定期间筛选；下游行为仍受各自来源水位限制':
+    '当前返回累计全量推荐关系截至快照，不与请求报告期间匹配，不用于周环比或期间增长归因'},
+  warnings:[...(periodMatched?[]:['推荐数据为累计全量快照，不是当前报告期间数据']),
+   '推荐绑定不等于新注册；历史首次/绑定顺序可能缺失；交易量不是收入；用户级关系和排名明细不发送给模型']
  };
 }
 // The retention engine also returns cohort member stores. Only export
