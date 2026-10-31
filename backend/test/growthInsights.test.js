@@ -36,7 +36,7 @@ test('cohort trade is restricted to mature verified users and the first 168 hour
   trade({valid:false}),trade({trade_value:null})
  ]}
  const out=growthInsights(rows,[],{start,end},snapshot,facts),t=out.payload.channels[0].trade
- assert.equal(t.eligible,1);assert.equal(t.unmatched,2);assert.equal(t.traders,1);assert.equal(t.transactions,2);assert.equal(t.volume_usd,12.5);assert.equal(t.missing_values,1);assert.equal(t.excluded_trades,1)
+ assert.equal(t.eligible,1);assert.equal(t.unmatched,2);assert.equal(t.traders,1);assert.equal(t.transactions,2);assert.equal(t.volume_usd,null);assert.equal(t.missing_values,1);assert.equal(t.excluded_trades,1)
  assert.equal(t.conversion_rate,1);assert.equal(t.pending,0);assert.equal(t.not_engaged,1);
  assert.equal(t.association,'user-level-after-first-analysis')
  assert.deepEqual(out.lists[t.list_key+':traders'],['user:1'])
