@@ -95,3 +95,22 @@ test('daily conversion specialty signals take precedence without modifying busin
  assert.throws(()=>planGrowthInvestigation({goal:'conversion',report,
   availableSpecialties:['unreviewed-external-write']}),/每日专项证据输入无效/);
 });
+
+test('versioned learning strategy applies only inside its declared goal, source and validity window',()=>{
+ const now=Date.now();
+ const strategy={version:4,policy:{version:'evidence-first-strategy-v4',
+  validFrom:now-1000,validUntil:now+86400000,
+  scope:{goal:'activation',source:'all'},focusMetrics:['registration_activation_rate'],
+  instructions:'用成熟注册队列复核'},evidence:{judgementCount:3,counterEvidence:[]}};
+ const active=planGrowthInvestigation({goal:'activation',report,strategy});
+ assert.equal(active.learningStrategyStatus,'active');
+ assert.deepEqual(active.learningStrategy.focusMetrics,['registration_activation_rate']);
+ const expired=planGrowthInvestigation({goal:'activation',report,strategy:{
+  ...strategy,policy:{...strategy.policy,validUntil:now-1}}});
+ assert.equal(expired.learningStrategyStatus,'expired-or-scope-mismatch-ignored');
+ assert.equal(expired.learningStrategy,null);
+ assert.ok(expired.warnings.some(x=>x.includes('已过期')));
+ const wrongScope=planGrowthInvestigation({goal:'activation',
+  report:{...report,business:{scope:{source:'telegram'}}},strategy});
+ assert.equal(wrongScope.learningStrategyStatus,'expired-or-scope-mismatch-ignored');
+});
