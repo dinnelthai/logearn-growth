@@ -211,17 +211,21 @@ function modelEvidence(row){
   sampleSize:numericFact(row.sampleSize),
   period:statView(row.period||{}),
   filters:{source:safeText(row.filters?.scope?.source||row.filters?.source||'all',120)},
-  sourceVersions:{events:safeText(row.sourceVersions?.events||'',120),
-   searchConsole:safeText(row.sourceVersions?.searchConsole||'',120),
-   operatorRecords:safeText(row.sourceVersions?.operatorRecords||'',120),
+  sourceVersions:{events:row.sourceVersions?.events?safeText(row.sourceVersions.events,120):null,
+   searchConsole:row.sourceVersions?.searchConsole?
+    safeText(row.sourceVersions.searchConsole,120):null,
+   operatorRecords:row.sourceVersions?.operatorRecords?
+    safeText(row.sourceVersions.operatorRecords,120):null,
    ...(row.sourceVersions?.x?{x:safeText(row.sourceVersions.x,120)}:{}),
    ...(row.sourceVersions?.kol?{kol:safeText(row.sourceVersions.kol,120)}:{}),
    ...(row.sourceVersions?.followerScan?
     {followerScan:safeText(row.sourceVersions.followerScan,120)}:{})},
-  watermarks:{events:safeText(row.watermarks?.events||'',120),
-   eventsCompleteThrough:safeText(row.watermarks?.eventsCompleteThrough||'',120),
-   trades:safeText(row.watermarks?.trades||'',120),
-   registrations:safeText(row.watermarks?.registrations||'',120),
+  watermarks:{events:row.watermarks?.events?safeText(row.watermarks.events,120):null,
+   eventsCompleteThrough:row.watermarks?.eventsCompleteThrough?
+    safeText(row.watermarks.eventsCompleteThrough,120):null,
+   trades:row.watermarks?.trades?safeText(row.watermarks.trades,120):null,
+   registrations:row.watermarks?.registrations?
+    safeText(row.watermarks.registrations,120):null,
    ...(row.watermarks?.searchConsole?
     {searchConsole:safeText(row.watermarks.searchConsole,120)}:{}),
    ...(row.watermarks?.x?{x:safeText(row.watermarks.x,120)}:{}),
