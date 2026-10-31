@@ -6,6 +6,10 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
+- Last code-validation commit: `c04bd5ba0d5f0c31bc6f5b8f1c65cc631c0b150c` (green AI infrastructure CI).
+- Documentation HEAD immediately before this handoff refresh: `b6306a33254af8d6b737a352b5465038d793c69f`; fetch the live branch HEAD before every new edit.
+- Latest successful CI: AI infrastructure run [41156542441](https://github.com/dinnelthai/logearn-growth/actions/runs/41156542441); desktop UI regression run [41155768483](https://github.com/dinnelthai/logearn-growth/actions/runs/41155768483).
+- Checklist progress: 18 / 45 implementation items (40%); live-source acceptance is not included in that percentage.
 - Do not switch to or commit to `master`.
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
 - Always verify the branch HEAD before editing and fetch each target file from this branch.
@@ -30,6 +34,9 @@ Business Brain v1 runtime source:
 New model protocol:
 - `backend/src/ai/business/modelTransport.js` — v5 transport and operating-memory projection.
 - `backend/src/ai/business/weeklyContextV4.js` — optional reserved-byte support; legacy v4 default unchanged.
+- `backend/src/data/productChainTrades.js` — trade lookups now start from successful same-token analysis windows; caps 5,000 windows / 20,000 rows and batches token enrichment in groups of 2,000.
+- `backend/src/analytics/productChain.js` — exposes trade/window truncation as explicit quality coverage.
+- `backend/src/workers/remoteAnalysis.js` — passes validated request-analysis rows into the trade lookup.
 - `backend/src/ai/business/runner.js` — v5 marker, prompt rules, replay detection and bounded tool replies.
 - `backend/src/queues/jobs/businessAnalysis.js` — new analyses opt into v5; archived tasks keep their stored prompt/transport.
 - `backend/src/ai/growth/weeklyReport.js` — new v5 weekly prompt.
@@ -67,11 +74,11 @@ New v5 flags:
 
 ### P0 — Validate the v5 implementation
 
-Run from a local checkout on the required branch:
+Green CI already ran the focused tests. If a local checkout becomes available, rerun from the required branch:
 
 ~~~bash
 cd backend
-node --test test/aiBusinessBrain.test.js test/aiWeeklyContextV4.test.js test/aiWeeklyReport.test.js
+node --test test/aiBusinessBrain.test.js test/aiWeeklyContextV4.test.js test/aiWeeklyReport.test.js test/productChainTrades.test.js
 ~~~
 
 Then run broader targeted suites:
@@ -97,8 +104,11 @@ Required behavior:
 
 ### P1 — Complete Growth Intelligence
 
+- [x] Code-level source contract: product-to-trade reads authoritative `trading_transaction` facts and confirmed ledger / indexed swap token enrichment; identity, token and visit association remain separate.
+- [x] Bound the trade query to successful same-token analysis windows and expose truncation / unknown coverage.
+- [ ] Validate actual Hologres latency, trade match rate and identity coverage using the already-authorized read-only source; CI fixtures are not live-source acceptance.
 - Verify product-to-trade reads authoritative business transactions, not only front-end trade events.
-- Separate registration from first observed analysis.
+- Separate registration from first observed analysis; inspect `growthEvidence.registrationFacts` and adapt the existing registered-user metric only if the source contract is authoritative.
 - Confirm activation denominator and maturity.
 - Review SEO/GSC PT date alignment and X observation timestamps.
 - Add source-specific coverage and evidence, not guessed data.
@@ -125,7 +135,7 @@ Do not build a parallel CRM or task manager. Keep AI suggestion/review memory se
 
 ## 7. Validation / production boundary
 
-This upgrade has not been deployed or tested against the user's live API/Worker. The isolated model-context fixture is not a real-source acceptance test.
+This upgrade has not been deployed or tested against the user's live API/Worker. CI passed 166/166 active AI contract tests plus the targeted 22/22 and 112/112 suites, 17/17 PostgreSQL/Redis integration tests, and 429 frontend tests (4 skipped). These are fixture/service-container checks, not a real-source acceptance test.
 
 Do not:
 - run paid model calls just to test projection;
