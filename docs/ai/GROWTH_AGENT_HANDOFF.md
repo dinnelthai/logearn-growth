@@ -6,10 +6,10 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
-- Latest successful implementation/CI head: `6c60b8e33a5684d0da5ed8e90e828ea69e2a5b04` (action anti-repeat code; verify the latest run below before relying on it). (includes fixed-cohort retrospective evidence and operation-task route coverage). Fetch the live branch before editing.
+- Latest successful implementation/CI head: `6c60b8e33a5684d0da5ed8e90e828ea69e2a5b04` (action anti-repeat code; CI run 41181045783 passed). Fetch the live branch before editing.
 - Fetch the live branch HEAD before every new edit; do not rely on this document's historical commit reference.
-- Latest successful CI: AI infrastructure run [41180112012](https://github.com/dinnelthai/logearn-growth/actions/runs/41180112012) passed all AI jobs; subsequent frontend UI run [41180467339](https://github.com/dinnelthai/logearn-growth/actions/runs/41180467339) passed with the detailed learning evidence table.
-- Checklist progress: 32 / 48 implementation items (67%); live-source acceptance is not included in that percentage.
+- Latest successful CI: AI infrastructure run [41181045783](https://github.com/dinnelthai/logearn-growth/actions/runs/41181045783) — AI Contract, AI Frontend and AI Integration all passed, including anti-repeat tests; the detailed learning UI also passed [41180467339](https://github.com/dinnelthai/logearn-growth/actions/runs/41180467339).
+- Checklist progress: 33 / 48 implementation items (69%); live-source acceptance is not included in that percentage.
 - Do not switch to or commit to `master`.
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
 - Always verify the branch HEAD before editing and fetch each target file from this branch.
