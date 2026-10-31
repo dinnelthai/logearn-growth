@@ -556,3 +556,29 @@ These are **code-complete/CI-validated**, not a guarantee that an actual new v5 
 - No application source or tests were changed; no database migration, deployment, paid AI call, paid SEO collection, external posting, or external campaign occurred.
 - Next priority: Phase 2 source-contract completion with authorized read-only fixtures/live acceptance, then Phase 3 stable outcome associations, then cost-aware Decision Engine only when trusted cost metadata exists. Keep all real paid operations approval-gated.
 
+
+## 2026-10-31 — Phase 2 per-metric provenance and weekly 13-module UI correction
+
+### Baseline and changed files
+
+- Branch: `codex/ai-comprehensive-upgrade`. Feature/test verification HEAD `f9de3abb5eae27be99ba9129ee92c8b57a318a03`. Previous audited checklist: **37/48 (77.1%)**.
+- `backend/src/ai/business/tools/adapters.js`: metric-specific `coverage.status/reason` for registered users, registration activation, verified user-level post-analysis trades, weekly core and event-observed metrics; retain conservative source freshness limits.
+- `backend/src/ai/business/tools/registry.js`: **fix evidence warning overwrite** in `query_metrics`; keep metric-specific warnings plus shared warnings, per-metric coverage, owner scope and formal definition version. `events` watermarks are used only for event-based metrics; registration/trade watermarks are null unless separately measured. No fabricated freshness.
+- `backend/test/agentTools.test.js`, `backend/test/aiBusinessMetricsAdapter.test.js`: add independent registration/trade availability, observed zero vs unknown, evidence warning/watermark/scope regression tests.
+- `frontend/src/pages/aiWeeklyCoverageView.js`: use the saved, bounded `weekly-coverage-v1` module manifest to show the 13th `operations-timeline` row; historical reports without an updated manifest keep 12 legacy modules.
+- `frontend/src/pages/aiWeeklyDecisionView.js`: derive collapsed module count from real rendered coverage.
+- `frontend/src/pages/__tests__/aiWeeklyDecisionView.test.js`: explicit 12/13 compatibility regressions.
+
+### Validation
+
+- [AI infrastructure run 41184881554](https://github.com/dinnelthai/logearn-growth/actions/runs/41184881554) on `f9de3abb5eae27be99ba9129ee92c8b57a318a03`: **success**, AI Contract / AI Frontend / AI Integration all passed. Earlier incremental AI runs 41184836223, 41184852478 and 41184867049 also passed.
+- [Growth desktop UI run 41184785074](https://github.com/dinnelthai/logearn-growth/actions/runs/41184785074) on `82f801864ff1cf4c6d114b77411adbfdb5527911`: **success**.
+- These are GitHub-hosted CI runs. No new local checkout or local Node test was run by this agent; no real Hologres, Worker, paid model or independently synchronized source was exercised.
+
+### Checklist result and next action
+
+- The broad Phase 2 item “Keep source watermark, coverage, freshness, scope and definition version with **each** metric” remains **unchecked**: the new code improves `query_metrics`, but comprehensive per-specialty source freshness and live-watermark acceptance remain open.
+- Corrected historical 12-module display is an off-roadmap compatibility bugfix, not a new implementation checkbox.
+- **Checked 37/48 (77.1%); open 11; Phase 2 2/8.** Do not inflate the completion score for passing a subset of a broader requirement.
+- Next: audit remaining data source contracts for authentic watermarks, time zones, coverage and mature denominators; align source-safe registration→parallel product engagement→verified trade cohort views and keep revenue/partner ledger separate.
+- No database migration, schema change, deployment, paid collection, external publishing, production configuration change or model request.
