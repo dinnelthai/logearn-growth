@@ -6,9 +6,9 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
-- Latest **source/test** HEAD validated on 2026-10-31: `d678cf51af6257a250777c52708586448bba5ff0` (operator North Star contract, goal-relevant active-user ranking, source/finance guards, preserved v5 <=22KB weekly context, focused regressions). Fetch live branch HEAD before every edit.
+- Latest **source/test** HEAD validated on 2026-10-31: `384c02c462acb59b3a3316bec54a18fabca28e7e` (owner-scoped GET-only archived v5 snapshot audit, safe historical-v4 denial, UI affordance, no-paid regression). Fetch live branch HEAD before every edit.
 - Fetch the live branch HEAD before every new edit; do not rely on this document's historical commit reference.
-- Latest successful AI CI: [41206755515](https://github.com/dinnelthai/logearn-growth/actions/runs/41206755515) — **AI Contract (including North Star and budget regressions), AI Integration and AI Frontend passed** on source/test HEAD `d678cf51af6257a250777c52708586448bba5ff0`. Includes persisted owner-scoped latency and ranking/discriminator privacy regression. No live Hologres, X, GSC, Worker, real-model or paid-model acceptance implied.
+- Latest successful AI CI: [41207439675](https://github.com/dinnelthai/logearn-growth/actions/runs/41207439675) — **AI Contract (including archived v5 audit API and privacy), AI Integration and AI Frontend passed** on source/test HEAD `384c02c462acb59b3a3316bec54a18fabca28e7e`. Includes persisted owner-scoped latency and ranking/discriminator privacy regression. No live Hologres, X, GSC, Worker, real-model or paid-model acceptance implied.
 - Latest canonical checklist: **47 / 48 (97.9%) code/CI or operator-approved semantics; 1 open**, Phase 2 **8/8**, Phase 3 **8/8**, Phase 4 **6/6**. Remaining: already-authorized genuine v5 business context/source acceptance; operator North Star definition confirmed 2026-10-31. CI is not live source acceptance.
 - **Current continuation (post-`5b957a1`):** `backend/src/ai/business/savedContextAudit.js`, `backend/scripts/auditSavedWeeklyContext.js`, `backend/test/aiSavedContextAudit.test.js` and `docs/ai/GROWTH_V5_SAVED_CONTEXT_AUDIT.md` add an offline, non-paying *saved v5 snapshot* audit. **Not** live source or paid-model acceptance. A current local browser view displays an archived `aggregated-business-v4` report with 12 modules, not new v5. Recheck branch HEAD and CI after this documentation commit.
 - **CI inclusion:** The offline saved-context audit test is explicitly included in the AI Contract GitHub workflow (`backend/test/aiSavedContextAudit.test.js`). Check the workflow run on the exact newest SHA before calling it green.
@@ -26,6 +26,13 @@ The branch existed before this upgrade and already contained a substantial Growt
 - Trading is a separate outcome, not part of the North Star. The operator does not define a North Star analysis-to-trade window. Keep the independently defined historical `registered_trade_conversion_rate` seven-day metric separate.
 - Transactions with unmatchable identity are excluded from verified user-linked trading but must be flagged as matching anomalies/unknown coverage; never equate these with zero actual trades.
 - Operator decision closes the semantic signoff checkbox only. Authentic v5 context and source acceptance is the remaining gate. Follow `GROWTH_V5_SAVED_CONTEXT_AUDIT.md` without unnecessary paid calls.
+## Latest no-paid acceptance continuation (2026-10-31)
+
+- `GET /ai-weekly-reports/:id/snapshot-audit` in `backend/src/routes/growthWorkspace.js` reads only owner-matched persisted weekly AI records, returns a boolean-only snapshot audit. The existing router is mounted behind application auth. No paid call, queue, source sync, DB write or migration.
+- `frontend/src/pages/aiWeeklyReportPanel.js` adds **检查 v5 快照（只读）** next to existing archived-report controls. The response indicates saved `weekly-report-v2` / 13-module shape readiness only. It NEVER claims live source correctness or original v5 prompt/model proof.
+- Backend focused regression: `backend/test/aiWeeklySnapshotAuditHttp.test.js`; frontend focused regression: `frontend/src/pages/__tests__/aiWeeklySnapshotAudit.test.js`; both included in AI infrastructure workflow.
+- **Pass:** [AI CI 41207439675](https://github.com/dinnelthai/logearn-growth/actions/runs/41207439675) all three jobs. **Separate failure:** [full Frontend UI 41207439672](https://github.com/dinnelthai/logearn-growth/actions/runs/41207439672), unrelated unchanged funnelAssociation test (`drop_off_users` mismatch). Do not report all CI green.
+- **Last unchecked roadmap item remains unchanged:** already-authorized genuine v5 context with real source watermarks and original journal/protocol confirmation. Selected local app still shows archived v4 (12 modules); no live v5 verification conducted. No `master` change or paid model operation.
 ## 2. Read these documents in order
 
 1. `docs/ai/GROWTH_AGENT_HANDOFF.md` — this handoff.

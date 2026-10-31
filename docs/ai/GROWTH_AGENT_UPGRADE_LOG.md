@@ -2,6 +2,13 @@
 
 All dates use repository commit time / recorded work date. This log is append-only in intent: update progress without erasing prior test outcomes.
 
+## 2026-10-31 — Saved weekly snapshot owner-scoped GET audit + UI (no paid work)
+
+- Code HEAD `384c02c462acb59b3a3316bec54a18fabca28e7e`. Implemented `GET /ai-weekly-reports/:id/snapshot-audit` on existing authenticated `growthWorkspace` router. Reuses `getAnalysisRecord(id, ownerId)` and `auditSavedWeeklyContext()`, returns only status/checks, with `modelCalls:0`, `externalSourceCalls:0`, `liveSourceAcceptance:'not-verified'`; no producer, external read or history mutation.
+- Frontend archived weekly report controls now include **检查 v5 快照（只读）** and a bounded boolean-only explanation. Historic v4/12-module reports remain explicitly invalid for saved v5 readiness; no automatic regeneration or billing.
+- AI Contract regression covers owner isolation, non-weekly denial, historical v4 rejection, malformed stored JSON safety, positive 13-module v5 fixture; frontend regression covers proper status display and absence of raw data. New suites wired into workflow.
+- [AI infrastructure 41207439675](https://github.com/dinnelthai/logearn-growth/actions/runs/41207439675): **Contract/Integration/Frontend passed**. Separate [full Frontend UI 41207439672](https://github.com/dinnelthai/logearn-growth/actions/runs/41207439672): **failed** with unrelated `funnelAssociation.test.js` drop-off expectation mismatch; not repaired in this scoped pass.
+- Read-only browser shows existing **aggregated-business-v4 / 12** report; genuine v5 reporting and real Hologres watermark/identity/transaction matches not verified. **Checklist 47/48 (97.9%), last Phase 1 live acceptance remains open.** No paid model runs, migrations, deployments, source syncs or `master` changes.
 ## 2026-10-31 — Offline v5 saved-context acceptance guard (branch continuation)
 
 - Base HEAD inspected: `5b957a1b10e27fb5f648b01c9e08622e046d3791`; branch remains `codex/ai-comprehensive-upgrade`, without merge into `master`.

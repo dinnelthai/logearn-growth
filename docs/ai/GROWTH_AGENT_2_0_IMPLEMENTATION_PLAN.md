@@ -2,7 +2,7 @@
 
 Branch: `codex/ai-comprehensive-upgrade`  
 Scope: Business Brain, Growth Intelligence, Operating Memory, Decision Engine and Learning Loop.  
-Progress snapshot (2026-10-31, latest source/test HEAD `d678cf51af6257a250777c52708586448bba5ff0`): **47 / 48 implementation checklist items (97.9%)** have code/CI or operator-confirmed business-definition evidence; **1 remains open**. This is NOT live-source, platform-revenue availability or real-model acceptance.  
+Progress snapshot (2026-10-31, latest source/test HEAD `384c02c462acb59b3a3316bec54a18fabca28e7e`): **47 / 48 implementation checklist items (97.9%)** have code/CI or operator-confirmed business-definition evidence; **1 remains open**. This is NOT live-source, platform-revenue availability or real-model acceptance.  
 Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace and storage.
 
 ### Continuation checkpoint — 2026-10-31 (saved v5 context, no-paid acceptance preparation)
@@ -20,6 +20,13 @@ Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace 
 - **Runtime alignment:** Business Brain's existing v2 context now carries a confirmed single-metric definition (while preserving the no-composite protocol status), and activation question relevance includes `active_users` and returning users. New focused regressions guard these rules.
 - **Code/CI checked:** `d678cf51af6257a250777c52708586448bba5ff0`, [AI infrastructure 41206755515](https://github.com/dinnelthai/logearn-growth/actions/runs/41206755515) completed successfully on all three jobs. The v5 weekly context reserve remains capped at 22KB and optional context yields first to North Star/aggregate KPI evidence.
 - **Progress 47/48 (97.9%), Phase 1 operator signoff closed.** The one remaining checkbox is genuine already-authorized read-only v5 context/source acceptance. This is not Worker, live model, production or external-source acceptance. CI on new code commit must be checked separately.
+### Continuation checkpoint — 2026-10-31 (no-paid archived v5 audit API and UI)
+
+- **Code HEAD tested:** `384c02c462acb59b3a3316bec54a18fabca28e7e`. Added an authenticated, owner-scoped, *GET-only* saved weekly snapshot audit endpoint `growthWorkspace.js` and report-list button `aiWeeklyReportPanel.js`. Only calls existing `getAnalysisRecord` and `auditSavedWeeklyContext`. It neither repairs archived v4 input nor executes Worker, Hologres, GSC/X/KOL, queue or model.
+- **AI CI:** [run 41207439675](https://github.com/dinnelthai/logearn-growth/actions/runs/41207439675) **Contract, Integration and Frontend passed** on the exact source commit, including focused backend/API and frontend status-copy regression tests.
+- **Separate full UI CI:** [run 41207439672](https://github.com/dinnelthai/logearn-growth/actions/runs/41207439672) **failed** in unchanged `funnelAssociation.test.js` (expected drop_off_users 1, received 0). This run is not a green full-UI claim; baseline status was not independently established and the unrelated funnel code was not modified here.
+- **Observed local page:** selected historical report remains **v4 / 12 modules**, older incomplete source coverage and failed trade read. No confirmed existing v5 report or live source acceptance available through the read-only browser view. Neither code/CI nor read-only on-page status may close the live-source checkbox.
+- **Progress unchanged: 47/48 (97.9%), Phase 1 one real-source and original-v5-context validation gate open.** Full steps and source boundaries: `docs/ai/GROWTH_V5_SAVED_CONTEXT_AUDIT.md`.
 ## Product definition
 
 The goal is not “write a weekly report”. The goal is a virtual Head of Growth that can explain:
