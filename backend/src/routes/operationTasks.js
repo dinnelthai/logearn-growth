@@ -114,4 +114,5 @@ router.get('/:id/review',wrap(async(req,res)=>{
  const facts=await memberFacts(s,ids,period),performance=memberMetrics(facts,ids.map(id=>({id})),period,s)
  res.json({pending:false,...period,as_of:s.as_of,snapshot_id:s.snapshot_id,performance:performance?{total:performance.total,requested_users:performance.requested_users,unmatched_users:performance.unmatched_users}:null,errors:facts.errors})
 }))
-module.exports=router
+module.exports=router;
+module.exports.syncLinkedAISuggestions=syncLinkedAISuggestions;
