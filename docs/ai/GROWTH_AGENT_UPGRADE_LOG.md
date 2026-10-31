@@ -711,3 +711,25 @@ These are **code-complete/CI-validated**, not a guarantee that an actual new v5 
 - Checked Phase 2 `Add channel / product / cohort breakdowns only where the source supports them` at **code + fixture CI** level. This covers source-supported observed registration groups with existing per-product parallel entries and a mature registration cohort; it does not assert historical acquisition attribution, per-source trade identity coverage or live Hologres completeness.
 - Phase 2 **6/8**; roadmap **41/48 (85.4%)**, **7 open**. Remaining Phase 2: comprehensive per-module/source-contract audit and full source-specific freshness/coverage/definition metadata validation. Remaining cross-phase items require real operator acceptance, stable activity-to-outcome identifiers or measured query-cost metadata.
 - No paid AI/API call, schema migration, deployment, external sync/write, publication or `master` merge.
+
+## 2026-10-31 — Phase 2 complete built-in source contract audit (42/48)
+
+### Source inventory and observed defects
+
+- `backend/src/ai/business/tools/sourceContracts.js` introduces a static source/clock/interpretation contract for **every one of the 18 built-in tool IDs**. It does **not** claim external source connectivity. `backend/src/ai/business/tools/businessModuleCatalog.js` now exposes source contracts in discovery and execution of the 9 existing module facades. Modules no longer call all non-SEO sources `logearn_business_observation`; manual collaboration CRM, cumulative referral, public X samples, observed event cohorts and relationship-linked conversion are distinguishable.
+- **Coverage inflation fixed:** `conversionSummary()` formerly set `coverage.status='verified'` if `history_complete` was true, while the underlying invited-account and verified-binding association sources might still be unavailable. The coverage is now `partial`, with event `historyComplete` separated; no unsupported claim of full relationship/terminal completeness is made.
+- **Model evidence boundary fixed:** `backend/src/ai/business/modelTransport.js` `statView` now retains sanitized aggregate `association.available/status/reason` objects so AI can see linkage gaps in invite conversion, but arbitrary relationship rows, IDs, wallets and user-level fields are still discarded.
+- **Unchanged:** existing Growth analytics SQL/metric semantics, authorization and owner scoping, source collection schedules, historical stored evidence, 22KB model context budget and paid call permissions.
+
+### Verification
+
+- `backend/test/businessModuleCatalog.test.js` checks **18/18** source catalog vs actual `registry.listToolIds()` with no missing or unexpected tools, verifies trusted source labels and clocks, and confirms module-visible source contracts for observed sources/GSC import.
+- `backend/test/agentTools.test.js` proves that true event-history completeness cannot make invite/binding coverage verified, and that unknown association and registration status remain visible in archived statistical evidence.
+- Source/test HEAD `1f6ca609ac864cb3877208136e8e9c8dae29ddae`. [GitHub AI CI 41199595293](https://github.com/dinnelthai/logearn-growth/actions/runs/41199595293) **success** for AI Contract, AI Integration and AI Frontend. Earlier intermediate run exposed an association positive-allowlist omission; fixed before this passing source/test HEAD. CI is code/fixture validation, not real Google/X/Hologres/model access.
+- `docs/ai/GROWTH_SOURCE_CONTRACTS.md` now provides a full source/tool/time/limitation matrix, including a separate note that the optional OpenSEO extension is permission- and cost-gated and was not invoked.
+
+### Progress / next gate
+
+- Phase 2 `Audit all existing business modules and their source contracts`: **checked (code/CI catalog, 18 tools / 9 module facades)**. This is an audit of the implementation contract, **not** production source acceptance.
+- Phase 2 **7/8**, remaining only the independent per-metric source watermark, coverage, freshness, scope and version task. Overall roadmap **42/48 = 87.5%; 6 unchecked**. Source-specific real freshness/identity completeness and paid model validation must be verified independently; do not claim that static catalog metadata is a successful external data sync.
+- No paid API/LLM calls, migration, deployment, external write/post, branch merge or `master` edits.
