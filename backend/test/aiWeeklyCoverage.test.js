@@ -56,6 +56,7 @@ test('operating timeline is a collected weekly module with separate aggregate la
    {status:'ok',evidence:[{id:'operations-1',metricId:'activities',
     value:{counts:{human_operations_shown:2,channel_observations_shown:1,ai_actions_shown:3,total_records_shown:6},
      humanOperations:[{kind:'growth_activity',source:'growth_activities',title:'Campaign',
+      outcome:{status:'settled',summary:{completed:4,eligible:10,conversion_rate:.4},performance:{trade_users:2,transactions:3,volume_usd:99}},
       assignments:[{group:'treatment',assigned:4,delivered:3,sent_unconfirmed:0,not_delivered:0,delivery_unknown:1,cross_exposed:1},
        {group:'control',assigned:3,delivered:1,sent_unconfirmed:1,not_delivered:0,delivery_unknown:1,cross_exposed:0}]}],channelObservations:[],aiActions:[],
      coverage:{growthActivities:{status:'available',truncated:true}}},
@@ -65,7 +66,8 @@ test('operating timeline is a collected weekly module with separate aggregate la
  assert.equal(row.status,'collected');
  assert.match(row.reason,/有界样本/);
  assert.ok(row.evidenceIds.includes('operations-1'));
- assert.ok(row.facts.some(x=>x.metric==='counts.human_operations_shown'&&x.value===2));
+ assert.ok(row.facts.some(x=>x.metric==='humanOperations.growth_activities.outcome.summary.completed'&&x.value===4));
+ assert.ok(row.facts.some(x=>x.metric==='humanOperations.growth_activities.outcome.performance.trade_users'&&x.value===2));
  assert.ok(row.facts.some(x=>x.metric==='humanOperations.growth_activities.assignments.treatment.delivered'&&x.value===3));
  assert.ok(row.facts.some(x=>x.metric==='humanOperations.growth_activities.assignments.control.delivered'&&x.value===1));
  assert.equal(out.queries,2);
