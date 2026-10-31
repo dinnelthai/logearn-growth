@@ -22,3 +22,27 @@ test('diagnostic user counts are exact family totals, never summed over overlapp
  const q=run([],end,{coverage}).payload.quality
  assert.equal(q.families[0].users,1);assert.equal(q.families[1].users,0);assert.equal(q.diagnostic_coverage.rows.length,3)
 })
+
+test('registered cohort trade conversion starts after first analysis and uses mature verified accounts',()=>{
+ const registration={available:true,scope:'all',rows:[
+  {user_key:'user:2',source:'未知',registered_at:start,first_chip_at:null},
+  {user_key:'user:3',registered_at:start,first_chip_at:start+3600000},
+  {user_key:'user:4',registered_at:start,first_chip_at:start+DAY},
+  {user_key:'user:5',registered_at:end-1,first_chip_at:null}
+ ]};
+ const facts={known:new Set(['user:3','user:4']),error:null,trades:[
+  {account_id:'3',transaction_hash:'tx3',chain:'3',valid:true,
+   transaction_time:new Date(start+3600000+DAY).toISOString(),trade_value:'12'}
+ ]};
+ const result=growthInsights([] ,[],{start,end},{as_of:new Date(end+40*DAY).toISOString()},facts,{registration});
+ const trade=result.payload.cohorts.registration.trade;
+ assert.equal(result.payload.cohorts.registration.metrics.users,4);
+ assert.equal(result.payload.cohorts.registration.metrics.activated,1);
+ assert.equal(trade.engaged,2);
+ assert.equal(trade.eligible,2);
+ assert.equal(trade.traders,1);
+ assert.equal(trade.conversion_rate,.5);
+ assert.equal(trade.not_engaged,2);
+ assert.equal(trade.pending,0);
+ assert.equal(trade.association,'user-level-after-first-analysis');
+});
