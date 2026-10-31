@@ -2,6 +2,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {modelContext}=require('../src/ai/business/modelTransport');
+const {factsFromValue}=require('../src/ai/business/weeklyContextV4');
 const {DEFINITIONS}=require('../src/ai/growth/weeklyCoverage');
 const period={start:1000000,end:1604800000,previousStart:-603800000,previousEnd:1000000,timezone:'Asia/Bangkok'};
 const metric=(id,value,prior=false)=>({id:id+(prior?'-previous':'-current'),
@@ -141,4 +142,14 @@ test('old v3 remains structurally distinct, v4 does not mutate archived source',
  assert.equal(v3.transportVersion,'aggregated-business-v3');
  assert.equal(v4.transportVersion,'aggregated-business-v4');
  assert.equal(v3.coreMetrics,undefined);
+});
+
+test('weekly evidence projection preserves registration activation numerator, mature denominator and pending cohort',()=>{
+ const facts=factsFromValue({cohorts:{registration:{available:true,metrics:{
+  users:20,eligible:15,activated:9,pending:5,rate:.6
+ }}}},10);
+ assert.ok(facts.some(x=>x.metric==='registration_activation_rate'&&x.value===.6));
+ assert.ok(facts.some(x=>x.metric==='registration_activation_activated'&&x.value===9));
+ assert.ok(facts.some(x=>x.metric==='registration_activation_eligible'&&x.value===15));
+ assert.ok(facts.some(x=>x.metric==='registration_pending'&&x.value===5));
 });
