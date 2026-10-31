@@ -91,7 +91,7 @@ const groups=new Set(['total','totals','days','growth','change','dimensions','ch
  'referral','conversion','global','window','retention',
  'candidate','candidates','result','data','snapshots','snapshot',
  'manual','official','economics',
- 'growthActivities','kolCollaborations','contentRecords','operationTasks',
+ 'growthActivities','kolCollaborations','contentRecords','operationTasks','accounts',
  'xOfficial','searchConsole','kolObservations','aiReportActions','specialistSignals']);
 const ids=new Set(['snapshot_id','snapshotId','as_of','eventsCompleteThrough',
  'events_complete_through','cutoff','asOf','queryFingerprint']);
