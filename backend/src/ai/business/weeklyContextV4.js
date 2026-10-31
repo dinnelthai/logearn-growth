@@ -48,7 +48,7 @@ function factsFromValue(value,max=4){
 function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,reviewRevision=0,reserveBytes=0}){
  if(raw?.weeklyCoverage?.version!=='weekly-coverage-v1')
   throw Error('周报 Context v4 缺少可信的服务端模块覆盖记录');
- if(!Number.isSafeInteger(reserveBytes)||reserveBytes<0||reserveBytes>6000)
+ if(!Number.isSafeInteger(reserveBytes)||reserveBytes<0||reserveBytes>12000)
   throw Error('周报上下文预留预算无效');
  const CAP=DEFAULT_CAP-reserveBytes;
  const period=compactPeriod(raw.period);
