@@ -63,6 +63,8 @@ const weeklyPromptV2=`
 结合业务目标、影响范围和证据强度识别重要增长异常与用户流失信号，不直接比较不同单位指标的绝对变化。为每个核心问题交代影响规模、已知证据、未证实假设和下周核查动作。增长周报需要覆盖 SEO（GSC）、渠道获客、激活、留存、产品到交易；对不可用来源明确列出缺口，不能因为主要目标是 activation 就忽略 SEO。GSC 可能使用 PT 日期，不得对不匹配的快照计算本业务周环比，更不能把搜索点击当作注册或交易。
 本周亮点将从事实型 claims 自动生成；风险从假设型 claims 自动生成；下周行动从 suggestions 自动生成，不要重复输出 highlights、issues、nextWeek。必须保留每项真实数值对应证据 ID；无验证数据用 null，不编造周环比；changePct 为相对百分数（10→12 为20，前周0或未知时为null）。运营执行统计只表示已保存记录，不等于全部工作量。
 `;
+// v3 changes the decision frame, not the validated output contract. It is used only by new v5 reports.
+const weeklyPromptV3=weeklyPromptV2+'\n'+"经营分析必须以 context.businessBrain 为业务语义基线：\n- 先读取 businessBrain.focus、lifecycle、productMap 和 metricDictionary，明确本期经营目标、相关阶段和指标的正式含义；northStarIntent 是经营方向，不是已验证的单一KPI。\n- 按获客→注册→首次价值/激活→产品参与→留存→真实交易→商业经济检查业务链路，但产品功能是多个价值入口，不得假设所有用户必须按同一顺序使用。\n- 重点回答“经营结果发生了什么、影响最大的环节在哪里、哪些原因已被证实、哪些仍是假设、下一步做什么”，不要把12个模块平均分配篇幅。\n- 获客渠道只有在身份和时间窗口能可靠连接时，才能继续解释注册、激活和交易；GSC、X、KOL数据默认是渠道观察，不是站内转化或增量归因。\n- 对AI策略、筹码峰、Holder和钱包交易分别解释其产品角色；没有可核对的事件和交易事实时，不得宣称某功能带来交易。\n- 读取 context.operatingMemory 时，区分提议、采纳、执行、拒绝和已复盘；它只覆盖已有AI建议/复盘记录，不代表完整运营活动。不得将人工采纳视为有效，不得重复推荐已有反证的行动。\n- 每个优先问题必须给出影响范围、事实证据、可能根因、反证/未知、置信程度和下一步验证。每个行动必须对应可测量的主指标、目标或观察条件、负责人/资源未知时明确标注未知。\n- 优先选择能解决经营关键歧义的少量调查，不为追求模块覆盖而重复调用工具；数据不足时形成条件化建议，而不是虚构经营判断。";
 // Server-derived KPIs come from the exact owner-scoped immutable evidence
 // already saved for this run. They never depend on the model inventing JSON.
 function trustedWeeklyMetrics(context){
@@ -190,4 +192,4 @@ function ensureWeeklyReport(analysis,{context=null}={}){
   return complete();
  }
 }
-module.exports={weeklyPeriod,weeklyKey,weeklyOperations,weeklyPrompt,weeklyPromptV2,validateWeeklyReport,ensureWeeklyReport,trustedWeeklyMetrics,weeklyModelTimeoutMs};
+module.exports={weeklyPeriod,weeklyKey,weeklyOperations,weeklyPrompt,weeklyPromptV2,weeklyPromptV3,validateWeeklyReport,ensureWeeklyReport,trustedWeeklyMetrics,weeklyModelTimeoutMs};
