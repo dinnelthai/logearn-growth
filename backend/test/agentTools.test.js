@@ -118,7 +118,7 @@ test('query_metrics archives the complete registration journey with independent 
   assert.equal(evidence.watermarks.registrations,null);
   assert.equal(evidence.watermarks.trades,null);
   const projected=require('../src/ai/business/modelTransport').modelEvidence(evidence);
-  assert.deepEqual(require('../src/ai/business/metricRegistry').describeMetric('registered_user_journey').supportedDimensions,[]);
+  assert.deepEqual(require('../src/ai/business/metricRegistry').describeMetric('registered_user_journey').supportedDimensions,['source']);
   await assert.rejects(()=>t.registry.executeTool('query_metrics',
    {metrics:['registered_user_journey'],dimensions:['device']},t.context),/不支持设备\/版本分组/);
   assert.equal(projected.value.registration.engagement.signal_view_users,7);
@@ -127,6 +127,43 @@ test('query_metrics archives the complete registration journey with independent 
  }finally{t.db.close()}
 });
 
+test('query_metrics enforces source-only journey grouping and archives allowlisted aggregate evidence',async()=>{
+ const seen=[];
+ const t=setup({metrics:async(body)=>{
+  seen.push(body);
+  return {metrics:[{metricId:'registered_user_journey',
+   value:{available:true,registration:{users:3,
+    activation:{eligible:3,activated:2,pending:0,rate:2/3},
+    trade:{available:false,eligible:null,traders:null},
+    bySource:[{source:'x',users:2,activation:{eligible:2,activated:2,pending:0,rate:1},
+     engagement:{eligible:2,chip_analysis_users:2,holder_view_users:1}},
+     {source:'unknown',users:1,activation:{eligible:1,activated:0,pending:0,rate:0},
+      engagement:{eligible:1,chip_analysis_users:0,holder_view_users:0}}]}}},
+   coverage:{status:'partial'},warnings:['来源仅来自已观测关联']}],coverage:{}};
+ }});
+ try{
+  const result=await t.registry.executeTool('query_metrics',{
+   metrics:['registered_user_journey'],dimensions:['source']},t.context);
+  assert.equal(result.status,'ok');
+  assert.deepEqual(seen[0].dimensions,['source']);
+  const e=result.evidence[0];
+  assert.equal(e.query.body.source,'twitter');
+  assert.deepEqual(e.query.dimensions,['source']);
+  assert.equal(e.value.registration.bySource[0].activation.eligible,2);
+  assert.equal(e.value.registration.bySource[1].engagement.holder_view_users,0);
+  const model=require('../src/ai/business/modelTransport').modelEvidence(e);
+  assert.equal(model.value.registration.bySource[0].source,'x');
+  assert.equal(model.value.registration.bySource[0].engagement.chip_analysis_users,2);
+  assert.doesNotMatch(JSON.stringify(model),/private|user:123|0x[a-f0-9]{40}/i);
+  await assert.rejects(()=>t.registry.executeTool('query_metrics',{
+   metrics:['registered_user_journey'],dimensions:['device']},t.context),/不支持设备\/版本分组/);
+  await assert.rejects(()=>t.registry.executeTool('query_metrics',{
+   metrics:['registered_users'],dimensions:['source']},t.context),/不支持该维度/);
+  await assert.rejects(()=>t.registry.executeTool('query_metrics',{
+   metrics:['registered_user_journey','active_users'],dimensions:['source']},t.context),/不支持该维度/);
+  assert.equal(seen.length,1,'invalid dimensions must fail before triggering analytics');
+ }finally{t.db.close()}
+});
 test('manual CRM ledger read works when unrelated Hologres snapshot is unavailable',async()=>{
  let queriedSnapshot=false,ledgerCalls=0;
  const t=setup({snapshot:async()=>{queriedSnapshot=true;throw Error('Hologres unavailable')},
