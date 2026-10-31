@@ -98,7 +98,8 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
    ...(facts.length?{stats:facts}:{}),
    ...(ids.length?{evidenceIds:ids}:{}),
    ...(row.status==='not-connected'||row.status==='insufficient'?
-    {gap:safeText(row.reason||'',80)}:{})};
+    {gap:safeText(row.reason||'',80)}:
+    /有界样本|达到读取上限/.test(row.reason||{})?{note:safeText(row.reason,80)}:{})};
  });
  const periodEvidence=(id,start,end,target)=>source.find(e=>
   e.metricId===id&&e.period?.start===start&&e.period?.end===end&&
