@@ -46,7 +46,8 @@ test('real PostgreSQL: targets, multi-worker brief dedupe and strategy history a
     WHERE owner_id=$1 AND kind='daily-brief'`,[owner]);
   assert.equal(notices.rows.length,1);
   assert.equal(notices.rows[0].kind,'daily-brief');
-  const choice={digest:'a'.repeat(64),policy:{focusMetrics:[],requireHumanApproval:true},
+  const choice={digest:'a'.repeat(64),policy:{version:'evidence-first-strategy-v3',
+   focusMetrics:[],requireHumanApproval:true},
    evidence:{judgementCount:3}};
   const versions=await Promise.all(Array.from({length:3},
    ()=>store.saveStrategy(owner,'activation','all',choice,{now})));
