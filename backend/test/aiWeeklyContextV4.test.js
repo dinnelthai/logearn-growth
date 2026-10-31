@@ -93,6 +93,45 @@ test('missing KPI observations are not hallucinated evidence citations',()=>{
  assert.deepEqual(row.evidenceIds,[]);
  assert.equal(view.priorityIssues.some(x=>x.metricId==='new_users'),false);
 });
+test('v5 adds LogEarn business knowledge and bounded reviewed operating memory',()=>{
+ const raw=fixture();
+ raw.memory=[
+  {id:'m1',business_problem:'首次分析用户下降',action:'检查新用户激活漏斗',
+   actual_action:'修复渠道落地页说明',result_summary:'复盘后仍未能证明因果',
+   effectiveness:'unknown',user_status:'executed',
+   validation_metrics:{primary:'new_users',secondary:['active_users']},
+   applicable_scope:{source:'all'},executed_at:period.end,reviewed_at:period.end+1},
+  {id:'m2',business_problem:'私有联系人 private@example.test',action:'发送消息 https://private.example.test',
+   user_status:'rejected',rejection_reason:'不符合用户隐私要求'}
+ ];
+ const before=JSON.stringify(raw);
+ const view=modelContext(raw,{transportVersion:'v5'});
+ assert.equal(view.transportVersion,'aggregated-business-v5');
+ assert.equal(view.businessBrain.version,'logearn-business-brain-v1');
+ assert.equal(view.businessBrain.business.northStarIntent.status,
+  'operator-direction-not-a-validated-composite-kpi');
+ assert.ok(view.businessBrain.productMap.products.some(x=>x.id==='chip_distribution'));
+ assert.ok(view.businessBrain.lifecycle.some(x=>x.id==='trading'));
+ assert.ok(view.businessBrain.metricDictionary.some(x=>x.id==='registered_users'));
+ assert.equal(view.operatingMemory.status,'available');
+ assert.equal(view.operatingMemory.shown,2);
+ assert.ok(view.operatingMemory.items.some(x=>x.effectiveness==='unknown'));
+ assert.equal(JSON.stringify(view).includes('private@example.test'),false);
+ assert.equal(JSON.stringify(view).includes('https://private.example.test'),false);
+ assert.equal(JSON.stringify(view).includes('DO NOT SEND FULL X TWEET TEXT'),false);
+ assert.equal(Buffer.byteLength(JSON.stringify(view),'utf8')<=22000,true);
+ assert.equal(JSON.stringify(raw),before);
+});
+test('new v5 weekly prompt adds business-owner reasoning without changing v4 prompts',()=>{
+ const {buildSystemPrompt}=require('../src/ai/business/runner');
+ const old=buildSystemPrompt('weekly','v4');
+ const next=buildSystemPrompt('weekly','v5');
+ assert.ok(old.includes('token-efficiency-v4'));
+ assert.equal(old.includes('Business Brain v1'),false);
+ assert.ok(next.includes('token-efficiency-v5'));
+ assert.ok(next.includes('Business Brain v1'));
+ assert.ok(next.includes('operatingMemory'));
+});
 test('old v3 remains structurally distinct, v4 does not mutate archived source',()=>{
  const raw=fixture();
  const before=JSON.stringify(raw);
