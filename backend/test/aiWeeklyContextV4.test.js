@@ -152,4 +152,10 @@ test('weekly evidence projection preserves registration activation numerator, ma
  assert.ok(facts.some(x=>x.metric==='registration_activation_activated'&&x.value===9));
  assert.ok(facts.some(x=>x.metric==='registration_activation_eligible'&&x.value===15));
  assert.ok(facts.some(x=>x.metric==='registration_pending'&&x.value===5));
+ const tradeFacts=factsFromValue({cohorts:{registration:{trade:{
+  available:true,conversion_rate:.25,traders:3,eligible:12,pending:4,unmatched:2
+ }}}},10);
+ assert.ok(tradeFacts.some(x=>x.metric==='registered_trade_conversion_rate'&&x.value===.25));
+ assert.ok(tradeFacts.some(x=>x.metric==='registered_trade_eligible'&&x.value===12));
+ assert.ok(tradeFacts.some(x=>x.metric==='registered_trade_pending'&&x.value===4));
 });
