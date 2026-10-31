@@ -26,7 +26,16 @@ function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[
     availableCapabilityIds.length>40||availableCapabilityIds.some(x=>typeof x!=='string')))
   throw Error('能力集合必须由可信任务入口提供');
  const supportedTools=new Set(availableCapabilityIds||listToolIds());
- const hints=strategy?.policy?.focusMetrics||[];
+ let selectedStrategy=strategy,strategyExpired=false;
+ if(strategy?.policy?.version==='evidence-first-strategy-v4'){
+  const policy=strategy.policy,scope=policy.scope||{};
+  if(!Number.isSafeInteger(policy.validFrom)||!Number.isSafeInteger(policy.validUntil)||
+   policy.validFrom>Date.now()||policy.validUntil<=Date.now()||
+   scope.goal!==goal||scope.source!==report.business.scope.source){
+   selectedStrategy=null;strategyExpired=true;
+  }
+ }
+ const hints=selectedStrategy?.policy?.focusMetrics||[];
  if(!Array.isArray(hints)||hints.length>3||hints.some(x=>!['active_users','new_users','returning_users','activation_rate','d7','weekly_core','registered_users','registration_activation_rate','registered_trade_conversion_rate'].includes(x)))
   throw Object.assign(Error('学习策略包含未授权的调查指标'),{status:409});
  const focus=new Set(hints);
@@ -67,10 +76,14 @@ function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[
  return {
   version:'growth-plan-v1',goal,focusSkillId,scope:report.business.scope,period:report.period,
   triage,experienceFeedback:experience,
-  learningStrategy:strategy?{version:strategy.version,focusMetrics:[...hints],
-    instructions:strategy.policy.instructions||'须验证新证据',
-    evidence:strategy.evidence?.judgementCount??null,
+  learningStrategy:selectedStrategy?{version:selectedStrategy.version,focusMetrics:[...hints],
+    validUntil:selectedStrategy.policy?.validUntil??null,
+    rollback:selectedStrategy.policy?.rollback??null,
+    instructions:selectedStrategy.policy.instructions||'须验证新证据',
+    evidence:selectedStrategy.evidence?.judgementCount??null,
+    counterEvidence:selectedStrategy.evidence?.counterEvidence??[],
     boundedToReadOnlyInvestigations:true}:null,
+  learningStrategyStatus:strategyExpired?'expired-or-scope-mismatch-ignored':selectedStrategy?'active':'no-reviewed-strategy',
   sourceSnapshot:report.snapshot?.id||null,requiresApprovalForActions:true,
   steps:selected.map(({skill})=>({
    skillId:skill.id,skillVersion:skill.version,label:skill.label,
@@ -83,7 +96,7 @@ function planGrowthInvestigation({goal='activation',report,maxSkills=3,history=[
    })),
    relatedCandidates:priority.filter(c=>skill.signals.includes(c.metric)).map(c=>c.id).filter(Boolean).slice(0,5)
   })),
-  warnings:[...(report.warnings||[])].slice(0,15),
+  warnings:[...(report.warnings||[]),...(strategyExpired?['历史学习策略已过期或经营范围不匹配，本轮已恢复默认调查排序']:[])].slice(0,15),
   limits:{maxSkills,externalActions:false}
  };
 }
