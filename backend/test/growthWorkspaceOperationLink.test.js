@@ -43,3 +43,11 @@ test('adopted AI suggestions link idempotently to existing owner-scoped cohort t
   assert.equal(s.problems('bob').length,0);
  }finally{db.close()}
 });
+
+test('operation task sync remains compatible before optional Growth Workspace link migration',()=>{
+ const db=new DatabaseSync(':memory:');try{
+  db.exec('CREATE TABLE operation_tasks(id TEXT,owner_id TEXT,title TEXT,status TEXT,source_json TEXT)');
+  const s=workspaceStore(db);
+  assert.deepEqual(s.suggestionIdsForOperationTask('alice','task-1'),[]);
+ }finally{db.close()}
+});
