@@ -83,3 +83,18 @@ Do not enable these switches from this PR alone. Operators must review the
 real Hologres plan, confirm source-watermark coverage, then canary with
 recorded rollback conditions. No production migration or paid inference
 is performed by the verification scripts.
+
+## 7. 2026-10-31 — bounded read-path performance improvements
+
+Branch: `codex/ai-comprehensive-upgrade`. These are **source changes and offline tests**, not measured live speedups.
+
+1. `backend/src/ai/business/tools/operationsTimeline.js`: scope delivery evidence ranking and cross-exposure aggregation **before** window evaluation to the selected owner-owned activities (maximum 100), using the already-present activity/time index. When the owner has no activities in the requested period, skip the delivery evidence query. Preserve last-delivery semantics, end-exclusive cutoff, group counts and per-owner isolation. Offline fake-query and actual in-memory SQLite parity tests live in `backend/test/operationsTimeline.test.js`.
+2. `backend/src/ai/growth/workspace/store.js` + `backend/src/routes/growthWorkspace.js`: `GET /dashboard` calls `dashboardGoals` once rather than `progress` for each goal. Within an unchanged 200-most-recent-evidence, owner-scoped window, deserialize once, group by metric and apply **the same** compatible verified/partial priority order as the existing `progress` endpoint. Empty goal lists do not scan evidence. The per-goal API remains unchanged. Regression tests compare the batched result with independently evaluated `progress` for multiple goals and scopes, including other-owner observations.
+3. `.github/workflows/ai-infrastructure.yml`: includes the workspace store unit test in CI; previously only workspace HTTP coverage ran.
+
+### Acceptance and measurements still required
+
+- Capture **before/after** SQLite `EXPLAIN QUERY PLAN` on an authorized development copy for the actual activity-evidence query; inspect evidence index use, visited rows, sort/temp B-tree and P50/P95 over representative short and long activity histories.
+- Measure `GET /api/growth-workspace/dashboard` before/after on the **same owner and persisted evidence**, including goal-count and query-count changes, plus endpoint P50/P95 and evidence/result JSON parity.
+- Do not claim a percentage speedup without real comparable timings. Unit and CI green do not prove production performance or live-source correctness.
+- No migration, new index, paid model call, external sync, deployment, or `master` modification is part of this patch. The existing genuine-v5-source acceptance gate and 47/48 roadmap status are unchanged.

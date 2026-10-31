@@ -1,5 +1,6 @@
 'use strict'
 const {test}=require('node:test')
+const {DatabaseSync}=require('node:sqlite')
 const assert=require('node:assert/strict')
 const {createOperationsTimeline,dateInZone}=require('../src/ai/business/tools/operationsTimeline')
 const DAY=86400000,now=Date.parse('2026-10-31T00:00:00Z')
@@ -192,4 +193,46 @@ test('no selected activities skips delivery evidence ranking entirely',async()=>
  assert.equal(result.coverage.growthActivities.status,'empty');
  assert.ok(!db.calls.some(call=>call.sql.includes('FROM growth_activity_assignments')));
  assert.ok(!db.calls.some(call=>call.sql.includes('FROM growth_activity_delivery_evidence')));
+});
+
+test('SQLite activity evidence ranking is restricted to selected period and owner',async()=>{
+ const db=new DatabaseSync(':memory:');
+ try{
+  db.exec(`
+   CREATE TABLE growth_activities(id TEXT PRIMARY KEY,owner_id TEXT,name TEXT,start_at INTEGER,cutoff_at INTEGER,goal TEXT,target_metric TEXT,target_value REAL,schedule_state TEXT,schedule_error TEXT,archived_at INTEGER,settled_at INTEGER,settled_result TEXT,parent_id TEXT);
+   CREATE TABLE growth_activity_merged_batches(owner_id TEXT,child_id TEXT);
+   CREATE TABLE crm_activity_links(activity_id TEXT,kol_id TEXT);
+   CREATE TABLE crm_kols(id TEXT,owner_id TEXT,name TEXT);
+   CREATE TABLE growth_activity_members(activity_id TEXT);
+   CREATE TABLE growth_activity_planned_members(activity_id TEXT);
+   CREATE TABLE growth_activity_assignments(activity_id TEXT,user_id TEXT,group_key TEXT,assigned_at INTEGER,activity_start_at INTEGER);
+   CREATE TABLE growth_activity_delivery_evidence(activity_id TEXT,user_id TEXT,kind TEXT,occurred_at INTEGER,recorded_at INTEGER);
+   CREATE TABLE growth_activity_schedule_history(activity_id TEXT,action TEXT,created_at INTEGER);
+   CREATE INDEX evidence_activity_time ON growth_activity_delivery_evidence(activity_id,occurred_at,recorded_at);
+  `);
+  const insertActivity=db.prepare('INSERT INTO growth_activities(id,owner_id,name,start_at,cutoff_at,schedule_state) VALUES(?,?,?,?,?,?)');
+  insertActivity.run('chosen','owner-1','Selected',start,end-1,'active');
+  insertActivity.run('historical','owner-1','Old',start-2*DAY,start-DAY,'active');
+  insertActivity.run('other-owner','owner-2','Hidden',start,end-1,'active');
+  const assign=db.prepare('INSERT INTO growth_activity_assignments VALUES(?,?,?,?,?)');
+  assign.run('chosen','u1','treatment',start+100,start);
+  assign.run('chosen','u2','control',start+100,start);
+  assign.run('historical','u3','treatment',start-DAY,start-2*DAY);
+  assign.run('other-owner','u4','treatment',start+100,start);
+  const deliver=db.prepare('INSERT INTO growth_activity_delivery_evidence VALUES(?,?,?,?,?)');
+  deliver.run('chosen','u1','sent',start+200,start+200);
+  deliver.run('chosen','u1','delivered',start+300,start+300);
+  deliver.run('chosen','u1','cross_exposed',start+400,start+400);
+  deliver.run('historical','u3','delivered',start-DAY,start-DAY);
+  deliver.run('other-owner','u4','delivered',start+300,start+300);
+  const output=await createOperationsTimeline({...sources(db),clock:()=>now})
+   .collect({start,end,limit:60,source:'all'},{ownerId:'owner-1'});
+  const activities=output.humanOperations.filter(row=>row.kind==='growth_activity');
+  assert.equal(output.coverage.growthActivities.status,'available');
+  assert.equal(activities.length,1);
+  assert.equal(activities[0].id,'activity:chosen');
+  assert.deepEqual(activities[0].assignments.map(row=>[row.group,row.assigned,row.delivered,row.deliveryUnknown,row.crossExposed]),
+   [['control',1,0,1,0],['treatment',1,1,0,1]]);
+  assert.equal(activities[0].assignments.find(row=>row.group==='treatment').firstDeliveryAt,start+300);
+ }finally{db.close()}
 });
