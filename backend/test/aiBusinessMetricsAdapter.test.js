@@ -17,6 +17,20 @@ test('registered_users uses account creation facts and preserves a true zero',as
  }finally{evidence.fetchGrowthInsights=original}
 })
 
+test('registered_users and new_users remain separate source facts',async()=>{
+ const oldGrowth=evidence.fetchGrowthInsights,oldNorth=evidence.fetchNorthStar
+ try{
+  evidence.fetchGrowthInsights=async()=>({cohorts:{registration:{
+   available:true,scope:'all',metrics:{users:2,eligible:2,activated:1,pending:0,rate:.5}
+  }}})
+  evidence.fetchNorthStar=async()=>({totals:{new_users:5}})
+  const result=await metrics({start:100,end:200,source:'all'},{snapshot_id:'s'},
+   ['registered_users','new_users'],{})
+  assert.deepEqual(result.metrics.map(x=>x.value),[2,5])
+ }finally{
+  evidence.fetchGrowthInsights=oldGrowth;evidence.fetchNorthStar=oldNorth
+ }
+});
 test('registered_users remains unknown when registration facts are unavailable',async()=>{
  const original=evidence.fetchGrowthInsights
  try{
