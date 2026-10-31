@@ -91,11 +91,10 @@ function buildBusinessBrainContext({focusGoal='activation'}={}){
    principle:'产品功能是多个价值入口；只有具备事件和身份关联证据时，才将跨功能行为组成漏斗。'},
   lifecycle:LIFECYCLE,
   operatingModel:{capability:'get_operations_timeline',layers:[
-   {id:'human_operation',meaning:'人工登记或实际执行的活动、KOL合作、内容与任务'},
-   {id:'channel_observation',meaning:'X、Search Console、KOL等渠道观测，不等于站内转化'},
-   {id:'ai_suggestion_or_review',meaning:'AI建议、执行记录与复盘；建议不等于已执行'}
-  ],rule:'按所选报告期间汇总；来源覆盖分别显示；未记录不等于没有运营；观察相关不等于因果',
-  activityOutcomeRules:['仅用已结算冻结汇总；未结算或来源缺失保持未知，不补零'],
+   {id:'human_operation',meaning:'人工活动/合作/内容/任务'},
+   {id:'channel_observation',meaning:'X/GSC/KOL观测，不是站内转化'},
+   {id:'ai_suggestion_or_review',meaning:'AI建议/执行/复盘；建议不等于执行'}
+  ],rule:'按期分层汇总；未记录、未结算或来源缺失保持未知；相关不等于因果',
   experimentRule:'treatment/control是人工固定分组，不代表随机实验；送达与跨组曝光需单列，组间差异不证明增量因果'},
   focus:{goal:GOAL_FOCUS[focusGoal]?focusGoal:'activation',
    objective:focus.objective,stages:focus.stages,priorityMetrics:focus.priorityMetrics},
