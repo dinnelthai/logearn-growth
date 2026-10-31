@@ -262,6 +262,7 @@ function createOperationsTimeline({
    'X 指标是第三方公开观察且最多读取每账号最近20条，不代表曝光增量或注册转化',
    'Search Console 日期按太平洋时间（PT）；与曼谷业务时间并不完全对齐',
    'KOL 观察与人工账本不证明增量因果；多币种成本/收入不得合并',
+   '活动、社群与培训仅在现有 growth_activities / operation_tasks 等记录中可见；没有专门平台连接时不代表不存在活动',
    '内容增长记录是人工登记，不是平台完整采集'
   ];
   return {
