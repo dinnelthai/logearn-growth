@@ -2,6 +2,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {validateAnalysis}=require('../src/ai/business/analysisContract');
+const allowedCapabilities=[{id:'get_channels'},{id:'get_login_conversion'}];
 const base=()=>({
  summary:'Observed activation change requires investigation',
  keyFindings:[],
@@ -40,21 +41,21 @@ test('competing hypotheses require two or three distinct explanations',()=>{
 test('hypotheses remain optional when evidence already resolves the decision',()=>{
  const value=base();
  delete value.suggestions[0].competingHypotheses;
- assert.equal(validateAnalysis(value),value);
+ assert.equal(validateAnalysis(value,{capabilities:allowedCapabilities}),value);
 });
 
 test('analysis rejects an exact repeated action for the same metric and scope',()=>{
  const value=base();
  const memory=[{user_status:'executed',validation_metrics:{primary:'new_users'},
   applicable_scope:{source:'all'},action:'Run the smallest authorized investigation'}];
- assert.throws(()=>validateAnalysis(value,{memory}),/完全重复/);
+ assert.throws(()=>validateAnalysis(value,{memory,capabilities:allowedCapabilities}),/完全重复/);
 });
 test('analysis permits a materially different action for the same metric',()=>{
  const value=base();
  value.suggestions[0].action='Compare channel acquisition against login completion';
  const memory=[{user_status:'rejected',validation_metrics:{primary:'new_users'},
   applicable_scope:{source:'all'},action:'Run the smallest authorized investigation'}];
- assert.equal(validateAnalysis(value,{memory}),value);
+ assert.equal(validateAnalysis(value,{memory,capabilities:allowedCapabilities}),value);
 });
 test('analysis permits the same action in a different business scope',()=>{
  const value=base();
@@ -82,13 +83,13 @@ test('new analysis contract only accepts metrics the retrospective service can a
  const value=strictValue();
  value.suggestions[0].validationMetrics={primary:'new_users',secondary:['active_users','activation_rate']};
  assert.equal(validateAnalysis(value,{analysisContractVersion:'analysis-contract-v2',
-  business:{scope:{source:'all'}},capabilities:[{id:'get_channels'},{id:'get_login_conversion'}]}),value);
+  business:{scope:{source:'all'}},capabilities:allowedCapabilities}),value);
 });
 test('new analysis contract rejects registered-user metrics until retrospective reads them directly',()=>{
  const value=strictValue();
  value.suggestions[0].validationMetrics={primary:'registered_users',secondary:[]};
  assert.throws(()=>validateAnalysis(value,{analysisContractVersion:'analysis-contract-v2',
-  business:{scope:{source:'all'}}}),/当前未被复盘服务支持/);
+  business:{scope:{source:'all'}},capabilities:allowedCapabilities}),/当前未被复盘服务支持/);
 });
 test('new analysis contract rejects unknown, duplicate or excessive review metrics',()=>{
  for(const metrics of [
@@ -98,11 +99,11 @@ test('new analysis contract rejects unknown, duplicate or excessive review metri
  ]){
   const value=strictValue();value.suggestions[0].validationMetrics=metrics;
   assert.throws(()=>validateAnalysis(value,{analysisContractVersion:'analysis-contract-v2',
-   business:{scope:{source:'all'}}}),/指标|验证指标/);
+   business:{scope:{source:'all'}},capabilities:allowedCapabilities}),/指标|验证指标/);
  }
 });
 test('new analysis contract requires a complete executable action and exact business scope',()=>{
- const context={analysisContractVersion:'analysis-contract-v2',business:{scope:{source:'all'}}};
+ const context={analysisContractVersion:'analysis-contract-v2',business:{scope:{source:'all'}},capabilities:allowedCapabilities};
  const missingPlan=strictValue();delete missingPlan.suggestions[0].executionPlan;
  assert.throws(()=>validateAnalysis(missingPlan,context),/完整执行计划/);
  const wrongScope=strictValue();wrongScope.suggestions[0].scope.source='twitter';
@@ -112,5 +113,5 @@ test('new analysis contract requires a complete executable action and exact busi
 });
 test('archived analysis contexts without the v2 marker keep legacy validation compatibility',()=>{
  const value=base();
- assert.equal(validateAnalysis(value),value);
+ assert.equal(validateAnalysis(value,{capabilities:allowedCapabilities}),value);
 });
