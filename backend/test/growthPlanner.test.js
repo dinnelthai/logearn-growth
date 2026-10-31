@@ -2,6 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {listSkills,getSkill}=require('../src/ai/growth/skills');
 const {planGrowthInvestigation}=require('../src/ai/growth/planner');
+const {detectGrowthSignals}=require('../src/ai/growth/triage');
 const report={business:{scope:{source:'all'}},period:{start:100,end:200},
  snapshot:{id:'watermark-1'},candidates:[
  {id:'ret',metric:'d7',priority:'P1'},{id:'act',metric:'activation_rate',priority:'P0'}
@@ -41,6 +42,18 @@ test('registration cohort metrics are formal signals and valid reviewed investig
  for(const id of ['registered_users','registration_activation_rate','registered_trade_conversion_rate']){
   assert.ok(registry.describeMetric(id).definition.length>10);
  }
+});
+test('deterministic triage recognizes registration cohort rate candidates without causal claims',()=>{
+ const value={...report,candidates:[
+  {id:'registration-activation',metric:'registration_activation_rate',priority:'P1',
+   current:.35,previous:.5,absolute:-.15,change:-.3,score:40},
+  {id:'registered-trade',metric:'registered_trade_conversion_rate',priority:'P1',
+   current:.12,previous:.2,absolute:-.08,change:-.4,score:45}
+ ]};
+ const triage=detectGrowthSignals(value);
+ assert.deepEqual(triage.signals.map(x=>x.metric),
+  ['registered_trade_conversion_rate','registration_activation_rate']);
+ assert.ok(triage.signals.every(x=>x.requiresInvestigation&&x.causalClaim===false));
 });
 test('planner rejects invalid goal, missing report and excessive skills',()=>{
  assert.throws(()=>planGrowthInvestigation({goal:'seo',report}),/未知增长目标/);
