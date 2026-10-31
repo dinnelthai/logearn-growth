@@ -26,7 +26,7 @@ test('claims reject invented IDs, wrong numbers and cross-owner or cross-scope e
 test('owner-scoped observed tool durations require at least three real archived successes',()=>{
  const db=setup(),store=createEvidenceStore(db);
  try{
-  const now=Date.now(),bob={...context,ownerId:'bob'};
+  const bob={...context,ownerId:'bob'};
   const add=(ownerId,tool,elapsedMs)=>{
    const ctx={...context,ownerId};
    const e=makeEvidence({metricId:'active_users',value:1,
@@ -54,6 +54,7 @@ test('owner-scoped observed tool durations require at least three real archived 
   for(const ms of [1,2,3,4])add('bob','get_channels',ms);
   add('alice','get_paths',5);add('alice','get_paths',10);
   add('alice','get_funnel',-1);
+  const now=Date.now();
   const observed=store.recentToolTimings(context,{now});
   assert.equal(observed.get_channels.sampleCount,3);
   assert.equal(observed.get_channels.medianMs,20);

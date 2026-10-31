@@ -38,7 +38,7 @@ function harness({oldStatus='completed',oldOwner='owner',oldPeriod=period}={}){
   '../ai/growth/workspace/contracts':{requiredString:()=>''},
   '../db/aiRecords':records,
   '../ai/growth/weeklyReport':{
-   weeklyPeriod:()=>period,weeklyKey:()=> 'weekly:2026-10-19',
+   weeklyPeriod:()=>period,reportKey:()=> 'weekly:2026-10-19',weeklyKey:()=> 'weekly:2026-10-19',
    weeklyOperations:()=>({goalsCount:0,executedActionCount:0})},
   '../queues/queues':{addAIAnalysisJob:async(_name,payload,options)=>{
    queued.push({payload,options});return {id:options.jobId}

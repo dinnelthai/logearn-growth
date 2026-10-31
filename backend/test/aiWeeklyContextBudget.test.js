@@ -79,11 +79,11 @@ function fixture(capabilityCount=17){
   weeklyOperations:{goalsCount:6,executedActionCount:2}
  };
 }
-test('12-module weekly v3 fits 22KB with 17 tools while retaining core KPI and GSC',()=>{
+test('13-module weekly v3 fits 22KB with 17 tools while retaining core KPI and GSC',()=>{
  const raw=fixture(),view=modelContext(raw,{transportVersion:'v3'});
  assert.ok(Buffer.byteLength(JSON.stringify(view),'utf8')<=BUDGET);
  assert.equal(view.transportVersion,'aggregated-business-v3');
- assert.equal(view.weeklyCoverage.length,12);
+ assert.equal(view.weeklyCoverage.length,13);
  assert.equal(view.capabilities.length,17);
  assert.equal(view.growthPlan.steps.length,12);
  assert.equal(view.current.totals.active_users,71);
@@ -113,13 +113,13 @@ test('one cited observation from each collected module is selected before surplu
  assert.ok(selected.has('prior-new'));
  for(const item of additions)
   assert.ok(selected.has(item.id),'module must not be evicted by surplus metrics: '+item.id);
- assert.equal(projected.weeklyCoverage.length,12);
+ assert.equal(projected.weeklyCoverage.length,13);
 });
 test('weekly compaction adjusts for larger tool catalogs rather than dropping module status',()=>{
  const view=modelContext(fixture(28),{transportVersion:'v3'});
  assert.ok(Buffer.byteLength(JSON.stringify(view),'utf8')<=BUDGET);
  assert.equal(view.capabilities.length,28);
- assert.equal(view.weeklyCoverage.length,12);
+ assert.equal(view.weeklyCoverage.length,13);
  assert.equal(view.current.totals.new_users,18);
  assert.equal(view.previous.totals.active_users,82);
  assert.ok(view.omissions.weeklyCompression.includes('不是0'));
@@ -168,7 +168,7 @@ test('v5 weekly context keeps trusted query priorities without pushing out 13 mo
  assert.equal(v.questionPriority[0].affectedUsers,null);
  assert.equal(v.questionPriority[0].monetaryQueryCost,'unknown');
  assert.equal(v.questionPriority[0].unrelatedIdentity,undefined);
- assert.equal(v.weeklyCoverage.length,12);
+ assert.equal(v.weeklyCoverage.length,13);
  assert.ok(v.evidence.some(e=>e.id==='gsc-source-evidence'));
  assert.ok(Buffer.byteLength(JSON.stringify(v),'utf8')<=BUDGET);
  assert.ok(!JSON.stringify(v).includes('user:private'));

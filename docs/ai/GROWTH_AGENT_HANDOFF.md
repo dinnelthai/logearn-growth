@@ -461,3 +461,5 @@ Final validation update: run [41177187712](https://github.com/dinnelthai/logearn
 隔离 SQLite 一致性副本迁移两次及完整性检查通过；独立临时 PostgreSQL/Redis 上迁移、owner 隔离、Worker 租约和模拟重复投递四项测试通过。当前运行库尚缺 Executive 两张表，未对其迁移。已完成历史周报只读检查未发现 v5 标记或可通过审计的快照；真实来源验收仍为 47/48。后端全量测试仍有 17 项失败，详细范围与边界见 `GROWTH_EXECUTIVE_CODEX_REMAINING_ACCEPTANCE.md` 的本地授权验收记录；这些结果不代表生产验收。
 
 用户随后确认仅有一个环境并授权操作：该环境 SQLite 已于备份及完整性检查后执行两次幂等迁移，六张表均存在；备份保留本机 `backend/data/backups/`。Hologres 只读连接可用，但 `history_complete=false` 且事件完整水位未知，真实 v5 与人机闭环仍不能签收。API 和 Worker 进程启动时间早于分支同步，尚未确认运行最新代码。详见剩余验收清单最新记录。
+
+后续回归：后端全量 1089 通过、0 失败、16 跳过；原 17 个失败为测试夹具和旧断言与现行契约不一致，费用门禁未放宽。空闲时已重启 API/Worker 并通过健康检查；Hologres 未发现可验证的上游完整性水位，真实 v5 签收仍未完成。具体分类见剩余验收清单。

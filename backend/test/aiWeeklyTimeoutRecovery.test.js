@@ -34,7 +34,7 @@ function endpoint(){
   '../ai/growth/workspace/period':{currentMonth:()=>period},
   '../ai/growth/workspace/contracts':{requiredString:()=>''},
   '../db/aiRecords':records,
-  '../ai/growth/weeklyReport':{weeklyPeriod:()=>period,weeklyKey:p=>'weekly:'+p.start},
+  '../ai/growth/weeklyReport':{weeklyPeriod:()=>period,reportKey:p=>'weekly:'+p.start,weeklyKey:p=>'weekly:'+p.start},
   '../queues/queues':{addAIAnalysisJob:async(_type,_payload,opts)=>{
    jobs.push(opts.jobId);return {id:opts.jobId};
   }}

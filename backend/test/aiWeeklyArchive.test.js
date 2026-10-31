@@ -43,7 +43,7 @@ function setup(){
   '../ai/growth/workspace/contracts':{requiredString:()=>''},
   '../db/aiRecords':records,
   '../ai/growth/weeklyReport':{
-   weeklyPeriod:()=>period,weeklyKey:()=> 'weekly:completed',
+   weeklyPeriod:()=>period,reportPeriod:()=>period,reportKey:()=> 'weekly:completed',weeklyKey:()=> 'weekly:completed',
    weeklyOperations:()=>({goalsCount:0})},
   '../queues/queues':{addAIAnalysisJob:async(_type,_payload,opts)=>{
    queued.push(opts.jobId);return {id:opts.jobId}
@@ -59,7 +59,7 @@ function setup(){
  async function request(method,url,owner='owner',body={}){
   let status=200,json;
   const res={status(code){status=code;return this},json(value){json=value;return this}};
-  await handlers.get(method+' '+url)({user:{user_id:owner},body},res);
+  await handlers.get(method+' '+url)({user:{user_id:owner},body,query:{}},res);
   return {status,json};
  }
  return {request,queued,archive:()=>{hidden=true}};

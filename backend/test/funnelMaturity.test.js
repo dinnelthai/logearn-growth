@@ -15,8 +15,8 @@ test('funnel rates exclude pending users and retain mature known denominator',()
  ];
  const result=computeFunnel(rows,{...options,asOf});
  assert.deepEqual(result.steps[2],{
-  key:'chip',users:1,eligible:2,converted:1,pending:1,unknown:0,
-  previous_conversion_rate:.5,total_eligible:2,total_conversion_rate:.5,drop_off_users:1
+  key:'chip',users:1,eligible:2,converted:1,total_converted:1,pending:1,unknown:0,
+  previous_conversion_rate:.5,total_eligible:2,total_conversion_rate:.5,drop_off_users:0
  });
 });
 test('unknown association is excluded from dropout and mature denominator',()=>{

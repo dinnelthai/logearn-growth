@@ -88,16 +88,14 @@ test('v2 reduces earlier model-only evidence and journals per-stage input bytes'
  assert.deepEqual(env.paid,['begin:0','end:0:received','begin:1',
   'end:1:received','begin:2','end:2:received']);
 });
-test('v2 token preflight warns and records instead of blocking',async()=>{
+test('v2 token preflight blocks calls over the remaining budget',async()=>{
  const env=setup([final]);
- const result=await runner({AI_TASK_MAX_TOKENS:'100'}).runTask({
+ await assert.rejects(runner({AI_TASK_MAX_TOKENS:'100'}).runTask({
   context:context(),prompt:'weekly model test',contextVersion:'v2',
-  ownerId:'o',operationId:'o-2',operationType:'analysis',
-  ...env,validate:()=>{}
- });
- assert.equal(env.observed.length,1);
- assert.equal(result.calls[0].budgetEstimateExceeded,true);
- assert.equal(env.paid.length,2);
+  ownerId:'o',operationId:'o-2',operationType:'analysis',...env,validate:()=>{}
+ }),/模型Token预算不足/);
+ assert.equal(env.observed.length,0);
+ assert.equal(env.paid.length,0);
 });
 test('v2 resume reuses archived paid response and protocol without replaying its charge',async()=>{
  const original=runner();
@@ -125,22 +123,20 @@ test('v2 resume reuses archived paid response and protocol without replaying its
  assert.equal(env.tools.length,0);
  assert.deepEqual(env.paid,['begin:1','end:1:received']);
 });
-test('v2 records budget warning on later paid rounds',async()=>{
+test('v2 blocks a later round when the remaining budget is insufficient',async()=>{
  const env=setup([investigations,final]);
- const result=await runner({AI_TASK_MAX_TOKENS:'6000'}).runTask({
+ await assert.rejects(runner({AI_TASK_MAX_TOKENS:'7000'}).runTask({
   context:context(),prompt:'weekly model test',contextVersion:'v2',
-  ownerId:'o',operationId:'o-budget',operationType:'analysis',
-  ...env,validate:()=>{}
- });
- assert.equal(env.observed.length,2);
- assert.equal(result.calls[1].budgetEstimateExceeded,true);
+  ownerId:'o',operationId:'o-budget',operationType:'analysis',...env,validate:()=>{}
+ }),/模型Token预算不足/);
+ assert.equal(env.observed.length,1);
  assert.equal(env.tools.length,6);
- assert.deepEqual(env.paid,['begin:0','end:0:received','begin:1','end:1:received']);
+ assert.deepEqual(env.paid,['begin:0','end:0:received']);
  assert.equal(env.archive.get(0).results.length,6);
 });
-test('v3 completes a report beyond estimated task tokens without blind auto-retries',async()=>{
+test('v3 completes within budget without blind auto-retries',async()=>{
  const env=setup([investigations,investigations,final]);
- const result=await runner({AI_TASK_MAX_TOKENS:'6000'}).runTask({
+ const result=await runner({AI_TASK_MAX_TOKENS:'50000'}).runTask({
   context:context(),prompt:'weekly model test',contextVersion:'v3',
   ownerId:'o',operationId:'v3-budget-advisory',operationType:'analysis',
   ...env,validate:()=>{}
@@ -188,7 +184,7 @@ test('manual verified v2 budget recovery reuses two paid calls and only bills th
      metricId:'active_users',value:100+i}]}}))}
  }));
  const env=setup([final]);
- const result=await runner({AI_TASK_MAX_TOKENS:'50000'}).runTask({
+ const result=await runner({AI_TASK_MAX_TOKENS:'60000'}).runTask({
   context:report,prompt,ownerId:'o',operationId:'budget-recovery',
   operationType:'analysis',resumeRows:rows,systemPromptOverride:pinnedPrompt,
   relaxV2BudgetOnManualResume:true,...env,validate:()=>{}
@@ -238,18 +234,15 @@ test('v4 weekly analysis sends core statistics first and preserves paid checkpoi
  assert.deepEqual(env.paid,['begin:0','end:0:received','begin:1','end:1:received']);
  assert.equal(env.archive.get(0).results.length,6);
 });
-test('new v4 warns and records budget excess while allowing the paid call',async()=>{
- const ctx=context();
- ctx.weeklyCoverage={version:'weekly-coverage-v1',modules:[]};
+test('new v4 blocks a paid call beyond budget',async()=>{
+ const ctx=context();ctx.weeklyCoverage={version:'weekly-coverage-v1',modules:[]};
  const env=setup([final]);
- const result=await runner({AI_TASK_MAX_TOKENS:'100'}).runTask({
+ await assert.rejects(runner({AI_TASK_MAX_TOKENS:'100'}).runTask({
   context:ctx,prompt:'weekly',contextVersion:'v4',ownerId:'o',
   operationId:'v4-budget',operationType:'analysis',...env,validate:()=>{}
- });
- assert.equal(env.observed.length,1);
- assert.equal(result.calls[0].budgetReferenceTokens,100);
- assert.equal(result.calls[0].budgetEstimateExceeded,true);
- assert.equal(env.paid.length,2);
+ }),/模型Token预算不足/);
+ assert.equal(env.observed.length,0);
+ assert.equal(env.paid.length,0);
 });
 test('v4 retains SEO metrics across a third model round, without replaying old tools',async()=>{
  const ctx=context();
