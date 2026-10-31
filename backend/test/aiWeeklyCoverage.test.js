@@ -15,6 +15,7 @@ test('growth overview carries registration and mature cohort metrics into author
  assert.ok(skill.signals.includes('registered_users'));
  assert.ok(skill.signals.includes('registration_activation_rate'));
  assert.ok(skill.signals.includes('registered_trade_conversion_rate'));
+ assert.ok(skill.signals.includes('registered_user_journey'));
  const facts=factsFromEvidence([{id:'registration-cohort',metricId:'growth_insights',value:{
   cohorts:{registration:{metrics:{users:14,eligible:10,activated:5,pending:4,rate:.5},
    trade:{eligible:7,traders:2,conversion_rate:2/7,pending:1,not_engaged:3,unmatched:1}}}
@@ -22,6 +23,40 @@ test('growth overview carries registration and mature cohort metrics into author
  assert.ok(facts.some(x=>x.metric==='cohorts.registration.metrics.eligible'&&x.value===10));
  assert.ok(facts.some(x=>x.metric==='cohorts.registration.trade.traders'&&x.value===2));
 });
+test('registered user journey survives safe model projection with separate parallel-entry and trade denominators',()=>{
+ const {statView,modelEvidence}=require('../src/ai/business/modelTransport');
+ const source={available:true,registration:{
+  users:20,
+  activation:{eligible:16,activated:8,pending:4,rate:.5,window_ms:86400000},
+  engagement:{eligible:12,pending:5,chip_analysis_users:9,chip_analysis_rate:.75,
+   holder_view_users:6,holder_view_rate:.5,strategy_started_users:4,
+   strategy_started_rate:4/12,signal_view_users:7,signal_view_rate:7/12,
+   repeat_analysis_users:3,repeat_analysis_rate:.25,window_ms:7*86400000,
+   definition:'并行入口，可重叠'},
+  trade:{available:true,eligible:8,traders:3,conversion_rate:3/8,
+   unmatched:2,association:'user-level-after-first-analysis',
+   definition:'首次分析后7日身份可验证用户级交易'},
+  coverage:{status:'partial',reason:'不同事实源，水位未独立验证'},
+  definition:'注册后激活、产品并行参与、交易转化'
+ }};
+ const safe=statView(source);
+ const projected=modelEvidence({id:'journey-evidence',metricId:'registered_user_journey',
+  value:safe,coverage:{status:'partial'},warnings:[]});
+ assert.equal(projected.value.registration.engagement.holder_view_users,6);
+ assert.equal(projected.value.registration.engagement.repeat_analysis_rate,.25);
+ assert.equal(projected.value.registration.trade.eligible,8);
+ assert.equal(projected.value.registration.trade.traders,3);
+ assert.equal(projected.value.registration.activation.eligible,16);
+ const facts=factsFromEvidence([{id:'journey-evidence',metricId:'registered_user_journey',
+  value:projected.value}]);
+ assert.ok(facts.some(x=>x.metric==='registration.activation.eligible'&&x.value===16));
+ assert.ok(facts.some(x=>x.metric==='registration.engagement.holder_view_users'&&x.value===6));
+ assert.ok(facts.some(x=>x.metric==='registration.engagement.repeat_analysis_users'&&x.value===3));
+ assert.ok(facts.some(x=>x.metric==='registration.trade.traders'&&x.value===3));
+ assert.equal(facts.length,12);
+ assert.equal(JSON.stringify(projected).includes('并行入口'),true);
+});
+
 test('all thirteen modules are represented, missing sources are never marked analyzed',()=>{
  const result=initialCoverage(context(),{allowedTools:toolIds,availableSpecialties:[]});
  assert.equal(result.modules.length,13);
