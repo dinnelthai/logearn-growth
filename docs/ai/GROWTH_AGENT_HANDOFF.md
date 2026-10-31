@@ -6,10 +6,10 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
-- Latest successful implementation/CI head: `6c60b8e33a5684d0da5ed8e90e828ea69e2a5b04` (action anti-repeat code; CI run 41181045783 passed). Fetch the live branch before editing.
+- Latest successful implementation/CI head: `e39b6b1791e5459af7a458c278f937f92c796011` (reviewable metric and complete action-plan contract; CI run 41182874411 passed). Fetch the live branch before editing.
 - Fetch the live branch HEAD before every new edit; do not rely on this document's historical commit reference.
-- Latest successful CI: AI infrastructure run [41181045783](https://github.com/dinnelthai/logearn-growth/actions/runs/41181045783) — AI Contract, AI Frontend and AI Integration all passed, including anti-repeat tests; the detailed learning UI also passed [41180467339](https://github.com/dinnelthai/logearn-growth/actions/runs/41180467339).
-- Checklist progress: 33 / 48 implementation items (69%); live-source acceptance is not included in that percentage.
+- Latest successful CI: AI infrastructure run [41182874411](https://github.com/dinnelthai/logearn-growth/actions/runs/41182874411) — AI Contract, AI Frontend and AI Integration all passed, including strict metric and action-plan contract tests.
+- Checklist progress: 35 / 48 implementation items (73%); live-source acceptance is not included in that percentage.
 - Do not switch to or commit to `master`.
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
 - Always verify the branch HEAD before editing and fetch each target file from this branch.
@@ -236,5 +236,16 @@ Final validation update: run [41177187712](https://github.com/dinnelthai/logearn
 - Investigation attention now weights contradicted reviews more strongly than insufficient reviews.
 - `analysisContract.assertActionNovelty` now checks exact normalized action text against both the original proposal and the recorded actual executed action, scoped to primary metric and source. Similarity-based blocking is deliberately not used to avoid false positives.
 - Tests cover contradicted-action prompt guidance, insufficient-evidence handling, and deterministic rejection of exact repeats of the actual executed action.
-- Latest code CI run [41181045783](https://github.com/dinnelthai/logearn-growth/actions/runs/41181045783) completed successfully: AI Contract, AI Frontend and AI Integration all passed.
+- Latest code CI run [41182874411](https://github.com/dinnelthai/logearn-growth/actions/runs/41182874411) completed successfully: AI Contract, AI Frontend and AI Integration all passed.
 - No schema migration, deployment, paid call, production data collection or external write.
+
+
+## 2026-10-31 — Reviewable metric and complete action-plan contract
+
+- Added `backend/src/ai/growth/reviewMetrics.js` as the shared allowlist and value projection for the metrics the current retrospective job can actually reconstruct: `active_users`, `new_users`, `returning_users`, `activation_rate`, `d7`.
+- The retrospective job now calls the shared `buildRetrospectiveValues`; the metric registry derives `reviewAdapter` from the same map and fails at module load if its declarations drift.
+- Corrected a semantic mismatch: `registration_activation_rate` and `registered_trade_conversion_rate` were marked as growth-reviewable in the registry even though the retrospective job does not compute them. They remain valid business metrics, but are not eligible as new suggestion review metrics until direct retrospective reads are implemented. `registered_users` is likewise not currently reviewable.
+- New analysis tasks pin `analysis-contract-v2` into the saved context. It requires directly reviewable primary/secondary metrics, a complete execution plan, impact and impact-basis fields, exact source scope, and bounded non-empty review conditions. Archived contexts without the marker keep legacy validation.
+- Tests cover registry/service parity, retrospective value projection, unsupported metrics, malformed/duplicate metrics, required action plans, exact source scope and legacy recovery compatibility.
+- CI [41182874411](https://github.com/dinnelthai/logearn-growth/actions/runs/41182874411) passed all three AI jobs. Contract groups: 177 (176 pass, 0 fail, 1 skipped), plus 26/26, 16/16, 41/41, 34/34, 13/13, 23/23, 2/2 and 112/112.
+- No schema migration, deployment, live source collection, paid model call or external write.
