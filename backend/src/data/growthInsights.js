@@ -115,7 +115,7 @@ function cohortTradeSql(){
 async function cohortTrades(s,rows,{start,end}){
  const asOf=Date.parse(s.as_of),effectiveEnd=Math.min(end,asOf+1);
  const entrants=rows.filter(r=>r.first_seen_at>=start&&r.first_seen_at<effectiveEnd);
- const activated=entrants.filter(r=>Number.isFinite(Number(r.first_chip_at))&&Number(r.first_chip_at)>=Number(r.first_seen_at)&&Number(r.first_chip_at)<=asOf);
+ const activated=entrants.filter(r=>r.first_chip_at!=null&&Number.isFinite(Number(r.first_chip_at))&&Number.isFinite(Number(r.first_seen_at))&&Number(r.first_chip_at)>=Number(r.first_seen_at)&&Number(r.first_chip_at)<=asOf);
  const mature=activated.filter(r=>Number(r.first_chip_at)+7*DAY<=asOf+1);
  const windows=mature.filter(r=>/^user:[1-9]\d{0,19}$/.test(r.user_key)).map(r=>({accountId:r.user_key.slice(5),start:Number(r.first_chip_at),end:Number(r.first_chip_at)+7*DAY}));
  const targets=[...new Set(windows.map(w=>w.accountId))];
