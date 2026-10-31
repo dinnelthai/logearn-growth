@@ -67,7 +67,7 @@ test('timeline merges existing owner-scoped records but keeps human, channel and
  assert.equal(result.coverage.searchConsole.periodMatched,false);
  assert.equal(result.coverage.contentRecords.collection,'manual');
  assert.ok(db.calls.every(c=>c.args[0]==='owner-1'||c.sql.includes('crm_collaboration_activities')));
- assert.match(result.warnings.join(' '),/AI建议/);
+ assert.match(result.warnings.join(' '),/AI 建议/);
 });
 
 test('one source failure is isolated and does not erase the other operating records',async()=>{
