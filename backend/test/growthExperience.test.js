@@ -105,5 +105,41 @@ test('experience feedback excludes v2 cohort records without complete coverage o
   baseline_data:{reviewContextVersion:2,operationTaskCohort:{status:'available',
    metrics:{analysis_users:20,requested_users:30,unmatched_users:0}}},
   effect_data:{operationTaskCohort:{analysis_users:25,requested_users:30,unmatched_users:0}}}];
- assert.deepEqual(summarizeExperience(history,{source:'all',now}),[]);
+ const result=summarizeExperience(history,{source:'all',now});
+ assert.equal(result.length,1);
+ assert.equal(result[0].insufficientReviews,1);
+ assert.equal(result[0].recentLessons[0].reason,'primary-metric-has-no-direct-cohort-equivalent');
+});
+
+test('planner carries exact previously contradicted action into a no-blind-repeat instruction',()=>{
+ const history=[{review_context_version:'2',user_status:'executed',effectiveness:'unknown',
+  suggestion_id:'suggestion-repeat',reviewed_at:now-1000,confidence:'medium',has_improvement:false,
+  validation_metrics:{primary:'active_users'},action_scope:{source:'all'},
+  business_problem:'新用户没有完成首次分析',actual_action:'给新用户发送首次分析引导弹窗',
+  baseline_data:{reviewContextVersion:2,operationTaskCohort:{status:'available',
+   metrics:{analysis_users:30,requested_users:40,unmatched_users:0}}},
+  effect_data:{operationTaskCohort:{analysis_users:27,requested_users:40,unmatched_users:0}},
+  result_summary:'固定人群分析用户减少'}];
+ const plan=planGrowthInvestigation({goal:'activation',report,history});
+ const overview=plan.steps.find(step=>step.skillId==='growth-overview');
+ assert.equal(overview.experienceChecks[0].observedIneffective,1);
+ assert.equal(overview.experienceChecks[0].priorActions[0].actualAction,'给新用户发送首次分析引导弹窗');
+ const prompt=formatPlanForPrompt(plan);
+ assert.match(prompt,/禁止原样重复同一行动/);
+ assert.match(prompt,/给新用户发送首次分析引导弹窗/);
+});
+test('insufficient v2 review prioritizes evidence completion instead of treating the old action as disproved',()=>{
+ const history=[{review_context_version:'2',user_status:'executed',effectiveness:'unknown',
+  suggestion_id:'suggestion-unknown',reviewed_at:now-1000,confidence:'medium',has_improvement:true,
+  validation_metrics:{primary:'new_users'},action_scope:{source:'all'},
+  business_problem:'需要验证注册用户增长',actual_action:'增加注册引导内容',
+  baseline_data:{reviewContextVersion:2,operationTaskCohort:{status:'available',
+   metrics:{analysis_users:30,requested_users:40,unmatched_users:0}}},
+  effect_data:{operationTaskCohort:{analysis_users:35,requested_users:40,unmatched_users:0}}}];
+ const plan=planGrowthInvestigation({goal:'activation',report,history});
+ const overview=plan.steps.find(step=>step.skillId==='growth-overview');
+ assert.equal(overview.experienceChecks[0].insufficientReviews,1);
+ assert.match(overview.experienceChecks[0].instruction,/先补齐缺失证据/);
+ assert.doesNotMatch(overview.experienceChecks[0].instruction,/禁止原样重复/);
+ assert.match(formatPlanForPrompt(plan),/增加注册引导内容/);
 });
