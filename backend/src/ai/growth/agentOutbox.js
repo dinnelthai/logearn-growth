@@ -21,7 +21,7 @@ function createAgentOutbox(db=pool){
  }
  // Explicitly authorized owner webhooks only; no private member contents.
  async function enqueueExecutiveNotice({ownerId,notice},now=Date.now()){
-  const kinds=['approval','accepted-not-started','execution-stalled','review-due','task-overdue'];
+  const kinds=['approval','accepted-not-started','execution-stalled','review-due','task-overdue','workitem-overdue'];
   if(typeof ownerId!=='string'||!ownerId||
    !/^[a-f0-9]{64}$/.test(notice?.id||'')||!kinds.includes(notice.kind)||
    !Number.isSafeInteger(notice.dueAt)||!Number.isSafeInteger(now))

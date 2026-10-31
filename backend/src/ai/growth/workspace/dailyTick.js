@@ -51,6 +51,8 @@ async function dailyWorkspaceTickWithMetrics({db,ownerId,now=Date.now(),metricPr
  }
  // All reminders are internal and idempotently persisted; external delivery
  // remains separately authorized by the existing notifier.
+ for(const row of store.actions(ownerId,{limit:200}).filter(x=>x.status==='accepted'))
+  store.ensureExecutiveWorkItems(ownerId,row.id);
  const reminders=store.executiveReminders(ownerId,{at:now,record:true});
  const result=dailyWorkspaceTick({db,ownerId,now,sources});
  return {...result,executive:cycle,investigation,reminders:{due:reminders.due,pending:reminders.pending.length}};

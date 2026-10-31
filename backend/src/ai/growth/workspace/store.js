@@ -20,6 +20,7 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
  CREATE TABLE IF NOT EXISTS gw_actions(owner_id TEXT NOT NULL,id TEXT NOT NULL,problem_id TEXT NOT NULL,run_id TEXT,description TEXT NOT NULL,assignee TEXT NOT NULL,status TEXT NOT NULL,metric_id TEXT,definition_version TEXT,direction TEXT,baseline_json TEXT,executed_at INTEGER,observe_until INTEGER,review_json TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(owner_id,id));
  CREATE TABLE IF NOT EXISTS gw_operation_links(owner_id TEXT NOT NULL,problem_id TEXT NOT NULL,task_id TEXT NOT NULL,linked_at INTEGER NOT NULL,PRIMARY KEY(owner_id,problem_id,task_id));
  CREATE TABLE IF NOT EXISTS gw_problem_reviews(owner_id TEXT NOT NULL,problem_id TEXT NOT NULL,verdict TEXT NOT NULL,reason TEXT NOT NULL,reviewed_at INTEGER NOT NULL,PRIMARY KEY(owner_id,problem_id));
+ CREATE TABLE IF NOT EXISTS gw_executive_workitems(owner_id TEXT NOT NULL,id TEXT NOT NULL,action_id TEXT NOT NULL,step TEXT NOT NULL,title TEXT NOT NULL,assignee TEXT NOT NULL,due_at INTEGER NOT NULL,status TEXT NOT NULL,evidence_id TEXT,completion_note TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(owner_id,id),UNIQUE(owner_id,action_id,step));
  CREATE TABLE IF NOT EXISTS gw_executive_notices(owner_id TEXT NOT NULL,id TEXT NOT NULL,kind TEXT NOT NULL,resource_id TEXT NOT NULL,due_at INTEGER NOT NULL,body_json TEXT NOT NULL,acknowledged_at INTEGER,created_at INTEGER NOT NULL,PRIMARY KEY(owner_id,id),UNIQUE(owner_id,kind,resource_id,due_at));
  CREATE INDEX IF NOT EXISTS gw_exec_notice_pending ON gw_executive_notices(owner_id,acknowledged_at,due_at);
  CREATE TABLE IF NOT EXISTS gw_reports(owner_id TEXT NOT NULL,id TEXT NOT NULL,kind TEXT NOT NULL,period_start INTEGER NOT NULL,period_end INTEGER NOT NULL,revision INTEGER NOT NULL,status TEXT NOT NULL,snapshot_json TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(owner_id,id),UNIQUE(owner_id,kind,period_start,period_end,revision));
@@ -211,6 +212,48 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
   return run(owner,id);
  }
  // Internal delivery is persisted but never claims an external webhook was sent.
+
+ function workItems(owner,{actionId=null,limit=50}={}){
+  ownerId(owner);
+  if(!fetch("SELECT 1 n FROM sqlite_master WHERE type='table' AND name='gw_executive_workitems'"))return [];
+  if(!Number.isInteger(limit)||limit<1||limit>200)throw Error('任务数量不合法');
+  return all("SELECT * FROM gw_executive_workitems WHERE owner_id=? "+
+   (actionId?"AND action_id=? ":"")+"ORDER BY due_at LIMIT ?",
+   ...(actionId?[owner,actionId,limit]:[owner,limit]));
+ }
+ function ensureExecutiveWorkItems(owner,actionId){
+  const a=action(owner,actionId);
+  if(!a||!['accepted','executing','executed'].includes(a.status))return [];
+  if(!fetch("SELECT 1 n FROM sqlite_master WHERE type='table' AND name='gw_executive_workitems'"))return [];
+  const steps=[['verify-evidence','核对业务证据及待验证假设',1],
+   ['prepare-execution','准备运营交付方案',2],
+   ['record-outcome','记录执行事实及观察结果',4]];
+  const existing=workItems(owner,{actionId});
+  const stmt=db.prepare("INSERT OR IGNORE INTO gw_executive_workitems(owner_id,id,action_id,step,title,assignee,due_at,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)");
+  for(let i=0;i<steps.length;i++){
+   const [step,title,days]=steps[i];if(existing.some(x=>x.step===step))continue;
+   stmt.run(owner,randomUUID(),actionId,step,title,a.assignee,a.updated_at+days*86400000,
+    i===0?'ready':'blocked',getNow(),getNow());
+  }
+  return workItems(owner,{actionId});
+ }
+ function completeExecutiveWorkItem(owner,id,{note='',evidenceId=null}={}){
+  ownerId(owner);requiredString(id,'待办ID');
+  const row=workItems(owner,{limit:200}).find(x=>x.id===id);
+  if(!row)throw Object.assign(Error('待办不存在或无权访问'),{status:404});
+  if(row.status==='completed')return {...row,reused:true};
+  if(row.status!=='ready')throw Object.assign(Error('前置任务未完成'),{status:409});
+  const evidence=evidenceId?getEvidence(owner,evidenceId):null;
+  if(['verify-evidence','record-outcome'].includes(row.step)&&!evidence)throw Error('请提供真实的已保存指标证据');
+  if(row.step==='prepare-execution'&&!String(note).trim())throw Error('交付方案不能为空');
+  db.prepare("UPDATE gw_executive_workitems SET status='completed',evidence_id=?,completion_note=?,updated_at=? WHERE owner_id=? AND id=? AND status='ready'")
+   .run(evidence?.id||null,String(note).slice(0,1000),getNow(),owner,id);
+  const steps=['verify-evidence','prepare-execution','record-outcome'];
+  const next=steps[steps.indexOf(row.step)+1];
+  if(next)db.prepare("UPDATE gw_executive_workitems SET status='ready',updated_at=? WHERE owner_id=? AND action_id=? AND step=? AND status='blocked'")
+   .run(getNow(),owner,row.action_id,next);
+  return workItems(owner,{actionId:row.action_id}).find(x=>x.id===id);
+ }
  function executiveReminders(owner,{at=getNow(),record=false}={}){
   ownerId(owner);
   if(!Number.isSafeInteger(at)||at<0)throw Error('提醒时间无效');
@@ -234,6 +277,9 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
    for(const task of tasks)due.push({kind:'task-overdue',resourceId:task.id,dueAt:task.due_at,
     body:{title:task.title,assignee:task.assignee}});
   }
+  for(const row of workItems(owner,{limit:200}).filter(x=>x.status==='ready'&&x.due_at<=at))
+   due.push({kind:'workitem-overdue',resourceId:row.id,dueAt:row.due_at,
+    body:{title:row.title,assignee:row.assignee}});
   const hasNotice=fetch("SELECT 1 n FROM sqlite_master WHERE type='table' AND name='gw_executive_notices'");
   if(record&&!hasNotice)throw Error('经营通知表未迁移，不能虚报持久提醒');
   if(record){
@@ -332,6 +378,7 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
    awaitingApproval:awaiting.slice(0,8).map(a=>({id:a.id,problemId:a.problem_id,description:a.description,assignee:a.assignee})),
    reviewsDue:dueReviews.slice(0,8).map(a=>({id:a.id,problemId:a.problem_id,observeUntil:a.observe_until})),
    overdueTasks:overdueTasks.map(t=>({id:t.id,title:t.title,assignee:t.assignee,dueAt:t.due_at,status:t.status})),
+   workItems:workItems(owner,{limit:30}).map(x=>({id:x.id,actionId:x.action_id,title:x.title,step:x.step,status:x.status,assignee:x.assignee,dueAt:x.due_at})),
    learning:executiveLearning(owner),
    portfolio:require('./executivePortfolio').opportunityPortfolio(owner,{problems,problemEvents,getEvidence,executiveLearning}),
    goalAlignment:require('./executivePortfolio').goalAlignment(
@@ -459,6 +506,6 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
    reviewSampleSize:reviewed,uncertainReviews:byVerdict.uncertain||0,
    interpretation:'仅来自人工审阅样本，未审核问题不计入准确率；样本存在选择偏差'};
  }
- return {saveGoal,goalById,listGoals,saveEvidence,getEvidence,progress,dashboardGoals,observeProblem,problem,problems,problemEvents,setProblemStatus,startRun,executiveInvestigationStart,executiveInvestigationFinish,executiveInvestigationFail,executiveReminders,acknowledgeExecutiveNotice,executiveLearning,run,ask,answer,cancelRun,finishRun,createAction,proposeActionOnce,executiveQueue,action,actions,updateAction,reviewAction,report,buildReport,reportList,linkOperationTask,linkedOperationTasks,linkAcceptedSuggestionToTask,suggestionOperationTasks,suggestionIdsForOperationTask,reviewProblem,reconcileSource,qualitySummary};
+ return {saveGoal,goalById,listGoals,saveEvidence,getEvidence,progress,dashboardGoals,observeProblem,problem,problems,problemEvents,setProblemStatus,startRun,executiveInvestigationStart,executiveInvestigationFinish,executiveInvestigationFail,executiveReminders,acknowledgeExecutiveNotice,executiveLearning,workItems,ensureExecutiveWorkItems,completeExecutiveWorkItem,run,ask,answer,cancelRun,finishRun,createAction,proposeActionOnce,executiveQueue,action,actions,updateAction,reviewAction,report,buildReport,reportList,linkOperationTask,linkedOperationTasks,linkAcceptedSuggestionToTask,suggestionOperationTasks,suggestionIdsForOperationTask,reviewProblem,reconcileSource,qualitySummary};
 }
 module.exports={workspaceStore};

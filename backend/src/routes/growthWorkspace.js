@@ -53,7 +53,14 @@ function createRouter({db=require('../db/connection'),readAgentTargets=null}={})
  router.post('/questions/:id/answer',h(async(req,res,owner)=>res.json(store.answer(owner,req.params.id,req.body?.answer))));
  router.post('/problems/:id/link-task',h(async(req,res,owner)=>res.json(store.linkOperationTask(owner,req.params.id,req.body?.taskId))));
  router.post('/problems/:id/actions',h(async(req,res,owner)=>res.status(201).json(store.createAction(owner,req.params.id,req.body||{}))));
- router.post('/actions/:id/status',h(async(req,res,owner)=>res.json(store.updateAction(owner,req.params.id,req.body?.status,req.body||{}))));
+ router.post('/actions/:id/status',h(async(req,res,owner)=>{
+  const row=store.updateAction(owner,req.params.id,req.body?.status,req.body||{});
+  if(row.status==='accepted')store.ensureExecutiveWorkItems(owner,row.id);
+  res.json(row);
+ }));
+ router.get('/executive/work-items',h(async(req,res,owner)=>res.json({items:store.workItems(owner)})));
+ router.post('/executive/work-items/:id/complete',h(async(req,res,owner)=>
+  res.json(store.completeExecutiveWorkItem(owner,req.params.id,req.body||{}))));
  router.post('/actions/:id/review',h(async(req,res,owner)=>res.json(store.reviewAction(owner,req.params.id,req.body||{}))));
  router.get('/evidence/:id',h(async(req,res,owner)=>{const evidence=store.getEvidence(owner,req.params.id);res.status(evidence?200:404).json(evidence||{error:'证据不存在'})}));
  // Last *completed* Monday-Sunday period, computed server-side in Bangkok time.
