@@ -353,9 +353,10 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
     const note=root.querySelector('[data-weekly-note]');
     if(note)note.textContent='正在创建所选时间范围的 AI 分析任务…';
     try{
-     const bounds=rangeBounds(range);
+     const bounds=customPeriod?rangeBounds(range):null;
      const result=await api('/ai-weekly-reports','POST',{
-      start:bounds.start,end:bounds.end,...(regenerateArchived?{regenerateArchivedFailed:true}:{})
+      ...(bounds?{start:bounds.start,end:bounds.end}:{}),
+      ...(regenerateArchived?{regenerateArchivedFailed:true}:{})
      });
      selected=result.analysisId;
      if(!disposed)await load();
