@@ -24,7 +24,17 @@ function getManifest(data){
  }))};
 }
 export function weeklyCoverageRows(data){
- const byId=new Map(getManifest(data).modules.map(row=>[row.id,row]));
+ const manifest=getManifest(data);
+ const byId=new Map(manifest.modules.map(row=>[row.id,row]));
+ // Preserve the 12 known legacy rows for archived reports. Newly versioned
+ // manifests can add bounded, server-declared modules without silently hiding
+ // their coverage (for example the 13th operations-timeline module).
+ const knownIds=new Set(MODULES.map(([id])=>id));
+ const declaredExtras=manifest.version==='weekly-coverage-v1'?
+  manifest.modules.filter(row=>typeof row?.id==='string'&&
+   /^[a-z][a-z0-9-]{0,63}$/.test(row.id)&&typeof row.label==='string'&&
+   !knownIds.has(row.id)).slice(0,8).map(row=>[row.id,row.label]):[];
+ const modules=[...MODULES,...declaredExtras];
  const archived=data?.context_payload||data?.data_snapshot;
  let ctx=archived;
  if(typeof archived==='string'){
@@ -47,7 +57,7 @@ export function weeklyCoverageRows(data){
   return !/[0-9.]/.test(before)&&!/[0-9.]/.test(after);
  };
  const isGap=text=>/没有(?:提供|数据|足够)|未(?:提供|采集|同步|取得|能)|缺少|无法(?:判断|确认|核实)|数据不足|尚无/.test(text||'');
- const rows=MODULES.map(([id,label])=>{
+ const rows=modules.map(([id,label])=>{
   const source=byId.get(id);
   const numbers=observedNumbers(source);
   // A historical v1 manifest could mark a data-gap citation as analyzed.
@@ -104,7 +114,7 @@ export function renderWeeklyCoverage(data,{safe,fmt,links}){
    '<h4>增长模块调查与分析</h4></div>'+
    '<span>有数值结论 '+analyzed.length+' · 已取数待分析 '+collected.length+
     ' · 数据缺口 '+other.length+'</span></div>'+
-  '<p class="ai-weekly-module-intro">12 个增长模块全部保留在归档。只有引用了本模块真实数值的结论才标记为已分析；未调查或数据缺失不代表指标为零。</p>'+
+  '<p class="ai-weekly-module-intro">'+rows.length+' 个增长模块全部保留在归档。只有引用了本模块真实数值的结论才标记为已分析；未调查或数据缺失不代表指标为零。</p>'+
   (analyzed.length||collected.length?
    '<div class="ai-weekly-module-grid">'+[...analyzed,...collected].map(renderCard).join('')+'</div>':
    '<p class="ai-weekly-empty">本期尚无能够形成模块级业务结论的统计记录。</p>')+
