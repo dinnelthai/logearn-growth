@@ -10,6 +10,18 @@ function fakeDb(){
   calls.push({sql,args})
   if(sql.includes('FROM growth_activities'))return [{id:'act-1',name:'Launch campaign',start_at:start,cutoff_at:end,goal:'activation',target_metric:'new_users',target_value:20,schedule_state:'active',schedule_error:null,archived_at:null,settled_at:null,parent_id:null}]
   if(sql.includes('FROM crm_activity_links'))return [{activity_id:'act-1',name:'KOL One'}]
+  if(sql.includes('FROM growth_activity_members'))return [{activity_id:'act-1',count:10}]
+  if(sql.includes('FROM growth_activity_planned_members'))return [{activity_id:'act-1',count:12}]
+  if(sql.includes('FROM growth_activity_assignments'))return [
+   {activity_id:'act-1',group_key:'treatment',count:4},
+   {activity_id:'act-1',group_key:'control',count:3}
+  ]
+  if(sql.includes('FROM growth_activity_delivery_evidence'))return [
+   {activity_id:'act-1',kind:'delivered',channel:'telegram',count:5,first_at:start,last_at:end}
+  ]
+  if(sql.includes('FROM growth_activity_schedule_history'))return [
+   {activity_id:'act-1',action:'rescheduled',count:2,first_at:start,last_at:end}
+  ]
   if(sql.includes('FROM crm_collaborations c'))return [{id:'collab-1',kol_id:'kol-1',name:'KOL placement',start_at:start,end_at:end,goal:'reach',deliverables:'one post',assignee:'Alex',status:'completed',created_at:start,updated_at:end,kol_name:'KOL One'}]
   if(sql.includes('FROM crm_collaboration_activities'))return [{collaboration_id:'collab-1',activity_id:'act-1'}]
   if(sql.includes('FROM content_growth_items'))return [{id:'content-1',platform:'x',title:'Launch thread',topic:'product',published_at:new Date(start+1000).toISOString(),created_at:new Date(start+1000).toISOString(),impressions:100,likes:5,comments:2,shares:3,audience_fit:4,actionability:5}]
@@ -64,6 +76,12 @@ test('timeline merges existing owner-scoped records but keeps human, channel and
  assert.deepEqual(collab.linkedActivityIds,['act-1']);
  const activity=result.humanOperations.find(x=>x.kind==='growth_activity');
  assert.deepEqual(activity.linkedKols,['KOL One']);
+ assert.equal(activity.memberCount,10);
+ assert.equal(activity.plannedMemberCount,12);
+ assert.deepEqual(activity.assignments.map(x=>[x.group,x.count]),[['treatment',4],['control',3]]);
+ assert.deepEqual(activity.deliveryEvidence.map(x=>[x.kind,x.channel,x.count]),[['delivered','telegram',5]]);
+ assert.deepEqual(activity.scheduleChanges.map(x=>[x.action,x.count]),[['rescheduled',2]]);
+ assert.equal(db.calls.some(c=>c.sql.includes('growth_activity_delivery_evidence')&&/user_id|evidence/.test(c.sql)),false);
  assert.equal(result.coverage.searchConsole.periodMatched,false);
  assert.equal(result.coverage.contentRecords.collection,'manual');
  assert.ok(db.calls.every(c=>c.args[0]==='owner-1'||c.sql.includes('crm_collaboration_activities')));
