@@ -157,3 +157,18 @@ Branch: codex/ai-comprehensive-upgrade
 - AI infrastructure run [41168249767](https://github.com/dinnelthai/logearn-growth/actions/runs/41168249767) — **success** across AI Contract, AI Frontend and AI Integration.
 - AI Contract groups: 32/32, 13/13, 22/22, 2/2 and 112/112; AI Integration: 17/17; AI Frontend succeeded.
 - This remains fixture/service-container validation. No live X/GSC/Hologres read, local Worker run, paid model call, paid collection, migration or deployment was performed.
+
+## 2026-10-31 — Registration cohort metrics in Growth investigations
+
+- Reviewed the existing source contract: `registrationFacts` reads real `account_v2.created_at` facts, preserves registrations without a first-analysis event, and keeps source attribution scope explicit.
+- `growthCohorts` computes registration → first chip-analysis activation with a mature 24-hour denominator and pending registrations kept separate.
+- The existing trade cohort computes first-analysis → 7-day user-level trade conversion only for mature users with verifiable account identity; unmatched identities and unavailable trade facts remain unknown.
+- Updated the Growth Overview skill signals and the business-analysis growth metric bundle to include `registered_users`, `registration_activation_rate` and `registered_trade_conversion_rate`.
+- Added these aggregate metric names to the weekly evidence allowlist and regression coverage proving the mature registration/trade cohort facts can be projected.
+- Important remaining gap: this is not yet a single verified registration → activation → product engagement → trade funnel. The existing funnel tool's supported event steps and the registration cohort are separate contracts; do not describe them as one fully linked funnel.
+
+### CI validation
+
+- AI infrastructure run [41168785078](https://github.com/dinnelthai/logearn-growth/actions/runs/41168785078) — **success** across AI Contract, AI Frontend and AI Integration.
+- AI Contract groups: 32/32, 13/13, 22/22, 2/2 and 112/112; AI Integration: 17/17; AI Frontend succeeded.
+- No live Hologres read, paid model call, paid collection, migration or deployment was performed.
