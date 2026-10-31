@@ -55,11 +55,13 @@ test('operating timeline is a collected weekly module with separate aggregate la
     value:{metrics:{clicks:8}},coverage:{periodMatched:true}}]}:
    {status:'ok',evidence:[{id:'operations-1',metricId:'activities',
     value:{counts:{human_operations_shown:2,channel_observations_shown:1,ai_actions_shown:3,total_records_shown:6},
-     humanOperations:[{title:'Campaign'}],channelObservations:[],aiActions:[]},
+     humanOperations:[{title:'Campaign'}],channelObservations:[],aiActions:[],
+     coverage:{growthActivities:{status:'available',truncated:true}}},
     coverage:{status:'available'}}]}
  });
  const row=out.modules.find(x=>x.id==='operations-timeline');
  assert.equal(row.status,'collected');
+ assert.match(row.reason,/有界样本/);
  assert.ok(row.evidenceIds.includes('operations-1'));
  assert.ok(row.facts.some(x=>x.metric==='counts.human_operations_shown'&&x.value===2));
  assert.ok(row.facts.some(x=>x.metric==='counts.ai_actions_shown'&&x.value===3));
