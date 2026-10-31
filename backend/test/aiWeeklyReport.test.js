@@ -31,7 +31,7 @@ test('31-day custom period is valid and its prompt is not constrained to a natur
  const period=reportPeriod({start:String(start),end:String(end)},now);
  assert.equal(period.end-period.start,31*86400000);
  assert.ok(customPeriodPromptV0.includes('自定义时间范围'));
- assert.ok(customPeriodPromptV1.includes('Business Brain')===false);
+ assert.ok(customPeriodPromptV1.includes('context.businessBrain'));
  assert.ok(customPeriodPromptV1.includes('紧邻前一段等长周期'));
  assert.equal(customPeriodPromptV1.includes('完整自然周'),false);
  assert.equal(customPeriodPromptV1.includes('本任务是 LogEarn 完整自然周'),false);
