@@ -139,6 +139,20 @@ function statView(value,{depth=0,maxRows=MAX_GROUPS}={}){
  return result;
 }
 const numericFact=value=>typeof value==='number'&&Number.isFinite(value)?value:null;
+function attachBusinessBrain(context,raw){
+ const brain=require('./businessBrain');
+ context.transportVersion='aggregated-business-v5';
+ context.businessBrain=brain.buildBusinessBrainContext({
+  focusGoal:raw.focusGoal||raw.business?.focusGoal||'activation'
+ });
+ context.operatingMemory=brain.projectOperatingMemory(
+  Array.isArray(raw.memory)?raw.memory:[],{safeText,limit:6}
+ );
+ context.omissions.businessBrain='businessBrain 是版本化经营知识，不是数值证据；operatingMemory 仅覆盖已有AI建议与复盘记录，不代表全部运营活动。';
+ const bytes=Buffer.byteLength(JSON.stringify(context),'utf8');
+ if(bytes>22000)throw Error('Business Brain 与经营上下文合计超过22000字节预算；尚未调用付费模型');
+ return context;
+}
 
 function externalModelEvidence(row){
  const raw=row.value&&typeof row.value==='object'?row.value:{};
@@ -310,9 +324,8 @@ function compactWeeklyEvidence(e,{briefValue=false}={}){
   k==='value'||v!==null&&v!==undefined&&
   !(typeof v==='object'&&!Array.isArray(v)&&!Object.keys(v).length)));
 }
-function fitWeeklyModelContext(context,raw){
+function fitWeeklyModelContext(context,raw,limit=22000){
  const size=()=>Buffer.byteLength(JSON.stringify(context),'utf8');
- const limit=22000;
  if(size()<=limit)return;
  const originalBytes=size();
  // Non-executing skills are already covered by weeklyCoverage. Their reasons
@@ -458,8 +471,18 @@ function fitWeeklyModelContext(context,raw){
   context.omissions.weeklyModelInput.shownEvidence=context.evidence.length;
  }
 }
-function modelContext(raw,{transportVersion='v1',reviewRevision=0}={}){
- if(!['v1','v2','v3','v4'].includes(transportVersion))throw Error('不支持的模型上下文版本');
+function modelContext(raw,{transportVersion='v1',reviewRevision=0,reserveBytes=0}={}){
+ if(!['v1','v2','v3','v4','v5'].includes(transportVersion))throw Error('不支持的模型上下文版本');
+ if(!Number.isSafeInteger(reserveBytes)||reserveBytes<0||reserveBytes>6000)throw Error('上下文预留预算无效');
+ if(transportVersion==='v5'){
+  const reserve=reserveBytes||4500;
+  const base=raw.weeklyCoverage?.version==='weekly-coverage-v1'?
+   require('./weeklyContextV4').buildWeeklyContextV4(raw,{
+    modelEvidence,compactCapabilities,safeText,reviewRevision,reserveBytes:reserve
+   }):
+   modelContext(raw,{transportVersion:'v3',reviewRevision,reserveBytes:reserve});
+  return attachBusinessBrain(base,raw);
+ }
  if(transportVersion==='v4')return require('./weeklyContextV4').buildWeeklyContextV4(
   raw,{modelEvidence,compactCapabilities,safeText,reviewRevision});
  const scope=raw.business?.scope||{};
@@ -578,11 +601,12 @@ function modelContext(raw,{transportVersion='v1',reviewRevision=0}={}){
    context.omissions.emptyEvidenceMetadata='省略空元数据不表示观察为零；未提供的值一律未知';
   }
  }
+ const limit=22000-reserveBytes;
  if(transportVersion==='v3'&&raw.weeklyCoverage?.version==='weekly-coverage-v1')
-  fitWeeklyModelContext(context,raw);
+  fitWeeklyModelContext(context,raw,limit);
  // Strict transport byte cap for the first model message, independent of
  // the multilingual token preflight. Do not hide unknown data as zeros.
- const fits=()=>Buffer.byteLength(JSON.stringify(context),'utf8')<=22000;
+ const fits=()=>Buffer.byteLength(JSON.stringify(context),'utf8')<=limit;
  if(!fits()){
   context.evidence=context.evidence.slice(0,18);
   if(transportVersion!=='v1')shareEvidenceProvenance(context);
