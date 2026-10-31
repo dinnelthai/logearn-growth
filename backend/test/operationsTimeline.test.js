@@ -43,7 +43,7 @@ function sources(db,{xError=false,xUnsynced=false}={}){
   db,
   kolOperations:{
    collaborations:async()=>[{collaborationId:'collab-1',financeSource:'manual-ledger',costTotals:[{currency:'USD',actual_cost:100}],revenueTotals:[{currency:'USD',net_revenue:120}]}],
-   list:async()=>[{id:'kol-snap-1',start_at:start,end_at:end,evidence:JSON.stringify({scope:'tagged',rows:[{observedUsers:5,analysisEvents:10}]}),coverage:{status:'partial'},source_watermark:new Date(end).toISOString(),captured_at:end}]
+   list:async()=>[{id:'kol-snap-1',start_at:start,end_at:end,evidence:JSON.stringify({scope:'tagged',rows:[{id:'kol-1',label:'KOL One',stage:'active',observedUsers:5,analysisUsers:4,analysisEvents:10,tradeUsers:2,transactions:3,volumeUsd:99}]}),coverage:{status:'partial'},source_watermark:new Date(end).toISOString(),captured_at:end}]
   },
   xMonitor:{overview:()=>{if(xError)throw Error('provider down');return {configured:true,source:'twitterapi.io',attribution:'not-verified',accounts:[{
    id:'logearn_cn',label:'中文账号',lastSynced:xUnsynced?null:now,lastAttempt:null,metrics:{samplePosts:99,impressions:9999},
@@ -85,6 +85,10 @@ test('timeline merges existing owner-scoped records but keeps human, channel and
  assert.equal(collab.costTotals[0].currency,'USD');
  assert.equal(collab.id,'kol-collaboration:collab-1');
  assert.deepEqual(collab.linkedActivityIds,['act-1']);
+ assert.equal(collab.kolRef,'kol:kol-1');
+ const kolObservation=result.channelObservations.find(x=>x.kind==='kol_period_observation');
+ assert.equal(kolObservation.kolSummaries[0].kolRef,'kol:kol-1');
+ assert.deepEqual(kolObservation.kolSummaries[0].linkedCollaborationRefs,['kol-collaboration:collab-1']);
  assert.deepEqual(collab.linkedActivityIds,['act-1']);
  const activity=result.humanOperations.find(x=>x.kind==='growth_activity');
  assert.deepEqual(activity.linkedKols,['KOL One']);
