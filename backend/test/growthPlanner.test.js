@@ -125,3 +125,42 @@ test('analysis contract rejects an exact repeat of the executed actual action, n
  assert.throws(()=>assertActionNovelty(suggestion,history),/完全重复/);
  assert.doesNotThrow(()=>assertActionNovelty({...suggestion,action:'先访谈未激活用户并验证引导阻力'},history));
 });
+
+test('question priority reports goal relevance, real affected population and owner-observed latency without monetary guesses',()=>{
+ const observed={query_metrics:{sampleCount:4,medianMs:9,
+  basis:'owner-archived-successful-tool-wall-time',monetaryCostKnown:false},
+  get_funnel:{sampleCount:3,medianMs:20,
+   basis:'owner-archived-successful-tool-wall-time',monetaryCostKnown:false}};
+ const ownerCtx=[];
+ const registry={observedToolTimings:ctx=>{ownerCtx.push(ctx);return observed;}};
+ const input={...report,candidates:[
+  {id:'a',metric:'active_users',priority:'P0',absolute:-100,
+   affectedUsers:null,evidenceConfidence:'high'},
+  {id:'b',metric:'registration_activation_rate',priority:'P1',absolute:-.2,
+   affectedUsers:40,evidenceConfidence:'high',evidenceIds:['ev-b']},
+  {id:'c',metric:'new_users',priority:'P1',absolute:-20,
+   affectedUsers:15,evidenceConfidence:'medium',evidenceIds:['ev-c']},
+  {id:'d',metric:'activation_rate',priority:'P1',absolute:-.1,
+   affectedUsers:15,evidenceConfidence:'medium',evidenceIds:['ev-d']}
+ ]};
+ const p=planGrowthInvestigation({goal:'activation',report:input,ownerId:'owner-1',
+  observedTimingRegistry:registry,
+  availableCapabilityIds:['query_metrics','get_funnel','get_retention']});
+ assert.equal(ownerCtx.length,1);
+ assert.equal(ownerCtx[0].ownerId,'owner-1');
+ assert.deepEqual(p.questionRanking.questions.slice(0,3).map(q=>q.candidateId),['b','c','d']);
+ assert.equal(p.questionRanking.questions.at(-1).evidenceConfidence,'unknown',
+  'self-declared confidence without evidence IDs cannot become verified');
+ assert.equal(p.questionRanking.questions[0].affectedUsers,40);
+ assert.equal(p.questionRanking.questions[0].observedChangeMagnitude,null,
+  'rate delta is not 40 impacted people');
+ assert.equal(p.questionRanking.questions[1].observedChangeMagnitude,20);
+ assert.equal(p.questionRanking.questions[1].observedLatency.medianMs,9);
+ assert.equal(p.questionRanking.questions[1].queryMonetaryCost,'unknown');
+ assert.match(require('../src/ai/growth/planner').formatPlanForPrompt(p),/货币查询费用=未知/);
+ assert.match(require('../src/ai/growth/planner').formatPlanForPrompt(p),/受影响人数=40/);
+ const missing=planGrowthInvestigation({goal:'activation',report:input,
+  availableCapabilityIds:['get_funnel']});
+ assert.equal(missing.questionRanking.questions.find(q=>q.metric==='new_users').authorizedTool,null);
+ assert.equal(missing.questionRanking.questions.find(q=>q.metric==='new_users').observedLatency,null);
+});
