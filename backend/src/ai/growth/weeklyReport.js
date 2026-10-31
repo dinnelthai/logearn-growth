@@ -45,11 +45,11 @@ const weeklyPrompt=`
 2. 核心业务指标及证据ID，绝不凭空写当前/环比数字；
 3. 重要发现、增长阻碍、渠道观察；无法验证的明确标记；
 4. 保存的运营决策工作量、执行复盘覆盖；缺失就说明；
-5. 下周优先行动、验证指标、具体观察条件，按影响/证据强度排序；
+5. 下一周期优先行动、验证指标、具体观察条件，按影响/证据强度排序；
 6. 指标口径、数据范围、来源缺失及模型不确定性。
 保留已有 summary,keyFindings,suggestions,claims 的完整输出和证据校验要求，并且额外输出：
 "weeklyReport":{
- "executiveSummary":"本周执行摘要",
+ "executiveSummary":"本期执行摘要",
  "metrics":[{"label":"指标名","current":null,"previous":null,"changePct":null,"evidenceIds":["证据ID"]}],
  "highlights":[{"text":"有证据支持的亮点","evidenceIds":["证据ID"]}],
  "issues":[{"text":"待处理问题及影响","evidenceIds":["证据ID"]}],
@@ -57,13 +57,13 @@ const weeklyPrompt=`
  "nextWeek":[{"priority":"P0|P1|P2","action":"操作建议","metric":"验证指标","reviewCondition":"观察条件","evidenceIds":["证据ID"]}],
  "dataGaps":["未覆盖或未知项"]
 }
-每一个真实数值必须有对应可核对证据ID；没有数据则使用 null、空数组及 dataGaps，不得套用虚构数字。 changePct 表示相对变化百分数（如10变12写20），分母为0或上周未知时使用 null。上述各项中的 evidenceIds 必须同时出现在经过校验的 claims.evidenceIds 中；如果没有对应证据，应改写为数据缺口，不列为确定性事实。
+每一个真实数值必须有对应可核对证据ID；没有数据则使用 null、空数组及 dataGaps，不得套用虚构数字。 changePct 表示相对变化百分数（如10变12写20），分母为0或上一周期未知时使用 null。上述各项中的 evidenceIds 必须同时出现在经过校验的 claims.evidenceIds 中；如果没有对应证据，应改写为数据缺口，不列为确定性事实。
 `;
 // v2 asks for only the weekly-specific parts. Highlights, issues and action
 // items are derived from the already-validated canonical claims/suggestions.
 // This avoids paying the model to write the same ideas twice.
 const weeklyPromptV2=`
-本任务是 LogEarn 所选时间范围（Asia/Bangkok）的 AI 运营报告。比较当前周期与紧邻其前、时长相同的上一周期，优先依据证据判断趋势、数据质量和下周动作。未观测不是0；SEO曝光/点击不是注册或交易；不得把相关性当因果。
+本任务是 LogEarn 所选时间范围（Asia/Bangkok）的 AI 运营报告。比较当前周期与紧邻其前、时长相同的上一周期，优先依据证据判断趋势、数据质量和下一周期动作。未观测不是0；SEO曝光/点击不是注册或交易；不得把相关性当因果。
 输出必须保留基础契约的 summary、keyFindings、suggestions、claims；其中 claims 的 evidenceIds 与 values 引用必须准确，suggestions 只写可验证的高优先级行动，不得重复堆叠。不要把同一段发现再写成另一套长篇周报正文。
 额外只输出周报特有的 weeklyReport 字段：
 {"executiveSummary":"不超过180字的关键判断",
@@ -71,8 +71,8 @@ const weeklyPromptV2=`
 "channelFindings":[{"text":"来自已观测渠道证据的差异，未覆盖的明确说明","evidenceIds":["证据ID"]}],
 "dataGaps":["数据覆盖、归因、口径与有效期的明确限制"]}
 首先阅读 context.weeklyCoverage：它包含12个模块的调查状态与证据ID。已取数的模块优先直接核对现有证据；不要无必要地重复调用相同工具。未调查或未连接不能冒充已分析；只对影响最大且缺少关键证据的问题发起有限补查。周报结构化输出不必重复12组指标明细，模块状态由服务端按真实查询日志和证据引用生成。
-结合业务目标、影响范围和证据强度识别重要增长异常与用户流失信号，不直接比较不同单位指标的绝对变化。为每个核心问题交代影响规模、已知证据、未证实假设和下周核查动作。增长周报需要覆盖 SEO（GSC）、渠道获客、激活、留存、产品到交易；对不可用来源明确列出缺口，不能因为主要目标是 activation 就忽略 SEO。GSC 可能使用 PT 日期，不得对不匹配的快照计算本业务周环比，更不能把搜索点击当作注册或交易。
-本期亮点将从事实型 claims 自动生成；风险从假设型 claims 自动生成；下周行动从 suggestions 自动生成，不要重复输出 highlights、issues、nextWeek。必须保留每项真实数值对应证据 ID；无验证数据用 null，不编造周环比；changePct 为相对百分数（10→12 为20，前周0或未知时为null）。运营执行统计只表示已保存记录，不等于全部工作量。
+结合业务目标、影响范围和证据强度识别重要增长异常与用户流失信号，不直接比较不同单位指标的绝对变化。为每个核心问题交代影响规模、已知证据、未证实假设和下一周期核查动作。运营报告需要覆盖 SEO（GSC）、渠道获客、激活、留存、产品到交易；对不可用来源明确列出缺口，不能因为主要目标是 activation 就忽略 SEO。GSC 可能使用 PT 日期，不得对不匹配的快照计算所选周期环比，更不能把搜索点击当作注册或交易。
+本期亮点将从事实型 claims 自动生成；风险从假设型 claims 自动生成；下一周期行动从 suggestions 自动生成，不要重复输出 highlights、issues、nextWeek。必须保留每项真实数值对应证据 ID；无验证数据用 null，不编造周期环比；changePct 为相对百分数（10→12 为20，上一周期0或未知时为null）。运营执行统计只表示已保存记录，不等于全部工作量。
 `;
 // Server-derived KPIs come from the exact owner-scoped immutable evidence
 // already saved for this run. They never depend on the model inventing JSON.
@@ -138,7 +138,7 @@ function validateWeeklyReport(analysis){
    if(row.changePct!=null&&
      (row.current==null||row.previous==null||row.previous===0||
       Math.abs((row.current-row.previous)/row.previous*100-row.changePct)>0.55))
-    throw Error('周报环比数据与本周、上周数值不一致');
+    throw Error('报告环比数据与当前、上一周期数值不一致');
   }else if(typeof row.text!=='string'||!row.text.trim())throw Error('周报发现内容缺失');
  };
  r.metrics.forEach(row=>verify(row,{numeric:true}));
@@ -194,7 +194,7 @@ function ensureWeeklyReport(analysis,{context=null}={}){
     reviewCondition:(s.reviewConditions||[]).join('；')||'需人工确定观察条件',
     evidenceIds:references(s.evidence||{})})),
    dataGaps:['本次 AI 返回的结构化周报不完整，已按通过验证的 AI 结论生成部分版；未重新调用模型。',
-    '周度 KPI 对照和渠道分项未能形成完整证据表，不能视为零增长。'],
+    '周期 KPI 对照和渠道分项未能形成完整证据表，不能视为零增长。'],
    partial:true
   };
   validateWeeklyReport(analysis);
