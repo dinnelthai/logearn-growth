@@ -1,8 +1,8 @@
 # LogEarn Business Brain（业务知识体系）
 
 > Runtime source: `backend/src/ai/business/businessBrain.js`  
-> Current version: `logearn-business-brain-v1`  
-> Status (audited 2026-10-31, code HEAD `030c0ed`): v1 Business Brain and v5 weekly report contract/UI have focused CI evidence; live LogEarn API/Hologres/Worker and real-model acceptance remain pending. No runtime business-semantic version change in this documentation refresh.
+> Current version: `logearn-business-brain-v2` (financial metric identity correction)  
+> Status (2026-10-31, source/test HEAD `ac7b5a410211bb257033943a729ad852e0d16fb8`): Business Brain v2, strict v5 report contract and finance metric separation have CI-contract evidence; live LogEarn API/Hologres/Worker, actual platform fee/revenue integration and paid-model acceptance remain pending.
 
 ## 1. Purpose
 
@@ -54,7 +54,7 @@ Do not invent a combined score or imply causal contribution before these contrac
 
 ## 5. Metric dictionary
 
-Runtime v1 reuses `backend/src/ai/business/metricRegistry.js` and `backend/src/analytics/businessPriorities.js`. The Business Brain sends a compact subset of metric labels, units and meanings; the registry remains the formal definition source.
+Runtime v2 reuses `backend/src/ai/business/metricRegistry.js` and `backend/src/analytics/businessPriorities.js`. The Business Brain sends a compact subset of metric labels, units and meanings; the registry remains the formal definition source.
 
 Critical distinctions:
 
@@ -65,7 +65,8 @@ Critical distinctions:
 - `activation_rate`: cohort-based, with the 24-hour maturity rule and eligible denominator.
 - `d7`: mature cohort only; immature users are not failures.
 - `product_chain`: observed product-to-trade workflow; actual trade facts and identity/visit linkage have separate coverage.
-- `trade_revenue`: existing recorded economics/partner-ledger scope only; not total platform revenue.
+- `trade_revenue` **version 2**: genuine platform income, with **no validated adapter currently available** (`platform-revenue-unavailable`); unknown, never inferred from trade volume or the KOL ledger. Legacy v1 `trade_revenue` evidence may have come from the CRM collaboration ledger and remains historically immutable.
+- `collaboration_economics` **version 1**: owner-scoped CRM/KOL manually recorded costs and received income, by currency, as returned by `get_channel_economics`; this is neither platform fee revenue nor the notional value of trades.
 - `seo_search`: Search Console observations; PT date labels and site-search metrics do not automatically align with Bangkok business periods or downstream registration.
 - `kol_performance`: observed CRM association, not causal incremental acquisition.
 
@@ -177,10 +178,19 @@ The weekly coverage projector prioritizes settled activity outcomes and group de
 
 ## 14. Reconciled development/acceptance boundary (2026-10-31)
 
-- Checklist status is maintained in `GROWTH_AGENT_2_0_IMPLEMENTATION_PLAN.md`: **37/48 code/CI-checked (77.1%), 11 open** at audited code HEAD `030c0ed8993a049485f4a064d48cef1f661dfa05`. The two newly checked Phase 5 items are weekly report implementation / UI structure, not real business-result acceptance.
+- Checklist status is maintained in `GROWTH_AGENT_2_0_IMPLEMENTATION_PLAN.md`: **38/48 code/CI-checked (79.2%), 10 open** at audited code HEAD `030c0ed8993a049485f4a064d48cef1f661dfa05`. The two newly checked Phase 5 items are weekly report implementation / UI structure, not real business-result acceptance.
 - New weekly v5 snapshots pin `weeklyReportContractVersion='weekly-report-v2'`, require every lifecycle stage and evidence-linked opportunity/previous-action entries where present, and convert incomplete new model output to an explicitly partial report without automatically repeating a paid call. Older v1-v4 snapshots keep legacy compatibility.
 - The weekly source manifest includes **13 modules** with operations-timeline; archived v4 reports may show fewer. The UI module-count label is currently hardcoded to 12 in one collapsed summary and requires an independent code fix.
 - Retrospective service reviewable metrics and fixed-cohort observational labels are **not** equivalent: v2 fixed-cohort comparison currently only supports `active_users → analysis_users` with exact frozen audience and maturity/coverage checks; registration/trade/retention-type cohort effects remain insufficient/unknown until directly supported.
 - Evidence requirements for live signoff: identity and transaction match coverage, mature denominator windows, source watermarks and freshness, PT Search Console date semantics, channel links with stable keys, authorized read-only Hologres/Worker acceptance and operator-approved North Star contract. No unsupported zero/correlation/ROI claims.
 
 This section documents existing behavior; no Business Brain version bump, application code, migration, paid call or external write is implied.
+
+## 15. Business Brain v2 financial semantics (2026-10-31)
+
+- `logearn-business-brain-v2` increments the business-semantic version because the previous mapping of `trade_revenue` to CRM/partner-ledger income was misleading. Its compact metric dictionary is now version `2`, and the added precision is still guarded by the existing **22KB** model-context limit. AI Contract [run 41185478559](https://github.com/dinnelthai/logearn-growth/actions/runs/41185478559) passed before documentation updates; consult the run for latest remaining job status.
+- `get_channel_economics` now archives and projects `collaboration_economics` (metric version 1) only. Model-facing summaries keep decimal amounts out of floating-point math; per-currency counts and ratios refer to manually entered ledger activity and have independent coverage limitations.
+- `trade_revenue` formal definition is now version `2` and uses a `platform-revenue-unavailable` adapter; this does **not** create a platform revenue data source. Platform income remains unknown until a direct authenticated source and formal definition are established. Existing version 1 evidence is retained unchanged for historical analysis replay.
+- `backend/src/ai/growth/weeklyCoverage.js` continues using the same `revenue` module key for UI/backward compatibility, but its new evidence metric is `collaboration_economics` and its label explicitly states “合作账本（非平台收入）”. Verified trading facts/volume continue to use separate transaction sources, never this ledger.
+- Regression tests include `backend/test/agentTools.test.js` (owner-scope evidence and no platform revenue substitution), `backend/test/aiBusinessBrain.test.js` (versioned meanings), `backend/test/aiWeeklyModuleSummaries.test.js` (ledger-only summaries), and `backend/test/aiWeeklyContextV4.test.js` (v2 knowledge within 22KB, archived v4 unaffected).
+- This closes one **code-level identity-separation** checklist item; real platform revenue ingestion, all-source freshness checks, Hologres reconciliation and live AI model outputs are still not accepted. No migration, deployment, paid model call or external write was run.
