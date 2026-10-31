@@ -27,3 +27,20 @@
 - **Product decisions still pending:** attribution keys, trusted maturity/denominator coverage for registration→parallel product use→transaction journey, and operator-confirmed North Star.
 
 New v5 reports must distinguish source collection from evidence interpretation. Old saved reports are never rewritten to retrofit data which was collected afterward.
+
+## 2026-10-31 — Immutable evidence source watermarks (Phase 2 continuation)
+
+Source/test HEAD `8a7f71c98fce502b68a056671ee9a95304507abb`. Source-specific timestamps are now extracted from the **already authorized, read-only adapter response**, rather than the generic Hologres event status or the wall clock. Registry evidence remains owner-scoped and immutable; only allowlisted statistics and provenance fields enter the model.
+
+| Tool | Persisted evidence source version | Persisted source watermark | What the watermark **does not** prove |
+| --- | --- | --- | --- |
+| `get_seo_performance` | `sourceVersions.searchConsole = snapshotId` | `watermarks.searchConsole` = API `syncedAt` or manual export `importedAt`, ISO UTC; absent value is null | API fetch/CSV import timestamp does not prove a complete PT day, correct property, or verified organic conversion. Manual import is explicitly not Google freshness. |
+| `get_content_growth` | `sourceVersions.x` = third-party X provider when collected, separate from `operatorRecords` manual content | `watermarks.x` = latest observed **bounded post** timestamp among available accounts; null if none | Not every account is current; no daily/new reach attribution or historical archive completeness. |
+| `get_follower_quality` | `sourceVersions.followerScan` = mutable-scan-progress | `watermarks.followerScan` = latest actually observed pre-cutoff progress update; null if unknown | Not a complete historical follower roster; old scan/review state may not be recoverable. |
+| `get_kol_performance` | `sourceVersions.kol` = adapter's verified remote snapshot ID where available | `watermarks.kol` = remote `asOf`, only on a result actually marked available | The CRM's manual tagged-account relationship is not independently versioned or causally attributed. |
+| `get_channel_economics` | `sourceVersions.operatorRecords` = CRM manual collaboration ledger | `watermarks.operatorRecords = null`, `events = null` | Manual finance records have no independently verified complete-through watermark. This tool now reads local CRM without depending on Hologres status. |
+| Ordinary remote/event analytics | Existing event-store snapshot ID | `watermarks.events` = remote event-store `as_of`; registration/trade watermarks only when independently available | Event-store freshness is not independent registration history, confirmed trade enrichment, or CRM completeness. |
+
+- `backend/src/ai/business/tools/registry.js` implements the bounded provenance selection, preventing cross-source watermark substitution. `backend/src/ai/business/modelTransport.js` exposes only trusted specialist version/time keys already present in archived evidence; no arbitrary source metadata traversals.
+- `backend/test/growthSpecialistTools.test.js` covers real timestamp paths and absent-source nulls for GSC API/manual import, X, KOL, follower scans and model projection. `backend/test/agentTools.test.js` checks CRM ledger has **no** event watermark and stays available when Hologres status is down.
+- **Still open:** audit *every* remaining tool's compound event/registration/trade/relational provenance and per-source complete-through semantics, implement trustworthy freshness thresholds where supported, and validate independent source feeds in the real environment. The broad roadmap metadata checkbox remains unchecked; this is a subtask, not the full definition.
