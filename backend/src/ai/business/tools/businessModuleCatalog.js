@@ -9,7 +9,7 @@ const MODULES=Object.freeze([
  {moduleId:'growth.activation',version:'1.0.0',description:'顺序漏斗、路径与产品链，明确成熟度和事件覆盖',capabilities:['get_funnel','get_paths','get_product_chain']},
  {moduleId:'growth.retention',version:'1.0.0',description:'成熟留存、分群和既有北极星指标',capabilities:['get_retention','get_segments','query_metrics']},
  {moduleId:'growth.quality',version:'1.0.0',description:'数据质量与来源水位；不保证跨源一致',capabilities:['check_data_quality']},
- {moduleId:'growth.economics',version:'1.0.0',description:'合作账本成本与已记录收入；交易量不是收入',capabilities:['get_channel_economics']},
+ {moduleId:'growth.economics',version:'1.0.0',description:'合作账本成本和人工登记收支；非平台交易手续费或全平台收入，交易量不是收入',capabilities:['get_channel_economics']},
  {moduleId:'growth.referral',version:'1.0.0',description:'复用现有推荐绑定与邀请转化；绑定不等于注册',capabilities:['get_referral','get_invite_conversion']},
  {moduleId:'growth.login',version:'1.0.0',description:'复用现有登录转化与终态覆盖',capabilities:['get_login_conversion']},
  {moduleId:'growth.operations',version:'1.0.0',description:'只读回顾人工运营、渠道观测和AI建议；各来源独立并明确覆盖',capabilities:['get_operations_timeline']}
