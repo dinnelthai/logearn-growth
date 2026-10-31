@@ -20,6 +20,8 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
  CREATE TABLE IF NOT EXISTS gw_actions(owner_id TEXT NOT NULL,id TEXT NOT NULL,problem_id TEXT NOT NULL,run_id TEXT,description TEXT NOT NULL,assignee TEXT NOT NULL,status TEXT NOT NULL,metric_id TEXT,definition_version TEXT,direction TEXT,baseline_json TEXT,executed_at INTEGER,observe_until INTEGER,review_json TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(owner_id,id));
  CREATE TABLE IF NOT EXISTS gw_operation_links(owner_id TEXT NOT NULL,problem_id TEXT NOT NULL,task_id TEXT NOT NULL,linked_at INTEGER NOT NULL,PRIMARY KEY(owner_id,problem_id,task_id));
  CREATE TABLE IF NOT EXISTS gw_problem_reviews(owner_id TEXT NOT NULL,problem_id TEXT NOT NULL,verdict TEXT NOT NULL,reason TEXT NOT NULL,reviewed_at INTEGER NOT NULL,PRIMARY KEY(owner_id,problem_id));
+ CREATE TABLE IF NOT EXISTS gw_executive_notices(owner_id TEXT NOT NULL,id TEXT NOT NULL,kind TEXT NOT NULL,resource_id TEXT NOT NULL,due_at INTEGER NOT NULL,body_json TEXT NOT NULL,acknowledged_at INTEGER,created_at INTEGER NOT NULL,PRIMARY KEY(owner_id,id),UNIQUE(owner_id,kind,resource_id,due_at));
+ CREATE INDEX IF NOT EXISTS gw_exec_notice_pending ON gw_executive_notices(owner_id,acknowledged_at,due_at);
  CREATE TABLE IF NOT EXISTS gw_reports(owner_id TEXT NOT NULL,id TEXT NOT NULL,kind TEXT NOT NULL,period_start INTEGER NOT NULL,period_end INTEGER NOT NULL,revision INTEGER NOT NULL,status TEXT NOT NULL,snapshot_json TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(owner_id,id),UNIQUE(owner_id,kind,period_start,period_end,revision));
  `;
  if(initialize)db.exec(schema);
@@ -133,7 +135,7 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
    db.prepare('UPDATE gw_problems SET status=?,last_seen=? WHERE owner_id=? AND id=?').run(status,getNow(),owner,id);
    logProblem(owner,id,'status-changed',[],{from:p.status,to:status,reason},getNow());return problem(owner,id)})}
  function problemEvents(owner,id){if(!problem(owner,id))throw Error('问题不存在');return all('SELECT * FROM gw_problem_events WHERE owner_id=? AND problem_id=? ORDER BY at,id',owner,id).map(x=>({...x,evidenceIds:safeJSON(x.evidence_json,[]),details:safeJSON(x.details_json,{})}))}
- function startRun(owner,problemId,{mode='manual'}={}){ownerId(owner);if(mode!=='manual')throw Error('此工作区不会自动启动付费调查');if(!problem(owner,problemId))throw Object.assign(Error('问题不存在'),{status:404});
+ function startRun(owner,problemId,{mode='manual'}={}){ownerId(owner);if(!['manual','executive-readonly'].includes(mode))throw Error('调查模式不允许');if(!problem(owner,problemId))throw Object.assign(Error('问题不存在'),{status:404});
   return inTx(()=>{const existing=fetch("SELECT id FROM gw_runs WHERE owner_id=? AND problem_id=? AND state IN('queued','running','waiting_input') ORDER BY created_at DESC LIMIT 1",owner,problemId);
    if(existing)return {...run(owner,existing.id),reused:true};
    const now=getNow(),id=randomUUID();db.prepare('INSERT INTO gw_runs VALUES(?,?,?,?,?,?,?,?,?)').run(owner,id,problemId,'queued',mode,null,null,now,now);return run(owner,id)})}
@@ -157,6 +159,125 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
   for(const e of result.evidenceIds)if(!getEvidence(owner,e))throw Error('调查引用了无权访问的证据');
   const v={evidenceIds:result.evidenceIds,facts:result.facts||[],hypotheses:result.hypotheses||[],recommendations:result.recommendations||[],unknowns:result.unknowns||[]};
   db.prepare("UPDATE gw_runs SET state='completed',result_json=?,updated_at=? WHERE owner_id=? AND id=?").run(JSON.stringify(v),getNow(),owner,id);return run(owner,id)}
+ // Internal scheduler only: on the exact same evidence window an already
+ // completed investigation is reused. User HTTP routes can start manual only.
+ function executiveInvestigationStart(owner,problemId,sourceEvidenceId){
+  ownerId(owner);
+  if(!problem(owner,problemId))throw Object.assign(Error('经营问题不存在'),{status:404});
+  if(!getEvidence(owner,sourceEvidenceId))throw Object.assign(Error('调查来源证据不存在'),{status:404});
+  const rows=all("SELECT * FROM gw_runs WHERE owner_id=? AND problem_id=? ORDER BY created_at DESC LIMIT 20",owner,problemId);
+  const prior=rows.find(r=>r.mode==='executive-readonly'&&
+   ['completed','running','queued'].includes(r.state)&&
+   safeJSON(r.result_json)?.sourceEvidenceId===sourceEvidenceId);
+  if(prior)return {...run(owner,prior.id),reused:true};
+  // An active manual review is not hijacked by the scheduler.
+  if(rows.some(r=>['queued','running','waiting_input'].includes(r.state)))return {status:'busy',reused:true};
+  const created=startRun(owner,problemId,{mode:'executive-readonly'});
+  db.prepare("UPDATE gw_runs SET state='running',result_json=? WHERE owner_id=? AND id=? AND mode='executive-readonly'")
+   .run(JSON.stringify({sourceEvidenceId,version:'executive-investigation-v1',state:'running'}),owner,created.id);
+  return {...run(owner,created.id),reused:false};
+ }
+ function executiveInvestigationFinish(owner,id,input,{verifyExternalEvidence}={}){
+  const row=run(owner,id);
+  if(!row||row.mode!=='executive-readonly'||row.state!=='running')throw Object.assign(Error('自动调查状态不允许提交'),{status:409});
+  if(typeof verifyExternalEvidence!=='function')throw Error('缺少只读证据身份校验');
+  const snapshotId=requiredString(input?.sourceEvidenceId,'调查源',256);
+  if(snapshotId!==row.result?.sourceEvidenceId||!getEvidence(owner,snapshotId))throw Error('调查快照不匹配');
+  const steps=Array.isArray(input.steps)?input.steps:[];
+  if(steps.length>4||steps.some(x=>typeof x.moduleId!=='string'||x.moduleId.length>80||
+   !['ok','unavailable','blocked'].includes(x.status)))throw Error('调查结果不可验证');
+  const ids=[...new Set((input.evidenceIds||[]).slice(0,20))];
+  if(ids.some(x=>typeof x!=='string'||!x||!verifyExternalEvidence(owner,x)))throw Error('调查引用了未授权的外部证据');
+  const summary={version:'executive-investigation-v1',sourceEvidenceId:snapshotId,
+   status:steps.length&&steps.every(x=>x.status==='ok')?'evidence-collected':'partial',
+   steps:steps.map(x=>({moduleId:x.moduleId,status:x.status})),agentEvidenceIds:ids,
+   hypotheses:[
+    {kind:'acquisition-mix',status:'unverified'},
+    {kind:'activation-friction',status:'unverified'},
+    {kind:'tracking-quality',status:'unverified'}],
+   decision:'仅记录已授权调查能力的真实状态；没有跨源可验证归因，不自动采纳行动',
+   modelCalls:0,paidCalls:0,externalActions:0};
+  db.prepare("UPDATE gw_runs SET state='completed',result_json=?,updated_at=? WHERE owner_id=? AND id=? AND mode='executive-readonly' AND state='running'")
+   .run(JSON.stringify(summary),getNow(),owner,id);
+  return run(owner,id);
+ }
+ function executiveInvestigationFail(owner,id){
+  const row=run(owner,id);
+  if(!row||row.mode!=='executive-readonly'||row.state!=='running')return {status:'not-running'};
+  db.prepare("UPDATE gw_runs SET state='failed',result_json=?,updated_at=? WHERE owner_id=? AND id=? AND state='running'")
+   .run(JSON.stringify({version:'executive-investigation-v1',status:'source-unavailable',
+     sourceEvidenceId:row.result?.sourceEvidenceId||null,
+     caution:'不能根据失败或缺失证据判断业务原因',modelCalls:0,paidCalls:0}),getNow(),owner,id);
+  return run(owner,id);
+ }
+ // Internal delivery is persisted but never claims an external webhook was sent.
+ function executiveReminders(owner,{at=getNow(),record=false}={}){
+  ownerId(owner);
+  if(!Number.isSafeInteger(at)||at<0)throw Error('提醒时间无效');
+  const acts=actions(owner,{limit:200}),due=[];
+  const day=86400000;
+  for(const a of acts){
+   let kind=null,dueAt=null;
+   if(a.status==='proposed'){kind='approval';dueAt=a.created_at+day;}
+   if(a.status==='accepted'){kind='accepted-not-started';dueAt=a.updated_at+2*day;}
+   if(a.status==='executing'){kind='execution-stalled';dueAt=a.updated_at+3*day;}
+   if(a.status==='executed'&&!a.review&&Number.isSafeInteger(a.observe_until)){
+    kind='review-due';dueAt=a.observe_until;
+   }
+   if(kind&&dueAt<=at)due.push({kind,resourceId:a.id,dueAt,
+    body:{problemId:a.problem_id,status:a.status,assignee:a.assignee,
+     description:a.description.slice(0,250)}});
+  }
+  const hasTasks=fetch("SELECT 1 n FROM sqlite_master WHERE type='table' AND name='operation_tasks'");
+  if(hasTasks){
+   const tasks=all("SELECT id,title,assignee,due_at FROM operation_tasks WHERE owner_id=? AND status!='done' AND due_at<=? ORDER BY due_at LIMIT 30",owner,at);
+   for(const task of tasks)due.push({kind:'task-overdue',resourceId:task.id,dueAt:task.due_at,
+    body:{title:task.title,assignee:task.assignee}});
+  }
+  const hasNotice=fetch("SELECT 1 n FROM sqlite_master WHERE type='table' AND name='gw_executive_notices'");
+  if(record&&!hasNotice)throw Error('经营通知表未迁移，不能虚报持久提醒');
+  if(record){
+   const insert=db.prepare("INSERT OR IGNORE INTO gw_executive_notices(owner_id,id,kind,resource_id,due_at,body_json,created_at) VALUES(?,?,?,?,?,?,?)");
+   for(const item of due){
+    const id=key([owner,item.kind,item.resourceId,item.dueAt]);
+    insert.run(owner,id,item.kind,item.resourceId,item.dueAt,JSON.stringify(item.body),at);
+   }
+  }
+  const pending=hasNotice?all("SELECT id,kind,resource_id,due_at,body_json,created_at FROM gw_executive_notices WHERE owner_id=? AND acknowledged_at IS NULL ORDER BY due_at ASC LIMIT 50",owner)
+   .map(row=>({id:row.id,kind:row.kind,resourceId:row.resource_id,dueAt:row.due_at,
+    body:safeJSON(row.body_json,{}),createdAt:row.created_at})):[];
+  return {version:'executive-reminder-v1',due:due.length,pending,
+   delivery:'in-app-only',externalDeliveries:0};
+ }
+ function acknowledgeExecutiveNotice(owner,id){
+  ownerId(owner);
+  requiredString(id,'提醒ID');
+  const has=fetch("SELECT 1 n FROM sqlite_master WHERE type='table' AND name='gw_executive_notices'");
+  if(!has)throw Object.assign(Error('通知存储尚未迁移'),{status:503});
+  const result=db.prepare("UPDATE gw_executive_notices SET acknowledged_at=? WHERE owner_id=? AND id=? AND acknowledged_at IS NULL").run(getNow(),owner,id);
+  if(!result.changes&&!fetch("SELECT 1 n FROM gw_executive_notices WHERE owner_id=? AND id=?",owner,id))
+   throw Object.assign(Error('提醒不存在'),{status:404});
+  return {acknowledged:true,changed:result.changes===1};
+ }
+ function executiveLearning(owner){
+  ownerId(owner);
+  const reviewed=actions(owner,{limit:200}).filter(x=>x.status==='executed'&&x.review);
+  const outcome={observedImprovement:0,observedDecline:0,noObservedChange:0,
+   insufficientEvidence:0};
+  const lessons=[];
+  for(const row of reviewed){
+   const status=row.review?.outcome;
+   if(status==='observed-improvement')outcome.observedImprovement++;
+   else if(status==='observed-decline')outcome.observedDecline++;
+   else if(status==='no-observed-change')outcome.noObservedChange++;
+   else outcome.insufficientEvidence++;
+   if(lessons.length<8)lessons.push({actionId:row.id,metricId:row.metric_id,
+    outcome:status||'insufficient-evidence',reviewedAt:row.review.reviewedAt||null,
+    causalityProven:false});
+  }
+  return {version:'executive-learning-v1',reviewed:reviewed.length,...outcome,lessons,
+   guidance:'观察性复盘只能影响下一步的调查注意力；不能自动声称增量、ROI或因果，也不能自动更改KPI'};
+ }
  function createAction(owner,problemId,input){const p=problem(owner,problemId);if(!p)throw Error('问题不存在');const desc=requiredString(input.description,'行动建议',1500),assignee=requiredString(input.assignee,'负责人',120),id=randomUUID(),now=getNow();
   db.prepare('INSERT INTO gw_actions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(owner,id,problemId,input.runId||null,desc,assignee,'proposed',input.metricId||null,input.definitionVersion||null,input.direction||null,null,null,null,null,now,now);return action(owner,id)}
  // An internal investigation draft only. A repeated scan cannot spawn
@@ -211,6 +332,7 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
    awaitingApproval:awaiting.slice(0,8).map(a=>({id:a.id,problemId:a.problem_id,description:a.description,assignee:a.assignee})),
    reviewsDue:dueReviews.slice(0,8).map(a=>({id:a.id,problemId:a.problem_id,observeUntil:a.observe_until})),
    overdueTasks:overdueTasks.map(t=>({id:t.id,title:t.title,assignee:t.assignee,dueAt:t.due_at,status:t.status})),
+   learning:executiveLearning(owner),reminders:executiveReminders(owner,{at,record:false}),
    requiresHumanApproval:true,automaticExternalActions:0,modelCalls:0};
  }
  function action(owner,id){ownerId(owner);const a=fetch('SELECT * FROM gw_actions WHERE owner_id=? AND id=?',owner,id);return a?{...a,baseline:safeJSON(a.baseline_json),review:safeJSON(a.review_json)}:null}
@@ -333,6 +455,6 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
    reviewSampleSize:reviewed,uncertainReviews:byVerdict.uncertain||0,
    interpretation:'仅来自人工审阅样本，未审核问题不计入准确率；样本存在选择偏差'};
  }
- return {saveGoal,goalById,listGoals,saveEvidence,getEvidence,progress,dashboardGoals,observeProblem,problem,problems,problemEvents,setProblemStatus,startRun,run,ask,answer,cancelRun,finishRun,createAction,proposeActionOnce,executiveQueue,action,actions,updateAction,reviewAction,report,buildReport,reportList,linkOperationTask,linkedOperationTasks,linkAcceptedSuggestionToTask,suggestionOperationTasks,suggestionIdsForOperationTask,reviewProblem,reconcileSource,qualitySummary};
+ return {saveGoal,goalById,listGoals,saveEvidence,getEvidence,progress,dashboardGoals,observeProblem,problem,problems,problemEvents,setProblemStatus,startRun,executiveInvestigationStart,executiveInvestigationFinish,executiveInvestigationFail,executiveReminders,acknowledgeExecutiveNotice,executiveLearning,run,ask,answer,cancelRun,finishRun,createAction,proposeActionOnce,executiveQueue,action,actions,updateAction,reviewAction,report,buildReport,reportList,linkOperationTask,linkedOperationTasks,linkAcceptedSuggestionToTask,suggestionOperationTasks,suggestionIdsForOperationTask,reviewProblem,reconcileSource,qualitySummary};
 }
 module.exports={workspaceStore};

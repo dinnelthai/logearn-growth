@@ -19,6 +19,8 @@ function createRouter({db=require('../db/connection')}={}){
   const goals=store.dashboardGoals(owner,{start:month.start,end:month.end});
   res.json({version:'growth-workspace-v1',month,goals,problems:store.problems(owner),actions:store.actions(owner),reports:store.reportList(owner),quality:store.qualitySummary(owner),executive:store.executiveQueue(owner),externalActions:0,modelCalls:0});
  }));
+ router.get('/executive/reminders',h(async(req,res,owner)=>res.json(store.executiveReminders(owner))));
+ router.post('/executive/reminders/:id/ack',h(async(req,res,owner)=>res.json(store.acknowledgeExecutiveNotice(owner,req.params.id))));
  router.post('/goals',h(async(req,res,owner)=>res.status(201).json(store.saveGoal(owner,req.body||{}))));
  router.get('/goals',h(async(req,res,owner)=>res.json({goals:store.listGoals(owner,{asOf:num(req.query.at,Date.now()),versions:req.query.versions==='1'})})));
  router.get('/goals/:id',h(async(req,res,owner)=>{const g=store.goalById(owner,req.params.id,req.query.version?Number(req.query.version):null);res.status(g?200:404).json(g||{error:'目标不存在'})}));

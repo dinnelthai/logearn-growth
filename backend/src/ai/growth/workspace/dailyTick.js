@@ -40,7 +40,19 @@ async function dailyWorkspaceTickWithMetrics({db,ownerId,now=Date.now(),metricPr
  const cycle=process.env.GROWTH_EXECUTIVE_CYCLE_ENABLED!=='0'?
   await require('./executiveCycle').runExecutiveCycle({ownerId,store,now,
    ...(executiveObservation?{load:executiveObservation}:{})}):{status:'disabled',modelCalls:0,externalActions:0};
+ let investigation={status:'disabled',paidCalls:0,externalActions:0};
+ if(cycle.status==='verified'&&process.env.GROWTH_EXECUTIVE_RESEARCH_ENABLED==='1'){
+  const dbEvidence=require('../../business/evidence').createEvidenceStore(db);
+  const registry=require('../../business/tools/registry').defaultRegistry();
+  investigation=await require('./executiveInvestigation').investigateOwner({store,ownerId,now,registry,
+   verifyExternalEvidence:(owner,id,ctx)=>{
+    try{return !!dbEvidence.get(id,ctx)}catch{return false}
+   }});
+ }
+ // All reminders are internal and idempotently persisted; external delivery
+ // remains separately authorized by the existing notifier.
+ const reminders=store.executiveReminders(ownerId,{at:now,record:true});
  const result=dailyWorkspaceTick({db,ownerId,now,sources});
- return {...result,executive:cycle};
+ return {...result,executive:cycle,investigation,reminders:{due:reminders.due,pending:reminders.pending.length}};
 }
 module.exports={dailyWorkspaceTick,dailyWorkspaceTickWithMetrics,localSourceHealth};
