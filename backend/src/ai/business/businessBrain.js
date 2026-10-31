@@ -76,8 +76,8 @@ const OPERATING_RULES=Object.freeze([
 function metricDictionary(){
  return CONTEXT_METRIC_IDS.map(id=>{
   const metric=describeMetric(id);
-  const meaning=String(metric.definition||'').slice(0,45);
-  const maturity=String(metric.maturityRule||'').slice(0,16);
+  const meaning=String(metric.definition||'').slice(0,38);
+  const maturity=String(metric.maturityRule||'').slice(0,12);
   return {id,label:LABELS[id],unit:metric.unit,
    meaning:maturity?meaning+'；'+maturity:meaning};
  });
