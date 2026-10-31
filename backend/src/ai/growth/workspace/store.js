@@ -332,7 +332,11 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
    awaitingApproval:awaiting.slice(0,8).map(a=>({id:a.id,problemId:a.problem_id,description:a.description,assignee:a.assignee})),
    reviewsDue:dueReviews.slice(0,8).map(a=>({id:a.id,problemId:a.problem_id,observeUntil:a.observe_until})),
    overdueTasks:overdueTasks.map(t=>({id:t.id,title:t.title,assignee:t.assignee,dueAt:t.due_at,status:t.status})),
-   learning:executiveLearning(owner),reminders:executiveReminders(owner,{at,record:false}),
+   learning:executiveLearning(owner),
+   portfolio:require('./executivePortfolio').opportunityPortfolio(owner,{problems,problemEvents,getEvidence,executiveLearning}),
+   goalAlignment:require('./executivePortfolio').goalAlignment(
+    listGoals(owner,{asOf:at,start:month.start,end:month.end}),null),
+   reminders:executiveReminders(owner,{at,record:false}),
    requiresHumanApproval:true,automaticExternalActions:0,modelCalls:0};
  }
  function action(owner,id){ownerId(owner);const a=fetch('SELECT * FROM gw_actions WHERE owner_id=? AND id=?',owner,id);return a?{...a,baseline:safeJSON(a.baseline_json),review:safeJSON(a.review_json)}:null}

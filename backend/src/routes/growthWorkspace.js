@@ -17,7 +17,17 @@ function createRouter({db=require('../db/connection')}={}){
   // API reads use previously persisted owner-scoped evidence only.
   // Refreshes run in the leased daily scheduler, never on a page GET.
   const goals=store.dashboardGoals(owner,{start:month.start,end:month.end});
-  res.json({version:'growth-workspace-v1',month,goals,problems:store.problems(owner),actions:store.actions(owner),reports:store.reportList(owner),quality:store.qualitySummary(owner),executive:store.executiveQueue(owner),externalActions:0,modelCalls:0});
+  const executive=store.executiveQueue(owner);
+  // A read-only cross-store policy view: distinct reporting horizons remain
+  // independent. API failures must never fabricate target alignment.
+  let dailyTargets=null;
+  try{dailyTargets=await require('../ai/growth/agentStore').createAgentStore().targets(owner,{source:'all'})}
+  catch{dailyTargets=null}
+  executive.goalAlignment=require('../ai/growth/workspace/executivePortfolio')
+   .goalAlignment(goals.map(x=>x.goal),dailyTargets);
+  res.json({version:'growth-workspace-v1',month,goals,problems:store.problems(owner),
+   actions:store.actions(owner),reports:store.reportList(owner),quality:store.qualitySummary(owner),
+   executive,externalActions:0,modelCalls:0});
  }));
  router.get('/executive/reminders',h(async(req,res,owner)=>res.json(store.executiveReminders(owner))));
  router.post('/executive/reminders/:id/ack',h(async(req,res,owner)=>res.json(store.acknowledgeExecutiveNotice(owner,req.params.id))));
