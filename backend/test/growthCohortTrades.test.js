@@ -92,3 +92,22 @@ test('trade SQL reuses verified wallet precedence and exact post-analysis window
  assert.match(sql,/t\.created_time<=\$1/)
  assert.match(sql,/t\.transaction_time<=\$1/)
 });
+
+test('trade lookup does not spend query budget on registered first analyses after day seven',async()=>{
+ const original=remote.query,calls=[];
+ remote.query=async(sql,params)=>{calls.push({sql,params});
+  return sql.includes('trade_groups AS')?[]:[{account_id:'1'}]};
+ try{
+  const registered={available:true,rows:[
+   {user_key:'user:1',registered_at:start,first_chip_at:start+7*DAY-1},
+   {user_key:'user:2',registered_at:start,first_chip_at:start+7*DAY},
+   {user_key:'user:3',registered_at:start,first_chip_at:start+8*DAY}
+  ]};
+  const out=await cohortTrades(snapshot,[],{start,end},registered);
+  assert.equal(out.windows,1);
+  assert.equal(calls.length,2);
+  const trade=calls.find(c=>c.sql.includes('trade_groups AS'));
+  assert.deepEqual(trade.params[3],['1']);
+  assert.deepEqual(trade.params[5],[start+7*DAY-1]);
+ }finally{remote.query=original}
+});
