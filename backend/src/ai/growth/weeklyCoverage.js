@@ -21,7 +21,7 @@ const DEFINITIONS=Object.freeze([
 // Only observed aggregate metrics may enter the weekly model. Do not traverse
 // arbitrary rows, events, identities or raw payloads just to find a number.
 const ALLOWED_NUMBERS=new Set([
- 'active_users','new_users','returning_users','registered_users',
+ 'active_users','new_users','returning_users','registered_users','registration_activation_rate','registered_trade_conversion_rate',
  'users','visits','eligible','converted','returned','activated','registered',
  'success','successes','started','pending','failed','cancelled','unknown',
  'rate','conversion_rate','success_rate','activation_rate','retention_rate',
