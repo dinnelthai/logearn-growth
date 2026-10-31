@@ -2,7 +2,7 @@
 
 Branch: `codex/ai-comprehensive-upgrade`  
 Scope: Business Brain, Growth Intelligence, Operating Memory, Decision Engine and Learning Loop.  
-Progress snapshot (2026-10-31): 29 / 48 implementation checklist items have code and CI coverage in place (60%); live-source acceptance is tracked separately.  
+Progress snapshot (2026-10-31): 31 / 48 implementation checklist items have code and CI coverage in place (65%); live-source acceptance is tracked separately.  
 Rule: incremental upgrade; reuse existing analytics, tools, evidence, workspace and storage.
 
 ## Product definition
@@ -132,8 +132,10 @@ Acceptance:
 ### Phase 6 — Learning Loop
 
 - [x] Connect accepted AI suggestions to the existing owner-scoped operation task workflow through explicit linking; require an already-created fixed-cohort task and exact source-scope match.
-- [ ] Record actual execution, baseline evidence, observe-until date and after-period evidence.
-- [ ] Review only after the metric’s maturity window.
+- [x] Record actual execution, a fixed-cohort pre-task baseline, observe-until date and post-completion evidence in the AI retrospective.
+- [x] Review only after the metric’s maturity window; the fixed-cohort evidence requires at least three complete post-completion business days.
+
+Implementation note (2026-10-31): AI retrospective now resolves the single owner-scoped operation task linked to an executed suggestion. It revalidates the source scope and exact task/suggestion completion timestamp, then queries the same frozen audience over equal-length (3–14 complete Bangkok business days) windows: baseline ends before task creation; observation begins on the first complete business day after task completion. Both windows use one Hologres snapshot. The model receives aggregate-only cohort metrics, coverage and the observe-until timestamp; no member IDs or user-level rows are projected. Multiple linked tasks, source mismatches, incomplete source reads and immature windows are explicitly unavailable/waiting. This is observational evidence, not causal attribution.
 - [ ] Store observed-supported / observed-contradicted / insufficient outcomes separately.
 - [x] Use validated review outcomes to adjust investigation focus; do not auto-rewrite KPIs or model weights.
 - [x] Maintain versioned strategy notes with expiry, scope, counter-evidence and rollback.
