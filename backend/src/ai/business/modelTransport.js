@@ -20,6 +20,8 @@ const numeric=new Set([
  'candidate_count','candidateCount','groups_count','mature','mature_users',
  'absolute','affected','gap','progress','omittedItems',
  'conversion_rate','previous_conversion_rate','total_conversion_rate',
+ 'actual_cost','net_revenue','targetValue','dueAt','createdAt','updatedAt','completedAt','settledAt','startAt','endAt','eventAt',
+ 'samplePosts','profiles','observedUsers','analysisEvents','accountPostCap','audienceFit','actionability','warningCount','occurrences','quotes',
  'activation_rate','activation_interval','median_age_days','retention_rate',
  'registeredUsers','clicks','impressions','ctr','position','likes','shares','comments',
  'duration_ms','value_usd','daily_count','day_count','sample_size','size',
@@ -57,7 +59,7 @@ const numeric=new Set([
 const flags=new Set(['available','historyComplete','history_complete','complete',
  'truncated','mature','known','coverageVerified','platformSync','conversionAttribution',
  'eventsComplete','hasMatureData','isComplete','partial','dataIncomplete',
- 'completion_available']);
+ 'completion_available','ownerScoped','periodMatched']);
 const categories=new Set(['source','device','version','app_version','user_stage',
  'entry_module','label','key','metric','metricId','unit','status','goal','focusGoal',
  'type','kind','priority','direction','platform','channel','date','timezone',
@@ -65,10 +67,10 @@ const categories=new Set(['source','device','version','app_version','user_stage'
  'scope','qualityStatus','category','name','period','state','browser',
  'coverage','quality','scene',
  'os','event_name','group','metricName','currency','trafficSource',
- 'list_type','page_name']);
+ 'list_type','page_name','layer','targetMetric','financeSource','collection','siteUrl','startDate','endDate','dateTimezone','attribution','sourceKind','publishedAt']);
 const notes=new Set(['definition','warnings','warning','reason','error','interpretation',
  'priorityExplanation','scoreExplanation','summary','note','description',
- 'notAvailableReason','coverageNote','qualityNote']);
+ 'notAvailableReason','coverageNote','qualityNote','title','topic','kol','assignee','reportTitle','conclusion']);
 const groups=new Set(['totals','days','growth','change','dimensions','channels','associations',
  'groups','cohorts','families','versions','quality','coverage','diagnostic_coverage',
  'activation_interval','retention_interval','interval','stages','steps','drops',
