@@ -177,7 +177,7 @@ async function businessAnalysis(job) {
     await records.updateAnalysisSnapshot(analysisId,compact,ownerId,token);await job.progress(40);
     const investigate=async query=>{
       if(query.tool)return session.investigate(query);
-      const ids={north:['active_users','new_users','returning_users'],growth:['activation_rate','d7','registered_users'],weekly:['weekly_core']}[query.kind];
+      const ids={north:['active_users','new_users','returning_users'],growth:['activation_rate','d7','registered_users','registration_activation_rate','registered_trade_conversion_rate'],weekly:['weekly_core']}[query.kind];
       if(!ids)throw Error('未实现该调查工具：'+query.kind);
       return session.investigate({tool:'query_metrics',input:{metrics:ids,scope:{source:query.source||source},start:query.start??start,end:query.end??end}});
     };
