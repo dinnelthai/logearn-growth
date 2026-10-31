@@ -1,4 +1,5 @@
 const {definitions}=require('../../analytics/businessPriorities');
+const {REVIEW_METRICS}=require('../growth/reviewMetrics');
 const specs={
  active_users:['users','north','north','统计期内去重，不是DAU'],new_users:['users','north','north','历史覆盖影响首次观测'],returning_users:['users','north','north','历史覆盖影响回访分类'],
  activation_rate:['ratio','growth','growth','首次观测后24小时成熟'],d7:['ratio','growth','growth','第7业务日成熟队列'],weekly_core:['users','weekly',null,'7个完整UTC+7业务日'],
@@ -13,6 +14,11 @@ const specs={
  login_conversion:['report','login-conversion',null,'仅已观测登录流程与状态，不把待成熟当失败'],
  invite_conversion:['report','invite-conversion',null,'绑定、注册关系与邀请链接漏斗分别标注可观测覆盖']
 };
-const registry=Object.fromEntries(Object.entries(specs).map(([id,[unit,queryAdapter,reviewAdapter,maturityRule]])=>[id,{id,version:'1',label:id,definition:definitions[id]||({registered_users:'真实注册账户人数，来自注册事实',registration_activation_rate:'注册后24小时内首次筹码分析行为人数 / 已成熟注册人数；未成熟单列',registered_trade_conversion_rate:'注册队列首次筹码分析后7日内交易人数 / 已成熟且身份可验证用户；用户级关联，非同Token归因',trade_revenue:'已记录收入，按币种分别统计，不使用交易量替代收入'}[id])||'复用现有'+id+'分析服务的正式输出',unit,queryAdapter,reviewAdapter,maturityRule,supportedScopes:['source',...(['north','weekly','quality','economics'].includes(queryAdapter)?[]:['activityId','cohortId'])],supportedDimensions:queryAdapter==='growth'?['source','device','version']:[]} ]));
+const registry=Object.fromEntries(Object.entries(specs).map(([id,[unit,queryAdapter,declaredReviewAdapter,maturityRule]])=>{
+ const reviewAdapter=REVIEW_METRICS[id]?.adapter||null;
+ if((declaredReviewAdapter||null)!==reviewAdapter)
+  throw Error('指标注册表与实际复盘服务的支持范围不一致：'+id);
+ return [id,{id,version:'1',label:id,definition:definitions[id]||({registered_users:'真实注册账户人数，来自注册事实',registration_activation_rate:'注册后24小时内首次筹码分析行为人数 / 已成熟注册人数；未成熟单列',registered_trade_conversion_rate:'注册队列首次筹码分析后7日内交易人数 / 已成熟且身份可验证用户；用户级关联，非同Token归因',trade_revenue:'已记录收入，按币种分别统计，不使用交易量替代收入'}[id])||'复用现有'+id+'分析服务的正式输出',unit,queryAdapter,reviewAdapter,maturityRule,supportedScopes:['source',...(['north','weekly','quality','economics'].includes(queryAdapter)?[]:['activityId','cohortId'])],supportedDimensions:queryAdapter==='growth'?['source','device','version']:[]}];
+}));
 function describeMetric(id){if(!Object.hasOwn(registry,id))throw Object.assign(Error('未知指标'),{status:400});return structuredClone(registry[id]);}
 module.exports={describeMetric,listMetrics:()=>Object.keys(registry).map(describeMetric)};
