@@ -171,6 +171,29 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
   db.prepare('INSERT INTO gw_reports VALUES(?,?,?,?,?,?,?,?,?)').run(owner,id,kind,period.start,period.end,rev,publish?'published':'draft',JSON.stringify(snapshot),getNow());return report(owner,kind,{now,revision:rev});
  })}
  function reportList(owner,{kind=null,limit=30}={}){ownerId(owner);return all('SELECT * FROM gw_reports WHERE owner_id=? '+(kind?'AND kind=? ':'')+'ORDER BY period_end DESC,revision DESC LIMIT ?',...(kind?[owner,kind,limit]:[owner,limit])).map(r=>({...r,snapshot:safeJSON(r.snapshot_json)}))}
+ function linkAcceptedSuggestionToTask(owner,suggestion,taskId){
+  ownerId(owner);
+  if(!suggestion||typeof suggestion!=='object'||typeof suggestion.id!=='string'||
+   !['adopted','executing','executed'].includes(suggestion.user_status))
+   throw Object.assign(Error('只有已采纳的 AI 建议可以关联运营任务'),{status:409});
+  requiredString(taskId,'运营任务ID');
+  const hasTaskTable=fetch("SELECT name FROM sqlite_master WHERE type='table' AND name='operation_tasks'");
+  if(!hasTaskTable)throw Object.assign(Error('既有运营待办存储不可用，不能创建虚构名单'),{status:503});
+  const task=fetch('SELECT id FROM operation_tasks WHERE id=? AND owner_id=?',taskId,owner);
+  if(!task)throw Object.assign(Error('运营任务不存在或无权访问'),{status:404});
+  const source=suggestion.action_scope?.source||suggestion.applicable_scope?.source||'all';
+  if(typeof source!=='string'||source.length>200)
+   throw Object.assign(Error('AI 建议的业务范围无效'),{status:400});
+  const problem=observeProblem(owner,{
+   type:'user',subject:'ai-suggestion:'+suggestion.id,scope:{source},
+   description:('已采纳 AI 建议：'+String(suggestion.business_problem||'增长行动')+
+    '；执行方案：'+String(suggestion.action||'')).slice(0,2000),
+   nextStep:'执行已关联的固定名单运营任务，并保留实际执行记录',priority:3
+  });
+  const link=linkOperationTask(owner,problem.id,taskId);
+  return {suggestionId:suggestion.id,problemId:problem.id,taskId:link.taskId,
+   taskTitle:link.title,taskStatus:link.status,reused:!problem.created&&link.reused};
+ }
  function linkOperationTask(owner,problemId,taskId){ownerId(owner);if(!problem(owner,problemId))throw Object.assign(Error('问题不存在'),{status:404});
   requiredString(taskId,'运营任务ID');
   const hasTaskTable=fetch("SELECT name FROM sqlite_master WHERE type='table' AND name='operation_tasks'");
@@ -215,6 +238,6 @@ function workspaceStore(db,{clock=()=>Date.now(),initialize=false}={}){
    reviewSampleSize:reviewed,uncertainReviews:byVerdict.uncertain||0,
    interpretation:'仅来自人工审阅样本，未审核问题不计入准确率；样本存在选择偏差'};
  }
- return {saveGoal,goalById,listGoals,saveEvidence,getEvidence,progress,observeProblem,problem,problems,problemEvents,setProblemStatus,startRun,run,ask,answer,cancelRun,finishRun,createAction,action,actions,updateAction,reviewAction,report,buildReport,reportList,linkOperationTask,linkedOperationTasks,reviewProblem,reconcileSource,qualitySummary};
+ return {saveGoal,goalById,listGoals,saveEvidence,getEvidence,progress,observeProblem,problem,problems,problemEvents,setProblemStatus,startRun,run,ask,answer,cancelRun,finishRun,createAction,action,actions,updateAction,reviewAction,report,buildReport,reportList,linkOperationTask,linkedOperationTasks,linkAcceptedSuggestionToTask,reviewProblem,reconcileSource,qualitySummary};
 }
 module.exports={workspaceStore};
