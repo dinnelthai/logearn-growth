@@ -174,7 +174,10 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
     button.addEventListener('click',()=>{if(typeof navigate==='function')navigate(button.dataset.weeklyNavigate)}));
    target.querySelectorAll('[data-weekly-section]').forEach(button=>
     button.addEventListener('click',()=>{
-     target.querySelector('#'+button.dataset.weeklySection)?.scrollIntoView?.({block:'start'});
+     const section=target.querySelector('#'+button.dataset.weeklySection);
+     const details=section?.closest('details');
+     if(details)details.open=true;
+     section?.scrollIntoView?.({block:'start'});
     }));
    if(typeof onCreateProblem==='function'){
     target.querySelectorAll('[data-weekly-create-problem]').forEach(button=>
