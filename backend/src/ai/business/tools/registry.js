@@ -290,6 +290,7 @@ function createToolRegistry(deps){
       sourceVersions:{events:eventBased?snapshot.snapshot_id??null:null,
        registrations:null,trades:null},
       watermarks:{events:eventBased?snapshot.as_of:null,
+       eventsCompleteThrough:eventBased?snapshot.events_complete_through??null:null,
        registrations:null,trades:null},
       coverage:m.coverage||{status:'unknown'},
       warnings:[...(m.warnings||[]),...(safe.warnings||[])]},{...ctx,period});
