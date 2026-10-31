@@ -114,3 +114,14 @@ test('versioned learning strategy applies only inside its declared goal, source 
   report:{...report,business:{scope:{source:'telegram'}}},strategy});
  assert.equal(wrongScope.learningStrategyStatus,'expired-or-scope-mismatch-ignored');
 });
+
+test('analysis contract rejects an exact repeat of the executed actual action, not only the original proposal',()=>{
+ const {assertActionNovelty}=require('../src/ai/business/analysisContract');
+ const suggestion={action:'给新用户发送首次分析引导弹窗',
+  validationMetrics:{primary:'active_users'},scope:{source:'all'}};
+ const history=[{user_status:'executed',validation_metrics:{primary:'active_users'},
+  action_scope:{source:'all'},action:'发送一封欢迎邮件',
+  actual_action:'给新用户发送首次分析引导弹窗'}];
+ assert.throws(()=>assertActionNovelty(suggestion,history),/完全重复/);
+ assert.doesNotThrow(()=>assertActionNovelty({...suggestion,action:'先访谈未激活用户并验证引导阻力'},history));
+});
