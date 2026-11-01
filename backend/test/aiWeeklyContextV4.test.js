@@ -269,3 +269,27 @@ test('v5 includes a small redacted set of owner-entered business changes as non-
  assert.match(view.businessChanges.note,/不是数值证据/);
  assert.ok(Buffer.byteLength(JSON.stringify(view),'utf8')<=22000);
 });
+
+test('weekly v5 exposes a bounded, timestamped operations timeline without treating notes as evidence',()=>{
+ const raw=fixture();
+ const evidence=raw.evidence.find(x=>x.id==='module-operations-timeline');
+ evidence.value.humanOperations=[
+  {kind:'growth_activity',source:'growth_activities',title:'社群训练营第二期',
+   channel:'owned_activity',status:'completed',startAt:period.start+1000},
+  {kind:'operator_note',source:'agent_changes',title:'本周上线新手引导，联系 private@example.test',
+   topic:'product',status:'recorded',eventAt:period.start+3000},
+  {kind:'operation_task',source:'operation_tasks',title:'复盘新手引导数据',
+   status:'accepted',createdAt:period.start+2000}
+ ];
+ evidence.value.coverage={operatorNotes:{status:'available',count:2,limit:10,
+  ownerScoped:true,truncated:false,source:'agent_changes',verification:'self-reported'}};
+ const view=modelContext(raw,{transportVersion:'v5'});
+ const operations=view.weeklyCoverage.find(x=>x.id==='operations-timeline');
+ assert.equal(operations.recentOperations.items.length,3);
+ assert.equal(operations.recentOperations.items[0].kind,'operator_note');
+ assert.equal(operations.recentOperations.items[0].verification,'self-reported');
+ assert.equal(operations.recentOperations.operatorNotes.count,2);
+ assert.equal(operations.recentOperations.operatorNotes.truncated,false);
+ assert.ok(!JSON.stringify(operations).includes('private@example.test'));
+ assert.match(operations.recentOperations.note,/不是数值证据/);
+});

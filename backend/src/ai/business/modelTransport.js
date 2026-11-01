@@ -71,7 +71,7 @@ const categories=new Set(['source','device','version','app_version','user_stage'
  'entry_module','label','key','metric','metricId','unit','status','goal','focusGoal',
  'type','kind','priority','direction','platform','channel','date','timezone',
  'association','family','definitionVersion','ruleVersion','user_pool',
- 'scope','qualityStatus','category','name','period','state','browser','relationshipType','stage',
+ 'scope','qualityStatus','category','name','period','state','browser','relationshipType','stage','verification',
  'coverage','quality','scene',
  'os','event_name','group','metricName','currency','trafficSource','keyword',
  'list_type','page_name','layer','targetMetric','financeSource','collection','siteUrl','startDate','endDate','dateTimezone','attribution','sourceKind','publishedAt','group','action','channel']);
@@ -84,7 +84,7 @@ const groups=new Set(['total','totals','days','growth','change','dimensions','ch
  'product_chain','first_value','trade','d7','d30','registration','association','attribution',
  'exposure','entrance','entrance_breakdown','page_clicks_summary','retention_summary',
  'funnels','paths','pages','summary','sample','byCurrency','trends','rates','counts',
- 'humanOperations','channelObservations','outcomeLinks','channelLinks','aiActions','timeline','warnings','samplePosts',
+ 'humanOperations','operatorNotes','channelObservations','outcomeLinks','channelLinks','aiActions','timeline','warnings','samplePosts',
  'outcome','targetProgress','performance','sourceCoverage','observed','window',
  'assignments','scheduleChanges',
  'linkedKols','linkedActivityIds','relatedRecordRefs','kolSummaries','linkedCollaborationRefs','costTotals','revenueTotals','evaluation','review',
@@ -178,12 +178,17 @@ function projectBusinessChanges(raw,limit=5){
 function buildBusinessBrainProjection(raw){
  const brain=require('./businessBrain');
  const rows=Array.isArray(raw.memory)?raw.memory:[];
+ const weekly=raw.weeklyCoverage?.version==='weekly-coverage-v1';
+ const operations=weekly?raw.weeklyCoverage.modules?.find(x=>x.id==='operations-timeline'):null;
  const build=(memoryLimit,changeLimit)=>({
   businessBrain:brain.buildBusinessBrainContext({
    focusGoal:raw.focusGoal||raw.business?.focusGoal||'activation'
   }),
   operatingMemory:brain.projectOperatingMemory(rows,{safeText,limit:memoryLimit}),
-  businessChanges:projectBusinessChanges(raw,changeLimit),
+  businessChanges:weekly&&['collected','analyzed'].includes(operations?.status)?
+   {status:'covered-by-operations-timeline',total:0,shown:0,omitted:0,items:[],
+    note:'本报告期间的运营备注由 operations-timeline 模块提供，避免重复发送'}:
+   projectBusinessChanges(raw,changeLimit),
   omissions:{
    businessBrain:'businessBrain 是版本化经营知识，不是数值证据。',
    businessChanges:'businessChanges 是用户记录的背景资料，不是统计证据或因果证明。'

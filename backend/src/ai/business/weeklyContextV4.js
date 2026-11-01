@@ -97,6 +97,44 @@ function factsFromValue(value,max=4){
  });
  return matches.slice(0,max);
 }
+function recentOperationsFromEvidence(evidence,modelEvidence,safeText){
+ const rows=[],seen=new Set();let operatorNoteCoverage=null;
+ for(const item of evidence){
+  const value=modelEvidence(item).value||{};
+  const noteCoverage=value.coverage?.operatorNotes;
+  if(noteCoverage&&typeof noteCoverage==='object')operatorNoteCoverage=noteCoverage;
+  for(const row of (Array.isArray(value.humanOperations)?value.humanOperations:[])){
+   if(!row||typeof row!=='object')continue;
+   const kind=safeText(row.kind||'operation',32);
+   const title=safeText(row.title||'',120);
+   if(!title)continue;
+   const occurredAt=Number.isSafeInteger(row.eventAt)?row.eventAt:
+    Number.isSafeInteger(row.updatedAt)?row.updatedAt:
+    Number.isSafeInteger(row.startAt)?row.startAt:
+    Number.isSafeInteger(row.createdAt)?row.createdAt:
+    Number.isSafeInteger(row.observedAt)?row.observedAt:null;
+   const key=[kind,title,occurredAt].join('|');
+   if(seen.has(key))continue;seen.add(key);
+   rows.push({
+    kind,source:safeText(row.source||'unknown',40),title,
+    ...(row.channel?{channel:safeText(row.channel,32)}:{}),
+    ...(row.topic?{topic:safeText(row.topic,32)}:{}),
+    status:safeText(row.status||'recorded',32),occurredAt,
+    verification:kind==='operator_note'?'self-reported':'saved-operation-record'
+   });
+  }
+ }
+ rows.sort((a,b)=>(b.occurredAt||0)-(a.occurredAt||0));
+ return {
+  items:rows.slice(0,5),
+  operatorNotes:{
+   count:Number.isSafeInteger(operatorNoteCoverage?.count)?operatorNoteCoverage.count:null,
+   truncated:operatorNoteCoverage?.truncated===true,
+   verification:'self-reported'
+  },
+  note:'近期已保存运营记录，仅用于解释背景；人工备注未经独立核验，不是数值证据或因果证明'
+ };
+}
 function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,reviewRevision=0,reserveBytes=0,includeDecisionSignals=false}){
  if(raw?.weeklyCoverage?.version!=='weekly-coverage-v1')
   throw Error('周报 Context v4 缺少可信的服务端模块覆盖记录');
@@ -124,8 +162,12 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
    }
    if(facts.length>=maxFacts)break;
   }
+  const recentOperations=includeDecisionSignals&&row.id==='operations-timeline'?
+   recentOperationsFromEvidence(evidence,modelEvidence,safeText):null;
   return {id:row.id,status:row.status,
    ...(facts.length?{stats:facts}:{}),
+   ...(recentOperations?.items?.length||recentOperations?.operatorNotes?.count!=null?
+    {recentOperations}:{}),
    ...(ids.length?{evidenceIds:ids}:{}),
    ...(row.status==='not-connected'||row.status==='insufficient'?
     {gap:safeText(row.reason||'',80)}:
@@ -378,9 +420,13 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
    out.otherAvailableTools=out.otherAvailableTools.slice(0,8);
   }
   if(size()>CAP)out.weeklyCoverage=out.weeklyCoverage.map(x=>({...x,
-   ...(x.stats?{stats:x.stats.slice(0,4)}:{})}));
+   ...(x.stats?{stats:x.stats.slice(0,4)}:{}),
+   ...(x.recentOperations?{recentOperations:{...x.recentOperations,
+    items:x.recentOperations.items.slice(0,3)}}:{})}));
   if(size()>CAP)out.weeklyCoverage=out.weeklyCoverage.map(x=>({...x,
-   ...(x.stats?{stats:x.stats.slice(0,2)}:{})}));
+   ...(x.stats?{stats:x.stats.slice(0,2)}:{}),
+   ...(x.recentOperations?{recentOperations:{...x.recentOperations,
+    items:x.recentOperations.items.slice(0,1)}}:{})}));
   if(size()>CAP){
    out.evidence=out.evidence.filter(e=>moduleEvidenceIds.includes(e.id));
    out.evidenceMeta.shown=out.evidence.length;
