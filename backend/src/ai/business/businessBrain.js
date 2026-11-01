@@ -114,8 +114,10 @@ function projectOperatingMemory(rows,{safeText,limit=3}={}){
   !Number.isSafeInteger(limit)||limit<1||limit>5)throw Error('运营记忆投影参数无效');
  const selected=[],seen=new Set();
  const add=row=>{
-  if(!row||selected.length>=limit||seen.has(row.id))return;
-  selected.push(row);seen.add(row.id);
+  if(!row||selected.length>=limit||selected.includes(row))return;
+  if(typeof row.id==='string'&&seen.has(row.id))return;
+  selected.push(row);
+  if(typeof row.id==='string')seen.add(row.id);
  };
  // Keep the latest lesson, then deliberately reserve room for counterexamples.
  // Otherwise the first three recent positive records can hide every failure.
