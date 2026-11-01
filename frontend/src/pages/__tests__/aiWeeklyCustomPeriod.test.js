@@ -48,7 +48,7 @@ function fixture({reports=[]}={}){
   return {period:defaultPeriod,reports};
  });
  const dispose=mountAIWeeklyReport(root,{api,safe:x=>String(x??''),navigate:vi.fn()});
- return {root,start,end,startInput,endInput,apply,reset,confirm,api,sent,dispose};
+ return {root,start,end,startInput,endInput,apply,reset,confirm,note,api,sent,dispose};
 }
 afterEach(()=>vi.restoreAllMocks());
 describe('AI operating report custom collection period',()=>{
@@ -64,7 +64,9 @@ describe('AI operating report custom collection period',()=>{
   expect(customGet.path).toContain('end='+v.end);
   expect(v.root.innerHTML).toContain('AI 运营报告');
   expect(v.root.innerHTML).toContain('结束不含');
-  await v.confirm.onclick({currentTarget:v.confirm});
+  const sending=v.confirm.onclick({currentTarget:v.confirm});
+  expect(v.note.innerHTML).toContain('正在提交周报任务');
+  await sending;
   const post=v.sent.find(x=>x.method==='POST');
   expect(post).toEqual({path:'/ai-weekly-reports',method:'POST',
    payload:{start:v.start,end:v.end}});
