@@ -64,7 +64,7 @@ function forModelV4(result,{maxBytes=3500,legacy=false,richWeekly=false}={}){
     scope:e.sourceMetadata.scope,
     freshness:{status:e.sourceMetadata.freshness?.status||'unverified',
      referenceAt:e.sourceMetadata.freshness?.referenceAt??null,
-     reportedCompleteThrough:e.sourceMetadata.freshness?.reportedCompleteThrough??null}}:{}),
+     reportedCompleteThrough:e.sourceMetadata.freshness?.reportedCompleteThrough??null}}}:{}),
    ...(!legacy&&e.warnings?.length?{warnings:e.warnings.slice(0,2)}:{})};
  });
  const base={status,evidence:[],omittedEvidence:rows.length,
