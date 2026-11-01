@@ -34,10 +34,15 @@ test('authenticated API does not permit user to forge evidence or AI run state',
  }finally{db.close()}
 });
 test('dashboard remains read-only and displays persisted owner evidence',async()=>{
+ // Fix the observation on a mid-month Bangkok day: in the first week of a
+ // real month there is no prior 7-day window fully inside its monthly goal.
+ // This is a test clock only; keep production natural-month validation strict.
+ const originalNow=Date.now;
+ Date.now=()=>atBangkok(2026,9,15)+12*3600000;
  const db=new DatabaseSync(':memory:');try{
   const {workspaceStore}=require('../src/ai/growth/workspace/store');const store=workspaceStore(db,{initialize:true});
   const {currentMonth,dayStart}=require('../src/ai/growth/workspace/period');const month=currentMonth(),end=dayStart(Date.now());
-  const goal=store.saveGoal('alice',{metricId:'weekly_core',definitionVersion:'1',target:200,unit:'users',aggregation:'rolling-distinct',periodStart:Math.min(month.start,end-7*86400000),periodEnd:month.end,scope:{source:'all'}});
+  const goal=store.saveGoal('alice',{metricId:'weekly_core',definitionVersion:'1',target:200,unit:'users',aggregation:'rolling-distinct',periodStart:month.start,periodEnd:month.end,scope:{source:'all'}});
   const {createRouter,handlers}=mockRoutes();createRouter({db});
   const before=await execute(handlers,'GET /dashboard');
   assert.equal(before.value.goals[0].progress.status,'unknown');
@@ -52,7 +57,7 @@ test('dashboard remains read-only and displays persisted owner evidence',async()
   await execute(handlers,'GET /dashboard');
   assert.equal(db.prepare('SELECT COUNT(*) n FROM gw_evidence').get().n,1);
   assert.equal((await execute(handlers,'GET /dashboard',{owner:'bob'})).value.goals.length,0);
- }finally{db.close()}
+ }finally{db.close();Date.now=originalNow}
 });
 
 test('only the owning operator can complete internal delivery work with authenticated evidence',async()=>{
