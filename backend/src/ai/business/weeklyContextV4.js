@@ -229,16 +229,16 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
   // supplies compact provenance/freshness for those facts.
   const compactWatermarks=Object.fromEntries(
    ['eventsCompleteThrough','trades','registrations','searchConsole']
-    .filter(key=>typeof watermarks[key]==='string'&&watermarks[key])
+    .filter(key=>Object.hasOwn(watermarks,key)&&
+    (typeof watermarks[key]==='string'||watermarks[key]===null))
     .map(key=>[key,watermarks[key]])
   );
   const freshness=source.freshness||{};
   const sourceMetadata=source.sourceType?{
    sourceType:source.sourceType,clock:source.clock,scope:source.scope,
    freshness:{status:freshness.status||'unverified',
-    ...(freshness.referenceAt?{referenceAt:freshness.referenceAt}:{}),
-    ...(freshness.reportedCompleteThrough?
-     {reportedCompleteThrough:freshness.reportedCompleteThrough}:{})}
+    referenceAt:freshness.referenceAt??null,
+    reportedCompleteThrough:freshness.reportedCompleteThrough??null}
   }:null;
   return {
    id:sanitized.id,metricId:sanitized.metricId,

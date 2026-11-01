@@ -41,17 +41,24 @@ function compactMemory(rows,{limit=16}={}){
  if(!Array.isArray(rows)||!Number.isInteger(limit)||limit<1||limit>30)
   throw Error('历史经验摘要配置无效');
  const chosen=rows.slice(0,Math.min(limit,10));
- const seen=new Set(chosen.map(r=>r.id));
+ const seenRows=new Set(chosen);
+ const seenIds=new Set(chosen.map(r=>r.id).filter(id=>typeof id==='string'));
+ const seen=row=>seenRows.has(row)||(typeof row.id==='string'&&seenIds.has(row.id));
+ const add=row=>{
+  if(seen(row))return;
+  chosen.push(row);seenRows.add(row);
+  if(typeof row.id==='string')seenIds.add(row.id);
+ };
  // Keep older positive and negative outcomes as counterexamples.
  for(const kind of ['ineffective','effective','unknown','rejected']){
   if(chosen.length>=limit)break;
-  const match=rows.slice(10).find(x=>!seen.has(x.id)&&x.effectiveness===kind);
-  if(match){chosen.push(match);seen.add(match.id)}
+  const match=rows.slice(10).find(x=>!seen(x)&&x.effectiveness===kind);
+  if(match)add(match)
  }
  for(const row of rows){
   if(chosen.length>=limit)break;
-  if(seen.has(row.id))continue;
-  chosen.push(row);seen.add(row.id);
+  if(seen(row))continue;
+  add(row);
  }
  const items=chosen.map(r=>({
   id:r.id,business_problem:text(r.business_problem,360),

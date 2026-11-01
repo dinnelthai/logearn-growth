@@ -105,7 +105,8 @@ function compactV3History(messages,{preserveV4Stats=false,preserveQueries=false,
     const watermarks=e.watermarks||{};
     const compactWatermarks=Object.fromEntries(
      ['events','eventsCompleteThrough','registrations','trades','searchConsole','x','kol','followerScan']
-      .filter(key=>typeof watermarks[key]==='string'&&watermarks[key])
+      .filter(key=>Object.hasOwn(watermarks,key)&&
+       (typeof watermarks[key]==='string'||watermarks[key]===null))
       .map(key=>[key,watermarks[key]])
     );
     const source=e.sourceMetadata||{},freshness=source.freshness||{};
@@ -124,9 +125,8 @@ function compactV3History(messages,{preserveV4Stats=false,preserveQueries=false,
      ...(source.sourceType?{sourceMetadata:{
       sourceType:source.sourceType,clock:source.clock,scope:source.scope,
       freshness:{status:freshness.status||'unverified',
-       ...(freshness.referenceAt?{referenceAt:freshness.referenceAt}:{}),
-       ...(freshness.reportedCompleteThrough?
-        {reportedCompleteThrough:freshness.reportedCompleteThrough}:{})}
+       referenceAt:freshness.referenceAt??null,
+       reportedCompleteThrough:freshness.reportedCompleteThrough??null}
      }}:{}),
      warnings:(e.warnings||[]).slice(0,1)
     };

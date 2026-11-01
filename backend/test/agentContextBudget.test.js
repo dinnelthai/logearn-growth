@@ -39,3 +39,14 @@ test('memory scope and validation metrics stay valid structured JSON when oversi
  assert.deepEqual(roundTrip.applicable_scope,{source:'all'});
  assert.equal(typeof roundTrip.validation_metrics,'object');
 });
+
+test('memory diversity works even when historical fixtures have no persistent ids',()=>{
+ const rows=Array.from({length:20},(_,i)=>({
+  business_problem:'p'+i,action:'a'+i,
+  effectiveness:i<10?'effective':i===10?'ineffective':i===11?'unknown':null
+ }));
+ const view=compactMemory(rows);
+ assert.ok(view.items.some(x=>x.business_problem==='p10'));
+ assert.ok(view.items.some(x=>x.business_problem==='p11'));
+ assert.equal(view.meta.omitted,4);
+});

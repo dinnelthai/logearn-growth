@@ -52,11 +52,19 @@ function forModelV4(result,{maxBytes=3500,legacy=false,richWeekly=false}={}){
    ...(e.period?{period:{start:e.period.start,end:e.period.end}}:{}),
    ...(e.coverage?{coverage:{status:e.coverage.status,
     periodMatched:e.coverage.periodMatched}}:{}),
+   ...(richWeekly&&e.watermarks?{watermarks:Object.fromEntries(
+    ['events','eventsCompleteThrough','registrations','trades','searchConsole','x','kol','followerScan']
+     .filter(key=>Object.hasOwn(e.watermarks,key)&&
+      (typeof e.watermarks[key]==='string'||e.watermarks[key]===null))
+     .map(key=>[key,e.watermarks[key]])
+   )}:{}),
    ...(e.sourceMetadata?{sourceMetadata:{
     sourceType:e.sourceMetadata.sourceType,
     clock:e.sourceMetadata.clock,
     scope:e.sourceMetadata.scope,
-    freshness:e.sourceMetadata.freshness}}:{}),
+    freshness:{status:e.sourceMetadata.freshness?.status||'unverified',
+     referenceAt:e.sourceMetadata.freshness?.referenceAt??null,
+     reportedCompleteThrough:e.sourceMetadata.freshness?.reportedCompleteThrough??null}}:{}),
    ...(!legacy&&e.warnings?.length?{warnings:e.warnings.slice(0,2)}:{})};
  });
  const base={status,evidence:[],omittedEvidence:rows.length,

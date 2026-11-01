@@ -124,6 +124,7 @@ function projectOperatingMemory(rows,{safeText,limit=3}={}){
  add(rows[0]);
  for(const kind of ['ineffective','unknown','effective']){
   if(selected.length>=limit)break;
+  if(selected.some(row=>row.effectiveness===kind))continue;
   add(rows.find((row,index)=>index>0&&row.effectiveness===kind));
  }
  if(selected.length<limit)add(rows.find((row,index)=>index>0&&row.user_status==='rejected'));
