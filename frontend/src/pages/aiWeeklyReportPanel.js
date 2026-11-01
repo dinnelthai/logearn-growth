@@ -29,6 +29,12 @@ const periodText=row=>row.report_period==='custom-v1'?
  date(row.date_range_start)+' — '+date(Number(row.date_range_end)-1)+' · 完整周';
 const fmt=x=>typeof x==='number'&&Number.isFinite(x)?x.toLocaleString('zh-CN',{maximumFractionDigits:2}):'未知';
 const statuses={pending:'排队中',processing:'AI 正在分析',completed:'已完成',failed:'生成失败',cancelled:'已取消'};
+const resumableWeeklyFailures=new Set([
+ '补充查询过多，请缩小问题范围或提高调查能力',
+ 'AI Token硬预算不足，未发起下一轮模型请求；已付费证据保留在断点',
+ '分析时间预算已达上限，未保存为成功结果',
+ '分析时间预算已达上限；已有模型响应及证据保留在断点，未发起下一轮付费请求'
+]);
 // Worker progress reflects completed pipeline checkpoints, not elapsed-time estimates.
 // Never infer a percentage from time spent waiting or invent a completion ETA.
 export function weeklyProgressState(row,job=null){
@@ -187,10 +193,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
         }
        }finally{busy=false}
       });
-     }else if(['补充查询过多，请缩小问题范围或提高调查能力',
-      'AI Token硬预算不足，未发起下一轮模型请求；已付费证据保留在断点',
-      '分析时间预算已达上限，未保存为成功结果',
-      '分析时间预算已达上限；已有模型响应及证据保留在断点，未发起下一轮付费请求'].includes(row.error_message)&&
+     }else if(resumableWeeklyFailures.has(row.error_message)&&
       checkpoint.paidCallState==='received'&&checkpoint.recordStatus==='failed'&&checkpoint.modelCalls>0&&
       ['partial-tools','recorded'].includes(checkpoint.state)){
       status.innerHTML='<p>已保存的模型响应和证据可复用。原任务不会从头重新计费；如果已有最终有效响应，会只校验并保存。若仍需新模型轮次，点击继续后可能产生新费用。系统会重新核对断点和共享付费账本。</p>'+
@@ -354,7 +357,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
    if(lastSnapshot!==null)releaseHeight=protectHeight();
    lastSnapshot=nextSnapshot;
    if(row&&row.status!=='failed')recoveryQueued=false;
-   if(row&&row.error_message&&row.error_message!=='补充查询过多，请缩小问题范围或提高调查能力')recoveryQueued=false;
+   if(row&&row.error_message&&!resumableWeeklyFailures.has(row.error_message))recoveryQueued=false;
    const shownPeriod=row?{start:Number(row.date_range_start),end:Number(row.date_range_end),
     kind:row.report_period==='custom-v1'?'custom':'weekly'}:d.period;
    const shownCustom=shownPeriod.kind==='custom';
