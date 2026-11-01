@@ -591,19 +591,32 @@ function modelContext(raw,{transportVersion='v1',reviewRevision=0,reserveBytes=0
   const reserve=Math.max(reserveBytes,fixed.reserveBytes);
   if(reserve>12000)throw Error('Business Brain 实际占用超过安全预留预算；尚未调用付费模型');
   const hasWeeklyManifest=raw.weeklyCoverage?.version==='weekly-coverage-v1';
-  const base=hasWeeklyManifest?
-   require('./weeklyContextV4').buildWeeklyContextV4(raw,{
+  let base;
+  if(hasWeeklyManifest){
+   base=require('./weeklyContextV4').buildWeeklyContextV4(raw,{
     modelEvidence,compactCapabilities,safeText,reviewRevision,reserveBytes:reserve,includeDecisionSignals:true
-   }):
-   modelContext(raw,{transportVersion:'v3',reviewRevision,reserveBytes:reserve});
-  if(!hasWeeklyManifest){
-   // Business Brain already carries the compact, versioned metric dictionary.
-   // Do not also send the generic 20-definition catalog in non-weekly v5 runs.
-   delete base.definitions;
-   // The full authorized capability catalog remains intact. Keep only the
-   // highest-ranked plan steps; the rest repeat tool IDs already in that catalog.
+   });
+  }else{
+   // Business Brain is the single metric-definition source in non-weekly v5.
+   // Prune before v3's hard byte gate, not after it: otherwise duplicate
+   // definitions can make the generic projection throw before v5 can compact.
+   const selectedEvidence=(Array.isArray(raw.evidence)?raw.evidence:[]).slice(0,14);
+   const compactRaw={
+    ...raw,definitions:{},evidence:selectedEvidence,
+    growthPlan:raw.growthPlan&&typeof raw.growthPlan==='object'?{
+     ...raw.growthPlan,steps:Array.isArray(raw.growthPlan.steps)?
+      raw.growthPlan.steps.slice(0,4):[]
+    }:raw.growthPlan
+   };
+   base=modelContext(compactRaw,{transportVersion:'v3',reviewRevision,reserveBytes:reserve});
+   base.evidenceMeta={...(base.evidenceMeta||{}),
+    total:Array.isArray(raw.evidence)?raw.evidence.length:0,
+    omitted:Math.max(0,(raw.evidence?.length||0)-base.evidence.length)};
+   base.omissions={...(base.omissions||{}),
+    duplicateDefinitionsOmitted:true,
+    lowerPriorityInitialEvidenceOmitted:base.evidenceMeta.omitted>0};
    if(Array.isArray(base.growthPlan?.steps)){
-    base.growthPlan.steps=base.growthPlan.steps.slice(0,4).map(step=>({
+    base.growthPlan.steps=base.growthPlan.steps.map(step=>({
      ...step,reason:safeText(step.reason||'',90)
     }));
     base.growthPlan.omittedSteps=Math.max(0,(raw.growthPlan?.steps?.length||0)-base.growthPlan.steps.length);
