@@ -497,3 +497,52 @@
   #la-studio .ga-workspace .ga-ws-executive .ga-ws-stats > div:nth-child(2) { border-right: 0; }
   #la-studio .ga-workspace .ga-ws-executive .ga-ws-stats > div:nth-child(-n+2) { border-bottom: 1px solid var(--ga-border); }
 }
+
+
+/* AI operating report: durable task acknowledgement and Worker-stage progress. */
+#la-studio .ai-weekly-progress{
+  margin:18px 0 16px;
+  padding:18px 20px;
+  background:var(--ui-surface-raised);
+  border:1px solid var(--a-border);
+  border-radius:12px;
+  min-width:0;
+}
+#la-studio .ai-weekly-progress-top{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+#la-studio .ai-weekly-progress-top strong{
+  font-size:14px;font-weight:700;color:var(--a-text);flex:1;
+}
+#la-studio .ai-weekly-progress-top > span:last-child:not(:first-child){
+  font-size:12px;color:var(--a-muted);font-variant-numeric:tabular-nums;
+}
+#la-studio .ai-weekly-progress-indicator{
+  width:9px;height:9px;flex:none;border-radius:50%;
+  background:var(--a-accent);box-shadow:0 0 0 4px var(--ui-surface-selected);
+}
+#la-studio .ai-weekly-progress-track{
+  width:100%;height:8px;position:relative;overflow:hidden;margin-top:16px;
+  border-radius:100px;background:var(--a-border);
+}
+#la-studio .ai-weekly-progress-fill{
+  display:block;height:100%;width:0;border-radius:100px;
+  background:var(--a-accent);transition:width .4s ease-out;
+}
+#la-studio .ai-weekly-progress-fill.is-indeterminate{
+  width:32%;animation:ai-weekly-working 1.65s ease-in-out infinite;
+}
+#la-studio .ai-weekly-progress p{
+  color:var(--a-text);font-size:13px;line-height:1.55;
+  margin:12px 0 4px;max-width:none;
+}
+#la-studio .ai-weekly-progress small{
+  display:block;color:var(--a-muted);font-size:11px;line-height:1.6;
+}
+@keyframes ai-weekly-working{
+  from{transform:translateX(-110%)}to{transform:translateX(330%)}
+}
+@media(prefers-reduced-motion:reduce){
+  #la-studio .ai-weekly-progress-fill{transition:none}
+  #la-studio .ai-weekly-progress-fill.is-indeterminate{animation:none;width:100%;opacity:.6}
+}

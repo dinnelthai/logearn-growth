@@ -1,4 +1,4 @@
-import {getAnalysisDetail,getEvidence,getJobCheckpoint,retryAnalysis,continueWeeklyOverflow,deleteAnalysis,getGscPerformance} from '../api/aiAnalysis.js';
+import {getAnalysisDetail,getEvidence,getJobCheckpoint,getJobStatus,retryAnalysis,continueWeeklyOverflow,deleteAnalysis,getGscPerformance} from '../api/aiAnalysis.js';
 import {canOfferTaskRetry} from './aiTaskStatus.js';
 import {queueAnalysisLaunch} from '../analysisLaunchContext.js';
 import {renderWeeklyDecisionReport,readOnlyGscMarkup} from './aiWeeklyDecisionView.js';
@@ -29,6 +29,45 @@ const periodText=row=>row.report_period==='custom-v1'?
  date(row.date_range_start)+' — '+date(Number(row.date_range_end)-1)+' · 完整周';
 const fmt=x=>typeof x==='number'&&Number.isFinite(x)?x.toLocaleString('zh-CN',{maximumFractionDigits:2}):'未知';
 const statuses={pending:'排队中',processing:'AI 正在分析',completed:'已完成',failed:'生成失败',cancelled:'已取消'};
+// Worker progress reflects completed pipeline checkpoints, not elapsed-time estimates.
+// Never infer a percentage from time spent waiting or invent a completion ETA.
+export function weeklyProgressState(row,job=null){
+ if(!row||!['pending','processing'].includes(row.status))return null;
+ const raw=job?.progress;
+ const percent=typeof raw==='number'&&Number.isFinite(raw)&&raw>=0&&raw<=100
+  ?Math.round(raw):null;
+ const queued=row.status==='pending'&&(job?.state!=='active'||percent===null||percent===0);
+ const title=queued?'周报已提交 · 等待 Worker 领取':
+  percent===null?'AI 正在处理周报':
+  percent<40?'正在采集并整理业务证据':
+  percent<85?'AI 正在分析与生成周报':
+  percent<100?'正在校验并保存结果':'正在确认存档结果';
+ const detail=queued?'任务已保存，等待执行；无需重复点击。':
+  percent===null?'后端任务仍在进行；暂时没有可读的阶段进度。':
+  percent<40?'读取来源和构建报告上下文。':
+  percent<85?'模型可能正在进行多轮调查，进度停留在当前阶段属于正常情况。':
+  percent<100?'正在写入报告及引用的证据。':'等待数据库确认最终状态。';
+ return {title,detail,percent,indeterminate:percent===null};
+}
+export function weeklyProgressMarkup(row,{safe,job=null}={}){
+ const state=weeklyProgressState(row,job);
+ if(!state)return '';
+ const escape=typeof safe==='function'?safe:x=>String(x);
+ const progress=state.indeterminate
+  ?'<div class="ai-weekly-progress-track" role="progressbar" aria-label="周报处理中" aria-valuetext="任务正在处理，尚无阶段进度"><span class="ai-weekly-progress-fill is-indeterminate" data-weekly-progress-fill></span></div>'
+  :'<div class="ai-weekly-progress-track" role="progressbar" aria-label="周报处理阶段进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+state.percent+'"><span class="ai-weekly-progress-fill" data-weekly-progress-fill style="width:'+state.percent+'%"></span></div>';
+ return '<section class="ai-weekly-progress" data-weekly-progress="'+escape(row.id)+'" aria-label="周报生成进度">'+
+  '<div class="ai-weekly-progress-top"><span class="ai-weekly-progress-indicator" aria-hidden="true"></span>'+
+  '<strong data-weekly-progress-title>'+escape(state.title)+'</strong>'+
+  '<span data-weekly-progress-percent>'+ (state.indeterminate?'处理中':state.percent+'%')+'</span></div>'+
+  progress+'<p data-weekly-progress-detail>'+escape(state.detail)+'</p>'+
+  '<small>进度表示 Worker 已完成的处理阶段，不是耗时预测；离开页面后任务继续运行。</small></section>';
+}
+const submittingMarkup='<div class="ai-weekly-progress ai-weekly-submitting" role="status">'+
+ '<div class="ai-weekly-progress-top"><span class="ai-weekly-progress-indicator" aria-hidden="true"></span>'+
+ '<strong>正在提交周报任务…</strong><span>请勿重复点击</span></div>'+
+ '<div class="ai-weekly-progress-track" role="progressbar" aria-label="提交处理中"><span class="ai-weekly-progress-fill is-indeterminate"></span></div>'+
+ '<p>正在等待服务器确认是否创建任务；尚未确认入队或模型调用。</p></div>';
 // Show only named boolean checks. Never copy private snapshots or model evidence.
 export function savedSnapshotAuditNotice(result){
  if(result?.version!=='weekly-saved-context-audit-v1'||!result.audit)
@@ -56,6 +95,37 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
  let disposed=false,seq=0,poll=null,selected=null,busy=false,recoveryQueued=false,notice='',lastSnapshot=null,
   customPeriod=false,initialized=false,range={start:'',end:''};
  const clear=()=>{if(poll){clearTimeout(poll);poll=null}};
+ // Refresh only the progress region. Polls must not rerender the long report
+ // or disturb scrolling, form focus and existing report evidence.
+ const updateLiveProgress=async(row,token)=>{
+  const section=root.querySelector('[data-weekly-progress]');
+  if(!section||disposed||token!==seq||selected!==row.id)return;
+  let job=null;
+  try{job=await getJobStatus(row.id)}catch(_error){/* record status remains authoritative */}
+  if(disposed||token!==seq||selected!==row.id||!section.isConnected)return;
+  const state=weeklyProgressState(row,job);
+  if(!state)return;
+  const title=section.querySelector('[data-weekly-progress-title]');
+  const detail=section.querySelector('[data-weekly-progress-detail]');
+  const label=section.querySelector('[data-weekly-progress-percent]');
+  const bar=section.querySelector('[role=progressbar]');
+  const fill=section.querySelector('[data-weekly-progress-fill]');
+  if(title)title.textContent=state.title;
+  if(detail)detail.textContent=state.detail;
+  if(label)label.textContent=state.indeterminate?'处理中':state.percent+'%';
+  if(bar){
+   if(state.indeterminate){
+    bar.removeAttribute('aria-valuenow');bar.setAttribute('aria-valuetext','任务正在处理，尚无阶段进度');
+   }else{
+    bar.setAttribute('aria-valuemin','0');bar.setAttribute('aria-valuemax','100');
+    bar.setAttribute('aria-valuenow',String(state.percent));bar.removeAttribute('aria-valuetext');
+   }
+  }
+  if(fill){
+   fill.classList.toggle('is-indeterminate',state.indeterminate);
+   fill.style.width=state.indeterminate?'':state.percent+'%';
+  }
+ };
  const schedule=(rows,token)=>{
   if(!disposed&&token===seq&&(recoveryQueued||
    rows.some(x=>['pending','processing'].includes(x.status))))
@@ -275,6 +345,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
      cost_usd:x.cost_usd,model_name:x.model_name}))
    });
    if(silent&&lastSnapshot===nextSnapshot){
+    if(row&&['pending','processing'].includes(row.status))void updateLiveProgress(row,token);
     schedule(rows,token);
     return; // No reflow, no lost focus, no scroll movement.
    }
@@ -319,6 +390,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
      regenerateArchived?'<button type="button" class="a-button a-primary" data-weekly-confirm>'+(customPeriod?'重新生成所选时间范围报告':'重新生成 AI 周报')+'</button>':
      d.archivedCurrentWeek?'<span class="ai-weekly-status">'+(customPeriod?'本期记录已移除':'本周记录已移除')+'</span>':
      '<button type="button" class="a-button a-primary" data-weekly-confirm>'+(customPeriod?'生成所选时间范围报告':'生成最近完整周报告')+'</button>')+'</div>'+
+    weeklyProgressMarkup(row,{safe})+
     rangePicker+
     '<p class="a-muted" data-weekly-source-hint role="status">'+safe(sourceHint)+'</p>'+
     (canRegenerateSelected?
@@ -413,6 +485,8 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
     busy=true;
     const button=event.currentTarget;
     button.disabled=true;button.textContent='正在创建新周报…';
+    const status=root.querySelector('[data-weekly-note]');
+    if(status)status.innerHTML=submittingMarkup;
     try{
      if(sourceWindow.exceeds)throw Error('该报告超出最近事件观测时间，请缩短截止时间并创建新的报告');
      const result=await api('/ai-weekly-reports/'+encodeURIComponent(row.id)+'/regenerate',
@@ -464,7 +538,7 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
     const button=event.currentTarget;
     button.disabled=true;button.textContent='正在提交…';
     const note=root.querySelector('[data-weekly-note]');
-    if(note)note.textContent='正在创建所选时间范围的 AI 分析任务…';
+    if(note)note.innerHTML=submittingMarkup;
     try{
      const bounds=customPeriod?rangeBounds(range):null;
      const end=bounds?.end??d.period.end;
@@ -484,8 +558,11 @@ export function mountAIWeeklyReport(root,{api,safe,navigate,onCreateProblem=null
      }
     }finally{busy=false}
    });
-   if(row)await showReport(row,token,row.report_period==='custom-v1'?
-    {start:Number(row.date_range_start),end:Number(row.date_range_end)}:d.period);
+   if(row){
+    if(['pending','processing'].includes(row.status))void updateLiveProgress(row,token);
+    await showReport(row,token,row.report_period==='custom-v1'?
+     {start:Number(row.date_range_start),end:Number(row.date_range_end)}:d.period);
+   }
    schedule(rows,token);
   }catch(error){
    if(!disposed&&token===seq){
