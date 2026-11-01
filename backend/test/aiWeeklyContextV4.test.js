@@ -248,3 +248,24 @@ test('v5 operating memory keeps a recent lesson and older positive/negative coun
  assert.ok(ids.includes('problem 11'),'older unknown lesson remains visible');
  assert.ok(Buffer.byteLength(JSON.stringify(view),'utf8')<=22000);
 });
+
+test('v5 includes a small redacted set of owner-entered business changes as non-evidence context',()=>{
+ const raw=fixture();
+ raw.changes=Array.from({length:8},(_,i)=>({
+  id:'change-'+i,kind:'activity',source:'growth',
+  occurredAt:period.start+i*1000,validUntil:null,
+  content:i===0?'本周上线新手引导，联系 private@example.test，详情 https://private.example.test':
+   '本周运营变化 '+i
+ }));
+ raw.changesMeta={total:8,shown:8,omitted:0,truncatedEntries:0};
+ const view=modelContext(raw,{transportVersion:'v5'});
+ assert.equal(view.businessChanges.status,'available');
+ assert.equal(view.businessChanges.total,8);
+ assert.equal(view.businessChanges.shown,5);
+ assert.equal(view.businessChanges.omitted,3);
+ assert.ok(view.businessChanges.items[0].content.includes('本周上线新手引导'));
+ assert.ok(!JSON.stringify(view.businessChanges).includes('private@example.test'));
+ assert.ok(!JSON.stringify(view.businessChanges).includes('https://private.example.test'));
+ assert.match(view.businessChanges.note,/不是数值证据/);
+ assert.ok(Buffer.byteLength(JSON.stringify(view),'utf8')<=22000);
+});
