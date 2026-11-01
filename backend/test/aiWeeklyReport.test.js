@@ -24,6 +24,14 @@ test('custom report periods use exact Bangkok timestamps and exclusive end',()=>
  assert.equal(reportKey(period),'ai-report-custom-v1:'+start+':'+end);
  assert.notEqual(reportKey(period),weeklyKey({start,end}));
 });
+test('v5 shared system prompt avoids repeating the weekly business-brain instruction',()=>{
+ const {buildSystemPrompt}=require('../src/ai/business/runner');
+ const prompt=buildSystemPrompt('base','v5');
+ assert.ok(prompt.includes('Business Brain v1'));
+ assert.ok(prompt.includes('businessBrain.focus'));
+ assert.ok(prompt.includes('验证指标与复查条件'));
+ assert.ok(prompt.length<1100,'shared v5 prompt stays compact; weekly-specific rules live in weeklyPromptV3 once');
+});
 test('31-day custom period is valid and its prompt is not constrained to a natural week',()=>{
  const now=Date.parse('2026-10-31T07:15:00+07:00');
  const end=Date.parse('2026-10-31T06:45:00+07:00');
