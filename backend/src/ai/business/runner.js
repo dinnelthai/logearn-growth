@@ -114,16 +114,18 @@ function compactV3History(messages,{preserveV4Stats=false,preserveQueries=false,
      id:e.id,metricId:e.metricId,unit:e.unit,value,
      numerator:e.numerator,denominator:e.denominator,sampleSize:e.sampleSize,
      period:e.period?{start:e.period.start??null,end:e.period.end??null,
-      ...(e.period.timezone?{timezone:e.period.timezone}:{})}:null,
+      timezone:e.period.timezone??null}:null,
      coverage:e.coverage?{
       status:e.coverage.status||'unknown',
       ...(typeof e.coverage.periodMatched==='boolean'?
        {periodMatched:e.coverage.periodMatched}:{}),
       ...(typeof e.coverage.historyComplete==='boolean'?
-       {historyComplete:e.coverage.historyComplete}:{})}:'unknown',
+       {historyComplete:e.coverage.historyComplete}:{}),
+      ...(typeof e.coverage.truncated==='boolean'?{truncated:e.coverage.truncated}:{})}:'unknown',
      ...(Object.keys(compactWatermarks).length?{watermarks:compactWatermarks}:{}),
      ...(source.sourceType?{sourceMetadata:{
       sourceType:source.sourceType,clock:source.clock,scope:source.scope,
+      coverageStatus:source.coverageStatus,
       freshness:{status:freshness.status||'unverified',
        referenceAt:freshness.referenceAt??null,
        reportedCompleteThrough:freshness.reportedCompleteThrough??null}

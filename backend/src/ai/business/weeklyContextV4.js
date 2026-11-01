@@ -236,6 +236,7 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
   const freshness=source.freshness||{};
   const sourceMetadata=source.sourceType?{
    sourceType:source.sourceType,clock:source.clock,scope:source.scope,
+   coverageStatus:source.coverageStatus,
    freshness:{status:freshness.status||'unverified',
     referenceAt:freshness.referenceAt??null,
     reportedCompleteThrough:freshness.reportedCompleteThrough??null}
@@ -243,7 +244,8 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
   return {
    id:sanitized.id,metricId:sanitized.metricId,
    ...(scalar!==undefined?{value:scalar}:{}),
-   period:{start:sanitized.period?.start??null,end:sanitized.period?.end??null},
+   period:{start:sanitized.period?.start??null,end:sanitized.period?.end??null,
+    timezone:sanitized.period?.timezone??null},
    coverage:{status:coverage.status||'unknown',
     ...(typeof coverage.periodMatched==='boolean'?{periodMatched:coverage.periodMatched}:{}),
     ...(typeof coverage.historyComplete==='boolean'?{historyComplete:coverage.historyComplete}:{}),

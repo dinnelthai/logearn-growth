@@ -49,9 +49,15 @@ function forModelV4(result,{maxBytes=3500,legacy=false,richWeekly=false}={}){
    ...(e.numerator!=null?{numerator:e.numerator}:{}),
    ...(e.denominator!=null?{denominator:e.denominator}:{}),
    ...(e.sampleSize!=null?{sampleSize:e.sampleSize}:{}),
-   ...(e.period?{period:{start:e.period.start,end:e.period.end}}:{}),
-   ...(e.coverage?{coverage:{status:e.coverage.status,
-    periodMatched:e.coverage.periodMatched}}:{}),
+   ...(e.period?{period:richWeekly?
+    {start:e.period.start,end:e.period.end,timezone:e.period.timezone??null}:
+    {start:e.period.start,end:e.period.end}}:{}),
+   ...(e.coverage?{coverage:richWeekly?{
+    status:e.coverage.status,periodMatched:e.coverage.periodMatched,
+    ...(typeof e.coverage.historyComplete==='boolean'?
+     {historyComplete:e.coverage.historyComplete}:{}),
+    ...(typeof e.coverage.truncated==='boolean'?{truncated:e.coverage.truncated}:{})}:{
+     status:e.coverage.status,periodMatched:e.coverage.periodMatched}}:{}),
    ...(richWeekly&&e.watermarks?{watermarks:Object.fromEntries(
     ['events','eventsCompleteThrough','registrations','trades','searchConsole','x','kol','followerScan']
      .filter(key=>Object.hasOwn(e.watermarks,key)&&
@@ -62,9 +68,12 @@ function forModelV4(result,{maxBytes=3500,legacy=false,richWeekly=false}={}){
     sourceType:e.sourceMetadata.sourceType,
     clock:e.sourceMetadata.clock,
     scope:e.sourceMetadata.scope,
-    freshness:{status:e.sourceMetadata.freshness?.status||'unverified',
+    ...(richWeekly?{coverageStatus:e.sourceMetadata.coverageStatus}:{}),
+    freshness:richWeekly?{
+     status:e.sourceMetadata.freshness?.status||'unverified',
      referenceAt:e.sourceMetadata.freshness?.referenceAt??null,
-     reportedCompleteThrough:e.sourceMetadata.freshness?.reportedCompleteThrough??null}}}:{}),
+     reportedCompleteThrough:e.sourceMetadata.freshness?.reportedCompleteThrough??null
+    }:e.sourceMetadata.freshness}}:{}),
    ...(!legacy&&e.warnings?.length?{warnings:e.warnings.slice(0,2)}:{})};
  });
  const base={status,evidence:[],omittedEvidence:rows.length,
