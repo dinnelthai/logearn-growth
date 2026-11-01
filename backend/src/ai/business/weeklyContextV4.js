@@ -128,6 +128,8 @@ function recentOperationsFromEvidence(evidence,modelEvidence,safeText){
  return {
   items:rows.slice(0,5),
   operatorNotes:{
+   status:safeText(operatorNoteCoverage?.status||'unknown',24),
+   source:'agent_changes',
    count:Number.isSafeInteger(operatorNoteCoverage?.count)?operatorNoteCoverage.count:null,
    truncated:operatorNoteCoverage?.truncated===true,
    verification:'self-reported'
@@ -424,20 +426,20 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
    ...(x.recentOperations?{recentOperations:{...x.recentOperations,
     items:x.recentOperations.items.slice(0,3)}}:{})}));
   if(size()>CAP)out.weeklyCoverage=out.weeklyCoverage.map(x=>({...x,
-   ...(x.stats?{stats:x.stats.slice(0,2)}:{}),
-   ...(x.recentOperations?{recentOperations:{...x.recentOperations,
-    items:x.recentOperations.items.slice(0,1)}}:{})}));
+   ...(x.stats?{stats:x.stats.slice(0,2)}:{})}));
   if(size()>CAP){
    out.evidence=out.evidence.filter(e=>moduleEvidenceIds.includes(e.id));
    out.evidenceMeta.shown=out.evidence.length;
   }
-  if(size()>CAP)out.weeklyCoverage=out.weeklyCoverage.map(x=>({...x,
-   ...(x.stats?{stats:x.stats.slice(0,1)}:{})}));
   if(size()>CAP){
    out.otherAvailableTools=[];
    out.questionPriority=[];
    out.growthOpportunities=undefined;
   }
+  if(size()>CAP)out.weeklyCoverage=out.weeklyCoverage.map(x=>({...x,
+   ...(x.stats?{stats:x.stats.slice(0,1)}:{}),
+   ...(x.recentOperations?{recentOperations:{...x.recentOperations,
+    items:x.recentOperations.items.slice(0,1)}}:{})}));
   if(size()>CAP)throw Error('AI 周报精简统计上下文仍超出安全预算，尚未调用付费模型');
  }
  if(size()>CAP)throw Error('AI 周报精简统计上下文仍超出安全预算，尚未调用付费模型');
