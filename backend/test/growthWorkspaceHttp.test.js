@@ -37,7 +37,7 @@ test('dashboard remains read-only and displays persisted owner evidence',async()
  const db=new DatabaseSync(':memory:');try{
   const {workspaceStore}=require('../src/ai/growth/workspace/store');const store=workspaceStore(db,{initialize:true});
   const {currentMonth,dayStart}=require('../src/ai/growth/workspace/period');const month=currentMonth(),end=dayStart(Date.now());
-  const goal=store.saveGoal('alice',{metricId:'weekly_core',definitionVersion:'1',target:200,unit:'users',aggregation:'rolling-distinct',periodStart:month.start,periodEnd:month.end,scope:{source:'all'}});
+  const goal=store.saveGoal('alice',{metricId:'weekly_core',definitionVersion:'1',target:200,unit:'users',aggregation:'rolling-distinct',periodStart:Math.min(month.start,end-7*86400000),periodEnd:month.end,scope:{source:'all'}});
   const {createRouter,handlers}=mockRoutes();createRouter({db});
   const before=await execute(handlers,'GET /dashboard');
   assert.equal(before.value.goals[0].progress.status,'unknown');

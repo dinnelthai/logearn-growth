@@ -40,3 +40,14 @@ test('cannot use a prior executed seventh tool to bypass six-tool budget',()=>{
   .map(query=>({query,result:{status:'ok',evidence:[]}}));
  assert.equal(planInvestigationResume(state).reason,'over-budget-tool-was-executed');
 });
+
+test('a final paid response with no validation checkpoint is eligible for human-only replay',()=>{
+ const state=fixture();
+ state.rows[0].result.responseContent=JSON.stringify({
+  summary:'已接收但尚未校验的周报',keyFindings:[],suggestions:[],claims:[]});
+ state.rows[0].result.investigations=[];
+ const result=planInvestigationResume(state);
+ assert.equal(result.allowed,true);
+ assert.equal(result.replayedModelCalls,1);
+ assert.equal(result.remainingTools,0);
+});

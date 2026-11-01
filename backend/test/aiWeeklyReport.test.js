@@ -206,3 +206,14 @@ test('weekly analysis has its own configurable 30-minute hard budget',()=>{
   else process.env.AI_WEEKLY_TASK_TIMEOUT_MS=original;
  }
 });
+
+test('manual continuation of time-budget failures requires exact known error',()=>{
+ const {isManuallyResumableWeeklyFailure}=require('../src/ai/growth/weeklyReport');
+ for(const reason of [
+  '分析时间预算已达上限，未保存为成功结果',
+  '分析时间预算已达上限；已有模型响应及证据保留在断点，未发起下一轮付费请求',
+  '补充查询过多，请缩小问题范围或提高调查能力'
+ ])assert.equal(isManuallyResumableWeeklyFailure(reason),true);
+ assert.equal(isManuallyResumableWeeklyFailure('OpenAI error: Request timed out.'),false);
+ assert.equal(isManuallyResumableWeeklyFailure('模型付费状态不明'),false);
+});

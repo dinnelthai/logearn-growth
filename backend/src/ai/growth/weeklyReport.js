@@ -18,6 +18,16 @@ function weeklyTaskTimeoutMs(){
   throw Error('AI_WEEKLY_TASK_TIMEOUT_MS 必须为 600000 至 3600000 毫秒');
  return value;
 }
+// Reuse is an EXPLICIT operator action, guarded again by durable paid-call
+// fences and immutable prompt/context journal. Never use this for auto-retry.
+function isManuallyResumableWeeklyFailure(message){
+ return [
+  '补充查询过多，请缩小问题范围或提高调查能力',
+  'AI Token硬预算不足，未发起下一轮模型请求；已付费证据保留在断点',
+  '分析时间预算已达上限，未保存为成功结果',
+  '分析时间预算已达上限；已有模型响应及证据保留在断点，未发起下一轮付费请求'
+ ].includes(message);
+}
 function weeklyPeriod(now=Date.now()){return lastCompleted('weekly',now);}
 function reportPeriod(input={},now=Date.now()){
  if(!input||typeof input!=='object'||Array.isArray(input))throw Error('报告时间范围无效');
@@ -301,4 +311,4 @@ function ensureWeeklyReport(analysis,{context=null}={}){
   return complete();
  }
 }
-module.exports={weeklyPeriod,reportPeriod,weeklyKey,reportKey,weeklyOperations,weeklyPrompt,weeklyPromptV2,weeklyPromptV3,customPeriodPromptV0,customPeriodPromptV1,validateWeeklyReport,ensureWeeklyReport,trustedWeeklyMetrics,weeklyModelTimeoutMs,weeklyTaskTimeoutMs,LIFECYCLE_STAGES};
+module.exports={weeklyPeriod,reportPeriod,weeklyKey,reportKey,weeklyOperations,weeklyPrompt,weeklyPromptV2,weeklyPromptV3,customPeriodPromptV0,customPeriodPromptV1,validateWeeklyReport,ensureWeeklyReport,trustedWeeklyMetrics,weeklyModelTimeoutMs,weeklyTaskTimeoutMs,isManuallyResumableWeeklyFailure,LIFECYCLE_STAGES};

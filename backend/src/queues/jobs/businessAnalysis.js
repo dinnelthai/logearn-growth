@@ -299,8 +299,7 @@ async function resumeIncompleteAnalysis(job){
     'AI Token硬预算不足，未发起下一轮模型请求；已付费证据保留在断点';
   const matchingFailedWeekly=manualFailedWeekly&&record.status==='failed'&&
     !record.cancel_requested&&record.filter_conditions?.weeklyReport==='v1'&&
-    (record.error_message==='补充查询过多，请缩小问题范围或提高调查能力'||
-     failedForTokenBudget);
+    weeklyReport.isManuallyResumableWeeklyFailure(record.error_message);
   if(!matchingFailedWeekly&&
     (manualFailedWeekly||record.status!=='processing'||record.cancel_requested||
      !record.lease_expires_at||Number(record.lease_expires_at)>=Date.now()))
