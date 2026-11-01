@@ -600,7 +600,7 @@ function modelContext(raw,{transportVersion='v1',reviewRevision=0,reserveBytes=0
    // Business Brain is the single metric-definition source in non-weekly v5.
    // Prune before v3's hard byte gate, not after it: otherwise duplicate
    // definitions can make the generic projection throw before v5 can compact.
-   const selectedEvidence=(Array.isArray(raw.evidence)?raw.evidence:[]).slice(0,14);
+   const selectedEvidence=(Array.isArray(raw.evidence)?raw.evidence:[]).slice(0,8);
    const compactRaw={
     ...raw,definitions:{},evidence:selectedEvidence,
     growthPlan:raw.growthPlan&&typeof raw.growthPlan==='object'?{
@@ -609,6 +609,7 @@ function modelContext(raw,{transportVersion='v1',reviewRevision=0,reserveBytes=0
     }:raw.growthPlan
    };
    base=modelContext(compactRaw,{transportVersion:'v3',reviewRevision,reserveBytes:reserve});
+   delete base.definitions;
    base.evidenceMeta={...(base.evidenceMeta||{}),
     total:Array.isArray(raw.evidence)?raw.evidence.length:0,
     omitted:Math.max(0,(raw.evidence?.length||0)-base.evidence.length)};
