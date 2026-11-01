@@ -65,7 +65,7 @@ test('weekly projection preserves bounded operations, registration cohorts and s
    coverageStatus:'partial',freshness:{status:'unverified',
     referenceAt:'2026-10-30T00:00:00.000Z',reportedCompleteThrough:null}},
   watermarks:{events:'2026-10-30T00:00:00.000Z',eventsCompleteThrough:null}
- }]},{projectionVersion:'v4',maxBytes:3500});
+ }]},{projectionVersion:'v5',maxBytes:3500});
  const e=result.evidence[0];
  assert.equal(e.value.humanOperations[0].assignments[0].delivered,3);
  assert.equal(e.value.cohorts.registration.metrics.activated,9);

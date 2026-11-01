@@ -363,7 +363,7 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
       const recent=evidence.slice(-value.investigations.length);
       messages.push({role:'user',content:JSON.stringify({
         additionalEvidence:recent.slice(0,perRoundLimit).map(e=>({
-          query:{...modelQuery(e.query,{extended:revision3?true:revision2?'legacy':false}),...(revision2?{queryFingerprint:createHash('sha256').update(investigationKey(e.query)).digest('hex').slice(0,16)}:{})},result:forModel(e.result,{maxBytes:weeklyProtocol?3500:protocol==='v3'||protocol==='v5'?2600:protocol==='v2'?3500:6000,projectionVersion:weeklyProtocol?'v4':'v1',legacy:weeklyProtocol&&!reviewFixes})})),
+          query:{...modelQuery(e.query,{extended:revision3?true:revision2?'legacy':false}),...(revision2?{queryFingerprint:createHash('sha256').update(investigationKey(e.query)).digest('hex').slice(0,16)}:{})},result:forModel(e.result,{maxBytes:weeklyProtocol?3500:protocol==='v3'||protocol==='v5'?2600:protocol==='v2'?3500:6000,projectionVersion:weeklyProtocol?(protocol==='v5'?'v5':'v4'):'v1',legacy:weeklyProtocol&&protocol!=='v5'&&!reviewFixes})})),
         investigationBudget:{perRoundLimit,skippedCount,
           status:skippedCount?'over-limit-requests-not-executed':'within-limit'},
         instruction:skippedCount

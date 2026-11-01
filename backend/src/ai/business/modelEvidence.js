@@ -5,7 +5,7 @@ const {modelEvidence,safeText,compactWeeklyValue}=require('./modelTransport');
 // V4 projects each aggregate evidence item independently. Previously, two
 // large items could cause ALL values to become {omitted:true}, leaving the AI
 // without a single observed statistic. Full values remain in the tool journal.
-function forModelV4(result,{maxBytes=3500,legacy=false}={}){
+function forModelV4(result,{maxBytes=3500,legacy=false,richWeekly=false}={}){
  if(!Number.isSafeInteger(maxBytes)||maxBytes<1024||maxBytes>64000)
   throw Error('模型证据字节预算无效');
  const rows=Array.isArray(result?.evidence)?result.evidence:[];
@@ -16,9 +16,15 @@ function forModelV4(result,{maxBytes=3500,legacy=false}={}){
   'query_budget_exceeded','result_too_large','invalid_parameters']);
  const reason=knownReasons.has(result?.error?.type)?result.error.type:null;
  const number=v=>typeof v==='number'&&Number.isFinite(v);
- const extractLegacy=value=>{
+ const extract=value=>{
   if(value==null||number(value))return value;
   if(typeof value!=='object')return null;
+  if(richWeekly){
+   // New v5 weekly tool replies share the allowlisted recursive projector.
+   const compact=compactWeeklyValue(value);
+   return compact&&typeof compact==='object'?compact:{detailOmitted:true};
+  }
+  // v4 and archived legacy prompts retain their original projection exactly.
   const out={};
   const fields=['metrics','totals','summary','counts','global','conversion',
    'retention','trade','contentSignals','xOfficial','product_chain'];
@@ -35,14 +41,6 @@ function forModelV4(result,{maxBytes=3500,legacy=false}={}){
   }
   if(typeof value.available==='boolean')out.available=value.available;
   return Object.keys(out).length?out:{detailOmitted:true};
- };
- const extract=value=>{
-  if(value==null||number(value))return value;
-  if(typeof value!=='object')return null;
-  // Archived legacy v4 prompts keep their original projection.
-  if(legacy)return extractLegacy(value);
-  const compact=compactWeeklyValue(value);
-  return compact&&typeof compact==='object'?compact:{detailOmitted:true};
  };
  const projected=rows.slice(0,24).map(row=>{
   const e=modelEvidence(row);
@@ -62,7 +60,7 @@ function forModelV4(result,{maxBytes=3500,legacy=false}={}){
    ...(!legacy&&e.warnings?.length?{warnings:e.warnings.slice(0,2)}:{})};
  });
  const base={status,evidence:[],omittedEvidence:rows.length,
-  transport:'aggregated-business-v4',
+  transport:richWeekly?'aggregated-business-v5':'aggregated-business-v4',
   ...(reason?{reason}:{}),
   warnings:[...(legacy?[]:(result?.warnings||[]).slice(0,2).map(x=>safeText(x))),
    '保留逐条聚合数值与证据ID；未传输的维度未知而非0，完整证据保留在只读档案']};
@@ -102,6 +100,7 @@ function forModelV4(result,{maxBytes=3500,legacy=false}={}){
  return base;
 }
 function forModel(result,{maxBytes=12000,projectionVersion='v1',legacy=false}={}){
+ if(projectionVersion==='v5')return forModelV4(result,{maxBytes,legacy:false,richWeekly:true});
  if(projectionVersion==='v4')return forModelV4(result,{maxBytes,legacy});
  if(!Number.isSafeInteger(maxBytes)||maxBytes<1024||maxBytes>64000)
   throw Error('模型证据字节预算无效');
