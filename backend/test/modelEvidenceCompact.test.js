@@ -41,3 +41,38 @@ test('compact investigation preserves reported source clock while refusing compl
  assert.equal(out.evidence[0].coverage.periodMatched,false);
  assert.ok(Buffer.byteLength(JSON.stringify(out))<=3500);
 });
+
+test('weekly projection preserves bounded operations, registration cohorts and source freshness',()=>{
+ const privateId='user:private-123';
+ const result=forModel({status:'ok',evidence:[{
+  id:'weekly-rich',metricId:'activities',unit:'users',
+  value:{
+   humanOperations:[{kind:'growth_activity',source:'growth_activities',
+    assignments:[{group:'treatment',assigned:4,delivered:3,
+     sent_unconfirmed:0,not_delivered:0,delivery_unknown:1,cross_exposed:1}],
+    outcome:{summary:{completed:2,eligible:4},
+     performance:{trade_users:1,transactions:2,volume_usd:12}}}],
+   cohorts:{registration:{available:true,
+    metrics:{users:20,eligible:15,activated:9,pending:5,rate:.6},
+    engagement:{eligible:15,chip_analysis_users:8,holder_view_users:5},
+    trade:{available:true,conversion_rate:.25,traders:3,eligible:12,pending:4}}},
+   channels:[{source:'seo',users:17,visits:100,memberIds:[privateId]}],
+   rows:[{user_id:privateId}]
+  },
+  period:{start:100,end:200,timezone:'Asia/Bangkok'},
+  coverage:{status:'partial',periodMatched:true,historyComplete:false},
+  sourceMetadata:{sourceType:'event_snapshot',clock:'event_time',scope:'all',
+   coverageStatus:'partial',freshness:{status:'unverified',
+    referenceAt:'2026-10-30T00:00:00.000Z',reportedCompleteThrough:null}},
+  watermarks:{events:'2026-10-30T00:00:00.000Z',eventsCompleteThrough:null}
+ }]},{projectionVersion:'v4',maxBytes:3500});
+ const e=result.evidence[0];
+ assert.equal(e.value.humanOperations[0].assignments[0].delivered,3);
+ assert.equal(e.value.cohorts.registration.metrics.activated,9);
+ assert.equal(e.value.cohorts.registration.engagement.chip_analysis_users,8);
+ assert.equal(e.value.channels[0].users,17);
+ assert.equal(e.sourceMetadata.freshness.status,'unverified');
+ assert.equal(e.coverage.periodMatched,true);
+ assert.equal(e.watermarks.eventsCompleteThrough,null);
+ assert.ok(!JSON.stringify(e).includes(privateId));
+});

@@ -40,7 +40,7 @@ const numeric=new Set([
  'inputTokens','outputTokens','totalTokens','knownCostUsd',
  'exposures','clicked','exposed_users','clicked_users','unmatched_clicks','missing_visit_clicks',
  'visitor_users','clicks','details','successes','day',
- 'confidence_interval_low','confidence_interval_high','min','max',
+ 'confidence_interval_low','confidence_interval_high','min','max','rank',
  'week','weekStart','weekEnd','targetValue','effectivenessScore','evidenceCount',
  'observedAt','capturedAt','sourceAsOf','followers','followerChange','measuredPosts','engagementRate',
  'views','posts','replies','retweets','reposts','engagements',
@@ -73,7 +73,7 @@ const categories=new Set(['source','device','version','app_version','user_stage'
  'association','family','definitionVersion','ruleVersion','user_pool',
  'scope','qualityStatus','category','name','period','state','browser','relationshipType','stage',
  'coverage','quality','scene',
- 'os','event_name','group','metricName','currency','trafficSource',
+ 'os','event_name','group','metricName','currency','trafficSource','keyword',
  'list_type','page_name','layer','targetMetric','financeSource','collection','siteUrl','startDate','endDate','dateTimezone','attribution','sourceKind','publishedAt','group','action','channel']);
 const notes=new Set(['definition','warnings','warning','reason','error','interpretation',
  'priorityExplanation','scoreExplanation','summary','note','description',
@@ -349,7 +349,7 @@ function compactWeeklyValue(value){
  if(!value||typeof value!=='object')return null;
  const arrayKeys=new Set(['steps','stages','drops','channels','groups','cohorts',
   'sources','bySource','humanOperations','assignments','scheduleChanges',
-  'families','series','trends','items','days','samplePosts']);
+  'families','series','trends','items','days','samplePosts','rankings']);
  let truncated=false;
  const compact=(node,key='',depth=0)=>{
   if(node==null)return null;

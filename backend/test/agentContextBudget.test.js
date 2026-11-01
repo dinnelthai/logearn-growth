@@ -26,3 +26,16 @@ test('recent memory is bounded while preserving some older negative evidence',()
  assert.ok(view.items.every(x=>Buffer.byteLength(x.business_problem,'utf8')<=360));
  assert.equal(JSON.stringify(rows),original);
 });
+
+test('memory scope and validation metrics stay valid structured JSON when oversized',()=>{
+ const rows=[{id:'m1',business_problem:'problem',action:'action',
+  validation_metrics:{primary:'active_users',secondary:['new_users','d7','revenue','active_users'],
+   oversized:'x'.repeat(5000)},
+  applicable_scope:{source:'all',unneeded:'x'.repeat(5000)}}];
+ const item=compactMemory(rows).items[0];
+ const roundTrip=JSON.parse(JSON.stringify(item));
+ assert.deepEqual(roundTrip.validation_metrics,{
+  primary:'active_users',secondary:['new_users','d7','revenue']});
+ assert.deepEqual(roundTrip.applicable_scope,{source:'all'});
+ assert.equal(typeof roundTrip.validation_metrics,'object');
+});

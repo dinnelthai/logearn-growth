@@ -315,3 +315,53 @@ test('legacy protocol remains v1 unless a new task opts in',async()=>{
  assert.match(env.observed[0].messages[0].content,/token-efficiency-v1/);
  assert.match(env.observed[0].messages[1].content,/aggregated-business-v1/);
 });
+
+test('v5 weekly history retains query identity, activity/registration stats and source freshness',async()=>{
+ const ctx=context();
+ ctx.business.focusGoal='activation';
+ ctx.weeklyCoverage={version:'weekly-coverage-v1',modules:[{
+  id:'operations-timeline',status:'collected',evidenceIds:[],facts:[]}]};
+ const env=setup([investigations,investigations,final]);
+ env.investigate=async q=>{
+  env.tools.push(q);
+  return {status:'ok',evidence:[{
+   id:'weekly-rich-'+env.tools.length,metricId:'activities',unit:'users',
+   value:{
+    humanOperations:[{kind:'growth_activity',source:'growth_activities',
+     assignments:[{group:'treatment',assigned:4,delivered:3,
+      sent_unconfirmed:0,not_delivered:0,delivery_unknown:1,cross_exposed:1}],
+     outcome:{summary:{completed:2},performance:{trade_users:1,transactions:2}}}],
+    cohorts:{registration:{available:true,
+     metrics:{users:20,eligible:15,activated:9,pending:5,rate:.6},
+     engagement:{eligible:15,chip_analysis_users:8,holder_view_users:5},
+     trade:{available:true,conversion_rate:.25,traders:3,eligible:12,pending:4}}},
+    channels:[{source:'seo',users:17,visits:100}],
+    rows:[{user_id:'user:private-123'}]
+   },
+   period:{start:100,end:200,timezone:'Asia/Bangkok'},
+   coverage:{status:'partial',periodMatched:true,historyComplete:false},
+   sourceMetadata:{sourceType:'event_snapshot',clock:'event_time',scope:'all',
+    coverageStatus:'partial',freshness:{status:'unverified',
+     referenceAt:'2026-10-30T00:00:00.000Z',reportedCompleteThrough:null}},
+   watermarks:{events:'2026-10-30T00:00:00.000Z',eventsCompleteThrough:null},
+   warnings:['history incomplete']
+  }]};
+ };
+ const result=await runner().runTask({context:ctx,prompt:'weekly v5 context test',
+  contextVersion:'v5',ownerId:'o',operationId:'v5-history-context',
+  operationType:'analysis',...env,validate:()=>{}});
+ assert.equal(result.analysis.summary,'周报完成');
+ assert.equal(env.observed.length,3);
+ const message=env.observed[2].messages.find(x=>x.content.includes('"priorToolEvidence"'));
+ assert.ok(message,'earlier tool evidence must be compacted, not discarded');
+ const prior=JSON.parse(message.content).priorToolEvidence[0];
+ assert.equal(prior.query.input.start,100);
+ assert.match(prior.queryFingerprint,/^[a-f0-9]{16}$/);
+ const e=prior.evidence[0];
+ assert.equal(e.period.start,100);
+ assert.equal(e.sourceMetadata.freshness.status,'unverified');
+ assert.equal(e.value.humanOperations[0].assignments[0].delivered,3);
+ assert.equal(e.value.cohorts.registration.engagement.chip_analysis_users,8);
+ assert.equal(e.value.channels[0].users,17);
+ assert.ok(!JSON.stringify(prior).includes('user:private-123'));
+});

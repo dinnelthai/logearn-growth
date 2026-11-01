@@ -220,3 +220,31 @@ test('weekly evidence projection preserves registration activation numerator, ma
  assert.ok(tradeFacts.some(x=>x.metric==='registered_trade_eligible'&&x.value===12));
  assert.ok(tradeFacts.some(x=>x.metric==='registered_trade_pending'&&x.value===4));
 });
+
+test('module evidence and per-fact citation IDs survive before supplementary KPI evidence',()=>{
+ const raw=fixture();
+ const view=modelContext(raw,{transportVersion:'v4'});
+ const moduleIds=raw.weeklyCoverage.modules.map(x=>x.evidenceIds?.[0]).filter(Boolean);
+ for(const id of moduleIds)
+  assert.ok(view.evidence.some(e=>e.id===id),'module evidence must survive: '+id);
+ const operations=view.weeklyCoverage.find(x=>x.id==='operations-timeline');
+ assert.equal(operations.stats[0].evidenceId,'module-operations-timeline');
+ const channels=view.weeklyCoverage.find(x=>x.id==='channel-growth');
+ assert.ok(channels.stats.some(x=>x.evidenceId==='module-channel-growth'),
+  'fallback facts must carry the evidence ID that actually contains them');
+});
+test('v5 operating memory keeps a recent lesson and older positive/negative counterexamples',()=>{
+ const raw=fixture();
+ raw.memory=Array.from({length:12},(_,i)=>({
+  id:'memory-'+i,business_problem:'problem '+i,action:'action '+i,
+  result_summary:'result '+i,user_status:'executed',
+  effectiveness:i<10?'effective':i===10?'ineffective':'unknown',
+  validation_metrics:{primary:'active_users'},applicable_scope:{source:'all'}
+ }));
+ const view=modelContext(raw,{transportVersion:'v5'});
+ const ids=view.operatingMemory.items.map(x=>x.problem);
+ assert.ok(ids.includes('problem 0'),'latest memory remains visible');
+ assert.ok(ids.includes('problem 10'),'older ineffective lesson remains visible');
+ assert.ok(ids.includes('problem 11'),'older unknown lesson remains visible');
+ assert.ok(Buffer.byteLength(JSON.stringify(view),'utf8')<=22000);
+});
