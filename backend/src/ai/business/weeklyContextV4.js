@@ -114,10 +114,11 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
   const maxFacts=['channel-growth','activation-funnel','operations-timeline'].includes(row.id)?12:4;
   const facts=(row.facts||[]).filter(f=>valid(f.value)&&typeof f.metric==='string')
    .slice(0,maxFacts).map(f=>({metric:safeText(f.metric,110),
-    path:'stats.'+safeText(f.metric,110),value:f.value}));
+    path:'stats.'+safeText(f.metric,110),value:f.value,
+    ...(typeof f.evidenceId==='string'?{evidenceId:f.evidenceId}:{})}));
   if(!facts.length)for(const e of evidence){
    for(const f of factsFromValue(modelEvidence(e).value,4)){
-    if(!facts.some(x=>x.metric===f.metric))facts.push(f);
+    if(!facts.some(x=>x.metric===f.metric))facts.push({...f,evidenceId:e.id});
     if(facts.length>=maxFacts)break;
    }
    if(facts.length>=maxFacts)break;
@@ -186,18 +187,42 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
    classification:coverage==='period-evidence'?'observed-increase;replicability-unverified':
     'snapshot-increase;period-evidence-incomplete'
   })):null;
+ // Give every module its first cited observation before adding extra KPI
+ // snapshots. coreMetrics already carries current/previous values and IDs, so
+ // its extra evidence rows must not crowd SEO, KOL, X or operations out.
+ const moduleEvidenceIds=summaries.flatMap(m=>(m.evidenceIds||[]).slice(0,1));
+ const coreEvidenceIds=core.flatMap(x=>x.evidenceIds);
+ const extraModuleIds=summaries.flatMap(m=>(m.evidenceIds||[]).slice(1,2));
  const favored=new Set([
-  ...core.flatMap(x=>x.evidenceIds),
-  ...summaries.filter(m=>m.status==='collected'||m.status==='analyzed')
-   .flatMap(m=>(m.evidenceIds||[]).slice(0,1)),
-  ...(raw.weeklySources?.seo?.evidenceIds||[])
+  ...moduleEvidenceIds,
+  ...(raw.weeklySources?.seo?.evidenceIds||[]),
+  ...coreEvidenceIds,
+  ...extraModuleIds
  ]);
  const ordered=[...favored].map(id=>byId.get(id)).filter(Boolean);
- const evidence=ordered.slice(0,16).map(e=>{
+ const evidence=ordered.slice(0,24).map(e=>{
   const sanitized=modelEvidence(e);
   const value=sanitized.value;
-  const stats=typeof value==='number'||value===null?[]:factsFromValue(value,5);
+  const stats=typeof value==='number'||value===null?[]:
+   factsFromValue(value,5).map(f=>({...f,evidenceId:sanitized.id}));
   const scalar=typeof value==='number'||value===null?value:undefined;
+  const coverage=sanitized.coverage||{};
+  const watermarks=sanitized.watermarks||{};
+  const source=sanitized.sourceMetadata||{};
+  const compactWatermarks=Object.fromEntries(
+   ['events','eventsCompleteThrough','registrations','trades','searchConsole','x','kol','followerScan']
+    .filter(key=>typeof watermarks[key]==='string'&&watermarks[key])
+    .map(key=>[key,watermarks[key]])
+  );
+  const freshness=source.freshness||{};
+  const sourceMetadata=source.sourceType?{
+   sourceType:source.sourceType,clock:source.clock,scope:source.scope,
+   coverageStatus:source.coverageStatus,
+   freshness:{status:freshness.status||'unverified',
+    ...(freshness.referenceAt?{referenceAt:freshness.referenceAt}:{}),
+    ...(freshness.reportedCompleteThrough?
+     {reportedCompleteThrough:freshness.reportedCompleteThrough}:{})}
+  }:null;
   return {
    id:sanitized.id,metricId:sanitized.metricId,
    ...(scalar!==undefined?{value:scalar}:{}),
@@ -206,9 +231,13 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
    ...(sanitized.numerator!=null?{numerator:sanitized.numerator}:{}),
    ...(sanitized.denominator!=null?{denominator:sanitized.denominator}:{}),
    period:{start:sanitized.period?.start??null,end:sanitized.period?.end??null},
-   coverage:{status:sanitized.coverage?.status||'unknown',
-    ...(typeof sanitized.coverage?.periodMatched==='boolean'?
-     {periodMatched:sanitized.coverage.periodMatched}:{})}
+   coverage:{status:coverage.status||'unknown',
+    ...(typeof coverage.periodMatched==='boolean'?{periodMatched:coverage.periodMatched}:{}),
+    ...(typeof coverage.historyComplete==='boolean'?{historyComplete:coverage.historyComplete}:{}),
+    ...(typeof coverage.truncated==='boolean'?{truncated:coverage.truncated}:{})},
+   ...(Object.keys(compactWatermarks).length?{watermarks:compactWatermarks}:{}),
+   ...(sourceMetadata?{sourceMetadata}:{}),
+   ...(sanitized.warnings?.length?{warnings:sanitized.warnings.slice(0,1)}:{})
   };
  });
  const originalCapabilities=Array.isArray(raw.capabilities)?raw.capabilities:[];
@@ -312,22 +341,34 @@ function buildWeeklyContextV4(raw,{modelEvidence,compactCapabilities,safeText,re
   }
  };
  const size=()=>Buffer.byteLength(JSON.stringify(out),'utf8');
- // Statistical facts and every module's status outrank tool documentation.
+ // Statistics, module status and source freshness outrank repeated tool prose.
  if(size()>CAP){
   out.capabilities=out.capabilities.map(x=>({id:x.id,required:x.required,
    input:reviewRevision>=2?x.input:Object.fromEntries(Object.entries(x.input).slice(0,5))}));
-  out.otherAvailableTools=out.otherAvailableTools.slice(0,20);
+  out.otherAvailableTools=out.otherAvailableTools.slice(0,12);
  }
- // At most one evidence from each relevant module survives before surplus.
- while(size()>CAP&&out.evidence.length>4)out.evidence.pop();
- out.evidenceMeta.shown=out.evidence.length;
+ // First reduce detail inside each evidence item; keep its ID, period,
+ // coverage and source watermark so facts remain auditable.
  if(size()>CAP){
-  out.weeklyCoverage=out.weeklyCoverage.map(x=>({id:x.id,status:x.status,
+  out.evidence=out.evidence.map(e=>({...e,
+   ...(e.stats?{stats:e.stats.slice(0,3)}:{}),
+   ...(e.warnings?{warnings:e.warnings.slice(0,1)}:{})}));
+ }
+ // Preserve every module's status and at least its top evidence-linked facts.
+ if(size()>CAP){
+  out.weeklyCoverage=out.weeklyCoverage.map(x=>({...x,
+   ...(x.stats?{stats:x.stats.slice(0,4)}:{})}));
+ }
+ if(size()>CAP){
+  out.weeklyCoverage=out.weeklyCoverage.map(x=>({...x,
    ...(x.stats?{stats:x.stats.slice(0,2)}:{})}));
  }
- // Core report metrics and module coverage have higher priority than
- // optional query-economics hints when approaching the strict byte budget.
- if(size()>CAP&&out.questionPriority?.length)out.questionPriority=out.questionPriority.slice(0,1);
+ // Core KPI values are already present in coreMetrics; when needed, retain
+ // one evidence row per module before dropping supplementary KPI evidence.
+ if(size()>CAP){
+  out.evidence=out.evidence.filter(e=>moduleEvidenceIds.includes(e.id));
+  out.evidenceMeta.shown=out.evidence.length;
+ }
  if(size()>CAP&&out.questionPriority?.length)out.questionPriority=[];
  if(size()>CAP)throw Error('AI 周报精简统计上下文仍超出安全预算，尚未调用付费模型');
  return out;

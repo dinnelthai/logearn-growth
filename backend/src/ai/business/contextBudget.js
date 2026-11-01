@@ -1,18 +1,26 @@
 'use strict';
 // These are model-facing summaries, not changes to stored/source evidence.
-// Omissions remain explicit so the model cannot mistake an excerpt for full history.
+// Omitted records stay explicit; truncated structured fields remain valid JSON.
 const text=(value,limit)=>{
  if(typeof value!=='string')return '';
  if(Buffer.byteLength(value,'utf8')<=limit)return value;
- // Truncate on a UTF-8 byte boundary; never emit a replacement character.
  return Buffer.from(value,'utf8').subarray(0,limit).toString('utf8')
   .replace(/\uFFFD+$/g,'');
 };
-const boundedJson=(value,limit)=>{
- if(value==null)return null;
- const serialized=JSON.stringify(value);
- return serialized.length>limit?serialized.slice(0,limit)+' [truncated JSON excerpt]':value;
-};
+function compactValidationMetrics(value){
+ if(!value||typeof value!=='object'||Array.isArray(value))return null;
+ const primary=typeof value.primary==='string'?text(value.primary,80):'';
+ const secondary=Array.isArray(value.secondary)?
+  [...new Set(value.secondary.filter(x=>typeof x==='string').map(x=>text(x,80)).filter(Boolean))].slice(0,3):[];
+ if(!primary&&!secondary.length)return null;
+ return {...(primary?{primary}:{}),...(secondary.length?{secondary}:{})};
+}
+function compactApplicableScope(value){
+ if(!value||typeof value!=='object'||Array.isArray(value))return null;
+ const source=typeof value.source==='string'&&/^[a-z0-9_-]{1,80}$/i.test(value.source)?
+  value.source:'all';
+ return {source};
+}
 function compactChanges(rows,{limit=16,maxContent=650}={}){
  if(!Array.isArray(rows)||!Number.isInteger(limit)||limit<1||limit>50||
    !Number.isInteger(maxContent)||maxContent<100||maxContent>2000)
@@ -34,7 +42,7 @@ function compactMemory(rows,{limit=16}={}){
   throw Error('历史经验摘要配置无效');
  const chosen=rows.slice(0,Math.min(limit,10));
  const seen=new Set(chosen.map(r=>r.id));
- // Preserve older negative and positive feedback as counterexamples.
+ // Keep older positive and negative outcomes as counterexamples.
  for(const kind of ['ineffective','effective','unknown','rejected']){
   if(chosen.length>=limit)break;
   const match=rows.slice(10).find(x=>!seen.has(x.id)&&x.effectiveness===kind);
@@ -51,8 +59,8 @@ function compactMemory(rows,{limit=16}={}){
   result_summary:text(r.result_summary,400),
   effectiveness:r.effectiveness??null,user_status:r.user_status??null,
   rejection_reason:text(r.rejection_reason,240),
-  validation_metrics:boundedJson(r.validation_metrics,400),
-  applicable_scope:boundedJson(r.applicable_scope,400),
+  validation_metrics:compactValidationMetrics(r.validation_metrics),
+  applicable_scope:compactApplicableScope(r.applicable_scope),
   executed_at:r.executed_at??null,reviewed_at:r.reviewed_at??null,
   updated_at:r.updated_at??null
  }));

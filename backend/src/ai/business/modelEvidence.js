@@ -1,5 +1,5 @@
 'use strict';
-const {modelEvidence,safeText}=require('./modelTransport');
+const {modelEvidence,safeText,compactWeeklyValue}=require('./modelTransport');
 // Every output follows a positive aggregate-only schema, including small
 // results. Old size-only trimming leaked entire user-level "rows" when short.
 // V4 projects each aggregate evidence item independently. Previously, two
@@ -19,24 +19,10 @@ function forModelV4(result,{maxBytes=3500,legacy=false}={}){
  const extract=value=>{
   if(value==null||number(value))return value;
   if(typeof value!=='object')return null;
-  const out={};
-  const fields=['metrics','totals','summary','counts','global','conversion',
-   'retention','trade','contentSignals','xOfficial','product_chain'];
-  const nums=o=>o&&typeof o==='object'&&!Array.isArray(o)?
-   Object.fromEntries(Object.entries(o).filter(([key,v])=>
-    number(v)&&!/^(?:id|timestamp|postId|tweetId)$/.test(key)).slice(0,8)):{};
-  Object.assign(out,nums(value));
-  for(const field of fields){
-   const nested=nums(value[field]);
-   if(Object.keys(nested).length)out[field]=nested;
-  }
-  // modelEvidence has already removed row-level data and identifiers.
-  for(const field of legacy?[]:['steps','stages','drops','channels','groups','cohorts','sources']){
-   if(Array.isArray(value[field]))out[field]=value[field].slice(0,6);
-  }
-  if(typeof value.available==='boolean')out.available=value.available;
-  if(!Object.keys(out).length)out.detailOmitted=true;
-  return out;
+  // Share the same allowlisted aggregate projector as initial context and
+  // history compaction; keep nested registration/activity facts, not raw rows.
+  const compact=compactWeeklyValue(value);
+  return compact&&typeof compact==='object'?compact:{detailOmitted:true};
  };
  const projected=rows.slice(0,24).map(row=>{
   const e=modelEvidence(row);

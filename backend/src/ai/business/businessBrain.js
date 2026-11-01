@@ -112,7 +112,21 @@ function buildBusinessBrainContext({focusGoal='activation'}={}){
 function projectOperatingMemory(rows,{safeText,limit=3}={}){
  if(!Array.isArray(rows)||typeof safeText!=='function'||
   !Number.isSafeInteger(limit)||limit<1||limit>5)throw Error('运营记忆投影参数无效');
- const items=rows.slice(0,limit).map(row=>{
+ const selected=[],seen=new Set();
+ const add=row=>{
+  if(!row||selected.length>=limit||seen.has(row.id))return;
+  selected.push(row);seen.add(row.id);
+ };
+ // Keep the latest lesson, then deliberately reserve room for counterexamples.
+ // Otherwise the first three recent positive records can hide every failure.
+ add(rows[0]);
+ for(const kind of ['ineffective','unknown','effective']){
+  if(selected.length>=limit)break;
+  add(rows.find((row,index)=>index>0&&row.effectiveness===kind));
+ }
+ if(selected.length<limit)add(rows.find((row,index)=>index>0&&row.user_status==='rejected'));
+ for(const row of rows){if(selected.length>=limit)break;add(row)}
+ const items=selected.map(row=>{
   const validation=row.validation_metrics&&typeof row.validation_metrics==='object'?
    row.validation_metrics:{};
   const primary=typeof validation.primary==='string'&&METRIC_IDS.includes(validation.primary)?

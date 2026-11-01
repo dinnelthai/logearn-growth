@@ -155,16 +155,31 @@ function statView(value,{depth=0,maxRows=MAX_GROUPS}={}){
  return result;
 }
 const numericFact=value=>typeof value==='number'&&Number.isFinite(value)?value:null;
-function attachBusinessBrain(context,raw){
+function buildBusinessBrainProjection(raw){
  const brain=require('./businessBrain');
- context.transportVersion='aggregated-business-v5';
- context.businessBrain=brain.buildBusinessBrainContext({
-  focusGoal:raw.focusGoal||raw.business?.focusGoal||'activation'
+ const rows=Array.isArray(raw.memory)?raw.memory:[];
+ const build=limit=>({
+  businessBrain:brain.buildBusinessBrainContext({
+   focusGoal:raw.focusGoal||raw.business?.focusGoal||'activation'
+  }),
+  operatingMemory:brain.projectOperatingMemory(rows,{safeText,limit}),
+  omissions:{businessBrain:'businessBrain 是版本化经营知识，不是数值证据；operatingMemory 仅覆盖已有AI建议与复盘记录，不代表全部运营活动。'}
  });
- context.operatingMemory=brain.projectOperatingMemory(
-  Array.isArray(raw.memory)?raw.memory:[],{safeText,limit:3}
- );
- context.omissions.businessBrain='businessBrain 是版本化经营知识，不是数值证据；operatingMemory 仅覆盖已有AI建议与复盘记录，不代表全部运营活动。';
+ let limit=Math.min(3,Math.max(1,rows.length));
+ let projection=build(limit);
+ let bytes=Buffer.byteLength(JSON.stringify(projection),'utf8')+128;
+ while(bytes>12000&&limit>1){
+  projection=build(--limit);
+  bytes=Buffer.byteLength(JSON.stringify(projection),'utf8')+128;
+ }
+ if(bytes>12000)throw Error('Business Brain 固定知识超过上下文预留预算；尚未调用付费模型');
+ return {projection,reserveBytes:bytes};
+}
+function attachBusinessBrain(context,projection){
+ context.transportVersion='aggregated-business-v5';
+ context.businessBrain=projection.businessBrain;
+ context.operatingMemory=projection.operatingMemory;
+ context.omissions.businessBrain=projection.omissions.businessBrain;
  const bytes=Buffer.byteLength(JSON.stringify(context),'utf8');
  if(bytes>22000)throw Error('Business Brain 与经营上下文合计超过22000字节预算；尚未调用付费模型');
  return context;
@@ -332,58 +347,44 @@ function shareEvidenceProvenance(context){
 function compactWeeklyValue(value){
  if(value===null||typeof value==='number')return value;
  if(!value||typeof value!=='object')return null;
- const result={};
- const allowed=['metrics','totals','summary','counts','global','conversion',
-  'retention','trade','product_chain'];
- const extract=(object,limit)=>{
-  if(!object||typeof object!=='object'||Array.isArray(object))return null;
-  const entries=Object.entries(object).filter(([_,v])=>
-   typeof v==='number'&&Number.isFinite(v)).slice(0,limit);
-  return entries.length?Object.fromEntries(entries):null;
+ const arrayKeys=new Set(['steps','stages','drops','channels','groups','cohorts',
+  'sources','bySource','humanOperations','assignments','scheduleChanges',
+  'families','series','trends','items','days','samplePosts']);
+ let truncated=false;
+ const compact=(node,key='',depth=0)=>{
+  if(node==null)return null;
+  if(typeof node==='number')return Number.isFinite(node)&&numeric.has(key)?node:undefined;
+  if(typeof node==='boolean')return flags.has(key)?node:undefined;
+  if(typeof node==='string'){
+   if(categories.has(key))return safeText(node,80);
+   if(notes.has(key))return safeText(node,110);
+   return undefined;
+  }
+  if(Array.isArray(node)){
+   if(!arrayKeys.has(key)&&!groups.has(key))return undefined;
+   const limit=key==='steps'||key==='channels'||key==='groups'?6:4;
+   if(node.length>limit)truncated=true;
+   return node.slice(0,limit).map(item=>typeof item==='string'?
+    safeText(item,80):compact(item,'',depth+1)).filter(item=>item!==undefined);
+  }
+  if(!node||typeof node!=='object'||depth>5){truncated=true;return undefined}
+  const result={};let omitted=0,kept=0;
+  for(const [child,value] of Object.entries(node)){
+   let projected;
+   if(value===null||typeof value==='number'||typeof value==='boolean'||typeof value==='string')
+    projected=compact(value,child,depth+1);
+   else if(groups.has(child))projected=compact(value,child,depth+1);
+   if(projected===undefined){omitted++;continue}
+   if(kept>=16){omitted++;continue}
+   result[child]=projected;kept++;
+  }
+  if(omitted){result.omittedFields=omitted;truncated=true}
+  return result;
  };
- for(const name of allowed){
-  const numbers=extract(value[name],name==='metrics'?10:6);
-  if(numbers)result[name]=numbers;
- }
- if(Array.isArray(value.steps)){
-  const steps=value.steps.slice(0,8).map(row=>{
-   const out={};
-   if(typeof row?.key==='string')out.key=safeText(row.key,60);
-   for(const key of ['users','eligible','converted','pending','unknown',
-    'previous_conversion_rate','total_eligible','total_conversion_rate','drop_off_users'])
-    if(typeof row?.[key]==='number'&&Number.isFinite(row[key]))out[key]=row[key];
-   return out;
-  }).filter(row=>Object.keys(row).length);
-  if(steps.length)result.steps=steps;
- }
- if(value.registration&&typeof value.registration==='object'){
-  const registration=value.registration,compactRegistration={};
-  const users=extract(registration,4);
-  if(users)Object.assign(compactRegistration,users);
-  for(const name of ['activation','engagement','trade']){
-   const numbers=extract(registration[name],name==='engagement'?12:8);
-   if(numbers)compactRegistration[name]=numbers;
-   if(name==='trade'&&typeof registration.trade?.available==='boolean')
-    compactRegistration.trade={...(compactRegistration.trade||{}),available:registration.trade.available};
-  }
-  if(typeof registration.coverage?.status==='string'){
-   compactRegistration.coverage={status:safeText(registration.coverage.status,30)};
-   if(typeof registration.coverage.historyComplete==='boolean')
-    compactRegistration.coverage.historyComplete=registration.coverage.historyComplete;
-   if(typeof registration.coverage.eventsCompleteThrough==='string')
-    compactRegistration.coverage.eventsCompleteThrough=safeText(registration.coverage.eventsCompleteThrough,60);
-   if(typeof registration.coverage.reason==='string')
-    compactRegistration.coverage.reason=safeText(registration.coverage.reason,100);
-  }
-  if(typeof registration.available==='boolean')compactRegistration.available=registration.available;
-  if(Object.keys(compactRegistration).length)result.registration=compactRegistration;
- }
- const own=extract(value,8);
- if(own)Object.assign(result,own);
- if(typeof value.available==='boolean')result.available=value.available;
- if(typeof value.status==='string')result.status=safeText(value.status,30);
- if(!Object.keys(result).length)return {detailOmitted:true};
- return result;
+ const result=compact(value);
+ if(!result||typeof result!=='object')return result??{detailOmitted:true};
+ if(truncated)result.truncated=true;
+ return Object.keys(result).length?result:{detailOmitted:true};
 }
 function compactWeeklyEvidence(e,{briefValue=false}={}){
  const out={id:e.id,metricId:e.metricId,unit:e.unit,value:briefValue?
@@ -549,16 +550,17 @@ function modelContext(raw,{transportVersion='v1',reviewRevision=0,reserveBytes=0
  if(!['v1','v2','v3','v4','v5'].includes(transportVersion))throw Error('不支持的模型上下文版本');
  if(!Number.isSafeInteger(reserveBytes)||reserveBytes<0||reserveBytes>12000)throw Error('上下文预留预算无效');
  if(transportVersion==='v5'){
-  const memoryRows=Array.isArray(raw.memory)?Math.min(3,raw.memory.length):0;
-  // Reserve headroom for the operator-confirmed North Star policy.
-  // Weekly compaction drops optional context first; the final cap stays 22KB.
-  const reserve=reserveBytes||9000+memoryRows*1000;
+  // Calculate the exact fixed knowledge payload instead of guessing how many
+  // bytes each memory row consumes. Reserve it before compacting KPI evidence.
+  const fixed=buildBusinessBrainProjection(raw);
+  const reserve=Math.max(reserveBytes,fixed.reserveBytes);
+  if(reserve>12000)throw Error('Business Brain 实际占用超过安全预留预算；尚未调用付费模型');
   const base=raw.weeklyCoverage?.version==='weekly-coverage-v1'?
    require('./weeklyContextV4').buildWeeklyContextV4(raw,{
     modelEvidence,compactCapabilities,safeText,reviewRevision,reserveBytes:reserve,includeDecisionSignals:true
    }):
    modelContext(raw,{transportVersion:'v3',reviewRevision,reserveBytes:reserve});
-  return attachBusinessBrain(base,raw);
+  return attachBusinessBrain(base,fixed.projection);
  }
  if(transportVersion==='v4')return require('./weeklyContextV4').buildWeeklyContextV4(
   raw,{modelEvidence,compactCapabilities,safeText,reviewRevision});
@@ -740,4 +742,4 @@ function modelContext(raw,{transportVersion='v1',reviewRevision=0,reserveBytes=0
  if(!fits())throw Error('聚合模型上下文仍超出22000字节预算；需要缩小业务期间或来源');
  return context;
 }
-module.exports={statView,modelEvidence,modelContext,modelQuery,investigationKey,safeText,compactCapabilities};
+module.exports={statView,modelEvidence,modelContext,modelQuery,investigationKey,safeText,compactCapabilities,compactWeeklyValue};

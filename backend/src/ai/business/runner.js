@@ -2,7 +2,7 @@ const {createHash,randomUUID}=require('node:crypto');
 const {createClient, getConfig} = require('../llm');
 const {routeTask} = require('./policy');
 const {forModel}=require('./modelEvidence');
-const {modelContext,modelQuery,investigationKey}=require('./modelTransport');
+const {modelContext,modelQuery,investigationKey,modelEvidence,compactWeeklyValue}=require('./modelTransport');
 const {estimateChatTokens}=require('./tokenBudget');
 const {validateAnalysis}=require('./analysisContract');
 function buildSystemPrompt(prompt,contextVersion='v1') {
@@ -82,26 +82,50 @@ function compactV3History(messages,{preserveV4Stats=false,preserveQueries=false}
   let omitted=0;
   for(const item of reply.additionalEvidence){
    const rows=Array.isArray(item.result?.evidence)?item.result.evidence:[];
-   const kept=rows.slice(0,3).map(e=>({
-    id:e.id,metricId:e.metricId,unit:e.unit,
-    value:e.value&&typeof e.value==='object'?
-      (preserveV4Stats?Object.fromEntries(
-       ['metrics','totals','summary','counts','contentSignals']
-        .filter(k=>e.value[k]&&typeof e.value[k]==='object')
-        .map(k=>[k,Object.fromEntries(Object.entries(e.value[k])
-          .filter(([_,v])=>typeof v==='number'&&Number.isFinite(v))
-          .slice(0,6))])
-      ):{totals:e.value.totals??null,summary:e.value.summary??null,
-       dimensionsOmitted:true}):e.value,
-    numerator:e.numerator,denominator:e.denominator,sampleSize:e.sampleSize,
-    coverage:e.coverage?.status||'unknown',
-    warnings:(e.warnings||[]).slice(0,1)
-   }));
+   const kept=rows.slice(0,3).map(rawEvidence=>{
+    const e=modelEvidence(rawEvidence);
+    const value=preserveV4Stats?compactWeeklyValue(e.value):
+     e.value&&typeof e.value==='object'?
+      {totals:e.value.totals??null,summary:e.value.summary??null,
+       dimensionsOmitted:true}:e.value;
+    const watermarks=e.watermarks||{};
+    const compactWatermarks=Object.fromEntries(
+     ['events','eventsCompleteThrough','registrations','trades','searchConsole','x','kol','followerScan']
+      .filter(key=>typeof watermarks[key]==='string'&&watermarks[key])
+      .map(key=>[key,watermarks[key]])
+    );
+    const source=e.sourceMetadata||{},freshness=source.freshness||{};
+    return {
+     id:e.id,metricId:e.metricId,unit:e.unit,value,
+     numerator:e.numerator,denominator:e.denominator,sampleSize:e.sampleSize,
+     period:e.period?{start:e.period.start??null,end:e.period.end??null,
+      ...(e.period.timezone?{timezone:e.period.timezone}:{})}:null,
+     coverage:e.coverage?{
+      status:e.coverage.status||'unknown',
+      ...(typeof e.coverage.periodMatched==='boolean'?
+       {periodMatched:e.coverage.periodMatched}:{}),
+      ...(typeof e.coverage.historyComplete==='boolean'?
+       {historyComplete:e.coverage.historyComplete}:{})}:'unknown',
+     ...(Object.keys(compactWatermarks).length?{watermarks:compactWatermarks}:{}),
+     ...(source.sourceType?{sourceMetadata:{
+      sourceType:source.sourceType,clock:source.clock,scope:source.scope,
+      freshness:{status:freshness.status||'unverified',
+       ...(freshness.referenceAt?{referenceAt:freshness.referenceAt}:{}),
+       ...(freshness.reportedCompleteThrough?
+        {reportedCompleteThrough:freshness.reportedCompleteThrough}:{})}
+     }}:{}),
+     warnings:(e.warnings||[]).slice(0,1)
+    };
+   });
    omitted+=Math.max(0,rows.length-kept.length);
+   const query=preserveQueries?modelQuery(item.query,{extended:true}):undefined;
+   const queryFingerprint=preserveQueries?
+    createHash('sha256').update(investigationKey(item.query)).digest('hex').slice(0,16):undefined;
    summaries.push({tool:item.query?.tool||item.query?.kind||'unknown',
-    ...(preserveQueries?{query:item.query}:{}),
+    ...(query?{query,queryFingerprint}:{}),
     status:item.result?.status||'unavailable',evidence:kept,
     omittedEvidence:Math.max(0,rows.length-kept.length)});
+
   }
   const assistant={completedToolRequests:plan.investigations?.length??plan.completedToolRequests,
    omittedRequests:plan.omittedInvestigations||plan.omittedRequests||0};
@@ -337,7 +361,7 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
             :'根据统计证据继续分析；若查询被拒绝或数据缺失，须明确说明，不能猜测或把未知当作零'
       })});
       if(protocol==='v2')compactPreviousEvidence(messages);
-      if(protocol==='v3'||protocol==='v4'||protocol==='v5')compactV3History(messages,{preserveV4Stats:weeklyProtocol,preserveQueries:revision2});
+      if(protocol==='v3'||protocol==='v4'||protocol==='v5')compactV3History(messages,{preserveV4Stats:weeklyProtocol,preserveQueries:weeklyProtocol||revision2});
       continue;
     }
     try { await validate(value,context); }
