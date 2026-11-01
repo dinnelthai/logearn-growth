@@ -66,8 +66,9 @@ function compactMemory(rows,{limit=16}={}){
  }));
  return {items,meta:{total:rows.length,shown:items.length,
   omitted:rows.length-items.length,
-  truncatedEntries:chosen.filter(r=>['business_problem','action','actual_action','result_summary']
-   .some(k=>String(r[k]||'').length>({business_problem:360,action:240,actual_action:240,result_summary:400}[k]))).length,
+  truncatedEntries:chosen.filter(r=>Object.entries({
+   business_problem:360,action:240,actual_action:240,result_summary:400
+  }).some(([key,limit])=>Buffer.byteLength(String(r[key]||''),'utf8')>limit)).length,
   note:'摘要保留不同效果的复盘反证；原始结果未被修改，遗漏不等于不存在'}};
 }
 module.exports={compactChanges,compactMemory};

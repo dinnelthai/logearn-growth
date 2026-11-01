@@ -30,7 +30,7 @@ function forModelV4(result,{maxBytes=3500,legacy=false}={}){
    const nested=nums(value[field]);
    if(Object.keys(nested).length)out[field]=nested;
   }
-  for(const field of ['steps','stages','drops','channels','groups','cohorts','sources']){
+  for(const field of legacy?[]:['steps','stages','drops','channels','groups','cohorts','sources']){
    if(Array.isArray(value[field]))out[field]=value[field].slice(0,6);
   }
   if(typeof value.available==='boolean')out.available=value.available;

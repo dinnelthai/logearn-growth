@@ -62,7 +62,7 @@ function compactPreviousEvidence(messages){
 // v3 is only used by newly created jobs. Historical v1/v2 model
 // transcripts retain their exact message protocol for safe replay.
 // The complete model responses and tool results stay in the trace journal.
-function compactV3History(messages,{preserveV4Stats=false,preserveQueries=false}={}){
+function compactV3History(messages,{preserveV4Stats=false,preserveQueries=false,preserveV5Details=false}={}){
  const toolExchanges=[];
  for(let i=2;i<messages.length-1;i++){
   if(messages[i].role!=='assistant'||messages[i+1].role!=='user')continue;
@@ -83,11 +83,25 @@ function compactV3History(messages,{preserveV4Stats=false,preserveQueries=false}
   for(const item of reply.additionalEvidence){
    const rows=Array.isArray(item.result?.evidence)?item.result.evidence:[];
    const kept=rows.slice(0,3).map(rawEvidence=>{
+    // Keep v3/v4 archived tool-history shape unchanged. Rich nested details
+    // are enabled only for newly authored v5 weekly jobs.
+    if(!preserveV5Details){
+     const e=rawEvidence;
+     const value=e.value&&typeof e.value==='object'?
+      (preserveV4Stats?Object.fromEntries(
+       ['metrics','totals','summary','counts','contentSignals']
+        .filter(k=>e.value[k]&&typeof e.value[k]==='object')
+        .map(k=>[k,Object.fromEntries(Object.entries(e.value[k])
+         .filter(([_,v])=>typeof v==='number'&&Number.isFinite(v)).slice(0,6))])
+      ):{totals:e.value.totals??null,summary:e.value.summary??null,
+       dimensionsOmitted:true}):e.value;
+     return {id:e.id,metricId:e.metricId,unit:e.unit,value,
+      numerator:e.numerator,denominator:e.denominator,sampleSize:e.sampleSize,
+      coverage:e.coverage?.status||'unknown',
+      warnings:(e.warnings||[]).slice(0,1)};
+    }
     const e=modelEvidence(rawEvidence);
-    const value=preserveV4Stats?compactWeeklyValue(e.value):
-     e.value&&typeof e.value==='object'?
-      {totals:e.value.totals??null,summary:e.value.summary??null,
-       dimensionsOmitted:true}:e.value;
+    const value=compactWeeklyValue(e.value);
     const watermarks=e.watermarks||{};
     const compactWatermarks=Object.fromEntries(
      ['events','eventsCompleteThrough','registrations','trades','searchConsole','x','kol','followerScan']
@@ -361,7 +375,7 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
             :'根据统计证据继续分析；若查询被拒绝或数据缺失，须明确说明，不能猜测或把未知当作零'
       })});
       if(protocol==='v2')compactPreviousEvidence(messages);
-      if(protocol==='v3'||protocol==='v4'||protocol==='v5')compactV3History(messages,{preserveV4Stats:weeklyProtocol&&protocol==='v5',preserveQueries:(weeklyProtocol&&protocol==='v5')||revision2});
+      if(protocol==='v3'||protocol==='v4'||protocol==='v5')compactV3History(messages,{preserveV4Stats:weeklyProtocol,preserveQueries:(weeklyProtocol&&protocol==='v5')||revision2,preserveV5Details:weeklyProtocol&&protocol==='v5'});
       continue;
     }
     try { await validate(value,context); }
