@@ -38,8 +38,8 @@ function fixture(){
     evidenceIds:[extra[i].id],
     reason:x.id==='operations-timeline'?'部分来源达到读取上限，结果为有界样本':'已取得只读统计',
     facts:x.id==='operations-timeline'?[
-     {metric:'counts.human_operations_shown',value:4},
-     {metric:'counts.ai_actions_shown',value:2}
+     {metric:'counts.human_operations_shown',value:4,evidenceId:extra[i].id},
+     {metric:'counts.ai_actions_shown',value:2,evidenceId:extra[i].id}
     ]:[]}))},
   weeklySources:{seo:{status:'period-matched',periodMatched:true,
    evidenceIds:['module-seo-organic']}},
