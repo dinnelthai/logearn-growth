@@ -590,11 +590,26 @@ function modelContext(raw,{transportVersion='v1',reviewRevision=0,reserveBytes=0
   const fixed=buildBusinessBrainProjection(raw);
   const reserve=Math.max(reserveBytes,fixed.reserveBytes);
   if(reserve>12000)throw Error('Business Brain 实际占用超过安全预留预算；尚未调用付费模型');
-  const base=raw.weeklyCoverage?.version==='weekly-coverage-v1'?
+  const hasWeeklyManifest=raw.weeklyCoverage?.version==='weekly-coverage-v1';
+  const base=hasWeeklyManifest?
    require('./weeklyContextV4').buildWeeklyContextV4(raw,{
     modelEvidence,compactCapabilities,safeText,reviewRevision,reserveBytes:reserve,includeDecisionSignals:true
    }):
    modelContext(raw,{transportVersion:'v3',reviewRevision,reserveBytes:reserve});
+  if(!hasWeeklyManifest){
+   // Business Brain already carries the compact, versioned metric dictionary.
+   // Do not also send the generic 20-definition catalog in non-weekly v5 runs.
+   delete base.definitions;
+   // The full authorized capability catalog remains intact. Keep only the
+   // highest-ranked plan steps; the rest repeat tool IDs already in that catalog.
+   if(Array.isArray(base.growthPlan?.steps)){
+    base.growthPlan.steps=base.growthPlan.steps.slice(0,4).map(step=>({
+     ...step,reason:safeText(step.reason||'',90)
+    }));
+    base.growthPlan.omittedSteps=Math.max(0,(raw.growthPlan?.steps?.length||0)-base.growthPlan.steps.length);
+   }
+   if(Array.isArray(base.warnings))base.warnings=base.warnings.slice(0,6);
+  }
   return attachBusinessBrain(base,fixed.projection);
  }
  if(transportVersion==='v4')return require('./weeklyContextV4').buildWeeklyContextV4(

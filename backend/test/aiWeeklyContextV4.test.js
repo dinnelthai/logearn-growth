@@ -249,6 +249,15 @@ test('v5 operating memory keeps a recent lesson and older positive/negative coun
  assert.ok(Buffer.byteLength(JSON.stringify(view),'utf8')<=22000);
 });
 
+test('non-weekly v5 avoids duplicating metric definitions and long tool plans beside Business Brain',()=>{
+ const raw=fixture();raw.weeklyCoverage=null;
+ const view=modelContext(raw,{transportVersion:'v5'});
+ assert.equal(view.definitions,undefined,'Business Brain metricDictionary is the single metric-definition source');
+ assert.ok(view.businessBrain.metricDictionary.length>0);
+ assert.ok(view.growthPlan.steps.length<=4);
+ assert.equal(view.capabilities.length,DEFINITIONS.length,'authorized capability catalog stays intact');
+ assert.ok(Buffer.byteLength(JSON.stringify(view),'utf8')<=22000);
+});
 test('v5 includes a small redacted set of owner-entered business changes as non-evidence context',()=>{
  const raw=fixture();
  // Non-weekly v5 analyses have no operations-timeline module to carry these notes.
