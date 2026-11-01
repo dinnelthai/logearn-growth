@@ -251,6 +251,8 @@ test('v5 operating memory keeps a recent lesson and older positive/negative coun
 
 test('v5 includes a small redacted set of owner-entered business changes as non-evidence context',()=>{
  const raw=fixture();
+ // Non-weekly v5 analyses have no operations-timeline module to carry these notes.
+ raw.weeklyCoverage=null;
  raw.changes=Array.from({length:8},(_,i)=>({
   id:'change-'+i,kind:'activity',source:'growth',
   occurredAt:period.start+i*1000,validUntil:null,
