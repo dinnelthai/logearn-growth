@@ -10,6 +10,14 @@ function weeklyModelTimeoutMs(){
   throw Error('AI_WEEKLY_MODEL_TIMEOUT_MS 必须为 30000 至 540000 毫秒');
  return value;
 }
+// Weekly v5 may require several model rounds; do not share the shorter
+// general analysis deadline. This is still a HARD limit on new paid rounds.
+function weeklyTaskTimeoutMs(){
+ const value=Number(process.env.AI_WEEKLY_TASK_TIMEOUT_MS||1800000);
+ if(!Number.isSafeInteger(value)||value<600000||value>3600000)
+  throw Error('AI_WEEKLY_TASK_TIMEOUT_MS 必须为 600000 至 3600000 毫秒');
+ return value;
+}
 function weeklyPeriod(now=Date.now()){return lastCompleted('weekly',now);}
 function reportPeriod(input={},now=Date.now()){
  if(!input||typeof input!=='object'||Array.isArray(input))throw Error('报告时间范围无效');
@@ -293,4 +301,4 @@ function ensureWeeklyReport(analysis,{context=null}={}){
   return complete();
  }
 }
-module.exports={weeklyPeriod,reportPeriod,weeklyKey,reportKey,weeklyOperations,weeklyPrompt,weeklyPromptV2,weeklyPromptV3,customPeriodPromptV0,customPeriodPromptV1,validateWeeklyReport,ensureWeeklyReport,trustedWeeklyMetrics,weeklyModelTimeoutMs,LIFECYCLE_STAGES};
+module.exports={weeklyPeriod,reportPeriod,weeklyKey,reportKey,weeklyOperations,weeklyPrompt,weeklyPromptV2,weeklyPromptV3,customPeriodPromptV0,customPeriodPromptV1,validateWeeklyReport,ensureWeeklyReport,trustedWeeklyMetrics,weeklyModelTimeoutMs,weeklyTaskTimeoutMs,LIFECYCLE_STAGES};

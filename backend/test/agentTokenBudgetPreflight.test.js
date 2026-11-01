@@ -73,3 +73,33 @@ test('invalid message data fails closed',()=>{
  assert.throws(()=>estimateChatTokens([]),/模型消息为空/);
  assert.throws(()=>estimateChatTokens([{role:'user',content:null}]),/消息不完整/);
 });
+
+test('received final model response is validated even if the task deadline elapsed in flight',async()=>{
+ await withEnv({AI_TASK_TIMEOUT_MS:100,AI_TASK_MAX_CALLS:3},async()=>{
+  let now=1000,modelCalls=0,validated=0;
+  const result=await runTask(request('weekly final',{
+   timeNow:()=>now,clientFactory:()=>({chat:async()=>{
+    modelCalls++;now=1200;
+    return {content:JSON.stringify(completion),usage:{totalTokens:100},provider:'mock'};
+   }}),validate:()=>{validated++}
+  }));
+  assert.equal(result.analysis.summary,'ok');
+  assert.equal(modelCalls,1);
+  assert.equal(validated,1);
+ });
+});
+test('expired task never starts a second paid model call after a received investigation',async()=>{
+ await withEnv({AI_TASK_TIMEOUT_MS:100,AI_TASK_MAX_CALLS:3},async()=>{
+  let now=1000,modelCalls=0;const paid=[];
+  await assert.rejects(()=>runTask(request('weekly investigation',{
+   timeNow:()=>now,
+   paidCalls:{begin:async r=>paid.push('begin:'+r),finish:async(r,status)=>paid.push('end:'+r+':'+status)},
+   clientFactory:()=>({chat:async()=>{modelCalls++;now=1200;
+    return {content:JSON.stringify({investigations:[{kind:'north'}]}),usage:{totalTokens:100}};
+   }}),
+   investigate:async()=>({status:'ok',evidence:[]}),validate:()=>{}
+  })),/分析时间预算已达上限.*未发起下一轮付费请求/);
+  assert.equal(modelCalls,1);
+  assert.deepEqual(paid,['begin:0','end:0:received']);
+ });
+});

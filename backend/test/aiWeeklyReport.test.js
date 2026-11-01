@@ -188,3 +188,21 @@ test('missing v5 report sections are saved only as an explicit partial report wi
  assert.deepEqual(report.previousActions,[]);
  assert.ok(report.dataGaps.some(x=>x.includes('不代表没有运营')));
 });
+
+test('weekly analysis has its own configurable 30-minute hard budget',()=>{
+ const {weeklyTaskTimeoutMs}=require('../src/ai/growth/weeklyReport');
+ const original=process.env.AI_WEEKLY_TASK_TIMEOUT_MS;
+ try{
+  delete process.env.AI_WEEKLY_TASK_TIMEOUT_MS;
+  assert.equal(weeklyTaskTimeoutMs(),1800000);
+  process.env.AI_WEEKLY_TASK_TIMEOUT_MS='1200000';
+  assert.equal(weeklyTaskTimeoutMs(),1200000);
+  process.env.AI_WEEKLY_TASK_TIMEOUT_MS='0';
+  assert.throws(()=>weeklyTaskTimeoutMs(),/600000 至 3600000/);
+  process.env.AI_WEEKLY_TASK_TIMEOUT_MS='3600001';
+  assert.throws(()=>weeklyTaskTimeoutMs(),/600000 至 3600000/);
+ }finally{
+  if(original===undefined)delete process.env.AI_WEEKLY_TASK_TIMEOUT_MS;
+  else process.env.AI_WEEKLY_TASK_TIMEOUT_MS=original;
+ }
+});

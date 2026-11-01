@@ -222,7 +222,7 @@ async function businessAnalysis(job) {
     const result=await runTask({context:compact,prompt:isWeeklyReport?currentPrompt+'\n'+reportPrompt:currentPrompt,
       ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
       contextVersion:useWeeklyV5?'v5':useWeeklyV4?'v4':useBusinessBrainV5?'v5':useContextV3?'v3':'v1',
-      ...(isWeeklyReport?{modelTimeoutMs:weeklyReport.weeklyModelTimeoutMs()}:{}),
+      ...(isWeeklyReport?{modelTimeoutMs:weeklyReport.weeklyModelTimeoutMs(),taskTimeoutMs:weeklyReport.weeklyTaskTimeoutMs()}:{}),
       paidCalls:{
         begin:round=>executionClaim.record.filter_conditions?.proposalId
           ?require('../../ai/growth/budget').beginBudgetedPaidCall({
@@ -351,7 +351,7 @@ async function resumeIncompleteAnalysis(job){
       resumeRows:rows,systemPromptOverride:originalPrompt,
       relaxV2BudgetOnManualResume:matchingFailedWeekly&&failedForTokenBudget,
       investigate,traceStore:session.traceStore,beforeStep,
-      ...(record.filter_conditions?.weeklyReport==='v1'?{modelTimeoutMs:weeklyReport.weeklyModelTimeoutMs()}:{}),
+      ...(record.filter_conditions?.weeklyReport==='v1'?{modelTimeoutMs:weeklyReport.weeklyModelTimeoutMs(),taskTimeoutMs:weeklyReport.weeklyTaskTimeoutMs()}:{}),
       paidCalls:{
         begin:round=>record.filter_conditions?.proposalId
           ?require('../../ai/growth/budget').beginBudgetedPaidCall({

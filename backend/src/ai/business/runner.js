@@ -127,7 +127,7 @@ function validateReview(a) {
     || typeof a.conclusion!=='string' || !Array.isArray(a.confoundingFactors)) throw Error('复盘结果结构不完整');
   return a;
 }
-async function runTask({context,prompt,ownerId,operationId,operationType,mode='auto',investigate,validate=validateAnalysis,clientFactory=createClient,traceStore,beforeStep=async()=>{},paidCalls=null,resumeRows=[],systemPromptOverride=null,modelTimeoutMs=null,contextVersion='v1',relaxV2BudgetOnManualResume=false}) {
+async function runTask({context,prompt,ownerId,operationId,operationType,mode='auto',investigate,validate=validateAnalysis,clientFactory=createClient,traceStore,beforeStep=async()=>{},paidCalls=null,resumeRows=[],systemPromptOverride=null,modelTimeoutMs=null,taskTimeoutMs=null,timeNow=Date.now,contextVersion='v1',relaxV2BudgetOnManualResume=false}) {
   let routing=routeTask(context,mode);
   if(relaxV2BudgetOnManualResume&&
     (!systemPromptOverride||!Array.isArray(resumeRows)||!resumeRows.length))
@@ -164,13 +164,21 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
   if(resumeRows.some((row,i)=>row.round!==i || row.status!=='received' || row.prompts?.[operationType==='retrospective'?'review':'analysis']!==promptVersions[operationType==='retrospective'?'review':'analysis'] || row.result?.contextHash!==contextHash))
     throw Error('模型断点未确认或原始上下文不一致，禁止自动续跑');
   const maxCalls=Number(process.env.AI_TASK_MAX_CALLS || 6), maxBytes=Number(process.env.AI_TASK_MAX_INPUT_BYTES || 240000);
-  const maxTokens=Number(process.env.AI_TASK_MAX_TOKENS || 50000), deadline=Date.now()+Number(process.env.AI_TASK_TIMEOUT_MS || 600000);
+  const maxTokens=Number(process.env.AI_TASK_MAX_TOKENS || 50000);
+  const maxDuration=taskTimeoutMs??Number(process.env.AI_TASK_TIMEOUT_MS||600000);
   if (![maxCalls,maxBytes,maxTokens].every(n=>Number.isFinite(n)&&n>0)) throw Error('任务预算配置必须为正数');
+  if(!Number.isSafeInteger(maxDuration)||maxDuration<1||maxDuration>3600000)
+    throw Error('任务时间预算必须为 1 至 3600000 毫秒');
+  const deadline=timeNow()+maxDuration;
   let lastError,lastFailureKind='investigation';
   for (let round=0;round<maxCalls;round++) {
-    if (Date.now()>deadline || Buffer.byteLength(JSON.stringify(messages))>maxBytes)
-      throw Error('分析预算已达上限，必要调查尚未完成；请调整预算后重试，未保存为成功结果');
     const saved=resumeRows[round]||null;
+    // Replayed, already-paid responses remain safe to inspect after expiry.
+    // Only a NEW paid model round is blocked by the time budget.
+    if(timeNow()>deadline&&!saved)
+      throw Error('分析时间预算已达上限；已有模型响应及证据保留在断点，未发起下一轮付费请求');
+    if(Buffer.byteLength(JSON.stringify(messages))>maxBytes)
+      throw Error('分析输入体积已达上限，必要调查尚未完成；未发起下一轮付费请求');
     const model=saved?.result?.model||getConfig().defaultModel;
     let response,callTrace=traceContext;
     if(saved){
@@ -238,7 +246,11 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
       traceStore?.finish(traceContext,round,{...calls.at(-1),responseContent:response.content,contextHash});
       await paidCalls?.finish?.(round,'received');
     }
-    if(Date.now()>deadline)throw Error('分析时间预算已达上限，未保存为成功结果');
+    // Do not throw away a paid response received just after the task deadline.
+    // Validate and save it if it is a final answer. Further paid rounds still
+    // pass through the deadline preflight at the top of the loop.
+    if(timeNow()>deadline)
+      console.warn('分析时间预算已达到：继续校验已接收的模型响应，禁止再发起新的付费轮次');
     if(calls.reduce((n,c)=>n+c.tokens,0)>maxTokens)
       console.warn(`累计实际 Token 已超过参考预算 ${maxTokens}；记录告警并继续完成分析，不自动重发任何模型请求。`);
     let value;
