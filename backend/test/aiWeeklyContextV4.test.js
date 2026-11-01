@@ -223,7 +223,7 @@ test('weekly evidence projection preserves registration activation numerator, ma
 
 test('module evidence and per-fact citation IDs survive before supplementary KPI evidence',()=>{
  const raw=fixture();
- const view=modelContext(raw,{transportVersion:'v4'});
+ const view=modelContext(raw,{transportVersion:'v5'});
  const moduleIds=raw.weeklyCoverage.modules.map(x=>x.evidenceIds?.[0]).filter(Boolean);
  for(const id of moduleIds)
   assert.ok(view.evidence.some(e=>e.id===id),'module evidence must survive: '+id);

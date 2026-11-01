@@ -361,7 +361,7 @@ async function runTask({context,prompt,ownerId,operationId,operationType,mode='a
             :'根据统计证据继续分析；若查询被拒绝或数据缺失，须明确说明，不能猜测或把未知当作零'
       })});
       if(protocol==='v2')compactPreviousEvidence(messages);
-      if(protocol==='v3'||protocol==='v4'||protocol==='v5')compactV3History(messages,{preserveV4Stats:weeklyProtocol,preserveQueries:weeklyProtocol||revision2});
+      if(protocol==='v3'||protocol==='v4'||protocol==='v5')compactV3History(messages,{preserveV4Stats:weeklyProtocol&&protocol==='v5',preserveQueries:(weeklyProtocol&&protocol==='v5')||revision2});
       continue;
     }
     try { await validate(value,context); }

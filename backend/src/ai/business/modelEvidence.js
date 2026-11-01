@@ -16,11 +16,31 @@ function forModelV4(result,{maxBytes=3500,legacy=false}={}){
   'query_budget_exceeded','result_too_large','invalid_parameters']);
  const reason=knownReasons.has(result?.error?.type)?result.error.type:null;
  const number=v=>typeof v==='number'&&Number.isFinite(v);
+ const extractLegacy=value=>{
+  if(value==null||number(value))return value;
+  if(typeof value!=='object')return null;
+  const out={};
+  const fields=['metrics','totals','summary','counts','global','conversion',
+   'retention','trade','contentSignals','xOfficial','product_chain'];
+  const nums=o=>o&&typeof o==='object'&&!Array.isArray(o)?
+   Object.fromEntries(Object.entries(o).filter(([key,v])=>
+    number(v)&&!/^(?:id|timestamp|postId|tweetId)$/.test(key)).slice(0,8)):{};
+  Object.assign(out,nums(value));
+  for(const field of fields){
+   const nested=nums(value[field]);
+   if(Object.keys(nested).length)out[field]=nested;
+  }
+  for(const field of ['steps','stages','drops','channels','groups','cohorts','sources']){
+   if(Array.isArray(value[field]))out[field]=value[field].slice(0,6);
+  }
+  if(typeof value.available==='boolean')out.available=value.available;
+  return Object.keys(out).length?out:{detailOmitted:true};
+ };
  const extract=value=>{
   if(value==null||number(value))return value;
   if(typeof value!=='object')return null;
-  // Share the same allowlisted aggregate projector as initial context and
-  // history compaction; keep nested registration/activity facts, not raw rows.
+  // Archived legacy v4 prompts keep their original projection.
+  if(legacy)return extractLegacy(value);
   const compact=compactWeeklyValue(value);
   return compact&&typeof compact==='object'?compact:{detailOmitted:true};
  };
