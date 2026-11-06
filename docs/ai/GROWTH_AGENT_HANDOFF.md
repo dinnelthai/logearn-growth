@@ -1,5 +1,14 @@
 # Growth Agent 2.0 — Agent Handoff
 
+### 2026-11-06 — Growth Strategy 1.0 integrated into Business Brain (branch-only; CI pending)
+
+- Branch: `codex/ai-comprehensive-upgrade`; latest source/test commit from this change: `ec0d657bb195bd4b8a9f924a7c043beb73cfde41`.
+- Added `docs/ai/LOGEARN_GROWTH_STRATEGY_1_0.md`: ICP hypotheses, positioning, product wedge, three growth loops, channel measurement rules, reliability gate, monetization hypotheses, 90-day execution and Growth Agent operating protocol.
+- Runtime Business Brain is now `logearn-business-brain-v3`; it projects a compact `growthStrategy` object. v5 system prompt now explicitly treats ICP/channel/loop assumptions as hypotheses, prioritizes the 1–3 most important constraints, respects the reliability gate and forbids invented targets/revenue.
+- Updated focused contract test `backend/test/aiBusinessBrain.test.js` to cover the strategic context and existing 22KB model-context limit.
+- **Validation boundary:** this source/test change has not yet been run through GitHub Actions or a local Node test suite. Do not claim CI green or live acceptance. Live click-event coverage, Hologres/source watermarks, Worker/model acceptance and platform revenue remain separate gates.
+- No paid model calls, external source sync, production migration, deployment, external publishing, user-facing campaign or `master` change.
+
 ### 2026-10-31 — Structure/function review remediations (branch-only; no paid production validation)
 
 - **Code commits:** `de35592f92437454663fb1c453047cfde2ea2b19` (paid preflight), `20ba691da469c776a3b92bac2633fa41ffd4e214` (v5 evidence/weekly ordering), `76f5c1566b5b0202f54aa07efddf9cc24e891c21` (decision-first UI).
@@ -31,7 +40,7 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
-- Latest **source/test** HEAD validated on 2026-10-31: `384c02c462acb59b3a3316bec54a18fabca28e7e` (owner-scoped GET-only archived v5 snapshot audit, safe historical-v4 denial, UI affordance, no-paid regression). Fetch live branch HEAD before every edit.
+- Latest **source/test** HEAD for the 2026-11-06 strategy integration: `ec0d657bb195bd4b8a9f924a7c043beb73cfde41` (Business Brain v3 strategy projection, v5 reasoning prompt and focused regression updates). This exact change has not yet passed CI; fetch live branch HEAD before every edit.
 - Fetch the live branch HEAD before every new edit; do not rely on this document's historical commit reference.
 - Latest successful AI CI: [41207439675](https://github.com/dinnelthai/logearn-growth/actions/runs/41207439675) — **AI Contract (including archived v5 audit API and privacy), AI Integration and AI Frontend passed** on source/test HEAD `384c02c462acb59b3a3316bec54a18fabca28e7e`. Includes persisted owner-scoped latency and ranking/discriminator privacy regression. No live Hologres, X, GSC, Worker, real-model or paid-model acceptance implied.
 - Latest canonical checklist: **47 / 48 (97.9%) code/CI or operator-approved semantics; 1 open**, Phase 2 **8/8**, Phase 3 **8/8**, Phase 4 **6/6**. Remaining: already-authorized genuine v5 business context/source acceptance; operator North Star definition confirmed 2026-10-31. CI is not live source acceptance.
@@ -42,7 +51,7 @@
 - Do not merge or cherry-pick unrelated branch changes without a specific need.
 - Always verify the branch HEAD before editing and fetch each target file from this branch.
 
-The branch existed before this upgrade and already contained a substantial Growth Agent implementation. Do not rebuild the analytics, tool registry, evidence layer, Growth Workspace, KOL/SEO operations or review system.
+The branch existed before this upgrade and already contained a substantial Growth Agent implementation. Do not rebuild the analytics, tool registry, evidence layer, Growth Workspace, KOL/SEO operations or review system. The 2026-11-06 strategy layer extends the existing Business Brain and v5 reasoning protocol; do not create a second analytics engine, CRM, growth workspace or independent strategy-agent stack.
 
 ## Operator-confirmed North Star (2026-10-31)
 
@@ -61,16 +70,17 @@ The branch existed before this upgrade and already contained a substantial Growt
 ## 2. Read these documents in order
 
 1. `docs/ai/GROWTH_AGENT_HANDOFF.md` — this handoff.
-2. `docs/ai/LOGEARN_BUSINESS_BRAIN.md` — canonical business semantics and v1 limits.
-3. `docs/ai/GROWTH_AGENT_2_0_IMPLEMENTATION_PLAN.md` — phases and acceptance criteria.
-4. `docs/ai/GROWTH_AGENT_UPGRADE_LOG.md` — exact changes and validation performed.
-5. `docs/ai/GROWTH_AGENT_ARCHITECTURE_PROPOSAL_2026-10-27.md` — earlier architectural decisions.
-6. `docs/ai/growth-v1-baseline-2026-10-28.md` — earlier baseline limitations and real-source notes.
-7. `docs/ai/GROWTH_MODULES_WORK_ACCEPTANCE_2026-10-29.md` — prior module acceptance boundary.
+2. `docs/ai/LOGEARN_GROWTH_STRATEGY_1_0.md` — canonical growth strategy, ICP hypotheses, growth loops and operating rules.
+3. `docs/ai/LOGEARN_BUSINESS_BRAIN.md` — canonical business semantics, metric rules and strategic-layer contract.
+4. `docs/ai/GROWTH_AGENT_2_0_IMPLEMENTATION_PLAN.md` — phases and acceptance criteria.
+5. `docs/ai/GROWTH_AGENT_UPGRADE_LOG.md` — exact changes and validation performed.
+6. `docs/ai/GROWTH_AGENT_ARCHITECTURE_PROPOSAL_2026-10-27.md` — earlier architectural decisions.
+7. `docs/ai/growth-v1-baseline-2026-10-28.md` — earlier baseline limitations and real-source notes.
+8. `docs/ai/GROWTH_MODULES_WORK_ACCEPTANCE_2026-10-29.md` — prior module acceptance boundary.
 
 ## 3. What is implemented in the current upgrade
 
-Business Brain v1 runtime source:
+Business Brain v3 runtime source:
 - `backend/src/ai/business/businessBrain.js`
 
 New model protocol:
@@ -93,13 +103,14 @@ New v5 flags:
 - `AI_WEEKLY_CONTEXT_V5_ENABLED` — defaults enabled for new weekly reports; set to `0` to use the existing weekly v4 context.
 - These flags do not rewrite archived jobs. The saved prompt marker chooses the recovery protocol.
 
-## 4. Current v1 semantics
+## 4. Current v3 semantics
 
 - Four products: AI Strategy, Chip Distribution, Holder Ranking, Wallet Trading.
 - Seven lifecycle stages: acquisition, registration, activation, engagement, retention, trading, economics.
 - Existing metric registry is the formal source of metric definitions.
 - The North Star is stored as an operator direction, not a formal composite KPI.
 - The model receives a bounded Business Brain and up to three compact historical AI suggestion/review entries.
+- The v3 Business Brain also supplies a compact versioned Growth Strategy 1.0 hypothesis layer: primary ICP hypothesis, Chip Distribution wedge, growth loops, channel outcome rules, reliability gate and monetization constraints. The strategy is not numeric evidence or permission.
 - Operating Memory v1 now separates human operations, channel observations and AI suggestions/reviews. It reuses KOL collaborations, growth activities, manual content, operation tasks, X/GSC/KOL snapshots and AI action records. Community/training platforms still have no dedicated connector; unrecorded activity remains unknown.
 - Business Brain does not grant tools or prove that every product behavior is instrumented.
 
