@@ -325,3 +325,14 @@ Before continuing:
 - **Regression tests:** `backend/test/aiBusinessMetricsAdapter.test.js`, `agentTools.test.js`, `aiWeeklyCoverage.test.js`; existing `growthInsights.test.js` and `growthCohortTrades.test.js` cover the underlying maturity and trade identity rules.
 - **Accounting:** one Phase 2 item newly checked at code/fixture level. **40/48 (83.3%), 8 open; Phase 2 5/8, 3 open.** This does not certify actual source completeness, account registration freshness, Hologres trade watermark, or live production results.
 - **Next:** finish complete module/source audit; add channel/product/cohort breakdowns only when each underlying source truly supports them; complete per-metric independent freshness/scope/version contract. No migrations, paid model calls, production deployment or external writes.
+
+## 2026-11-06 — Growth Strategy 1.0 integration checkpoint
+
+The strategy layer is now added without rebuilding existing analytics or operations systems.
+
+- Canonical business strategy: `docs/ai/LOGEARN_GROWTH_STRATEGY_1_0.md`.
+- Runtime strategy projection: `businessBrain.growthStrategy`, version `logearn-growth-strategy-v1`; Business Brain version `logearn-business-brain-v3`.
+- v5 reasoning now treats ICP, positioning, channel roles and growth loops as hypotheses; prioritizes the highest-impact 1–3 constraints; respects the P0 reliability gate; and forbids invented numeric targets or unsupported platform-revenue claims.
+- Focused test assertions were updated to cover strategy projection and the 22KB context budget.
+- This is a strategy-context implementation checkpoint, **not** completion of the remaining live-source acceptance item. Exact source/test CI is pending; no production or paid-model acceptance is implied.
+- Do not add a second metric registry, analytics engine, CRM, Growth Workspace or independent task system. Continue reusing the existing evidence, operations timeline, action workflow and learning loop.
