@@ -16,12 +16,22 @@ function raw(){
 }
 test('Business Brain exposes the four LogEarn product roles and complete lifecycle',()=>{
  const value=brain.buildBusinessBrainContext({focusGoal:'activation'});
- assert.equal(value.version,'logearn-business-brain-v2');
+ assert.equal(value.version,'logearn-business-brain-v3');
  assert.deepEqual(value.productMap.products.map(x=>x.id),
   ['ai_strategy','chip_distribution','holder_ranking','wallet_trading']);
  assert.deepEqual(value.lifecycle.map(x=>x.id),
   ['acquisition','registration','activation','engagement','retention','trading','economics']);
  assert.equal(value.focus.goal,'activation');
+ assert.equal(value.growthStrategy.version,'logearn-growth-strategy-v1');
+ assert.equal(value.growthStrategy.status,'strategic-hypotheses-require-validation');
+ assert.equal(value.growthStrategy.primaryIcp.id,'active_meme_trader');
+ assert.equal(value.growthStrategy.productWedge.productId,'chip_distribution');
+ assert.ok(value.growthStrategy.growthLoops.some(x=>x.id==='content-to-analysis'));
+ assert.ok(value.growthStrategy.growthLoops.some(x=>x.id==='research-to-trading'));
+ assert.ok(value.growthStrategy.channelRules.some(x=>x.channel==='seo'));
+ assert.match(value.growthStrategy.reliabilityGate.rule,/不扩大付费获客/);
+ assert.match(value.growthStrategy.monetization.revenueGuard,/交易量和CRM\/KOL合作账本/);
+ assert.match(value.growthStrategy.targetSetting,/经营者确认/);
  assert.ok(value.metricDictionary.some(x=>x.id==='registered_users'));
  assert.ok(value.metricDictionary.some(x=>x.id==='registration_activation_rate'));
  assert.ok(value.metricDictionary.some(x=>x.id==='registered_trade_conversion_rate'));
@@ -93,6 +103,7 @@ test('v5 general analysis receives business knowledge and safe memory; v3 stays 
  const v3=modelContext(value,{transportVersion:'v3'});
  assert.equal(v5.transportVersion,'aggregated-business-v5');
  assert.equal(v5.businessBrain.version,brain.VERSION);
+ assert.equal(v5.businessBrain.growthStrategy.version,'logearn-growth-strategy-v1');
  assert.equal(v5.operatingMemory.shown,1);
  assert.equal(v5.operatingMemory.items[0].outcome,'结果仍未知');
  assert.equal(v3.transportVersion,'aggregated-business-v3');
