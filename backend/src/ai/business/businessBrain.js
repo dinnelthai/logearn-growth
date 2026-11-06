@@ -4,7 +4,7 @@
 // This is business context, not a source of numeric observations or permissions.
 const {describeMetric}=require('./metricRegistry');
 
-const VERSION='logearn-business-brain-v2';
+const VERSION='logearn-business-brain-v3';
 const BUSINESS=Object.freeze({
  name:'LogEarn',
  category:'Web3 Token Research, On-chain Analytics and Wallet Trading',
@@ -68,6 +68,52 @@ const GOAL_FOCUS=Object.freeze({
  revenue:{objective:'核对真实交易和已记录收入、成本，分清交易量、收入与合作账本。',
   stages:['trading','economics'],priorityMetrics:['product_chain','trade_revenue','collaboration_economics']}
 });
+const GROWTH_STRATEGY=Object.freeze({
+ version:'logearn-growth-strategy-v1',
+ status:'strategic-hypotheses-require-validation',
+ positioning:'面向Meme/Token交易者的研究与交易平台，以筹码分布为核心入口，连接Holder/大户结构、AI策略和钱包交易；不承诺交易收益。',
+ primaryIcp:{id:'active_meme_trader',status:'priority-hypothesis',
+  description:'已有链上交易经验、持续研究Meme/Token，并反复关注筹码分布、持仓结构和交易决策的活跃用户。'},
+ secondaryIcps:[
+  {id:'professional_onchain_researcher',status:'secondary-hypothesis',
+   description:'需要Holder、大户、钱包行为和策略信号进行深入研究的用户。'},
+  {id:'beginner_trader',status:'education-audience',
+   description:'通过筹码知识内容培养研究习惯；在激活和留存证据不足前，不作为高成本获客首要对象。'}
+ ],
+ distributionPartners:['KOL','交易社群','内容创作者'],
+ productWedge:{productId:'chip_distribution',
+  role:'核心认知入口和北极星对应行为；先帮助用户理解筹码分布，再探索Holder、AI策略和钱包交易等其他价值入口。',
+  caveat:'多产品是并列价值入口，不是假定所有用户都经过的强制线性漏斗。'},
+ growthLoops:[
+  {id:'content-to-analysis',steps:['真实交易问题','筹码知识内容','进入LogEarn分析','形成可复核案例','反哺下一轮内容']},
+  {id:'product-to-retention',steps:['首次筹码峰查看','理解Holder或策略等相关能力','形成重复研究需求','再次进入LogEarn']},
+  {id:'research-to-trading',steps:['用户自主研究','自主决定是否交易','可靠钱包交易体验','持续使用研究与交易能力'],
+   caveat:'交易是独立商业结果；不得将交易量当作收入或将相关性写成因果。'}
+ ],
+ channelRules:[
+  {channel:'seo',role:'捕获持续存在的Token研究问题',successMetric:'渠道带来的有效分析用户及成熟留存'},
+  {channel:'x',role:'触达活跃交易者并参与实时市场讨论',successMetric:'可归因的有效分析用户及后续行为'},
+  {channel:'video',role:'教育筹码知识并建立专业认知',successMetric:'内容带来的有效分析用户和复访'},
+  {channel:'kol-community',role:'信任背书和精准分发',successMetric:'合作队列的有效分析、成熟留存和可验证交易结果'},
+  {channel:'paid',role:'放大已验证的获客路径',successMetric:'增量有效分析用户、CAC和回收周期',
+   gate:'激活、留存、归因和成本基线未验证前，不建议规模化投放。'}
+ ],
+ reliabilityGate:{priority:'P0',
+  rule:'核心分析数据、钱包交易、安全或关键用户体验存在重大故障时，先恢复、沟通和补救；不扩大付费获客，不宣传未恢复能力。每次行动前重新检查实时可用状态。'},
+ monetization:{status:'hypotheses-require-validation',
+  candidates:['真实钱包交易产生的平台收入','高级分析与AI策略能力','团队或专业用户服务'],
+  revenueGuard:'平台真实收入必须来自已验证的数据源；交易量和CRM/KOL合作账本都不能替代平台收入。保护核心激活体验，不以诱导过度交易换取增长。'},
+ decisionRules:[
+  '优先服务核心ICP，其他用户群和渠道优先级必须由行为、留存和付费证据验证。',
+  '筹码峰是当前核心产品入口；Holder、AI策略和钱包交易是其他价值入口，不强制组成线性漏斗。',
+  '优先解决影响有效分析用户、成熟留存和用户信任的最大瓶颈；每轮聚焦1至3个问题。',
+  '渠道以有效分析用户、成熟留存和可验证商业结果评估；曝光、粉丝和注册量不是最终成绩。',
+  '每个行动必须包含证据、假设、反证或未知、主指标、护栏、负责人和复查条件。',
+  '战略定位和ICP是待验证假设，不是市场事实；数据不足时必须明确标记。',
+  '没有可信历史基线时不生成数字目标、CAC、LTV、收入或增长预测。'
+ ],
+ targetSetting:'先验证来源完整性、身份匹配和成熟分母，再建立基线；数字目标由经营者确认，不由模型臆造。'
+});
 const OPERATING_RULES=Object.freeze([
  '围绕经营目标分析，再选能解决关键歧义的已授权模块；不机械罗列。',
  '事实、假设和行动分开；重要事实必须有证据，相关性不等于因果。',
@@ -102,6 +148,7 @@ function buildBusinessBrainContext({focusGoal='activation'}={}){
    {id:'ai_suggestion_or_review',meaning:'AI建议/执行/复盘；建议不等于执行'}
   ],rule:'按期分层汇总；未记录、未结算或来源缺失保持未知；相关不等于因果',
   experimentRule:'treatment/control是人工固定分组，不代表随机实验；送达与跨组曝光需单列，组间差异不证明增量因果'},
+  growthStrategy:GROWTH_STRATEGY,
   focus:{goal:GOAL_FOCUS[focusGoal]?focusGoal:'activation',
    objective:focus.objective,stages:focus.stages,priorityMetrics:focus.priorityMetrics},
   metricDictionaryVersion:'2',
@@ -161,4 +208,4 @@ function projectOperatingMemory(rows,{safeText,limit=3}={}){
  };
 }
 module.exports={VERSION,BUSINESS,PRODUCTS,CHAINS,LIFECYCLE,LABELS,METRIC_IDS,
- GOAL_FOCUS,OPERATING_RULES,metricDictionary,buildBusinessBrainContext,projectOperatingMemory};
+ GOAL_FOCUS,GROWTH_STRATEGY,OPERATING_RULES,metricDictionary,buildBusinessBrainContext,projectOperatingMemory};
