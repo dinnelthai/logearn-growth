@@ -26,7 +26,7 @@ function auditSavedWeeklyContext(snapshot){
    const view=modelContext(raw,{transportVersion:'v5'});
    const bytes=Buffer.byteLength(JSON.stringify(view),'utf8');
    checks.v5Transport=view.transportVersion==='aggregated-business-v5';
-   checks.businessBrainV2=view.businessBrain?.version==='logearn-business-brain-v2'&&
+   checks.businessBrainV3=view.businessBrain?.version==='logearn-business-brain-v3'&&
     view.businessBrain?.metricDictionaryVersion==='2';
    checks.fourProductRoles=view.businessBrain?.productMap?.products?.length===4;
    checks.sevenLifecycleStages=view.businessBrain?.lifecycle?.length===7;
