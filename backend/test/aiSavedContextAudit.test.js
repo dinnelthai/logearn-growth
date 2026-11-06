@@ -26,6 +26,7 @@ test('offline v5 saved context projects 13 modules, brain and limited input with
  const result=auditSavedWeeklyContext(input);
  assert.equal(result.status,'snapshot-contract-ready',JSON.stringify(result.checks));
  assert.equal(result.checks.under22KB,true);
+ assert.equal(result.checks.businessBrainV3,true);
  assert.equal(result.liveSourceVerified,false);
  assert.equal(result.realModelRunVerified,false);
  assert.equal(result.operatorNorthStarConfirmed,false);
