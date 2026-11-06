@@ -860,3 +860,14 @@ These are **code-complete/CI-validated**, not a guarantee that an actual new v5 
 - **Validation:** [AI infrastructure #41209778423](https://github.com/dinnelthai/logearn-growth/actions/runs/41209778423) and [Growth desktop UI #41209778387](https://github.com/dinnelthai/logearn-growth/actions/runs/41209778387) **passed** on P1 source/test commit `acd5105`. [AI infrastructure #41209843200](https://github.com/dinnelthai/logearn-growth/actions/runs/41209843200) **passed Contract, Integration and Frontend** on final code/test commit `5c3f8db`. The full desktop UI workflow did not rerun on the backend-only follow-up; it had passed on the unchanged frontend source `acd5105`.
 - **Progress stays 47/48 (97.9%) code/CI, 1 real-source gate open.** This fixes code/regressions, **not** live LogEarn Hologres, GSC/X/KOL, saved v5 model-journal, Worker execution, cost ledger, actual click coverage or CP-01..12 production acceptance. Do not mark any production CP as PASS from CI alone.
 - No paid AI/model calls, external collectors, data migrations, production deployment, external posting or `master` changes in these commits.
+
+## 2026-11-06 — Growth Strategy 1.0 and Business Brain v3 (branch-only; CI pending)
+
+- Added canonical strategy document: `docs/ai/LOGEARN_GROWTH_STRATEGY_1_0.md`. It defines positioning, ICP hypotheses, Chip Distribution as the core product wedge, three growth loops, channel measurement, monetization hypotheses, reliability gate, 90-day phases and Growth Agent operating protocol.
+- Runtime: `backend/src/ai/business/businessBrain.js` now emits `logearn-business-brain-v3` and a compact `growthStrategy` object. The object explicitly marks market/ICP/channel assumptions as hypotheses and keeps numeric targets out until a trusted baseline exists.
+- Prompt: `backend/src/ai/business/runner.js` v5 system prompt now tells the model to use the strategy layer, prioritize the 1–3 highest-impact constraints, honor the reliability gate and distinguish trade volume from platform revenue.
+- Tests: `backend/test/aiBusinessBrain.test.js` now asserts the strategy object, key guardrails and continued 22KB model-context ceiling.
+- Documentation: Business Brain and Agent handoff updated; strategy document added to the required reading order.
+- Latest source/test commit: `ec0d657bb195bd4b8a9f924a7c043beb73cfde41`. Documentation follow-up commits: `437cfeef18f97c141fc537abed097404a790bc6e`, `c8f9896cc67be926986257582d52c37eeeb9fba5`.
+- **Validation:** no local Node test or GitHub Actions run has yet been performed on this exact source/test commit. Do not report the new strategic integration as CI-passed or production-accepted. The existing live-source, Hologres, event-coverage, Worker/model and platform-revenue gates remain open.
+- No migration, paid model call, production deployment, external data sync, public publishing or `master` change.
