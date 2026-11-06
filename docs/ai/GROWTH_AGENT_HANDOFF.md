@@ -5,8 +5,9 @@
 - Branch: `codex/ai-comprehensive-upgrade`; latest source/test commit from this change: `ec0d657bb195bd4b8a9f924a7c043beb73cfde41`.
 - Added `docs/ai/LOGEARN_GROWTH_STRATEGY_1_0.md`: ICP hypotheses, positioning, product wedge, three growth loops, channel measurement rules, reliability gate, monetization hypotheses, 90-day execution and Growth Agent operating protocol.
 - Runtime Business Brain is now `logearn-business-brain-v3`; it projects a compact `growthStrategy` object. v5 system prompt now explicitly treats ICP/channel/loop assumptions as hypotheses, prioritizes the 1–3 most important constraints, respects the reliability gate and forbids invented targets/revenue.
-- Updated focused contract test `backend/test/aiBusinessBrain.test.js` to cover the strategic context and existing 22KB model-context limit.
-- **Validation boundary:** this source/test change has not yet been run through GitHub Actions or a local Node test suite. Do not claim CI green or live acceptance. Live click-event coverage, Hologres/source watermarks, Worker/model acceptance and platform revenue remain separate gates.
+- Updated focused tests `backend/test/aiBusinessBrain.test.js` and `backend/test/aiWeeklyContextV4.test.js` to cover the strategy projection and existing 22KB model-context limit. Updated `savedContextAudit.js` and `aiSavedContextAudit.test.js` to require Business Brain v3 for the current structural projection.
+- **Source/test commits:** `5b11a4a109acf8239e490facc8414e2521938a62`, `4ed6159ccc8361eea59dbf6b9368e1bb206fc850`, `ec0d657bb195bd4b8a9f924a7c043beb73cfde41`, `489547e6705f7a69c986ac055cffe9283a301eb1`, `6f261ac7781172106f43ffba016cbdd4548f1f1d`, `9a54efc0a803a3dbf05203cc582056f3fddc6eb6`.
+- **Validation boundary:** combined commit status and PR workflow lookup currently return no checks/runs for the latest source/test commit; local test execution is unavailable in this environment. Do not claim CI green or live acceptance. Live click-event coverage, Hologres/source watermarks, Worker/model acceptance and platform revenue remain separate gates.
 - No paid model calls, external source sync, production migration, deployment, external publishing, user-facing campaign or `master` change.
 
 ### 2026-10-31 — Structure/function review remediations (branch-only; no paid production validation)
@@ -40,7 +41,7 @@
 
 - Repository: `dinnelthai/logearn-growth`
 - Required branch: `codex/ai-comprehensive-upgrade`
-- Latest **source/test** HEAD for the 2026-11-06 strategy integration: `ec0d657bb195bd4b8a9f924a7c043beb73cfde41` (Business Brain v3 strategy projection, v5 reasoning prompt and focused regression updates). This exact change has not yet passed CI; fetch live branch HEAD before every edit.
+- Latest **source/test** HEAD for the 2026-11-06 strategy integration: `9a54efc0a803a3dbf05203cc582056f3fddc6eb6` (Business Brain v3 strategy projection, v5 reasoning prompt, saved-context audit contract and focused regression updates). This exact change has not yet passed CI; fetch live branch HEAD before every edit.
 - Fetch the live branch HEAD before every new edit; do not rely on this document's historical commit reference.
 - Latest successful AI CI: [41207439675](https://github.com/dinnelthai/logearn-growth/actions/runs/41207439675) — **AI Contract (including archived v5 audit API and privacy), AI Integration and AI Frontend passed** on source/test HEAD `384c02c462acb59b3a3316bec54a18fabca28e7e`. Includes persisted owner-scoped latency and ranking/discriminator privacy regression. No live Hologres, X, GSC, Worker, real-model or paid-model acceptance implied.
 - Latest canonical checklist: **47 / 48 (97.9%) code/CI or operator-approved semantics; 1 open**, Phase 2 **8/8**, Phase 3 **8/8**, Phase 4 **6/6**. Remaining: already-authorized genuine v5 business context/source acceptance; operator North Star definition confirmed 2026-10-31. CI is not live source acceptance.
