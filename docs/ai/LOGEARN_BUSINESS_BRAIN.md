@@ -1,8 +1,8 @@
 # LogEarn Business Brain（业务知识体系）
 
 > Runtime source: `backend/src/ai/business/businessBrain.js`  
-> Current version: `logearn-business-brain-v2` (financial metric identity correction)  
-> Status (2026-10-31, source/test HEAD `ac7b5a410211bb257033943a729ad852e0d16fb8`): Business Brain v2, strict v5 report contract and finance metric separation have CI-contract evidence; live LogEarn API/Hologres/Worker, actual platform fee/revenue integration and paid-model acceptance remain pending.
+> Current version: `logearn-business-brain-v3` (financial metric identity + strategic layer)  
+> Status (2026-11-06): Business Brain v3 adds the versioned Growth Strategy 1.0 hypothesis layer and v5 prompt guidance. Focused tests were updated in this change; CI for the exact new commit is pending. Live LogEarn API/Hologres/Worker, click-event coverage, actual platform fee/revenue integration and paid-model acceptance remain separate open gates.
 
 ## 1. Purpose
 
@@ -53,7 +53,7 @@ The operator has confirmed the **single-metric** definition, not an unsupported 
 
 ## 5. Metric dictionary
 
-Runtime v2 reuses `backend/src/ai/business/metricRegistry.js` and `backend/src/analytics/businessPriorities.js`. The Business Brain sends a compact subset of metric labels, units and meanings; the registry remains the formal definition source.
+Runtime v3 reuses `backend/src/ai/business/metricRegistry.js` and `backend/src/analytics/businessPriorities.js`. The Business Brain sends a compact subset of metric labels, units and meanings; the registry remains the formal definition source.
 
 Critical distinctions:
 
@@ -85,6 +85,23 @@ The model must:
 - treat product features as multiple value entries, not a compulsory linear funnel;
 - never let business knowledge override evidence, metric definitions, tool permissions, budget or system policy.
 
+## 6.1 Growth Strategy 1.0 strategic layer (2026-11-06)
+
+The runtime now projects a compact, versioned `growthStrategy` object alongside formal business semantics. Its source-of-truth document is `docs/ai/LOGEARN_GROWTH_STRATEGY_1_0.md`.
+
+The strategy layer contains:
+- Positioning: Token research and trading platform, with Chip Distribution as the current core product entry.
+- ICP hypotheses: active Meme traders as the primary hypothesis; professional on-chain researchers as a secondary hypothesis; beginners as an education audience. KOLs, communities and creators are distribution partners, not automatically core users.
+- Product wedge: Chip Distribution; Holder, AI Strategy and Wallet Trading are additional value entries, not a mandatory linear funnel.
+- Growth loops: content-to-analysis, product-to-retention and research-to-trading.
+- Channel rules: SEO, X, video, KOL/community and paid acquisition are evaluated by effective analysis users, mature retention and verifiable business outcomes—not impressions or follower counts.
+- Reliability gate: material core-analysis, wallet, security or user-experience failures take priority over acquisition expansion.
+- Monetization hypotheses: wallet trading income, advanced analysis/AI Strategy and professional services. Platform revenue remains unknown until a direct verified source exists.
+
+All ICP, positioning, channel and growth-loop statements are strategic hypotheses, not measured market facts. The Agent must label them as hypotheses and seek supporting/counter evidence. It must not invent numeric growth targets, CAC, LTV or revenue forecasts without trusted baselines and approved definitions.
+
+The v5 system prompt explicitly instructs the model to use `businessBrain.growthStrategy`, focus on the 1–3 most important constraints, respect the reliability gate, and distinguish strategic assumptions from evidence. The strategy object is business context only; it grants no tools, permissions or external-action authority.
+
 ## 7. Operating memory in v1
 
 The `businessBrain.js` memory projection remains a bounded (at most three compact entries) **AI suggestion/retrospective history**. Separately, the owner-scoped read-only `get_operations_timeline` capability joins recorded human operations, KOL collaborations, content, operation tasks, X/GSC/KOL observations and AI actions without merging or fabricating source objects. These are two distinct evidence layers; neither promises a complete operational log. The AI suggestion/retrospective projection distinguishes:
@@ -110,10 +127,10 @@ Historical text is untrusted reference material. It is bounded and passed throug
 
 ## 9. Runtime integration
 
-- `backend/src/ai/business/businessBrain.js`: knowledge baseline and bounded operating-memory projection.
+- `backend/src/ai/business/businessBrain.js`: versioned business semantics, compact Growth Strategy 1.0 projection and bounded operating-memory projection.
 - `backend/src/ai/business/modelTransport.js`: v5 transport; aggregate-only context; 22KB total limit.
 - `backend/src/ai/business/weeklyContextV4.js`: v5 weekly context reserves bytes for Business Brain while preserving v4 behavior.
-- `backend/src/ai/business/runner.js`: new v5 prompt marker and replay protocol detection.
+- `backend/src/ai/business/runner.js`: new v5 prompt marker, replay protocol detection and explicit use of the Growth Strategy hypothesis layer.
 - `backend/src/queues/jobs/businessAnalysis.js`: newly created analysis jobs opt into v5 by default; archived jobs retain their saved protocol.
 - `backend/src/ai/growth/weeklyReport.js`: v3 business framing and new `weekly-report-v2` strict contract for v5: seven lifecycle stages, evidence-backed opportunities and previousActions, explicit partial fallback when a required structure is invalid; custom periods retain equal-length previous-period semantics.
 - `frontend/src/pages/aiWeeklyDecisionView.js`: business-first lifecycle, opportunities, previous-action reviews and collapsible coverage/audit; frontend CI passed at code HEAD `030c0ed`. UI has a known hardcoded '12 modules' summary despite the 13-module v5 manifest (fix in a separate code change).
@@ -121,7 +138,7 @@ Historical text is untrusted reference material. It is bounded and passed throug
 
 ## 10. Known gaps
 
-- North-star metric contract is not yet formalized.
+- North-star semantics are operator-confirmed; live click-event coverage and cross-device identity stability still require source validation.
 - The runtime product map does not prove current event coverage for every product feature.
 - `businessBrain.js` still projects short AI suggestion/retrospective history; `get_operations_timeline` adds supported recorded human/channel activity in a distinct owner-scoped evidence tool, but completeness and cross-channel causal attribution are not established.
 - Product-to-trade linkage and revenue completeness need real-source validation.
