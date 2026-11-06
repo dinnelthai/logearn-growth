@@ -18,7 +18,7 @@
 node backend/scripts/auditSavedWeeklyContext.js < /path/to/private-v5-context.json
 ```
 
-工具只输出 `checks` 布尔值及是否满足本地快照契约，不输出任何字段数值、证据 ID、文本或来源行。退出码 0 表示 `snapshot-contract-ready`，退出码 1 表示不满足。包含以下校验：已保存 `weekly-report-v2` 标记、13 个不重复的官方模块 ID、版本化清单、曼谷时间窗、授权业务 scope、证据数组、v5 Business Brain v2 的四产品/七阶段/待确认北极星意图，以及序列化投影不超过 22KB。
+工具只输出 `checks` 布尔值及是否满足本地快照契约，不输出任何字段数值、证据 ID、文本或来源行。退出码 0 表示 `snapshot-contract-ready`，退出码 1 表示不满足。包含以下校验：已保存 `weekly-report-v2` 标记、13 个不重复的官方模块 ID、版本化清单、曼谷时间窗、授权业务 scope、证据数组、v5 Business Brain v3 的四产品/七阶段/战略假设层/待确认北极星意图，以及序列化投影不超过 22KB。
 
 **重要：**通过该工具仅表示「快照结构可供下一步人工审阅」，不是 Phase 1 勾选条件的完成证明。它不会联系 Hologres、GSC、X、KOL、Worker、API 或 LLM；也不会确认输出报告引用的每个数字都与实时源一致。
 
@@ -57,3 +57,7 @@ node backend/scripts/auditSavedWeeklyContext.js < /path/to/private-v5-context.js
 - [AI infrastructure run 41207439675](https://github.com/dinnelthai/logearn-growth/actions/runs/41207439675)：**AI Contract、AI Integration、AI Frontend 全部成功**；包含新后端 owner 隔离、不付费、旧 v4 拒绝、损坏 JSON 不泄露，以及前端审计提示回归。
 - [Frontend UI run 41207439672](https://github.com/dinnelthai/logearn-growth/actions/runs/41207439672)：**失败**，在未修改的 `frontend/src/analytics/__tests__/funnelAssociation.test.js` 发现 `drop_off_users` 预期 1、实际 0。与本轮周报审计文件无直接重叠；未证明其为历史遗留或无关业务缺陷。不能声称全站测试完全成功。
 - 当前验收清单：**47/48（97.9%）**。已完成代码/CI 与运营指标定义；仍缺真实源 v5 快照及模型记录的人工可追溯验收。
+
+### 2026-11-06 — Business Brain v3 strategy context
+
+The saved-snapshot audit now expects the current Business Brain v3 projection, including the compact Growth Strategy 1.0 layer. The strategy's ICP, channel and growth-loop statements are hypotheses; passing the structural audit still does not validate them against live market behavior. The v5 report transport remains unchanged, and archived v1-v4 reports must not be silently rewritten.
