@@ -68,3 +68,13 @@ The System Reliability page remains a UX proposal, not a live monitoring impleme
 ## Local UI-UX Pro Max CLI
 
 The UI-UX Pro Max CLI was not installed on the user's local machine in this commit. The v2 datasets and design guidance were used to create the repository design system and implementation layer. Local Codex installation can be done separately when the user's local shell is available.
+
+
+## Second implementation pass — Growth Overview
+
+- Replaced the daily effective-analysis hero with the weekly core-analysis North Star (the 4-days-per-week habit metric), retaining the existing 200-user goal and week-over-week movement.
+- Moved daily effective-analysis, period users, first-observed users, and returning users into a compact supporting strip below the growth KPI row.
+- Replaced the always-visible diagnostic block with an evidence-driven attention strip. It appears only for failed terminal orders, pending batches, or failed data requests; it is hidden when all measured operational signals are healthy.
+- Kept the distinction between pending and failed orders and did not add an invented success-rate threshold.
+- Added regression tests for the revised hierarchy, hidden healthy state, and actionable failed-order state.
+- The tests are authored but have not been executed in this environment.

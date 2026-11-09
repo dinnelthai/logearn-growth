@@ -22,6 +22,8 @@ The page is a decision surface, not a complete report archive.
 - Refresh and save/load actions are secondary.
 
 ### 2. Attention strip
+Implementation status: completed in the second UI pass. The strip is hidden when no evidenced actionable issue exists.
+
 Show only active, high-impact signals:
 - Service reliability incidents or degraded endpoints.
 - Data coverage gaps or stale snapshots.
@@ -31,6 +33,8 @@ Show only active, high-impact signals:
 Each item must include a status label and a route to its detail page. Hide the strip when there is nothing actionable; do not create fake warnings.
 
 ### 3. North Star hero
+Implementation status: completed in the second UI pass. The weekly core analysis metric is now the primary visual anchor; daily counts are secondary.
+
 Make the weekly core analysis metric the primary visual anchor:
 - Current weekly core users.
 - Target and target date.
