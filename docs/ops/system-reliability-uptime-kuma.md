@@ -56,9 +56,10 @@ Yes — endpoints that require login can be monitored.
 2. In Uptime Kuma, create an HTTP(s) monitor for the authenticated GET endpoint.
 3. In the monitor's Authentication section, choose Bearer Token and enter the service token. Uptime Kuma also supports custom request headers; use an Authorization header only when the monitor's auth configuration requires it.
 4. Choose expected status codes and a sensible check interval (for example, 60–120 seconds).
-5. Never paste the token into LogEarn's frontend, a public Status Page description, or a shared document.
+5. Configure a notification provider in Uptime Kuma and assign it to the monitor so a down transition can trigger Telegram, Discord, Slack, or a webhook notification.
+6. Never paste the token into LogEarn's frontend, a public Status Page description, or a shared document.
 
-The token remains in Uptime Kuma's monitor configuration. LogEarn reads only the public monitor name, state, latest heartbeat, response time, and uptime summary. It does not receive the token or the target URL.
+The token remains in Uptime Kuma's monitor configuration. LogEarn reads only the public monitor name, state, latest heartbeat, response time, and uptime summary. It does not receive the token or the target URL. Wallet-signature, CAPTCHA, or human MFA login flows need a dedicated service-token/OAuth2 path or a separate custom probe; a normal HTTP monitor cannot complete those interactive steps.
 
 ## Suggested LogEarn monitor groups
 
@@ -71,7 +72,7 @@ The token remains in Uptime Kuma's monitor configuration. LogEarn reads only the
 | Trading | Read-only wallet status, quote endpoint, transaction status lookup |
 | Chain / RPC | Solana health or slot, BSC block height, RPC latency |
 
-Prefer read-only endpoints. Avoid monitoring order-creation, wallet-transfer, or other side-effecting operations with periodic probes.
+Prefer read-only endpoints. Avoid monitoring order-creation, wallet-transfer, or other side-effecting operations with periodic probes. Uptime Kuma sends external notifications; the LogEarn dashboard also surfaces down monitors in its own attention strip.
 
 ## What the dashboard shows
 
