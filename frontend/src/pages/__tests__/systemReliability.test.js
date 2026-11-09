@@ -44,6 +44,7 @@ test('renders uptime, latency, heartbeats and incidents without exposing monitor
   expect(t.host.innerHTML).toContain('99.98%');
   expect(t.host.innerHTML).toContain('42 ms');
   expect(t.host.innerHTML).toContain('API latency');
+  expect(t.host.innerHTML).toContain('<details class="a-card sr-setup-guide">');
   expect(t.host.innerHTML).toContain('256 MB');
   expect(t.host.innerHTML).not.toContain('https://api.logearn.com');
 });

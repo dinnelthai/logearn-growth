@@ -47,8 +47,8 @@ export function createSystemReliabilityPage(ctx) {
       '<div class="sr-monitor-last"><span>最近检查 ' + time(monitor.lastCheckedAt) + '</span><span>' + esc(monitor.lastMessage || '暂无响应说明') + '</span></div>' +
       '<ol class="sr-history" aria-label="最近检查记录">' + history + '</ol></article>';
   }
-  function setupGuide() {
-    return '<details class="a-card sr-setup-guide" open><summary>如何接入 Uptime Kuma</summary>' +
+  function setupGuide(expanded) {
+    return '<details class="a-card sr-setup-guide"' + (expanded ? ' open' : '') + '><summary>如何接入 Uptime Kuma</summary>' +
       '<ol><li>在 Uptime Kuma 中添加 HTTP(s) 监控，分别检查官网、登录接口、交易 API、数据 API 和关键 RPC。</li>' +
       '<li>把监控项加入一个已发布的 Status Page 分组；LogEarn 只读取状态页数据，不使用不稳定的内部 Socket.IO 管理接口。</li>' +
       '<li>在后端环境变量配置 <code>UPTIME_KUMA_BASE_URL</code> 与 <code>UPTIME_KUMA_STATUS_SLUG</code>，重启后端即可读取。</li></ol>' +
@@ -82,7 +82,7 @@ export function createSystemReliabilityPage(ctx) {
       collector + notConfigured + incident + empty + groups +
       '<section class="a-card sr-runtime"><header><h2>LogEarn 后端运行环境</h2><span class="sr-status-badge is-up">当前请求已成功返回</span></header>' +
       '<div class="sr-runtime-grid"><div><small>进程运行时间</small><strong>' + duration(runtime.uptimeSeconds) + '</strong></div><div><small>内存 RSS</small><strong>' + (runtime.memoryRssMb == null ? '—' : fmt(runtime.memoryRssMb) + ' MB') + '</strong></div><div><small>Heap 使用</small><strong>' + (runtime.heapUsedMb == null ? '—' : fmt(runtime.heapUsedMb) + ' / ' + fmt(runtime.heapTotalMb) + ' MB') + '</strong></div><div><small>Node.js</small><strong>' + esc(runtime.nodeVersion || '—') + '</strong></div></div></section>' +
-      setupGuide() + '</div>';
+      setupGuide(!data.configured || data.state === 'collector_unavailable') + '</div>';
   }
   async function draw() {
     ctx.clear?.();

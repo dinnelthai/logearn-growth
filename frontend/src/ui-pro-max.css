@@ -365,6 +365,8 @@
 #la-studio .sr-status-badge.is-down, #la-studio .sr-beat.is-down { color: var(--ui-danger, #ff8f87); border-color: color-mix(in srgb, var(--ui-danger, #ff8f87) 35%, var(--a-border)); }
 #la-studio .sr-status-badge.is-warning, #la-studio .sr-beat.is-warning { color: var(--a-warn); border-color: color-mix(in srgb, var(--a-warn) 35%, var(--a-border)); }
 #la-studio .sr-status-badge.is-neutral { color: var(--a-muted); }
+#la-studio .sr-beat.is-neutral { background: var(--a-muted); }
+#la-studio .sr-beat.is-unknown { background: var(--a-border); }
 #la-studio .sr-group { display: grid; gap: 12px; }
 #la-studio .sr-group > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 #la-studio .sr-group > header h2 { margin: 0; font-size: 15px; }
