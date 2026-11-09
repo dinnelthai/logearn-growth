@@ -3,6 +3,7 @@ name: Growth desktop UI regression
 on:
   push:
     branches:
+      - master
       - codex/uiux-rebuild
     paths:
       - 'frontend/**'
@@ -40,6 +41,8 @@ jobs:
           node --check src/workspaceQuickJump.js
           node --check src/pages/aiTaskStatus.js
           node --check src/pages/aiAnalysis.js
+          node --check src/pages/homeMonitor.js
+          node --check src/pages/weeklyCore.js
       - name: Run all frontend unit tests
         run: npm test
       - name: Build desktop workspace

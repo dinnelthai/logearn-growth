@@ -6,9 +6,9 @@
     "semantic_hash": ""
   },
   ".github/workflows/frontend-uiux.yml": {
-    "mtime": 1794067100.6605968,
-    "seen": 1794203897.312626,
-    "ast_hash": "92c31dab5c15cd57d2d80b4216d71f0b",
+    "mtime": 1794236442.4413457,
+    "seen": 1794236465.576978,
+    "ast_hash": "2df297aa7db36755c41b11c9dfba9c87",
     "semantic_hash": ""
   },
   "backend/docs/HOLOGRES_READ_MODEL.sql": {
@@ -1543,10 +1543,10 @@
     "semantic_hash": "9006c9a602a242ef8564327efaf357dd"
   },
   "backend/src/index.js": {
-    "mtime": 1793347282.023315,
-    "seen": 1793956238.006567,
-    "ast_hash": "9365350f9618cfd688ffb26c735e7ed6",
-    "semantic_hash": "9365350f9618cfd688ffb26c735e7ed6"
+    "mtime": 1794236442.4425383,
+    "seen": 1794236465.5773492,
+    "ast_hash": "d42bd80b6ae089655dcca7933b8f41dd",
+    "semantic_hash": ""
   },
   "backend/src/middleware/crypto.js": {
     "mtime": 1791346030.8678904,
@@ -6139,10 +6139,10 @@
     "semantic_hash": "d9e78c813c897c57cba8462baec0c60b"
   },
   "frontend/src/analytics/__tests__/homeOverview.test.js": {
-    "mtime": 1792125744.2393825,
-    "seen": 1793956238.058557,
-    "ast_hash": "8491f7714008014fcda2d2e72fe5ba45",
-    "semantic_hash": "8491f7714008014fcda2d2e72fe5ba45"
+    "mtime": 1794236442.4450548,
+    "seen": 1794236465.578586,
+    "ast_hash": "4d21928fff1ccc3bb6c1ab1db19023e1",
+    "semantic_hash": ""
   },
   "frontend/src/analytics/__tests__/inputQuality.test.js": {
     "mtime": 1791305606.446019,
@@ -6349,10 +6349,10 @@
     "semantic_hash": "30e7e439cec155016a703b0866bb9acb"
   },
   "frontend/src/analytics/__tests__/segmentInsightsPage.test.js": {
-    "mtime": 1792029314.276499,
-    "seen": 1793956238.060867,
-    "ast_hash": "7064114e4f6a317e423d237fdd27e6b8",
-    "semantic_hash": "7064114e4f6a317e423d237fdd27e6b8"
+    "mtime": 1794236442.4455452,
+    "seen": 1794236465.578635,
+    "ast_hash": "d5e3b833c6adaa961c726670e34b3231",
+    "semantic_hash": ""
   },
   "frontend/src/analytics/__tests__/segmentPoints.test.js": {
     "mtime": 1791712750.1011775,
@@ -6971,10 +6971,10 @@
     "semantic_hash": "9267b04d794e39ab356b97ed5840d491"
   },
   "frontend/src/main.js": {
-    "mtime": 1793323251.9773269,
-    "seen": 1793956238.067342,
-    "ast_hash": "88d0662b7ae68e305898a2e32946b032",
-    "semantic_hash": "88d0662b7ae68e305898a2e32946b032"
+    "mtime": 1794236442.4461648,
+    "seen": 1794236465.578779,
+    "ast_hash": "c934c080c86638cc9a1c6693b6da419a",
+    "semantic_hash": ""
   },
   "frontend/src/navigation.js": {
     "mtime": 1794218531.2695146,
@@ -7007,10 +7007,10 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/__tests__/aiWeeklyDelete.test.js": {
-    "mtime": 1793289768.6202345,
-    "seen": 1793956238.0677829,
-    "ast_hash": "989e5a3d04eb30ff51b6ea07eb3cd3dd",
-    "semantic_hash": "989e5a3d04eb30ff51b6ea07eb3cd3dd"
+    "mtime": 1794236442.446934,
+    "seen": 1794236465.578787,
+    "ast_hash": "5a3da92385287575d6451e16f9969ae6",
+    "semantic_hash": ""
   },
   "frontend/src/pages/__tests__/aiWeeklyRegeneration.test.js": {
     "mtime": 1793289768.620367,
@@ -7253,10 +7253,10 @@
     "semantic_hash": "8da9e9373708c53a81c302bfae857114"
   },
   "frontend/src/pages/homeMonitor.js": {
-    "mtime": 1793323251.979233,
-    "seen": 1793956238.0704901,
-    "ast_hash": "f4a6b2f50906dbc0cb6b7cffc349e09c",
-    "semantic_hash": "f4a6b2f50906dbc0cb6b7cffc349e09c"
+    "mtime": 1794236442.4475596,
+    "seen": 1794236465.578845,
+    "ast_hash": "9918e7f7e1479434275230037e145a6f",
+    "semantic_hash": ""
   },
   "frontend/src/pages/inputQuality.js": {
     "mtime": 1791305606.44575,
@@ -7493,9 +7493,9 @@
     "semantic_hash": "821c965827a8de1390e697e3cca3e985"
   },
   "frontend/src/pages/segmentInsights.js": {
-    "mtime": 1794217348.4849806,
-    "seen": 1794217373.32221,
-    "ast_hash": "0110b0b08cfba44f2f45d445fe016e9a",
+    "mtime": 1794236448.3264284,
+    "seen": 1794236465.578902,
+    "ast_hash": "476ff134662c0531f6461a8952ec9d44",
     "semantic_hash": ""
   },
   "frontend/src/pages/segmentOperations.js": {
@@ -7595,10 +7595,10 @@
     "semantic_hash": "027cf389ad9618848c010ca0387535ed"
   },
   "frontend/src/pages/weeklyCore.js": {
-    "mtime": 1792850670.0969362,
-    "seen": 1793956238.074021,
-    "ast_hash": "d61eeb9f1db5f6c65ef63918fd4c2af8",
-    "semantic_hash": "d61eeb9f1db5f6c65ef63918fd4c2af8"
+    "mtime": 1794236442.4489772,
+    "seen": 1794236465.578927,
+    "ast_hash": "835b496183826eb627ac7210acd4694c",
+    "semantic_hash": ""
   },
   "frontend/src/pages/workbench.js": {
     "mtime": 1793323251.9839804,
@@ -10350,6 +10350,54 @@
     "mtime": 1794218527.050197,
     "seen": 1794218570.389157,
     "ast_hash": "d8cdd0921e62b4084948f452899f9990",
+    "semantic_hash": ""
+  },
+  ".github/workflows/backend-reliability.yml": {
+    "mtime": 1794236442.4405346,
+    "seen": 1794236465.576975,
+    "ast_hash": "b8a929b55f24c16857244aa38a0e3219",
+    "semantic_hash": ""
+  },
+  "backend/src/monitoring/uptimeKumaStatus.js": {
+    "mtime": 1794236442.4427557,
+    "seen": 1794236465.57736,
+    "ast_hash": "44be0d0b60b7fd03ae107ba52e06672f",
+    "semantic_hash": ""
+  },
+  "backend/src/routes/systemReliability.js": {
+    "mtime": 1794236442.4429085,
+    "seen": 1794236465.577446,
+    "ast_hash": "8ce19b47b650e69c211b73f7dac538a9",
+    "semantic_hash": ""
+  },
+  "backend/test/systemReliability.test.js": {
+    "mtime": 1794236442.4430928,
+    "seen": 1794236465.5778391,
+    "ast_hash": "0a76277f404dd9765cd33c59948b7796",
+    "semantic_hash": ""
+  },
+  "design-system/logearn-growth/MASTER.md": {
+    "mtime": 1794236442.4434683,
+    "seen": 1794236465.579167,
+    "ast_hash": "8bd6e821b6884f2466b3d73a9e2695a2",
+    "semantic_hash": ""
+  },
+  "design-system/logearn-growth/pages/growth-overview.md": {
+    "mtime": 1794236442.443723,
+    "seen": 1794236465.579169,
+    "ast_hash": "dd52f144452a1f103e031d51f8d6bb11",
+    "semantic_hash": ""
+  },
+  "design-system/logearn-growth/pages/system-reliability.md": {
+    "mtime": 1794236442.443916,
+    "seen": 1794236465.57917,
+    "ast_hash": "65136a9f811efb61f6d739d9ca2c0f15",
+    "semantic_hash": ""
+  },
+  "docs/uiux/04-uipro-max-audit.md": {
+    "mtime": 1794236442.4443672,
+    "seen": 1794236465.579367,
+    "ast_hash": "d001ec97cfaa11ee3fbb7585e7c84603",
     "semantic_hash": ""
   },
   "backend/package-lock.json": {
