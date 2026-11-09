@@ -27,3 +27,8 @@ test('occupied development port is released before startup',async()=>{
  const port=await new Promise((resolve,reject)=>{child.once('error',reject);child.stdout.once('data',data=>resolve(Number(String(data).trim())))});
  try{await releasePort(port);await checkPort(port)}finally{child.kill()}
 });
+test('old backend cleanup rejects an unrelated listener without stopping it',async()=>{
+ const {releaseOldBackend}=require('../scripts/dev.cjs');
+ const server=net.createServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ try{await assert.rejects(releaseOldBackend(server.address().port),/其他程序占用/);assert.equal(server.listening,true)}finally{await new Promise(resolve=>server.close(resolve))}
+});

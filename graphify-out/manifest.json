@@ -8349,9 +8349,9 @@
     "semantic_hash": "a6dd57621120e98f77ca780e84e32fd8"
   },
   "scripts/dev.cjs": {
-    "mtime": 1794236595.3827066,
-    "seen": 1794236611.25953,
-    "ast_hash": "62af0c6563c60cbe2f9dd58311f24fd1",
+    "mtime": 1794236758.330279,
+    "seen": 1794236774.348212,
+    "ast_hash": "85457ca0e26fae612f48514ae1655419",
     "semantic_hash": ""
   },
   "scripts/quick-deploy-stage2.sh": {
@@ -8373,9 +8373,9 @@
     "semantic_hash": "c2477dbc0d5eec5c6d6f153520d64e80"
   },
   "test/dev-launcher.test.cjs": {
-    "mtime": 1794236583.4322617,
-    "seen": 1794236611.2595358,
-    "ast_hash": "75cdfa4cbbeea42e9e995e70b445c531",
+    "mtime": 1794236751.509865,
+    "seen": 1794236774.348219,
+    "ast_hash": "647d5692ef11084ce671ad3292f86d51",
     "semantic_hash": ""
   },
   ".codex/hooks.json": {
