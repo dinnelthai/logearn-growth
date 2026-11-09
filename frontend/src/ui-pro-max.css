@@ -332,3 +332,83 @@
   #la-studio .home-daily-pulse-grid > div { padding: 0 10px; }
   #la-studio .home-attention-items { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* System Reliability — Uptime Kuma status-page bridge. */
+#la-studio .system-reliability { gap: 16px; }
+#la-studio .sr-page-header, #la-studio .sr-overview-head, #la-studio .sr-monitor-head, #la-studio .sr-runtime > header {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+}
+#la-studio .sr-page-header { padding: 2px 0 4px; }
+#la-studio .sr-page-header h1 { margin: 5px 0; font-size: 24px; }
+#la-studio .sr-page-header p { margin: 0; color: var(--a-muted); font-size: 12px; }
+#la-studio .sr-overview { padding: 20px; border-left: 3px solid var(--a-accent); }
+#la-studio .sr-overview-head h2 { margin: 5px 0 0; font-size: 22px; }
+#la-studio .sr-summary-grid, #la-studio .sr-runtime-grid {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0;
+  margin-top: 16px; border-top: 1px solid var(--a-border); padding-top: 14px;
+}
+#la-studio .sr-summary-grid > div, #la-studio .sr-runtime-grid > div {
+  display: grid; gap: 5px; padding: 0 14px; border-right: 1px solid var(--a-border);
+}
+#la-studio .sr-summary-grid > div:first-child, #la-studio .sr-runtime-grid > div:first-child { padding-left: 0; }
+#la-studio .sr-summary-grid > div:last-child, #la-studio .sr-runtime-grid > div:last-child { border-right: 0; }
+#la-studio .sr-summary-grid small, #la-studio .sr-runtime-grid small { color: var(--a-muted); font-size: 11px; }
+#la-studio .sr-summary-grid strong { font-size: 25px; font-weight: 650; font-variant-numeric: tabular-nums; }
+#la-studio .sr-runtime-grid strong { font-size: 16px; font-weight: 650; }
+#la-studio .sr-checked-at { margin: 14px 0 0; color: var(--a-muted); font-size: 11px; }
+#la-studio .sr-status-badge {
+  display: inline-flex; align-items: center; flex: none; padding: 4px 9px;
+  border: 1px solid var(--a-border); border-radius: 7px; color: var(--a-muted);
+  background: var(--ui-surface-raised, var(--a-bg)); font-size: 11px; font-weight: 650; white-space: nowrap;
+}
+#la-studio .sr-status-badge.is-up, #la-studio .sr-beat.is-up { color: var(--a-green); border-color: color-mix(in srgb, var(--a-green) 35%, var(--a-border)); }
+#la-studio .sr-status-badge.is-down, #la-studio .sr-beat.is-down { color: var(--ui-danger, #ff8f87); border-color: color-mix(in srgb, var(--ui-danger, #ff8f87) 35%, var(--a-border)); }
+#la-studio .sr-status-badge.is-warning, #la-studio .sr-beat.is-warning { color: var(--a-warn); border-color: color-mix(in srgb, var(--a-warn) 35%, var(--a-border)); }
+#la-studio .sr-status-badge.is-neutral { color: var(--a-muted); }
+#la-studio .sr-group { display: grid; gap: 12px; }
+#la-studio .sr-group > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+#la-studio .sr-group > header h2 { margin: 0; font-size: 15px; }
+#la-studio .sr-group > header span { color: var(--a-muted); font-size: 11px; }
+#la-studio .sr-monitor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+#la-studio .sr-monitor-card { min-width: 0; padding: 16px; border: 1px solid var(--a-border); border-radius: 11px; background: var(--a-panel); }
+#la-studio .sr-monitor-head { align-items: flex-start; }
+#la-studio .sr-monitor-head h3 { margin: 0 0 4px; font-size: 14px; }
+#la-studio .sr-monitor-head > div > span { color: var(--a-muted); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
+#la-studio .sr-monitor-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px; padding-bottom: 13px; border-bottom: 1px solid var(--a-border); }
+#la-studio .sr-monitor-metrics > div { display: grid; gap: 5px; min-width: 0; }
+#la-studio .sr-monitor-metrics small { color: var(--a-muted); font-size: 10px; }
+#la-studio .sr-monitor-metrics strong { font-size: 18px; font-weight: 650; font-variant-numeric: tabular-nums; }
+#la-studio .sr-monitor-last { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 10px; color: var(--a-muted); font-size: 10px; line-height: 1.5; }
+#la-studio .sr-history { display: flex; gap: 4px; margin: 12px 0 0; padding: 0; list-style: none; }
+#la-studio .sr-beat { width: 100%; height: 7px; min-width: 5px; border-radius: 4px; background: var(--a-border); border: 1px solid transparent; }
+#la-studio .sr-incident, #la-studio .sr-collector-error, #la-studio .sr-empty-state, #la-studio .sr-runtime, #la-studio .sr-setup-guide { padding: 18px; }
+#la-studio .sr-incident { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; border-left: 3px solid var(--a-warn); }
+#la-studio .sr-incident h2 { margin: 6px 0; font-size: 15px; }
+#la-studio .sr-incident p, #la-studio .sr-empty-state p, #la-studio .sr-collector-error p { margin: 0; color: var(--a-muted); font-size: 12px; line-height: 1.6; }
+#la-studio .sr-collector-error { border-left: 3px solid var(--ui-danger, #ff8f87); }
+#la-studio .sr-collector-error strong, #la-studio .sr-empty-state h2 { display: block; margin: 0 0 7px; font-size: 14px; }
+#la-studio .sr-runtime > header h2 { margin: 0; font-size: 14px; }
+#la-studio .sr-setup-guide > summary { cursor: pointer; font-size: 13px; font-weight: 650; }
+#la-studio .sr-setup-guide ol { display: grid; gap: 8px; margin: 14px 0; padding-left: 22px; color: var(--a-muted); font-size: 12px; line-height: 1.65; }
+#la-studio .sr-auth-guide { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--a-border); border-radius: 9px; background: var(--ui-surface-raised, var(--a-bg)); }
+#la-studio .sr-auth-guide strong { font-size: 12px; }
+#la-studio .sr-auth-guide p { margin: 5px 0 0; color: var(--a-muted); font-size: 11px; line-height: 1.65; }
+#la-studio .sr-setup-guide > p { margin: 12px 0 0; color: var(--a-muted); font-size: 11px; }
+#la-studio .sr-empty { color: var(--a-muted); font-size: 12px; }
+#la-studio .home-reliability-summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 15px 18px; }
+#la-studio .home-reliability-summary h2 { display: flex; align-items: center; gap: 9px; margin: 5px 0; font-size: 14px; }
+#la-studio .home-reliability-summary p { margin: 0; color: var(--a-muted); font-size: 11px; }
+#la-studio .home-reliability-summary.is-unconfigured { border-style: dashed; }
+@media (max-width: 900px) {
+  #la-studio .sr-monitor-grid { grid-template-columns: minmax(0, 1fr); }
+  #la-studio .sr-summary-grid, #la-studio .sr-runtime-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 14px; }
+  #la-studio .sr-summary-grid > div:nth-child(2), #la-studio .sr-runtime-grid > div:nth-child(2) { border-right: 0; }
+}
+@media (max-width: 560px) {
+  #la-studio .sr-page-header { align-items: flex-start; }
+  #la-studio .sr-page-header h1 { font-size: 21px; }
+  #la-studio .sr-overview, #la-studio .sr-runtime, #la-studio .sr-setup-guide { padding: 15px; }
+  #la-studio .sr-summary-grid > div, #la-studio .sr-runtime-grid > div { padding: 0 10px; }
+  #la-studio .sr-monitor-metrics strong { font-size: 15px; }
+  #la-studio .home-reliability-summary { align-items: flex-start; }
+}
