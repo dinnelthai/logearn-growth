@@ -54,7 +54,7 @@ export function createSystemReliabilityPage(ctx) {
       '<li>在后端环境变量配置 <code>UPTIME_KUMA_BASE_URL</code> 与 <code>UPTIME_KUMA_STATUS_SLUG</code>，重启后端即可读取。</li></ol>' +
       '<div class="sr-auth-guide"><strong>需要登录的接口也可以监控</strong><p>在 Uptime Kuma 的 HTTP(s) 监控中配置 Bearer Token 或自定义 Authorization 请求头。建议使用只读服务账号；Token 保存在 Uptime Kuma，不会发送到浏览器，也不会写入 LogEarn 数据库。</p></div>' +
       '<div class="sr-auth-guide"><strong>内部状态页的保护</strong><p>Uptime Kuma 发布的 Status Page 数据接口默认可公开访问。如不希望状态页公开，请在反向代理层加 Basic Auth，并在 LogEarn 后端配置 UPTIME_KUMA_BASIC_AUTH_USER / UPTIME_KUMA_BASIC_AUTH_PASSWORD。</p></div>' +
-      '<p class="a-muted">状态页本身可能缓存约 5 分钟。此页面用于服务可靠性观察，不应作为实时交易执行信号。</p></details>';
+      '<p class="a-muted">实际更新受 Uptime Kuma 检查间隔与状态页缓存影响，请以最近心跳时间为准。此页面用于服务可靠性观察，不应作为实时交易执行信号。</p></details>';
   }
   function render(data) {
     const summary = data.summary || {};

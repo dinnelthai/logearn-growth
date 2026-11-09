@@ -84,3 +84,13 @@ The UI-UX Pro Max CLI was not installed on the user's local machine in this comm
 
 - Extended the desktop UI regression workflow to run on pushes to `master` as well as the existing UI rebuild branch.
 - Added syntax checks for the Growth Overview and weekly core modules before the full Vitest suite and Vite production build.
+
+
+## System Reliability — Uptime Kuma integration
+
+- Added a server-side, authenticated read-only bridge for Uptime Kuma published Status Page data.
+- The dashboard reads public status-page and heartbeat endpoints only; it does not use Uptime Kuma's unstable internal Socket.IO monitor-management API.
+- Added optional reverse-proxy Basic Auth on the server side. Monitored service Bearer tokens stay in Uptime Kuma and are never returned to the browser.
+- Added the System Reliability page, navigation entry, backend runtime snapshot, and Growth Overview status/alert integration.
+- Added tests for status normalization, down state, uptime/latency, Basic Auth, unconfigured state, and secret/URL redaction.
+- Deployment still requires an operator to install/configure Uptime Kuma, publish a Status Page, and set the backend environment variables. Until then, the UI correctly shows “未接入”.
