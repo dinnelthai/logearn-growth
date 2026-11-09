@@ -1,0 +1,41 @@
+name: Backend system reliability bridge tests
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'backend/src/monitoring/uptimeKumaStatus.js'
+      - 'backend/src/routes/systemReliability.js'
+      - 'backend/test/systemReliability.test.js'
+      - '.github/workflows/backend-reliability.yml'
+  pull_request:
+    paths:
+      - 'backend/src/monitoring/uptimeKumaStatus.js'
+      - 'backend/src/routes/systemReliability.js'
+      - 'backend/test/systemReliability.test.js'
+      - '.github/workflows/backend-reliability.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  reliability-bridge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install dependencies (no lifecycle scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run Uptime Kuma bridge tests
+        run: node --test test/systemReliability.test.js

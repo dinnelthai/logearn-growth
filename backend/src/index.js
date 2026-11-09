@@ -71,6 +71,9 @@ if (process.env.ANALYTICS_STORAGE === 'hologres') {
 // System metrics (缓存统计、内存占用等)
 app.use('/api/system/metrics', requireAuth, require('./routes/systemMetrics'))
 
+// Uptime Kuma status-page bridge (read-only, authenticated dashboard access).
+app.use('/api/system-reliability', requireAuth, require('./routes/systemReliability'))
+
 
 // Protected routes
 app.use('/api/promotions',requireAuth,require('./routes/promotions'))
