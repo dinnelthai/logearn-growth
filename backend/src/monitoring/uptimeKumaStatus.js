@@ -131,7 +131,7 @@ function createUptimeKumaStatusClient({ env = process.env, fetchImpl = globalThi
         incident: null,
         runtime,
         checkedAt,
-        cacheNote: 'Uptime Kuma 状态页数据可能缓存约 5 分钟。',
+        cacheNote: '数据更新取决于 Uptime Kuma 检查间隔与状态页缓存，请以最近心跳时间为准。',
       };
     }
 
@@ -174,7 +174,7 @@ function createUptimeKumaStatusClient({ env = process.env, fetchImpl = globalThi
             id,
             name: safeText(monitor.name, 120) || '未命名监控',
             type: safeText(monitor.type, 40) || 'http',
-            intervalSeconds: Number.isFinite(Number(monitor.interval)) ? Number(monitor.interval) : null,
+            intervalSeconds: monitor.interval == null || !Number.isFinite(Number(monitor.interval)) ? null : Number(monitor.interval),
             state: latest.state,
             pingMs: latest.pingMs,
             uptime24h,

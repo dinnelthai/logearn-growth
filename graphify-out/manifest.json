@@ -6139,9 +6139,9 @@
     "semantic_hash": "d9e78c813c897c57cba8462baec0c60b"
   },
   "frontend/src/analytics/__tests__/homeOverview.test.js": {
-    "mtime": 1794236583.3325236,
-    "seen": 1794236611.259,
-    "ast_hash": "4d21928fff1ccc3bb6c1ab1db19023e1",
+    "mtime": 1794237260.5522866,
+    "seen": 1794237288.138955,
+    "ast_hash": "e181b055081b4805212704e764e0e1e4",
     "semantic_hash": ""
   },
   "frontend/src/analytics/__tests__/inputQuality.test.js": {
@@ -6385,10 +6385,10 @@
     "semantic_hash": "038cdbcf6eee23f7ece6c18e421177cc"
   },
   "frontend/src/analytics/__tests__/sidebarStructure.test.js": {
-    "mtime": 1793232393.4991815,
-    "seen": 1793956238.061273,
-    "ast_hash": "182c6e62c3121e452b1287b6c3bd4d0e",
-    "semantic_hash": "182c6e62c3121e452b1287b6c3bd4d0e"
+    "mtime": 1794237260.55309,
+    "seen": 1794237288.139015,
+    "ast_hash": "c207ad709c019c60ee135c857183d9d4",
+    "semantic_hash": ""
   },
   "frontend/src/analytics/__tests__/tracking.test.js": {
     "mtime": 1791213276.8645153,
@@ -6910,9 +6910,9 @@
     "semantic_hash": "90ebac3553f3e3ea26a1bc0c19577e8c"
   },
   "frontend/src/dashboard.js": {
-    "mtime": 1794236583.3359096,
-    "seen": 1794236611.2591841,
-    "ast_hash": "8c919fff7cfc76da35476e9a4a764912",
+    "mtime": 1794237271.6712594,
+    "seen": 1794237288.139143,
+    "ast_hash": "08b8a373f144bece7df59ac3ff74426a",
     "semantic_hash": ""
   },
   "frontend/src/drawer.js": {
@@ -7253,9 +7253,9 @@
     "semantic_hash": "8da9e9373708c53a81c302bfae857114"
   },
   "frontend/src/pages/homeMonitor.js": {
-    "mtime": 1794236583.3427062,
-    "seen": 1794236611.25927,
-    "ast_hash": "9918e7f7e1479434275230037e145a6f",
+    "mtime": 1794237260.5545704,
+    "seen": 1794237288.13923,
+    "ast_hash": "fbb93c6cbbd1146d50b83e320a4f6937",
     "semantic_hash": ""
   },
   "frontend/src/pages/inputQuality.js": {
@@ -9507,9 +9507,9 @@
     "semantic_hash": ""
   },
   "frontend/index.html": {
-    "mtime": 1794236583.3318906,
-    "seen": 1794236611.259813,
-    "ast_hash": "c44181ffc9cfcee2c71bbcc14f91a1bc",
+    "mtime": 1794237260.551902,
+    "seen": 1794237288.139818,
+    "ast_hash": "08ae385a679ed7011abda37954a3c3ad",
     "semantic_hash": ""
   },
   "frontend/mock-api/COVERAGE.md": {
@@ -10359,9 +10359,9 @@
     "semantic_hash": ""
   },
   "backend/src/monitoring/uptimeKumaStatus.js": {
-    "mtime": 1794236583.3183415,
-    "seen": 1794236611.257757,
-    "ast_hash": "44be0d0b60b7fd03ae107ba52e06672f",
+    "mtime": 1794237260.5505838,
+    "seen": 1794237288.137666,
+    "ast_hash": "bab123e575466327b569f096bfc76baa",
     "semantic_hash": ""
   },
   "backend/src/routes/systemReliability.js": {
@@ -10395,9 +10395,33 @@
     "semantic_hash": ""
   },
   "docs/uiux/04-uipro-max-audit.md": {
-    "mtime": 1794236583.3310251,
-    "seen": 1794236611.259804,
-    "ast_hash": "d001ec97cfaa11ee3fbb7585e7c84603",
+    "mtime": 1794237260.5513828,
+    "seen": 1794237288.1397812,
+    "ast_hash": "bd3921cb15658939a308d5938bc0ddbc",
+    "semantic_hash": ""
+  },
+  "frontend/src/api/systemReliability.js": {
+    "mtime": 1794237260.5533288,
+    "seen": 1794237288.139107,
+    "ast_hash": "e8207a31a3fe1f856cc2fec7ef1cfa70",
+    "semantic_hash": ""
+  },
+  "frontend/src/pages/__tests__/systemReliability.test.js": {
+    "mtime": 1794237260.554089,
+    "seen": 1794237288.139175,
+    "ast_hash": "194df8d3b93a8f89111c848859ff30d2",
+    "semantic_hash": ""
+  },
+  "frontend/src/pages/systemReliability.js": {
+    "mtime": 1794237260.5548282,
+    "seen": 1794237288.139301,
+    "ast_hash": "6d9716992d4def12ed1764980c57cd20",
+    "semantic_hash": ""
+  },
+  "docs/ops/system-reliability-uptime-kuma.md": {
+    "mtime": 1794237260.5509562,
+    "seen": 1794237288.139702,
+    "ast_hash": "5d712665b5939e3c550f4985dc64f233",
     "semantic_hash": ""
   },
   "backend/package-lock.json": {
