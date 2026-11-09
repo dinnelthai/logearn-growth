@@ -20,8 +20,12 @@
   #la-studio .a-head h1 { font-size: 24px; letter-spacing: -.45px; line-height: 1.35; }
   #la-studio .a-head .a-muted { font-size: 13px; max-width: 90ch; }
   #la-studio .a-layout { padding-inline: 32px; padding-bottom: 32px; }
+  #la-studio #as-tag-audience { width: calc(100% - 64px); max-width: var(--ui-content-max); margin-inline: auto; }
   #la-studio #as-output { min-width: 0; }
   #la-studio #as-output > .si-page:not(.seo-workspace) { width: 100%; max-width: var(--ui-content-max); margin-inline: auto; }
+  #la-studio:has(#as-output .si-filter-card) :is(#as-data-status, #as-coverage) { margin-inline: 32px; }
+  #la-studio:has(#as-output .si-filter-card) #as-tag-audience { max-width: none; }
+  #la-studio #as-output > .si-page:has(.si-filter-card) { max-width: none; }
   #la-studio :is(.si-page,.ai-analysis-page) > header:first-child { margin-bottom: 2px; }
   #la-studio .si-sectionhead { gap: 14px; align-items: baseline; }
   #la-studio .si-sectionhead :is(h2,h3) { letter-spacing: -.2px; line-height: 1.4; }
@@ -139,3 +143,10 @@
 @media (prefers-reduced-motion: reduce) {
   #la-studio .ui-refresh-banner::before { animation: none; }
 }
+
+/* Telegram messaging workflow */
+#la-studio .telegram-page { max-width: 1040px !important; }
+#la-studio .telegram-page textarea { display:block; width:100%; min-width:0; margin-top:6px; padding:11px 12px; resize:vertical; border:1px solid var(--a-border); border-radius:8px; background:var(--a-bg); color:var(--a-text); font:inherit; }
+#la-studio .telegram-page .a-audience-actions { margin-top:12px; }
+#la-studio .telegram-page [data-send-form] > button { margin-top:12px; }
+#la-studio .telegram-page [data-preview] .a-button { margin:8px 8px 0 0; }

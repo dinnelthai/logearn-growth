@@ -1,5 +1,5 @@
 // Existing internal mode aliases remain mapped to their navigation entry.
-export const navigationMode=mode=>({referral:'channels','my-monitor':'home','login-conversion':'funnel','invite-conversion':'funnel','ai-analysis':'ai-analysis'}[mode]||mode)
+export const navigationMode=mode=>({'email-marketing':'telegram-messages',referral:'channels','my-monitor':'home','login-conversion':'funnel','invite-conversion':'funnel','ai-analysis':'ai-analysis'}[mode]||mode)
 
 export function mountSectionNavigation(root,navigate){
   const sections=[...root.querySelectorAll('[data-navigation-section]')];

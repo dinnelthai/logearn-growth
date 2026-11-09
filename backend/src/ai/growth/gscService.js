@@ -132,7 +132,10 @@ function createGscService({db=pool,client=defaultClient,clock=Date.now}={}){
   const status=await client.status(ownerId);
   if(!status.configured)return {...status,sites:[],selectedSite:null,
    reason:!status.ownerAuthorized?'服务器尚未为此用户配置 Search Console 资源授权':'服务器尚未配置可用 Google API 凭证'};
-  const sites=await client.sites(ownerId);
+  let sites;
+  try{sites=await client.sites(ownerId)}catch(error){
+   return {...status,sites:[],selectedSite:null,error:error.message};
+  }
   const selected=await setting(ownerId);
   return {...status,sites,selectedSite:sites.some(x=>x.siteUrl===selected?.site_url)?
     selected.site_url:null,selectionNeedsReview:!!selected&&!sites.some(x=>x.siteUrl===selected.site_url)};
