@@ -32,3 +32,8 @@ test('old backend cleanup rejects an unrelated listener without stopping it',asy
  const server=net.createServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  try{await assert.rejects(releaseOldBackend(server.address().port),/其他程序占用/);assert.equal(server.listening,true)}finally{await new Promise(resolve=>server.close(resolve))}
 });
+test('old frontend cleanup rejects an unrelated listener without stopping it',async()=>{
+ const {releaseOldFrontend}=require('../scripts/dev.cjs');
+ const server=net.createServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ try{await assert.rejects(releaseOldFrontend(server.address().port),/其他程序占用/);assert.equal(server.listening,true)}finally{await new Promise(resolve=>server.close(resolve))}
+});

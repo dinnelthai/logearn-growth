@@ -7,18 +7,21 @@ const root=path.resolve(__dirname,'..');
 function isProjectBackend({command,cwd}){
  return cwd===path.join(root,'backend')&&/^\S*node(?:\s+--watch)?\s+(?:src\/index\.js|\.\/src\/index\.js)$/.test(command.trim());
 }
-async function releaseOldBackend(port){
+async function releaseOwnedPort(port,isOwned,label){
  let output;try{output=execFileSync('lsof',['-nP',`-iTCP:${port}`,'-sTCP:LISTEN','-t'],{encoding:'utf8',stdio:['ignore','pipe','ignore']})}catch(error){if(error.status===1)return;throw new Error('无法检查端口占用，请手动确认');}
  const pids=output.trim().split(/\s+/).filter(Boolean).map(Number);
  for(const pid of pids){
   let command,cwd;try{command=execFileSync('ps',['-p',String(pid),'-o','command='],{encoding:'utf8'}).trim();const files=execFileSync('lsof',['-a','-p',String(pid),'-d','cwd','-Fn'],{encoding:'utf8'});cwd=files.split('\n').find(line=>line.startsWith('n'))?.slice(1)}catch{throw new Error(`无法确认端口 ${port} 的进程，请手动检查`)}
-  if(!isProjectBackend({command,cwd}))throw new Error(`端口 ${port} 被其他程序占用，请手动检查`);
+  if(!isOwned({command,cwd}))throw new Error(`端口 ${port} 被其他程序占用，请手动检查`);
  }
- for(const pid of pids){console.log(`停止本项目旧后端（PID ${pid}）`);process.kill(pid,'SIGTERM')}
+ for(const pid of pids){console.log(`停止本项目旧${label}（PID ${pid}）`);process.kill(pid,'SIGTERM')}
  for(let i=0;i<30;i++){try{await checkPort(port);return}catch{await new Promise(resolve=>setTimeout(resolve,100))}}
- throw new Error(`旧后端未能释放端口 ${port}，请检查其运行状态`);
+ throw new Error(`旧服务未能释放端口 ${port}，请检查其运行状态`);
 }
 
+
+function releaseOldBackend(port){return releaseOwnedPort(port,isProjectBackend,'后端')}
+function releaseOldFrontend(port){return releaseOwnedPort(port,({command,cwd})=>cwd===path.join(root,'frontend')&&/^\S*node\s+(?:\.\/)?node_modules\/vite\/bin\/vite\.js(?:\s|$)/.test(command.trim()),'前端')}
 
 async function releasePort(port){
  let output;try{output=execFileSync('lsof',['-nP',`-iTCP:${port}`,'-sTCP:LISTEN','-t'],{encoding:'utf8',stdio:['ignore','pipe','ignore']})}catch(error){if(error.status===1)return;throw new Error('无法检查端口占用，请手动确认');}
@@ -104,7 +107,7 @@ async function main(){
  const env=require('dotenv').config({path:path.join(root,'backend/.env'),quiet:true,processEnv:{}}).parsed||{};
  const port=Number(process.env.PORT||env.PORT||3001);
  if(!Number.isInteger(port)||port<1||port>65535)throw Error('后端 PORT 配置无效');
- await checkPort(5173);
+ await releaseOldFrontend(5173);
  await startLocalAiDatabase({...env,...process.env});
  await releaseOldBackend(port);
  await checkPort(port);
@@ -116,4 +119,4 @@ async function main(){
  process.once('SIGINT',stop);process.once('SIGTERM',stop);
 }
 if(require.main===module)main().catch(error=>{console.error(error.message);process.exitCode=1});
-module.exports={checkPort,releasePort,releaseOldBackend,startServices,redisTunnelConfig};
+module.exports={checkPort,releasePort,releaseOldBackend,releaseOldFrontend,startServices,redisTunnelConfig};
