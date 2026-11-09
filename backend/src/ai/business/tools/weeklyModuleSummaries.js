@@ -1,7 +1,20 @@
 'use strict';
 // Strict statistics-only projections for existing, owner-scoped tool results.
 // Source accounts, per-user rows and raw post content never leave their adapters.
+const {CURRENCIES}=require('../../../analytics/collaborationCosts');
 const number=x=>typeof x==='number'&&Number.isFinite(x);
+// Convert only exact decimal totals that fit a safe integer. Never use a
+// floating-point currency sum or silently round an oversized amount.
+const minorUnits=(text,currency)=>{
+ const decimals=CURRENCIES[currency];
+ if(!Number.isInteger(decimals)||typeof text!=='string')return null;
+ const match=/^(-?)(\d+)\.(\d+)$/.exec(text);
+ if(!match||match[3].length!==decimals)return null;
+ const units=BigInt(match[2])*(10n**BigInt(decimals))+BigInt(match[3]);
+ const signed=match[1]? -units:units;
+ return signed>=BigInt(Number.MIN_SAFE_INTEGER)&&signed<=BigInt(Number.MAX_SAFE_INTEGER)?
+  Number(signed):null;
+};
 const nonnegative=x=>number(x)&&x>=0?x:null;
 const sum=values=>values.reduce((n,x)=>n+x,0);
 const safeDimension=x=>typeof x==='string'&&/^[a-z0-9_-]{1,40}$/i.test(x)?x.toLowerCase():null;
@@ -27,31 +40,42 @@ function loginSummary(payload){
   number(payload?.click_users)&&payload.click_users>0||
   number(payload?.record_total)&&payload.record_total>0||
   stageRows.some(x=>number(x.started)&&x.started>0);
- return {available:!!available,conversion,
-  coverage:{status:'partial',reason:'仅已观测的登录请求和事件，不把未知或未成熟转化当失败'},
+ return {available:!!available,
+  ...(!available?{reason:'本周未观测到可核验的登录请求或点击'}:{}),
+  conversion,coverage:{status:'partial',reason:'仅已观测的登录请求和事件，不把未知或未成熟转化当失败'},
   warnings:['登录点击、请求和成功事件分别统计；不等于首次注册人数或全站新增']};
 }
 function economicsSummary(payload){
  const rows=Array.isArray(payload?.byCurrency)?payload.byCurrency:[];
  const chosen=rows.filter(r=>safeDimension(r.currency)).slice(0,12);
  const received=chosen.map(r=>nonnegative(r.income_entries)).filter(number);
- const groups=chosen.map(r=>({
-  source:safeDimension(r.currency),...pick(r,['income_entries','roi'])
- }));
+ const groups=chosen.map(r=>{
+  const source=safeDimension(r.currency);
+  const netRevenueMinor=minorUnits(r.net_revenue,r.currency);
+  const actualCostMinor=minorUnits(r.actual_cost,r.currency);
+  return {source,...pick(r,['income_entries','roi']),
+   ...(number(netRevenueMinor)?{netRevenueMinor}:{}),
+   ...(number(actualCostMinor)?{actualCostMinor}:{}),
+   ...(number(netRevenueMinor)||number(actualCostMinor)?
+    {decimalPlaces:CURRENCIES[r.currency]}:{})};
+ });
  return {available:chosen.length>0,
+  ...(!chosen.length?{reason:'当前统计窗口没有已登记的合作收入或成本币种记录'}:{}),
   ...(chosen.length?{economics:{currencyCount:chosen.length,
    ...(received.length?{receivedEntries:sum(received)}:{})}}:{}),
   groups,coverage:payload?.coverage||{status:'unknown'},
   warnings:[...(payload?.warnings||[]),
-   '金额保存为高精度十进制字符串，不进行浮点转换；收到的入账条数及ROI只描述人工账本，不代表全平台收入']};
+   '账本金额仅在精确可表示时按最小币种单位传输，须除以10的decimalPlaces次方；不能直接把整数当美元；此为人工合作账本，不代表全平台收入']};
 }
 function kolSummary(payload){
  if(payload?.available!==true)return {available:false,
+  reason:typeof payload?.reason==='string'?payload.reason:'KOL 绩效来源未连接或无已登记档案',
   coverage:{status:'unavailable'},
   warnings:[payload?.reason||'KOL来源暂无可核验的绩效记录']};
  const rows=Array.isArray(payload.rows)?payload.rows:[];
  const measured=rows.filter(r=>number(r.observedUsers));
  if(!measured.length)return {available:false,
+  reason:'已登记KOL档案，但没有可核验的归组用户表现',
   coverage:payload.coverage||{status:'partial'},
   warnings:['仅有KOL档案，缺少可核验的归组用户统计，不能当作绩效观测']};
  return {available:true,summary:{
@@ -65,9 +89,25 @@ function kolSummary(payload){
   'KOL分组可能重叠；只记录档案数量和单档案最高观测人数，不把各档案人数相加当独立获客']};
 }
 function contentSummary(payload){
- if(payload?.available!==true)return {available:false,
-  coverage:payload?.coverage||{status:'unavailable'},
-  warnings:['没有已保存的 X 内容指标，不能按零曝光处理']};
+ if(payload?.available!==true){
+  const historicalGap=payload?.coverage?.status==='snapshots-after-cutoff';
+  const laterAt=Number(payload?.coverage?.laterObservedAt);
+  const cutoff=Number(payload?.coverage?.cutoff);
+  const dates=historicalGap&&Number.isFinite(laterAt)&&laterAt>0&&
+   Number.isFinite(cutoff)&&cutoff>0?
+   '（报告截止 '+new Date(cutoff).toISOString().slice(0,10)+
+   '，已有采集 '+new Date(laterAt).toISOString().slice(0,10)+'）':'';
+  return {available:false,
+   reason:historicalGap?
+    '已有 X 官方内容及较晚采集的累计指标'+dates+
+    '，但缺少报告截止前的指标快照，不能还原所选周期内浏览或互动':
+    '所选周期没有可核验的X内容历史指标',
+   coverage:payload?.coverage||{status:'unavailable'},
+   warnings:[historicalGap?
+    '已保存的X数据晚于报告截止时间，不可倒填所选周期的历史指标':
+    '没有所选周期内已保存的X内容指标，不能按零曝光处理']};
+ }
+
  const manual=payload.summary?.x||{};
  const accounts=Array.isArray(payload.xOfficial?.accounts)?
   payload.xOfficial.accounts:[];
@@ -85,17 +125,19 @@ function contentSummary(payload){
     {measuredImpressions:sum(groups.filter(a=>number(a.measuredImpressions))
      .map(a=>a.measuredImpressions))}:{})},
   groups,coverage:payload.coverage||{status:'partial'},
-  warnings:['官方X帖文的观看和互动为最近30天样本的累计快照，不是当周新增曝光',
+  warnings:['官方X帖文的观看和互动为所选发布周期内样本的累计快照，不是周期新增曝光',
    '人工登记与官方抓取来源分开；不发送推文正文或原始账号行',
    ...(payload.warnings||[]).slice(0,2)]};
 }
 function followerSummary(payload){
  if(payload?.available!==true)return {available:false,
+  reason:'当前窗口没有已保存的X粉丝扫描分类',
   coverage:payload?.coverage||{status:'unavailable'},
   warnings:['当前统计窗口没有已扫描的粉丝分类记录']};
  const rows=Array.isArray(payload.segments)?payload.segments:[];
  const chosen=rows.filter(r=>number(r.n)).slice(0,50);
  if(!chosen.length)return {available:false,
+  reason:'当前窗口没有可核验的X粉丝分类计数',
   coverage:payload.coverage||{status:'partial'},
   warnings:['没有可核对的粉丝分类计数']};
  const grouped=new Map();

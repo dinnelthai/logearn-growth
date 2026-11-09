@@ -1,6 +1,15 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
-const {buildGoogleSnapshot,summarizeGsc,dateWindow}=require('../src/ai/growth/gscService');
+const {createGscService,buildGoogleSnapshot,summarizeGsc,dateWindow}=require('../src/ai/growth/gscService');
+test('expired Google authorization keeps the reconnect control available',async()=>{
+ const status={configured:true,oauthAvailable:true,oauthConnected:true};
+ const service=createGscService({client:{status:async()=>status,sites:async()=>{throw Error('Google 授权已过期，请重新连接')}},db:{}});
+ const result=await service.connection('owner');
+ assert.equal(result.oauthAvailable,true);
+ assert.equal(result.oauthConnected,true);
+ assert.deepEqual(result.sites,[]);
+ assert.match(result.error,/授权已过期/);
+});
 const startDate='2026-10-18',endDate='2026-10-19';
 const row=(key,clicks,impressions,position)=>({keys:[key],clicks,impressions,
  ctr:impressions?clicks/impressions:0,position});

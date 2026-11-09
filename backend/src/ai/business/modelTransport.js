@@ -52,7 +52,7 @@ const numeric=new Set([
  'measuredProfiles','profilesWithObservedUsers','profilesWithAnalysis',
  'profilesWithTrade','maxObservedUsers','observedAccounts','measuredPosts',
  'measuredImpressions','measuredEngagementRate','sampledPosts',
- 'scannedRecords','analyzedRecords','reviewedRecords','records','reviewed','analyzed'
+ 'scannedRecords','analyzedRecords','reviewedRecords','records','reviewed','analyzed','netRevenueMinor','actualCostMinor','decimalPlaces'
 ]);
 const flags=new Set(['available','historyComplete','history_complete','complete',
  'truncated','mature','known','coverageVerified','platformSync','conversionAttribution',

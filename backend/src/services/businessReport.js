@@ -24,6 +24,9 @@ function explainCandidate(candidate){
 }
 function compact(value){return JSON.parse(JSON.stringify(value,(key,v)=>['list_key','members','lists'].includes(key)?undefined:v));}
 function createService(deps={remote,evidence}){
+  const DAY=86400000,OFFSET=7*3600000;
+  const isFullSevenDayWindow=(start,end)=>end-start===7*DAY&&
+   (start+OFFSET)%DAY===0&&(end+OFFSET)%DAY===0;
   async function snapshotFor(end){
     const s=await deps.remote.status();
     if(!Number.isFinite(Date.parse(s.as_of))||end>Date.parse(s.as_of)+1)throw Object.assign(Error('所选截止时间超出数据水位，请选择更早的日期'),{status:400});
@@ -36,7 +39,9 @@ function createService(deps={remote,evidence}){
     const [current,previous,growth,weekly]=await Promise.all([
       deps.evidence.fetchNorthStar(start,end,source,snapshot),deps.evidence.fetchNorthStar(start-duration,start,source,snapshot),
       deps.evidence.fetchGrowthInsights({start,end,source,snapshot}),
-      deps.evidence.fetchWeeklyCore({end,source,snapshot}).catch(error=>({available:false,error:error.message}))
+      isFullSevenDayWindow(start,end)?
+       deps.evidence.fetchWeeklyCore({end,source,snapshot}).catch(error=>({available:false,error:error.message})):
+       Promise.resolve({available:false,reason:'所选周期不是完整的7个UTC+7自然日，已跳过固定周核心指标'})
     ]);
     const candidates=rankEvidence(current.totals,previous.totals,growth,weekly,focusGoal).map(explainCandidate);
     return compact({version:'business-evidence-v1',business:{product:'LogEarn',scope,focusGoal,question},focusGoal,
@@ -58,8 +63,10 @@ function createService(deps={remote,evidence}){
       deps.evidence.fetchNorthStar(start,end,source,snapshot),
       deps.evidence.fetchNorthStar(start-duration,start,source,snapshot),
       deps.evidence.fetchGrowthInsights({start,end,source,snapshot}),
-      deps.evidence.fetchWeeklyCore({end,source,snapshot})
-        .catch(error=>({available:false,error:error.message}))
+      isFullSevenDayWindow(start,end)?
+       deps.evidence.fetchWeeklyCore({end,source,snapshot})
+        .catch(error=>({available:false,error:error.message})):
+       Promise.resolve({available:false,reason:'所选周期不是完整的7个UTC+7自然日，已跳过固定周核心指标'})
     ]);
     return Object.fromEntries(goals.map(focusGoal=>{
       const candidates=rankEvidence(current.totals,previous.totals,growth,weekly,focusGoal).map(explainCandidate);

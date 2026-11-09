@@ -10,10 +10,11 @@ function fixture(){
   const selectors=[
     '[data-desc]','[data-list]','[data-count]','[data-prev]',
     '[data-next]','[data-remote-actions]','[data-remote-retry]','#as-timeline',
-    '[data-close]','input'
+    '[data-close]','[data-contact-filter]','input'
   ]
   const nodes=Object.fromEntries(selectors.map(x=>[x,{innerHTML:'',textContent:'',disabled:false}]))
   nodes['input'].focus=()=>{}
+  nodes['[data-remote-actions]'].insertAdjacentHTML=()=>{}
   nodes['[data-remote-retry]'].addEventListener=(_event,handler)=>{nodes['[data-remote-retry]'].click=handler}
   nodes['[data-remote-actions]'].querySelectorAll=()=>[]
   const dialog={
@@ -27,6 +28,16 @@ function fixture(){
   vi.stubGlobal('document',{activeElement:{isConnected:false}})
   return {nodes,dialog,drawer:createDrawer(dialog)}
 }
+
+test('contact selection reloads the complete list from the first page',async()=>{
+  const t=fixture(),fetchPage=vi.fn(async ({contactFilter})=>contactFilter==='telegram'?{total:1,rows:[{id:'user:2',source:'TG'}]}:{total:2,rows:[{id:'user:1',source:'SEO'}]})
+  t.drawer.openRemote({title:'用户',description:'名单',fetchPage,contactFilter:true})
+  await vi.waitFor(()=>expect(t.nodes['[data-list]'].innerHTML).toContain('user:1'))
+  t.nodes['[data-contact-filter]'].onchange({target:{value:'telegram'}})
+  await vi.waitFor(()=>expect(t.nodes['[data-list]'].innerHTML).toContain('user:2'))
+  expect(fetchPage).toHaveBeenLastCalledWith(expect.objectContaining({offset:0,contactFilter:'telegram'}))
+  expect(t.nodes['[data-list]'].innerHTML).not.toContain('user:1')
+})
 
 test('closing a remote drill cancels its debounced search before another API request',()=>{
   vi.useFakeTimers()

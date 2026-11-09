@@ -4,19 +4,15 @@ const net=require('node:net');
 const path=require('node:path');
 const fs=require('node:fs');
 const root=path.resolve(__dirname,'..');
-function isProjectBackend({command,cwd}){
- return cwd===path.join(root,'backend')&&/^\S*node(?:\s+--watch)?\s+(?:src\/index\.js|\.\/src\/index\.js)$/.test(command.trim());
-}
-async function releaseOldBackend(port){
+async function releasePort(port){
  let output;try{output=execFileSync('lsof',['-nP',`-iTCP:${port}`,'-sTCP:LISTEN','-t'],{encoding:'utf8',stdio:['ignore','pipe','ignore']})}catch(error){if(error.status===1)return;throw new Error('无法检查端口占用，请手动确认');}
  const pids=output.trim().split(/\s+/).filter(Boolean).map(Number);
- for(const pid of pids){
-  let command,cwd;try{command=execFileSync('ps',['-p',String(pid),'-o','command='],{encoding:'utf8'}).trim();const files=execFileSync('lsof',['-a','-p',String(pid),'-d','cwd','-Fn'],{encoding:'utf8'});cwd=files.split('\n').find(line=>line.startsWith('n'))?.slice(1)}catch{throw new Error(`无法确认端口 ${port} 的进程，请手动检查`)}
-  if(!isProjectBackend({command,cwd}))throw new Error(`端口 ${port} 被其他程序占用，请手动检查`);
- }
- for(const pid of pids){console.log(`停止本项目旧后端（PID ${pid}）`);process.kill(pid,'SIGTERM')}
+ for(const pid of pids){console.log(`停止占用端口 ${port} 的进程（PID ${pid}）`);try{process.kill(pid,'SIGTERM')}catch(error){if(error.code!=='ESRCH')throw error}}
  for(let i=0;i<30;i++){try{await checkPort(port);return}catch{await new Promise(resolve=>setTimeout(resolve,100))}}
- throw new Error(`旧后端未能释放端口 ${port}，请检查其运行状态`);
+ let remaining;try{remaining=execFileSync('lsof',['-nP',`-iTCP:${port}`,'-sTCP:LISTEN','-t'],{encoding:'utf8',stdio:['ignore','pipe','ignore']}).trim().split(/\s+/).map(Number)}catch(error){if(error.status===1)return;throw error}
+ for(const pid of pids.filter(pid=>remaining.includes(pid))){try{process.kill(pid,'SIGKILL')}catch(error){if(error.code!=='ESRCH')throw error}}
+ for(let i=0;i<20;i++){try{await checkPort(port);return}catch{await new Promise(resolve=>setTimeout(resolve,100))}}
+ throw new Error(`无法释放端口 ${port}，请检查其运行状态`);
 }
 
 function checkPort(port){
@@ -104,4 +100,4 @@ async function main(){
  process.once('SIGINT',stop);process.once('SIGTERM',stop);
 }
 if(require.main===module)main().catch(error=>{console.error(error.message);process.exitCode=1});
-module.exports={checkPort,startServices,isProjectBackend,redisTunnelConfig};
+module.exports={checkPort,releasePort,startServices,redisTunnelConfig};

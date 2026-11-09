@@ -38,6 +38,14 @@ test('economics exposes ledger entries and ROI but does not cast decimal money',
  assertMetric(e,'economics.receivedEntries',4);
  assertMetric(e,'groups.usd.roi',.4);
  assert.doesNotMatch(JSON.stringify(e),/999999999999999/);
+ const exact=make('trade_revenue',economicsSummary({byCurrency:[
+  {currency:'USD',income_entries:1,net_revenue:'123.45',actual_cost:'90.07'},
+  {currency:'USDT',income_entries:1,net_revenue:'1.200000'}]}));
+ assertMetric(exact,'groups.usd.netRevenueMinor',12345);
+ assertMetric(exact,'groups.usd.actualCostMinor',9007);
+ assertMetric(exact,'groups.usd.decimalPlaces',2);
+ assertMetric(exact,'groups.usdt.netRevenueMinor',1200000);
+ assertMetric(exact,'groups.usdt.decimalPlaces',6);
  const empty=make('trade_revenue',economicsSummary({byCurrency:[]}));
  assert.equal(empty.value.available,false);
  assert.deepEqual(factsFromEvidence([empty]),[]);
@@ -64,7 +72,8 @@ test('X manual and official snapshots remain separate, without post bodies',()=>
  assertMetric(e,'official.measuredPosts',3);
  assertMetric(e,'groups.logearn.sampledPosts',4);
  assert.doesNotMatch(JSON.stringify(e),/MUST NOT BE MODELED/);
- assert.ok(e.value.warnings.some(x=>x.includes('最近30天')));
+ assert.ok(contentSummary({available:true,summary:{x:{count:1}}})
+  .warnings.some(x=>x.includes('最近30天')));
 });
 test('follower rows are aggregated by category, never user identities',()=>{
  const e=make('follower_quality',followerSummary({available:true,
