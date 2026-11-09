@@ -42,8 +42,8 @@ describe('AI weekly report delete availability',()=>{
  it('restores the generate button after a failed weekly report was deleted',async()=>{
   const {html}=await render([],true,true);
   expect(html).toContain('data-weekly-confirm>重新生成 AI 周报');
-  expect(html).toContain('创建独立的付费模型任务');
-  expect(html).toContain('可能产生重复费用');
+  expect(html).toContain('创建独立付费任务');
+  expect(html).toContain('原调用和费用保留');
   expect(html).not.toContain('data-weekly-delete');
  });
  it('makes paid weekly regeneration available on a completed report',async()=>{
