@@ -38,3 +38,13 @@ test('fixed audiences show their actual period and explicit audience selection i
  expect(fetchSegmentsMetrics.mock.calls[0][0]).toMatchObject({start,end,pool:'registered',audience_ids:['user:1']})
  expect(t.host.innerHTML).toContain('人群统计期');expect(t.host.innerHTML.match(/<select data-insight="days"[^>]*>([\s\S]*?)<\/select>/)[1]).not.toContain('最近7天');expect(t.host.innerHTML).toContain('动态统计期')
 })
+
+
+test('keeps only the three primary audience controls visible and moves asset/binding into advanced filters',async()=>{
+ fetchSegmentsMetrics.mockResolvedValue(metric);const t=setup();await t.page.draw({source:'all'})
+ const main=t.host.innerHTML.match(/<div class="si-filter-main">([\\s\\S]*?)<\\/div>/)?.[1]||''
+ const advanced=t.host.innerHTML.match(/<details data-advanced[^>]*>([\\s\\S]*?)<\\/details>/)?.[1]||''
+ expect(main).toContain('data-insight="pool"');expect(main).toContain('data-insight="days"');expect(main).toContain('data-insight="group"')
+ expect(main).not.toContain('data-filter="asset"');expect(main).not.toContain('data-filter="binding"')
+ expect(advanced).toContain('data-filter="asset"');expect(advanced).toContain('data-filter="binding"')
+})

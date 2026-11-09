@@ -1,7 +1,7 @@
 # Page Override — Growth Overview
 
 > Inherits design rules from ../MASTER.md. This page-specific document overrides the master only where stated.
-> Status: proposal for review; no UI implementation implied.
+> Status: first implementation pass completed for visual hierarchy and attention placement; metric definitions and page-specific details remain governed by this proposal.
 
 ## Page job
 

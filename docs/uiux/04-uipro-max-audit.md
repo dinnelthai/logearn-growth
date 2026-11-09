@@ -1,78 +1,70 @@
-# UI-UX Pro Max adoption and current UI audit
+# UI-UX Pro Max adoption and implementation audit
 
 Date: 2026-11-09
 Target branch: master
-Scope: desktop UI/UX only. No business logic, data definitions, API contracts, SQL, permissions, or AI cost controls changed in this design pass.
+Scope: desktop-first UI/UX. Business formulas, API contracts, SQL, permissions, authentication, and AI cost safeguards remain unchanged.
 
-## UI-UX Pro Max matching
+## Selected UI-UX Pro Max direction
 
-The open-source UI-UX Pro Max repository was reviewed and its v2 design intelligence was applied to the LogEarn Growth context.
+- Product: Analytics Dashboard (primary), Fintech/Crypto (secondary context).
+- Pattern: Data-Dense + Drill-Down.
+- Style: Data-Dense Dashboard + Dark Mode (OLED) + Minimalism & Swiss Style.
+- Typography: Inter with existing Chinese system fallbacks.
+- Charts: line for trends, bar for comparisons, funnel for sequential conversion, and highlighted markers for anomalies.
+- Dials: visual variance 4/10, motion 2/10, information density 8/10.
 
-Selected dataset matches:
-- Product: Analytics Dashboard (primary).
-- Product: Fintech/Crypto (secondary context).
-- Reasoning pattern: Data-Dense + Drill-Down.
-- Styles: Data-Dense Dashboard, Dark Mode (OLED), Minimalism & Swiss Style.
-- Typography: Minimal Swiss / Inter.
-- Charts: line for trends, bar for comparisons, funnel for sequential conversion, line-with-highlights for anomalies.
-- UX priorities: accessibility, visible focus, keyboard operation, progressive disclosure, explicit loading/error/stale states, and context-preserving drill-down.
+The chosen result is a restrained professional growth workspace, not a neon crypto terminal. It preserves the existing LogEarn navy/blue/green palette.
 
-The result is intentionally not a cyberpunk or neon crypto redesign. It preserves the current LogEarn navy/blue/green language and uses restrained motion and a dense-but-readable desktop layout.
+## Repository baseline
 
-## Findings from current running pages
+The current master CSS import order in `frontend/src/main.js` is:
+
+1. `styles.css`
+2. `polish.css`
+3. `brand-logo.css`
+4. `growth-agent-ui.css`
+5. `ui-tokens.css`
+6. `workspace.css`
+7. `visual-polish.css`
+8. `ui-pro-max.css` (new final override layer)
+
+The first seven stylesheets were already imported on master. The implementation reuses the existing semantic tokens and adds one final, scoped presentation layer; it does not bulk-import dormant stylesheets or replace the existing component system.
+
+## First implementation pass
+
+### Global visual system
+- Added a final UI-UX Pro Max stylesheet using the existing dark LogEarn palette.
+- Standardized page/card radii, spacing, controls, table headers/rows, focus rings, KPI typography, and chart surfaces.
+- Reduced decorative shadows, gradients, hover lift, and motion.
+- Kept reduced-motion support and existing responsive breakpoints.
 
 ### Growth Overview
-- The page contains the North Star, activation drivers, retention/core-user information, wallet assets, turnover, and transaction quality in one long view.
-- Important growth decisions compete with detailed tables and long metric caveats.
-- Recommendation: prioritize the North Star and four core KPIs, then growth bottleneck and operational alerts; move full tables and long definitions into details.
+- Moved the existing operational attention block directly below the North Star hero, ahead of secondary analysis.
+- Kept the same failure, pending-order, correlation, D7 maturity, and coverage facts; no new health values are inferred.
+- Added distinct visual states for current-day, historical-period, and coverage-check labels.
+- Kept commercial, asset, chart, and drill-down metrics unchanged.
 
 ### Segments
-- The page exposes multiple layers of audience selection and a large advanced filter set.
-- Recommendation: separate the selected audience from segment rules; show a compact applied-filter summary; keep advanced conditions collapsed by default.
+- Kept the user pool, reporting period, and comparison dimension as the three primary controls.
+- Moved asset and binding filters into the existing collapsed “More filters” disclosure, alongside other advanced conditions.
+- Preserved filter values, apply/reset behavior, cohort selection, and query payload semantics.
 
 ### SEO
-- The SEO report has its own data source, period, property, and synchronization state.
-- The shared funnel/analysis controls can appear above the SEO content when the shared filter panel is open, even though they are not SEO-specific.
-- Recommendation: render only filters consumed by the current page; keep Search Console connection and sync settings in a dedicated disclosure or settings area.
+- SEO already has a page-specific report and Search Console settings disclosure.
+- The shared funnel configuration is hidden for SEO in the current page routing; the earlier draft's concern that it was an SEO-visible control was incorrect.
+- The report, data period, Search Console connection, and sync behavior remain unchanged.
 
-### System Reliability
-- The reliability surface should be operational and evidence-first: overall status, latency/error KPIs, endpoint health, incident history, and safe investigation details.
-- Authenticated endpoint checks must execute server-side with dedicated credentials; the browser must never receive monitoring secrets.
+## System Reliability boundary
 
-## Repository implementation note
+The System Reliability page remains a UX proposal, not a live monitoring implementation in this commit. A real 504 monitor and authenticated endpoint probes require a server-side probe registry, safe credential handling, thresholds, persistence, and an incident data contract. The UI must not invent endpoint status or expose bearer tokens in the browser.
 
-The current master frontend/src/main.js imports:
-1. styles.css
-2. polish.css
-3. brand-logo.css
-4. growth-agent-ui.css
+## Verification status
 
-The repository also contains ui-tokens.css, workspace.css, and visual-polish.css, but these files are not imported by the current main.js import list. An earlier design note describes a different import chain; it should not be treated as proof that these styles are active on master.
+- Source changes and import order were reviewed.
+- Regression assertions were added for the Growth Overview hierarchy and Segments filter grouping.
+- The frontend test suite/build and live screenshot/keyboard review have not yet been run in this environment. This is not a claim of visual acceptance.
+- No backend, monitoring, production data, or authentication code was changed.
 
-Do not bulk-import dormant stylesheets or delete legacy CSS without first checking selector overlap, cascade order, page-specific dependencies, and actual browser output.
+## Local UI-UX Pro Max CLI
 
-## Rollout sequence
-
-1. Confirm the Master design system and the Growth Overview / System Reliability page proposals.
-2. Audit the active CSS cascade and establish one authoritative token import path.
-3. Implement the Growth Overview hierarchy using existing metrics and components only.
-4. Implement System Reliability UI against an agreed monitoring data contract; do not fake live endpoint data.
-5. Reduce filter complexity on Segments and scope SEO controls to SEO.
-6. Migrate remaining pages incrementally.
-7. Run frontend tests/build, then perform real desktop browser screenshot, keyboard, and state checks.
-
-## Local Codex skill installation
-
-The UI-UX Pro Max maintainers recommend installing the CLI for Codex:
-
-~~~bash
-npm install -g ui-ux-pro-max-cli
-cd /Users/leon/Documents/work/Logearn-growth
-uipro init --ai codex
-~~~
-
-This local CLI installation is not run by this design-document commit. It allows Codex in the local workspace to load the official skill and its searchable dataset in future UI/UX implementation sessions.
-
-## Scope and verification
-
-This commit adds design documentation only. It does not modify frontend JavaScript/CSS, backend services, monitoring probes, production data, or user workflows. The page proposals are not implemented or visually accepted yet.
+The UI-UX Pro Max CLI was not installed on the user's local machine in this commit. The v2 datasets and design guidance were used to create the repository design system and implementation layer. Local Codex installation can be done separately when the user's local shell is available.
