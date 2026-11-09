@@ -265,8 +265,13 @@
   overflow: hidden; accent-color: var(--a-accent);
 }
 #la-studio .weekly-core .home-kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
-#la-studio .weekly-core .home-kpi { min-height: 88px; padding: 12px 14px; gap: 8px; background: var(--a-panel); }
-#la-studio .weekly-core .home-kpi > strong { font-size: 23px; }
+#la-studio .weekly-core .home-kpi {
+  min-height: 0; padding: 10px 12px; gap: 6px; border: 0;
+  border-right: 1px solid var(--a-border); border-radius: 0; background: transparent;
+}
+#la-studio .weekly-core .home-kpi:first-child { background: transparent; border-color: var(--a-border); }
+#la-studio .weekly-core .home-kpi:last-child { border-right: 0; }
+#la-studio .weekly-core .home-kpi > strong { font-size: 22px; }
 #la-studio .weekly-core .home-kpi .si-numberlink { color: var(--a-text); font-size: inherit; }
 #la-studio .weekly-core > p { margin: 12px 0 0; color: var(--a-muted); font-size: 11px; line-height: 1.65; }
 #la-studio .weekly-core > details { margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--a-border); }

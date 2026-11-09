@@ -78,3 +78,9 @@ The UI-UX Pro Max CLI was not installed on the user's local machine in this comm
 - Kept the distinction between pending and failed orders and did not add an invented success-rate threshold.
 - Added regression tests for the revised hierarchy, hidden healthy state, and actionable failed-order state.
 - The tests are authored but have not been executed in this environment.
+
+
+## Regression automation
+
+- Extended the desktop UI regression workflow to run on pushes to `master` as well as the existing UI rebuild branch.
+- Added syntax checks for the Growth Overview and weekly core modules before the full Vitest suite and Vite production build.
