@@ -24,6 +24,14 @@ function operationFields(raw){
 function tx(fn){db.exec('BEGIN');try{const value=fn();db.exec('COMMIT');return value}catch(e){db.exec('ROLLBACK');throw e}}
 const summary=t=>({title:t.title,assignee:t.assignee,priority:t.priority,status:t.status,next_step:t.next_step,due_at:t.due_at})
 function history(t,before,note,at){db.prepare('INSERT INTO operation_task_history(id,task_id,note,before_json,after_json,created_at) VALUES(?,?,?,?,?,?)').run('oth_'+randomUUID(),t.id,note,before?JSON.stringify(summary(before)):null,JSON.stringify(summary(t)),at)}
+router.get('/',(req,res,next)=>{try{
+ const offset=Number(req.query.offset??0),limit=Number(req.query.limit??10),owner=String(req.user.user_id)
+ if(!Number.isSafeInteger(offset)||offset<0||!Number.isSafeInteger(limit)||limit<1||limit>50)fail('分页参数无效')
+ const total=db.prepare('SELECT COUNT(*) AS count FROM operation_tasks WHERE owner_id=?').get(owner).count
+ const tasks=db.prepare('SELECT * FROM operation_tasks WHERE owner_id=? ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?').all(owner,limit,offset).map(expose)
+ res.json({tasks,total,offset,limit})
+ }catch(e){next(e)}
+})
 router.post('/',wrap(async(req,res)=>{
  if(process.env.ANALYTICS_STORAGE!=='hologres')fail('人群任务需要真实远程数据源',501)
  const scopeLabel=req.body.scope_label??'';if(typeof scopeLabel!=='string'||scopeLabel.length>200)fail('来源范围说明无效')

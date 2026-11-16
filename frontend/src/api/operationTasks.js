@@ -11,3 +11,5 @@ export const operationTaskAudience=id=>request('/'+encodeURIComponent(id)+'/audi
 export const reviewOperationTask=id=>request('/'+encodeURIComponent(id)+'/review')
 
 export const logOperationTouch=(id,body)=>request('/'+encodeURIComponent(id)+'/log',body)
+
+export const listOperationTasks=params=>request('?'+new URLSearchParams(params))

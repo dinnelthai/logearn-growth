@@ -19,6 +19,7 @@ test('task creation uses only owner-scoped segment results and refuses empty, ov
 })
 test('fixed roster and baseline survive task edits, completion, reopening and data refresh',async()=>{
  const r=await request('/t',{title:'fixed lead',cache_id:'job',assignee:'ops',next_step:'check blockers',due_at:0,operation:{goal:'trade',channel:'telegram',window_days:7}});assert.equal(r.status,201);const t=r.body.task,id=t.id
+ assert.equal((await request('/t?limit=10')).body.total,1);assert.equal((await request('/t?limit=10',undefined,'GET','b')).body.total,0)
  assert.equal(t.member_count,2);assert.deepEqual(t.source.operation,{goal:'trade',channel:'telegram',window_days:7});assert.equal(t.baseline.total.users,2);assert.equal(t.source.conditions.filters.task,'analysis_no_trade')
  assert.equal(t.members_json,undefined);const baseline=JSON.stringify(t.baseline),source=JSON.stringify(t.source)
  const duplicate=await request('/t',{title:'changed client request',cache_id:'job'});assert.equal(duplicate.body.existing,true);assert.equal(duplicate.body.task.id,id)
