@@ -82,10 +82,13 @@ router.get('/:id/audience',wrap(async(req,res)=>{
 }))
 router.get('/:id/review',wrap(async(req,res)=>{
  const t=get(req.params.id,req.user.user_id),s=await remote.status(),ids=JSON.parse(t.members_json),operation=JSON.parse(t.source_json).operation||null
+ const firstExecution=operation?db.prepare("SELECT MIN(created_at) AS at FROM operation_task_history WHERE task_id=? AND note LIKE '[手工登记]%'").get(t.id)?.at:null
+ const anchor=operation?firstExecution:t.created_at
+ if(!anchor)return res.json({pending:true,awaiting_execution:true,operation,as_of:s.as_of,performance:null,errors:{}})
  const windowDays=operation?.window_days||7,duration=windowDays*86400000,cutoff=Math.min(Date.now()+1,Date.parse(s.as_of)+1,Date.parse(s.snapshot_cutoff)+1)
- const end=Math.min(cutoff,t.created_at+duration),period={start:t.created_at,end}
+ const end=Math.min(cutoff,anchor+duration),period={start:anchor,end}
  if(!Number.isFinite(end)||end<=period.start)return res.json({pending:true,...period,as_of:s.as_of,performance:null,errors:{},operation})
- const elapsed=end-t.created_at,beforePeriod={start:t.created_at-elapsed,end:t.created_at}
+ const elapsed=end-anchor,beforePeriod={start:anchor-elapsed,end:anchor}
  const [beforeFacts,afterFacts]=await Promise.all([memberFacts(s,ids,beforePeriod),memberFacts(s,ids,period)])
  const members=ids.map(id=>({id})),before=memberMetrics(beforeFacts,members,beforePeriod,s),after=memberMetrics(afterFacts,members,period,s)
  const errors=Object.fromEntries(['analysis','trade','account'].map(key=>[key,[beforeFacts.errors[key]&&'前期：'+beforeFacts.errors[key],afterFacts.errors[key]&&'后期：'+afterFacts.errors[key]].filter(Boolean).join('；')||null]))
@@ -95,7 +98,7 @@ router.get('/:id/review',wrap(async(req,res)=>{
   const first=membersOf(beforeFacts,type),last=membersOf(afterFacts,type)
   return ids.filter(id=>last.has(String(id))&&!first.has(String(id))).map(id=>'user:'+id)
  }
- res.json({pending:false,...period,before_period:beforePeriod,as_of:s.as_of,snapshot_id:s.snapshot_id,window_days:windowDays,complete:cutoff>=t.created_at+duration,operation,
+ res.json({pending:false,...period,before_period:beforePeriod,as_of:s.as_of,snapshot_id:s.snapshot_id,window_days:windowDays,complete:cutoff>=anchor+duration,operation,
   performance:after?{total:after.total,requested_users:after.requested_users,unmatched_users:after.unmatched_users}:null,
   comparison:{before:before?{total:before.total,requested_users:before.requested_users,unmatched_users:before.unmatched_users}:null,after:after?{total:after.total,requested_users:after.requested_users,unmatched_users:after.unmatched_users}:null},
   movement:{analysis_ids:changed('analysis'),trade_ids:changed('trade')},errors})

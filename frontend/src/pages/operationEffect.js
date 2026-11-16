@@ -9,7 +9,7 @@ const measures=[
 ]
 const number=v=>typeof v==='number'&&Number.isFinite(v)
 export function renderOperationEffect(result,{esc,fmt,table,observedTime}){
- if(result.pending)return '<p class="a-muted">数据截至尚未超过任务创建时间，尚无完整观察结果；请稍后重新检查。</p>'
+ if(result.pending)return result.awaiting_execution?'<p class="a-muted">尚未登记运营执行。本次观察会以首次手工登记的执行时间为起点，创建任务本身不视为触达。</p>':'<p class="a-muted">数据截至尚未超过首次执行时间，尚无有效观察窗口；请稍后重新检查。</p>'
  const before=result.comparison?.before?.total,after=result.comparison?.after?.total
  const errors=Object.values(result.errors||{}).filter(Boolean)
  const period='<p class="a-muted">前期 '+observedTime(result.before_period?.start)+' — '+observedTime(result.before_period?.end)+'；后期 '+observedTime(result.start)+' — '+observedTime(result.end)+' · UTC+7</p>'
