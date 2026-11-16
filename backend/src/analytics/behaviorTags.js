@@ -7,6 +7,7 @@ const DEFINITIONS=[
  ['traded','交易用户','所选期间有有效交易记录'],
  ['unactivated','有价值线索的用户','有交易记录、NFT、余额、有效 VIP 或可用 Credits；满足任一项'],
  ['silent','沉默用户（观测）','曾分析，距最近一次分析已超过7天；不代表真实流失'],
+ ['return_d7','回流 D7（观测）','连续7个完整UTC+7自然日无已观测前台使用，之后重新分析、启动策略或发生交易成功埋点；历史覆盖未确认'],
  ['returned','回流用户','历史覆盖完整，确认超过28天分析断档后回归'],
 ]
 function hasValueSignal(r){
@@ -15,7 +16,7 @@ function hasValueSignal(r){
 // Keep the stored filter key compatible with saved cohorts.
 function behaviorTags(r,{start,end,asOf,historyComplete=false}){
  const first=r.first_chip_at,last=r.last_chip_at
- const conditions={new_analysis:first!=null&&first>=start&&first<end&&first<=asOf,core:r.chip_days_28>=6,low_frequency:last!=null&&last>=asOf-7*DAY&&r.chip_days_28>0&&r.chip_days_28<6,analysis_no_trade:r.analysis_days_period>0&&r.trade_count===0,traded:r.trade_count_period>0,unactivated:r.account_id!=null&&hasValueSignal(r),silent:last!=null&&last<asOf-7*DAY,returned:historyComplete&&r.returned_28===true}
+ const conditions={new_analysis:first!=null&&first>=start&&first<end&&first<=asOf,core:r.chip_days_28>=6,low_frequency:last!=null&&last>=asOf-7*DAY&&r.chip_days_28>0&&r.chip_days_28<6,analysis_no_trade:r.analysis_days_period>0&&r.trade_count===0,traded:r.trade_count_period>0,unactivated:r.account_id!=null&&hasValueSignal(r),silent:last!=null&&last<asOf-7*DAY,return_d7:r.returned_d7_period===true,returned:historyComplete&&r.returned_28===true}
  return DEFINITIONS.filter(([key])=>conditions[key]).map(([key,label,description])=>({key,label,description}))
 }
 module.exports={behaviorTags,DEFINITIONS,hasValueSignal}

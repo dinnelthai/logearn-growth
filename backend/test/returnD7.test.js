@@ -1,0 +1,17 @@
+const {test}=require('node:test'),assert=require('node:assert/strict');
+const {DAY,OFFSET,businessDay,returnD7FromDays}=require('../src/analytics/returnD7');
+const at=(d,h=12)=>d*DAY-OFFSET+h*3600000;
+test('7 complete UTC+7 empty days are required, and the return must be a core action',()=>{
+ const opts={start:at(0),end:at(30)};
+ assert.equal(returnD7FromDays([1,8],[at(8)],opts).returned,false);
+ assert.equal(returnD7FromDays([1,9],[at(9)],opts).returned,true);
+ assert.equal(returnD7FromDays([1,5,9],[at(9)],opts).returned,false);
+ assert.equal(returnD7FromDays([1,9],[],opts).returned,false);
+ assert.equal(returnD7FromDays([9],[at(9)],opts).returned,false);
+ assert.equal(returnD7FromDays([1,9],[at(9)],opts).returns[0].blank_days,7);
+});
+test('a return before the selected period is not counted twice',()=>{
+ assert.equal(returnD7FromDays([1,9],[at(9,9),at(9,15)],{start:at(9,10),end:at(10)}).returned,false);
+ assert.equal(returnD7FromDays([1,9],[at(9,11)],{start:at(9,10),end:at(10)}).returned,true);
+ const midnight=Date.UTC(2026,10,1,17);assert.equal(businessDay(midnight),businessDay(midnight-1)+1);
+});

@@ -109,7 +109,7 @@ function computeInsights(input,{asOf,factsAsOf,start,end,pointsData=null,credits
     'referral:new':r=>r.invitation_at>=start&&r.invitation_at<end,
     'referral:analysis':r=>r.invitation_at>=start&&r.invitation_at<end&&r.referred_analysis_period}))lists[key]=selected.filter(condition).map(r=>r.user_key)
   const details=Object.fromEntries(input.map(r=>[r.user_key,{registered:r.account_id!=null,created_at:r.created_at,last_login_at:r.last_login_at,account_status:r.account_status,
-    manual_entitlements:r.manual_entitlements||[],behavior_tags:behaviorTags(r,{start,end,asOf,historyComplete}),source:r.source||'未知',operational_tags:r.operational_tags||[],first_chip_at:r.first_chip_at,last_chip_at:r.last_chip_at,chip_days_28:r.chip_days_28,
+    manual_entitlements:r.manual_entitlements||[],behavior_tags:behaviorTags(r,{start,end,asOf,historyComplete}),source:r.source||'未知',operational_tags:r.operational_tags||[],first_chip_at:r.first_chip_at,last_chip_at:r.last_chip_at,chip_days_28:r.chip_days_28,returned_d7_at:r.returned_d7_at,returned_d7_period:r.returned_d7_period,
     telegram_bound:r.telegram_bound,email_bound:r.email_bound,identity: r.account_id!=null?identity(r):'未知',
     nft_count:r.nft_count,has_balance:r.has_balance,balance_updated_at:r.balance_updated_at,available_points:r.available_points,vip_active:r.vip_active,
     ...(r.credits_available!=null?{credits_available:r.credits_available,credits_total:r.credits_total,credits_used:r.credits_used,credits_cumulative:r.credits_cumulative,credits_updated_at:r.credits_updated_at}:{}),

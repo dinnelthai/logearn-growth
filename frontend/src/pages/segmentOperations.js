@@ -5,6 +5,7 @@ export const OPERATING_LEADS = [
  {id:'repeat_analysis',stage:'转化',pool:'registered',priority:'P1',title:'多日分析无交易记录',filters:{task:'repeat_analysis_no_trade'},reason:'本期至少2个自然日分析，关联交易表无交易记录；不强制要求交易。',action:'了解用户是研究型还是有执行需求，优先处理执行阻力。',metric:'需求反馈、有效重复分析、有执行需求用户的首单'},
  {id:'analysis_trade',stage:'转化',pool:'registered',priority:'P2',title:'分析无交易记录',filters:{task:'analysis_no_trade'},reason:'本期分析过，关联交易表无交易记录；不是严格顺序漏斗。',action:'提供分析结果解读及执行流程说明，核实需求。',metric:'重复分析、需求反馈及有执行需求用户的首单'},
  {id:'strategy_trade',stage:'转化',pool:'registered',priority:'P2',title:'启动策略无交易记录',filters:{task:'strategy_no_trade'},reason:'本期启动过策略，关联交易表无记录；策略类型不一定需要交易。',action:'检查策略用途、配置和运行结果，定位配置或执行阻力。',metric:'问题解决、策略继续使用'},
+ {id:'return_d7',stage:'召回',pool:'registered',priority:'P1',title:'回流 D7（观测）用户',filters:{behavior_tag:'return_d7'},reason:'此前有使用记录，连续7个完整UTC+7自然日未观测到前台使用，此后再次发生核心使用行为。历史覆盖仍需核对。',action:'了解回来的原因与下一次使用障碍，观察回流后的有效分析与再次访问。',metric:'回流 D7 人数、后续7日分析与交易记录'},
  {id:'single_trade',stage:'转化',pool:'registered',priority:'P1',title:'仅一次交易记录',filters:{trade:'first'},reason:'当前历史交易表只有1条记录；未统一首单观察窗口。',action:'核实交易时间与体验，满观察期后再做重复使用回访。',metric:'成熟观察期内重复使用、第二次交易'},
  {id:'trade_analysis',stage:'维护',pool:'registered',priority:'P2',title:'本期交易未分析',filters:{task:'trade_no_analysis'},reason:'本期有交易记录，但本期未观测有效分析。',action:'按实际使用场景提供分析教程，不称为流失。',metric:'分析采用、重复分析'},
  {id:'unbound',stage:'维护',pool:'registered',priority:'P2',title:'分析用户未绑定触达渠道',filters:{task:'analysis_no_binding'},reason:'本期分析过，没有已验证邮箱或Telegram绑定。',action:'在产品内说明通知用途，由用户自愿订阅与绑定。',metric:'自愿订阅、后续回访；不只看绑定数量'},
