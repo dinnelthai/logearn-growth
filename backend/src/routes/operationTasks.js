@@ -1,5 +1,6 @@
 const express=require('express'),{randomUUID}=require('node:crypto'),db=require('../db/connection'),remote=require('../data/hologres'),jobs=require('../services/analysisJobs')
 const {cachedAudience}=require('../analytics/taskAudience'),{memberFacts,memberMetrics}=require('../data/memberMetrics')
+const {memberReturnD7}=require('../data/returnD7')
 const router=express.Router(),wrap=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next)
 const fail=(message,status=400)=>{throw Object.assign(new Error(message),{status})}
 function get(id,owner){const t=db.prepare('SELECT * FROM operation_tasks WHERE id=? AND owner_id=?').get(String(id),String(owner));if(!t)fail('人群任务不存在或无权访问',404);return t}
@@ -91,8 +92,12 @@ router.get('/:id/review',wrap(async(req,res)=>{
  const elapsed=end-anchor,beforePeriod={start:anchor-elapsed,end:anchor}
  const [beforeFacts,afterFacts]=await Promise.all([memberFacts(s,ids,beforePeriod),memberFacts(s,ids,period)])
  const members=ids.map(id=>({id})),before=memberMetrics(beforeFacts,members,beforePeriod,s),after=memberMetrics(afterFacts,members,period,s)
+ let returnD7=null,returnD7Error=null
+ try{returnD7=await memberReturnD7(s,ids,{start:beforePeriod.start,split:period.start,end:period.end})}
+ catch(e){returnD7Error=e.message||'回流 D7 查询失败'}
  const errors=Object.fromEntries(['analysis','trade','account'].map(key=>[key,[beforeFacts.errors[key]&&'前期：'+beforeFacts.errors[key],afterFacts.errors[key]&&'后期：'+afterFacts.errors[key]].filter(Boolean).join('；')||null]))
  const membersOf=(facts,type)=>new Set((type==='analysis'?facts.events:facts.trades).map(row=>String(type==='analysis'?row.user_id:row.account_id)).filter(Boolean))
+ if(returnD7Error)errors.return_d7=returnD7Error
  const changed=type=>{
   if(errors.account||errors[type])return null
   const first=membersOf(beforeFacts,type),last=membersOf(afterFacts,type)
@@ -101,7 +106,8 @@ router.get('/:id/review',wrap(async(req,res)=>{
  res.json({pending:false,...period,before_period:beforePeriod,as_of:s.as_of,snapshot_id:s.snapshot_id,window_days:windowDays,complete:cutoff>=anchor+duration,operation,
   performance:after?{total:after.total,requested_users:after.requested_users,unmatched_users:after.unmatched_users}:null,
   comparison:{before:before?{total:before.total,requested_users:before.requested_users,unmatched_users:before.unmatched_users}:null,after:after?{total:after.total,requested_users:after.requested_users,unmatched_users:after.unmatched_users}:null},
-  movement:{analysis_ids:changed('analysis'),trade_ids:changed('trade')},errors})
+  movement:{analysis_ids:changed('analysis'),trade_ids:changed('trade'),return_d7_ids:returnD7?.after_ids??null},
+  return_d7:returnD7?{before_users:returnD7.before_ids.length,after_users:returnD7.after_ids.length}:null,errors})
 }))
 
 module.exports=router

@@ -41,6 +41,6 @@ test('fixed roster and baseline survive task edits, completion, reopening and da
  assert.match((await request('/t/'+id)).body.history[0].note,/手工登记/)
  const a=(await request('/t/'+id+'/audience')).body;assert.deepEqual(a.ids,['user:1','user:2']);assert.equal(a.start,t.source.start)
  asof=t.created_at-1;assert.equal((await request('/t/'+id+'/review')).body.pending,true)
- asof=Date.now()+1000;const reviewed=await request('/t/'+id+'/review');assert.equal(reviewed.status,200);assert.equal(reviewed.body.performance.total.users,2);assert.equal(reviewed.body.start,t.created_at);assert.equal(reviewed.body.comparison.before.total.users,2);assert.equal(reviewed.body.comparison.after.total.users,2);assert.ok(Array.isArray(reviewed.body.movement.analysis_ids))
+ asof=Date.now()+1000;const reviewed=await request('/t/'+id+'/review');assert.equal(reviewed.status,200);assert.equal(reviewed.body.performance.total.users,2);assert.equal(reviewed.body.start,t.created_at);assert.equal(reviewed.body.comparison.before.total.users,2);assert.equal(reviewed.body.comparison.after.total.users,2);assert.ok(Array.isArray(reviewed.body.movement.analysis_ids));assert.equal(reviewed.body.return_d7.after_users,0);assert.deepEqual(reviewed.body.movement.return_d7_ids,[])
  assert.equal((await request('/t/'+id+'/review',undefined,'GET','b')).status,404)
 })

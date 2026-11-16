@@ -15,3 +15,12 @@ test('a return before the selected period is not counted twice',()=>{
  assert.equal(returnD7FromDays([1,9],[at(9,11)],{start:at(9,10),end:at(10)}).returned,true);
  const midnight=Date.UTC(2026,10,1,17);assert.equal(businessDay(midnight),businessDay(midnight-1)+1);
 });
+
+test('D7 SQL checks calendar gap and requires previous activity',()=>{
+ const {returnD7Sql}=require('../src/data/returnD7')
+ const sql=returnD7Sql()
+ assert.match(sql,/LAG\(day_index\)/)
+ assert.match(sql,/previous_day IS NOT NULL/)
+ assert.match(sql,/day_index-previous_day>=8/)
+ assert.match(sql,/first_core_ts>=\$3/)
+})
