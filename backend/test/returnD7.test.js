@@ -24,3 +24,16 @@ test('D7 SQL checks calendar gap and requires previous activity',()=>{
  assert.match(sql,/day_index-previous_day>=8/)
  assert.match(sql,/first_core_ts>=\$3/)
 })
+
+test('segment SQL uses BIGINT[] instead of unsupported NUMERIC[] for active days',async()=>{
+ const remote=require('../src/data/hologres');
+ const {features}=require('../src/data/remoteUsers');
+ const originalQuery=remote.query;
+ let sql='';
+ try{
+  remote.query=async statement=>{sql=statement;return []};
+  await features({snapshot_cutoff:'2026-11-16T10:00:00.000Z',as_of:'2026-11-16T10:00:00.000Z'},'all',[],{start:0,end:1});
+ }finally{remote.query=originalQuery}
+ assert.match(sql,/ARRAY_AGG\(DISTINCT FLOOR\(\(e\.client_ts\+25200000\)\/86400000\.0\)::BIGINT\)/);
+ assert.doesNotMatch(sql,/ARRAY_AGG\(DISTINCT FLOOR\(\(e\.client_ts\+25200000\)\/86400000\.0\)\)/);
+})

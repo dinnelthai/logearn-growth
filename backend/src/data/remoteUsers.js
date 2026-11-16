@@ -47,7 +47,7 @@ async function features(s,source='all',audience=null,period=null){
       MAX(e.client_ts) FILTER(WHERE event_name IN('chip_analysis_viewed','chip_analysis_drilldown')) AS last_chip_at,
       COUNT(DISTINCT FLOOR((e.client_ts+25200000)/86400000.0)) FILTER(WHERE event_name IN('chip_analysis_viewed','chip_analysis_drilldown') AND e.client_ts >= $2-2419200000) AS chip_days_28,
       ARRAY_AGG(e.client_ts ORDER BY e.client_ts) FILTER(WHERE event_name IN('chip_analysis_viewed','chip_analysis_drilldown')) AS chip_times,
-      ARRAY_AGG(DISTINCT FLOOR((e.client_ts+25200000)/86400000.0)) FILTER(WHERE event_name IN (${quoted(ACTIVE_EVENTS)})) AS active_days,
+      ARRAY_AGG(DISTINCT FLOOR((e.client_ts+25200000)/86400000.0)::BIGINT) FILTER(WHERE event_name IN (${quoted(ACTIVE_EVENTS)})) AS active_days,
       ARRAY_AGG(e.client_ts ORDER BY e.client_ts) FILTER(WHERE event_name IN (${quoted(CORE_EVENTS)})) AS core_times,
       COUNT(DISTINCT properties->>'strategy_type') FILTER(WHERE event_name='strategy_started') AS ai_strategies_all,
       COUNT(DISTINCT properties->>'strategy_type') FILTER(WHERE event_name='strategy_started' AND e.client_ts >= $2-2419200000) AS ai_strategies_28,
