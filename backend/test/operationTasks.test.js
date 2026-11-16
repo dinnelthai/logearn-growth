@@ -18,8 +18,8 @@ test('task creation uses only owner-scoped segment results and refuses empty, ov
  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM operation_tasks').get().n,0)
 })
 test('fixed roster and baseline survive task edits, completion, reopening and data refresh',async()=>{
- const r=await request('/t',{title:'fixed lead',cache_id:'job',assignee:'ops',next_step:'check blockers',due_at:0});assert.equal(r.status,201);const t=r.body.task,id=t.id
- assert.equal(t.member_count,2);assert.equal(t.baseline.total.users,2);assert.equal(t.source.conditions.filters.task,'analysis_no_trade')
+ const r=await request('/t',{title:'fixed lead',cache_id:'job',assignee:'ops',next_step:'check blockers',due_at:0,operation:{goal:'trade',channel:'telegram',window_days:7}});assert.equal(r.status,201);const t=r.body.task,id=t.id
+ assert.equal(t.member_count,2);assert.deepEqual(t.source.operation,{goal:'trade',channel:'telegram',window_days:7});assert.equal(t.baseline.total.users,2);assert.equal(t.source.conditions.filters.task,'analysis_no_trade')
  assert.equal(t.members_json,undefined);const baseline=JSON.stringify(t.baseline),source=JSON.stringify(t.source)
  const duplicate=await request('/t',{title:'changed client request',cache_id:'job'});assert.equal(duplicate.body.existing,true);assert.equal(duplicate.body.task.id,id)
  jobs.result=()=>{throw Object.assign(Error('original analysis expired'),{status:409})}
@@ -36,6 +36,9 @@ test('fixed roster and baseline survive task edits, completion, reopening and da
  assert.equal((await request('/t/'+id)).body.history.length,4)
  const a=(await request('/t/'+id+'/audience')).body;assert.deepEqual(a.ids,['user:1','user:2']);assert.equal(a.start,t.source.start)
  asof=t.created_at-1;assert.equal((await request('/t/'+id+'/review')).body.pending,true)
- asof=Date.now()+1000;const reviewed=await request('/t/'+id+'/review');assert.equal(reviewed.status,200);assert.equal(reviewed.body.performance.total.users,2);assert.equal(reviewed.body.start,t.created_at)
+ asof=Date.now()+1000;const reviewed=await request('/t/'+id+'/review');assert.equal(reviewed.status,200);assert.equal(reviewed.body.performance.total.users,2);assert.equal(reviewed.body.start,t.created_at);assert.equal(reviewed.body.comparison.before.total.users,2);assert.equal(reviewed.body.comparison.after.total.users,2);assert.ok(Array.isArray(reviewed.body.movement.analysis_ids))
  assert.equal((await request('/t/'+id+'/review',undefined,'GET','b')).status,404)
+ assert.equal((await request('/t/'+id+'/log',{channel:'telegram',count:3,note:'too many'})).status,400)
+ assert.equal((await request('/t/'+id+'/log',{channel:'telegram',count:1,note:'sent tutorial'})).status,201)
+ assert.match((await request('/t/'+id)).body.history[0].note,/手工登记/)
 })

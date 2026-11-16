@@ -9,3 +9,5 @@ export const getOperationTask=id=>request('/'+encodeURIComponent(id))
 export const updateOperationTask=(id,body)=>request('/'+encodeURIComponent(id),body,'PATCH')
 export const operationTaskAudience=id=>request('/'+encodeURIComponent(id)+'/audience')
 export const reviewOperationTask=id=>request('/'+encodeURIComponent(id)+'/review')
+
+export const logOperationTouch=(id,body)=>request('/'+encodeURIComponent(id)+'/log',body)
