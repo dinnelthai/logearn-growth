@@ -1,17 +1,14 @@
 import './cohortTracking.css'
+import {DAY,OFFSET,dayStart,canonicalUserIds,trendPeriods,actionWindows} from '../analytics/cohortTrackingModel.js'
 import {getCohort, listCohortActions, createCohortAction} from '../analytics/cohortClient.js'
 import {fetchBackendMeta} from '../api/backendAnalytics.js'
 import {fetchSegmentsMetrics} from '../api/metrics.js'
 import {fetchDrillUsers, fetchUserTimeline} from '../api/drill.js'
 
-const DAY = 86400000
-const OFFSET = 25200000
-const dayStart = t => Math.floor((t + OFFSET) / DAY) * DAY - OFFSET
-const localTime = t => Number.isFinite(Number(t)) ? new Date(Number(t) + OFFSET).toISOString().slice(0, 16).replace('T', ' ') : '—'
+const localTime = t => (t!=null && Number.isFinite(Number(t))) ? new Date(Number(t) + OFFSET).toISOString().slice(0, 16).replace('T', ' ') : '—'
 const localDay = t => localTime(t).slice(5, 10)
 const safe = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
 const fmt = value => value == null ? '—' : Number(value).toLocaleString('zh-CN')
-const onlyRegistered = id => /^user:[^\s]+$/.test(id)
 
 function metric(label, value, detail) {
   return '<div class="ct-metric"><span class="ct-muted">' + safe(label) + '</span><strong>' + fmt(value) +
@@ -59,7 +56,7 @@ export function openCohortTracking(cohort) {
   const $ = s => overlay.querySelector(s)
   const previousFocus = document.activeElement
   let closed = false, seq = 0, meta, members = [], stats, actions = [], page = 0
-  let dayEnd = 0, periodStart = 0, search = '', loadingUsers = false
+  let dayEnd = 0, periodStart = 0, search = '', rosterRequest = 0
   const close = () => {
     if (closed) return
     closed = true
@@ -112,16 +109,15 @@ export function openCohortTracking(cohort) {
   }
 
   async function loadUsers() {
-    if (closed || !stats?.drill?.cache_id || loadingUsers) return
-    loadingUsers = true
-    const ticket = seq, target = $('[data-ct-users]')
+    if (closed || !stats?.drill?.cache_id) return
+    const ticket = seq, currentRoster = ++rosterRequest, target = $('[data-ct-users]')
     target.innerHTML = '<p class="ct-muted">正在加载用户明细…</p>'
     try {
       const list = await fetchDrillUsers({
         kind:'cached_list', params:{cache_id:stats.drill.cache_id,list_key:'all'},
         offset:page*20, limit:20, q:search
       })
-      if (closed || ticket !== seq) return
+      if (closed || ticket !== seq || currentRoster !== rosterRequest) return
       target.innerHTML = list.rows.length ?
         '<table class="ct-table"><thead><tr><th>用户 ID</th><th>最近观测分析</th><th>交易记录</th><th>查看</th></tr></thead><tbody>' +
         list.rows.map(r =>
@@ -140,8 +136,8 @@ export function openCohortTracking(cohort) {
         button.onclick = () => loadTimeline(button.dataset.ctUser)
       })
     } catch (error) {
-      if (!closed && ticket === seq) target.textContent = '明细加载失败：' + error.message
-    } finally { loadingUsers = false }
+      if (!closed && ticket === seq && currentRoster === rosterRequest) target.textContent = '明细加载失败：' + error.message
+    }
   }
 
   async function loadTimeline(userId) {
@@ -165,11 +161,8 @@ export function openCohortTracking(cohort) {
   async function loadTrend(ticket) {
     const host = $('[data-ct-trend]')
     host.innerHTML = '<p class="ct-muted">加载7天趋势，按固定用户范围查询…</p>'
-    const startDay = dayStart(Number(meta.asOf) || Date.parse(meta.as_of)) - 6*DAY
     const asOf = Number(meta.asOf) || Date.parse(meta.as_of)
-    const days = Array.from({length:7}, (_,i) => ({
-      start:startDay+i*DAY, end:Math.min(startDay+(i+1)*DAY,asOf+1), summary:null, error:null
-    }))
+    const days = trendPeriods(asOf).map(period=>({...period,summary:null,error:null}))
     let next = 0
     async function worker() {
       while (next < days.length) {
@@ -198,11 +191,8 @@ export function openCohortTracking(cohort) {
   async function compareAction(action) {
     if (!action || !meta) return
     const host = $('[data-ct-compare]')
-    const firstDay = dayStart(action.executed_at)
+    const {beforeStart,beforeEnd,afterStart,afterEnd} = actionWindows(action.executed_at)
     const asOf = Number(meta.asOf) || Date.parse(meta.as_of)
-    const beforeStart = firstDay - 7*DAY
-    const afterStart = firstDay + DAY
-    const afterEnd = afterStart + 7*DAY
     if (afterEnd > asOf + 1) {
       host.innerHTML = '<p class="ct-muted">' + safe(action.title) +
         '：动作后的7个完整自然日尚未结束，暂不比较，避免把未成熟数据当成效果。</p>'
@@ -212,7 +202,7 @@ export function openCohortTracking(cohort) {
     const ticket=seq
     try {
       const [before,after] = await Promise.all([
-        fetchSegmentsMetrics(analysisRequest(members,beforeStart,firstDay,meta.snapshot_id)),
+        fetchSegmentsMetrics(analysisRequest(members,beforeStart,beforeEnd,meta.snapshot_id)),
         fetchSegmentsMetrics(analysisRequest(members,afterStart,afterEnd,meta.snapshot_id))
       ])
       if (closed || ticket !== seq) return
@@ -223,7 +213,7 @@ export function openCohortTracking(cohort) {
             fmt(b?.[key]) + ' → ' + fmt(a?.[key]) + '</b></div>').join('') + '</div>' +
         '<p class="ct-muted">动作当天不计入任一观察窗口。同一批固定用户，统计的是相关变化，不能单独证明运营动作带来了增长。历史事件采集覆盖可能不完整。</p>'
     } catch (error) {
-      if (!closed || ticket !== seq) return
+      if (closed || ticket !== seq) return
       host.textContent='效果比较失败：' + error.message
     }
   }
@@ -241,8 +231,7 @@ export function openCohortTracking(cohort) {
       ])
       if (closed || ticket!==seq) return
       if (full.kind === 'dynamic') throw new Error('请选择固定名单。动态人群不能直接做持续追踪。')
-      const raw = (full.user_ids || []).map(v => String(v).startsWith('user:') ? String(v) : 'user:' + String(v))
-      const unique = [...new Set(raw.filter(onlyRegistered))]
+      const unique = canonicalUserIds(full.user_ids)
       if (!unique.length) throw new Error('固定名单为空，或没有可识别的注册用户 ID')
       const asOf = Number(currentMeta.asOf) || Date.parse(currentMeta.as_of)
       if (!Number.isFinite(asOf)) throw new Error('数据快照时间无效')
