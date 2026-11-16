@@ -32,5 +32,5 @@ export function renderOperationEffect(result,{esc,fmt,table,observedTime}){
  table(['指标','前期','后期','变化'],rows)+
  '<div class="a-audience-actions">'+drill('analysis',analysis,'前期未观测、本期有分析')+drill('trade',trade,'前期未观测、本期有交易记录')+drill('return_d7',reactivated,'回流 D7（观测）')+'</div>'+
  errors.map(e=>'<p class="si-error">'+esc(e)+'</p>').join('')+
- '<p class="si-footnote">回流 D7 是连续7个完整UTC+7自然日未观测到前台使用，随后恢复有效分析、策略启动或交易成功事件；各窗口按用户去重。历史覆盖未确认，观测回流不等于确认流失，也不是D7留存。其他新增行为不等于历史首次；交易记录须核实实际成交。</p>'
+ '<p class="si-footnote">回流 D7 是连续7个完整UTC+7自然日未观测到前台使用，随后恢复有效分析、策略启动或交易成功事件；各窗口按用户去重。历史覆盖未确认，观测回流不等于确认流失，也不是D7留存。其他新增行为不等于历史首次；交易记录须进一步核实实际成交。</p>'
 }
