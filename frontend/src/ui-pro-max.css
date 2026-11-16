@@ -195,6 +195,13 @@
   #la-studio .a-data-status, #la-studio #as-coverage {
     max-width: 1596px; margin-inline: auto;
   }
+  /* Keep the audience controls and notices aligned with the segment results. */
+  #la-studio[data-current-mode="segments"]:has(#as-output .si-filter-card) :is(#as-data-status, #as-coverage, #as-tag-audience) {
+    box-sizing: border-box;
+    width: calc(100% - 64px);
+    max-width: 1596px;
+    margin-inline: auto;
+  }
   #la-studio .a-layout {
     max-width: 1660px; margin-inline: auto; padding: 0 32px 28px; gap: 20px;
   }
