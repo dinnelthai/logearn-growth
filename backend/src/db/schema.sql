@@ -584,3 +584,15 @@ CREATE TABLE IF NOT EXISTS x_official_post_snapshots(
  PRIMARY KEY(owner_id,account,post_id,observed_at)
 );
 CREATE INDEX IF NOT EXISTS x_official_snapshot_age ON x_official_post_snapshots(owner_id,account,observed_at);
+
+-- Operator-recorded interventions for a fixed saved user cohort.
+CREATE TABLE IF NOT EXISTS cohort_actions (
+  id TEXT PRIMARY KEY,
+  cohort_id TEXT NOT NULL REFERENCES cohorts(id) ON DELETE CASCADE,
+  owner_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  note TEXT NOT NULL DEFAULT '',
+  executed_at INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_cohort_actions_owner ON cohort_actions(cohort_id, owner_id, executed_at DESC);
