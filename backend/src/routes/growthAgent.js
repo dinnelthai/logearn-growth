@@ -10,7 +10,181 @@ function createRouter({db,registry}){
  router.get('/changes',handle(async(req,res)=>res.json({changes:store.listChanges(req.user.user_id)})));
  router.get('/metrics',handle(async(req,res)=>res.json({metrics:require('../ai/business/metricRegistry').listMetrics()})));
  router.get('/capabilities',handle(async(req,res)=>res.json({tools:registry.listCapabilities(context(req))})));
- router.post('/tools/:id',handle(async(req,res)=>res.json(await registry.executeTool(req.params.id,req.body.input||{},context(req)))));
+ // Minimal management status: NEVER echo service URL, credentials, project IDs,
+ // or assume live connectivity just because server configuration exists.
+ // All module operations use the existing registry and owner-scoped evidence.
+ // No direct SQL access, third-party calls, or model inference is permitted.
+ const opportunities=require('../ai/growth/opportunityStore').createOpportunityStore(db,{
+  verifyEvidence:(ownerId,id,scope)=>{
+   try{return !!evidence.get(id,{ownerId,scope})}catch{return false}
+  }
+ });
+ const moduleContext=req=>{
+  const period=req.body?.period;
+  if(!period||period.timezone!=='Asia/Bangkok')
+   throw Object.assign(Error('模块调查期间必须是 Asia/Bangkok'),{status:400});
+  require('../analytics/businessPriorities').validateRange(period.start,period.end);
+  const scope=req.body?.scope||{source:'all'};
+  if(!scope||typeof scope!=='object'||Array.isArray(scope)||
+     typeof (scope.source??'all')!=='string'||!String(scope.source??'all').trim()||
+     Object.keys(scope).some(k=>!['source'].includes(k)))
+    throw Object.assign(Error('模块调查仅支持来源范围；固定人群需走已有授权入口'),{status:400});
+  return {ownerId:String(req.user.user_id),period,scope:{source:scope.source||'all'},
+   runId:'modules:'+require('node:crypto').randomUUID()};
+ };
+ router.get('/business-modules',handle(async(req,res)=>{
+  const base=context(req);
+  res.json({version:'growth-business-modules-v1',modules:registry.listBusinessModules(base),
+   noExternalWrites:true,paidCalls:0});
+ }));
+ router.post('/business-modules/plan',handle(async(req,res)=>{
+  const plan=require('../ai/growth/modulePlanner').makePlan(registry,moduleContext(req),{
+   mode:req.body.mode||'full',goal:req.body.goal||'activation',
+   question:req.body.question||'',moduleIds:req.body.moduleIds??null,
+   maxCalls:req.body.maxCalls??6});
+  res.json(plan);
+ }));
+ router.post('/business-modules/investigate',handle(async(req,res)=>{
+  const base=moduleContext(req),planner=require('../ai/growth/modulePlanner');
+  const plan=planner.makePlan(registry,base,{
+   mode:req.body.mode||'full',goal:req.body.goal||'activation',
+   question:req.body.question||'',moduleIds:req.body.moduleIds??null,
+   maxCalls:req.body.maxCalls??6});
+  const result=await planner.runPlan(registry,base,plan);
+  res.json({plan,result,modelCalls:0,externalWrites:0});
+ }));
+ router.get('/opportunities',handle(async(req,res)=>{
+  const ownerId=String(req.user.user_id);
+  const opts={status:req.query.status||null,limit:req.query.limit?Number(req.query.limit):50};
+  res.json({version:'growth-opportunities-v1',...opportunities.ranked(ownerId,opts)});
+ }));
+ router.get('/opportunities/:id',handle(async(req,res)=>{
+  const ownerId=String(req.user.user_id);
+  const item=opportunities.get(ownerId,req.params.id);
+  res.status(item?200:404).json(item||{error:'机会不存在或无权限'});
+ }));
+ router.get('/opportunities/:id/history',handle(async(req,res)=>{
+  res.json({history:opportunities.history(String(req.user.user_id),req.params.id)});
+ }));
+ router.post('/opportunities',handle(async(req,res)=>{
+  const item=opportunities.upsert(String(req.user.user_id),req.body||{});
+  res.status(item.created?201:200).json(item);
+ }));
+ router.post('/opportunities/import-analysis/:id',handle(async(req,res)=>{
+  const ownerId=String(req.user.user_id);
+  const records=require('../db/aiRecords');
+  const analysis=await records.getAnalysisRecord(req.params.id,ownerId);
+  if(!analysis)return res.status(404).json({error:'分析不存在或无权限'});
+  if(analysis.status!=='completed')return res.status(409).json({error:'仅允许归档已完成且有证据的分析'});
+  const rows=(await records.listSuggestionsByAnalysis(req.params.id,ownerId)).slice(0,20);
+  const parse=value=>{if(typeof value!=='string')return value;try{return JSON.parse(value)}catch{return null}};
+  const source=parse(analysis.business_scope)?.source||'all';
+  const scope={source};
+  const period={start:Number(analysis.date_range_start),end:Number(analysis.date_range_end),
+   timezone:'Asia/Bangkok'};
+  require('../analytics/businessPriorities').validateRange(period.start,period.end);
+  const modules={get_seo_performance:'growth.seo',get_channels:'growth.acquisition',
+   get_funnel:'growth.activation',get_paths:'growth.activation',
+   get_product_chain:'growth.activation',get_retention:'growth.retention',
+   get_segments:'growth.retention',query_metrics:'growth.retention',
+   get_referral:'growth.referral',get_invite_conversion:'growth.referral',
+   get_login_conversion:'growth.login',check_data_quality:'growth.quality',
+   get_channel_economics:'growth.economics'};
+  const inserted=[],updated=[],skipped=[];
+  for(const suggestion of rows){
+   const report=parse(suggestion.data_evidence);
+   const ids=Array.isArray(report?.evidenceIds)?[...new Set(report.evidenceIds)].slice(0,25):[];
+   if(!ids.length||ids.some(x=>typeof x!=='string')){
+    skipped.push({suggestionId:suggestion.id,reason:'missing_evidence_ids'});continue;
+   }
+   const records=[];
+   let unauthorized=false;
+   for(const id of ids){
+    try{records.push(evidence.get(id,{ownerId,scope}))}
+    catch(e){if(e.status===403||e.status===404){unauthorized=true;break}throw e}
+   }
+   if(unauthorized){skipped.push({suggestionId:suggestion.id,reason:'evidence_unavailable_or_unauthorized'});continue}
+   const issue=String(suggestion.business_problem||'').trim(),action=String(suggestion.action||'').trim();
+   if(!issue||!action){skipped.push({suggestionId:suggestion.id,reason:'missing_problem_or_action'});continue}
+   const moduleId=records.map(e=>modules[e.query?.tool]||
+    ({seo_search:'growth.seo',channels:'growth.acquisition',funnel:'growth.activation',
+      retention:'growth.retention',referral:'growth.referral',invite_conversion:'growth.referral',
+      login_conversion:'growth.login',quality:'growth.quality'}[e.metricId])).find(Boolean)||'growth.quality';
+   const item=opportunities.upsert(ownerId,{
+    moduleId,moduleVersion:registry.listBusinessModules({ownerId,scope,period})
+     .find(m=>m.moduleId===moduleId)?.version||null,
+    origin:{analysisId:req.params.id,suggestionId:suggestion.id},
+    subject:issue.slice(0,256),issue:issue.slice(0,1200),
+    action:action.slice(0,1000),hypothesis:String(suggestion.hypothesis||'原因待验证').slice(0,1000),
+    evidenceIds:ids,confidence:'unknown',impact:{affectedUsers:null},effort:{hours:null},
+    goalId:null,goalVersion:null,metricId:null,definitionVersion:null,scope,period
+   });
+   (item.created?inserted:updated).push({id:item.id,suggestionId:suggestion.id});
+  }
+  res.json({analysisId:req.params.id,inserted,updated,skipped,modelCalls:0,
+   caveat:'归档只是证据关联；未声称新建议的效果、投入或因果已被证实'});
+ }));
+ router.post('/opportunities/:id/promote',handle(async(req,res)=>{
+  // Human-accepted opportunity -> existing workspace problem and proposed
+  // action. This does not execute business changes or publish anything.
+  const ownerId=String(req.user.user_id);
+  const item=opportunities.get(ownerId,req.params.id);
+  if(!item)return res.status(404).json({error:'机会不存在或无权限'});
+  if(item.status!=='accepted')return res.status(409).json({error:'请先人工采纳机会'});
+  const assignee=req.body?.assignee;
+  if(typeof assignee!=='string'||!assignee.trim()||assignee.length>120)
+   return res.status(400).json({error:'必须明确行动负责人'});
+  const workspace=require('../ai/growth/workspace/store').workspaceStore(db);
+  const bridge=require('../ai/growth/workspace/legacyEvidenceBridge');
+  for(const id of item.evidenceIds){
+   const legacy=evidence.get(id,{ownerId,scope:item.scope});
+   bridge.importExistingEvidence(workspace,ownerId,legacy);
+  }
+  const problem=workspace.observeProblem(ownerId,{
+   type:'hypothesis',subject:item.subject,scope:item.scope,
+   metricId:item.metricId||null,goalId:item.goalId||null,
+   goalVersion:item.goalVersion?Number(item.goalVersion):null,
+   description:item.issue,priority:2,evidenceIds:item.evidenceIds,
+   impact:{status:'unknown',agentOpportunityId:item.id},
+   nextStep:item.action
+  });
+  const existing=workspace.actions(ownerId,{limit:200}).find(a=>
+   a.problem_id===problem.id&&a.description===item.action&&a.assignee===assignee.trim());
+  const action=existing||workspace.createAction(ownerId,problem.id,{
+   description:item.action,assignee:assignee.trim(),metricId:item.metricId||null,
+   definitionVersion:item.definitionVersion||null
+  });
+  res.json({problemId:problem.id,actionId:action.id,
+   reused:!!existing,modelCalls:0,externalActions:0,
+   note:'只创建人工待办；实际执行时间和观察期必须后续人工记录'});
+ }));
+ router.post('/opportunities/:id/status',handle(async(req,res)=>{
+  const item=opportunities.decide(String(req.user.user_id),req.params.id,req.body||{});
+  res.json(item);
+ }));
+ router.get('/connectors',handle(async(req,res)=>{
+  const {configuration,bindingFor}=require('../ai/business/tools/openseoConnector');
+  const ownerId=String(req.user.user_id);
+  const configured=!!configuration();
+  const authorized=!!bindingFor(process.env,{ownerId});
+  const listed=registry.listCapabilities(context(req));
+  res.json({connectors:[{
+    id:'openseo',status:configured?(authorized?'configured_authorized':'unmapped'):'disabled',
+    connectivity:'not_verified',readOnly:true,
+    capabilities:listed.filter(cap=>cap.id.startsWith('openseo.'))
+      .map(({id,version,description,cost})=>({id,version,description,cost})),
+    paidResearch:'disabled_pending_billing_verification',
+    changes:'server_configuration_only',lastError:null
+  }]});
+ }));
+ router.post('/tools/:id',handle(async(req,res)=>{
+  const base=context(req);
+  // Direct user requests obtain a fresh server-side catalog, never a request
+  // body supplied task allowlist. Worker plans apply their narrower allowlist.
+  const allowed=registry.listCapabilities(base).map(item=>item.id);
+  res.json(await registry.executeTool(req.params.id,req.body.input||{},
+   {...base,taskAllowedTools:allowed}));
+ }));
  router.get('/evidence/:id',handle(async(req,res)=>res.json(evidence.get(req.params.id,context(req)))));
  router.get('/research/questions',handle(async(req,res)=>{
   const items=require('../ai/growth/researchQuestions').createResearchQuestions(db)

@@ -11,6 +11,6 @@ test('navigation cancels pending module activation and a later visit reuses the 
 test('module loading failures allow retry with the original configuration',async()=>{
  const button={},host={innerHTML:'',querySelector:()=>button},instance={draw:vi.fn(),dispose:vi.fn()},load=vi.fn().mockRejectedValueOnce(Error('<network>')).mockResolvedValue(()=>instance)
  const ctx={$:()=>host,esc:s=>s.replace('<','&lt;'),clear:()=>page.dispose()},page=createLazyPage(ctx,load)
- await page.draw({source:'x'});expect(host.innerHTML).toContain('&lt;network>')
+ await page.draw({source:'x'});expect(host.innerHTML).toContain('&lt;network&gt;')
  await button.onclick();expect(instance.draw).toHaveBeenCalledWith({source:'x'})
 })

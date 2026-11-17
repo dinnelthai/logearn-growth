@@ -71,3 +71,32 @@ test('HTTP 200 with a business halt signal cancels all unsent batch rows',async(
  const saved=client.call;let calls=0;client.call=async()=>{calls++;return {state:'failed',http_status:200,halt_batch:true,reason:'token_invalid'}}
  try{const p=await prepare([{userId:'101',quotaAmount:1},{userId:'102',quotaAmount:1}]),id=p.body.batch.id;await request('/batches/'+id+'/execute',{confirm:true});const b=await finished(id);assert.equal(calls,1);assert.deepEqual(b.rows.map(r=>r.state),['failed','cancelled'])}finally{client.call=saved}
 })
+test('Telegram message uses a separate encrypted bot token and sends the fixed text',async()=>{
+ const bot='123456:TEST_BOT_TOKEN';const result=await request('/telegram-token',{token:bot},'PUT');assert.equal(result.status,200)
+ assert.equal((await request('/config')).body.telegram_credential.configured,true)
+ assert.equal(vault.token('a:telegram'),bot);assert.equal(vault.token('a'),'test-private-token')
+ assert.deepEqual(normalize('telegram_message',{telegramId:'123456789',text:'活动通知\n欢迎了解'}),{telegramId:'123456789',text:'活动通知\n欢迎了解'})
+ let sent;const reply=await client.call('telegram_message',{telegramId:'123456789',text:'活动通知'},bot,async(url,options)=>{sent={url:String(url),body:JSON.parse(options.body)};return new Response(JSON.stringify({ok:true,result:{message_id:12}}),{status:200})})
+ assert.equal(sent.body.chat_id,'123456789');assert.equal(sent.body.text,'活动通知');assert.equal(reply.state,'success');assert(!JSON.stringify(reply).includes(bot))
+})
+test('Telegram preview deduplicates recipients and execution uses bot token',async()=>{
+ const saved=client.call,calls=[];client.call=async(op,payload,token)=>{calls.push({op,payload,token});return {state:'success'}}
+ try{const r=await prepare([{telegramId:'111',text:'促销活动'},{telegramId:'111',text:'促销活动'},{telegramId:'222',text:'促销活动'}],'telegram_message');assert.equal(r.status,200);assert.equal(r.body.duplicates,1);const id=r.body.batch.id;assert.equal((await request('/batches/'+id+'/execute',{})).status,400);await request('/batches/'+id+'/execute',{confirm:true});const batch=await finished(id);assert.equal(batch.rows.length,2);assert.deepEqual(calls.map(x=>x.token),['123456:TEST_BOT_TOKEN','123456:TEST_BOT_TOKEN'])}finally{client.call=saved}
+})
+test('advertising preview freezes only uniquely matched Telegram identities',async()=>{
+ const remote=require('../src/data/hologres'),oldQuery=remote.query,oldStatus=remote.status,oldStorage=process.env.ANALYTICS_STORAGE
+ process.env.ANALYTICS_STORAGE='hologres';remote.status=async()=>({snapshot_cutoff:'2026-01-01T00:00:00Z'});remote.query=async()=>[{subject:'1001',account_id:'42'}]
+ try{const r=await prepare([{telegramId:'1001',text:'test'},{telegramId:'1002',text:'test'}],'telegram_message');assert.equal(r.status,200);assert.equal(r.body.batch.rows[0].payload.accountId,'42');assert.equal(r.body.batch.rows[1].payload.accountId,null)}finally{remote.query=oldQuery;remote.status=oldStatus;if(oldStorage===undefined)delete process.env.ANALYTICS_STORAGE;else process.env.ANALYTICS_STORAGE=oldStorage}
+})
+test('email campaign validates recipients, stores separate SMTP settings and sends through SMTP',async()=>{
+ const config={host:'smtp.example.com',port:587,username:'user',password:'secret',from:'sender@example.com'}
+ const r=await request('/smtp-config',config,'PUT');assert.equal(r.status,200);assert.equal((await request('/config')).body.smtp_credential.configured,true)
+ assert.deepEqual(normalize('email_message',{email:'user@example.com',subject:'优惠',text:'你好'}),{email:'user@example.com',subject:'优惠',text:'你好'})
+ assert.throws(()=>normalize('email_message',{email:'bad',subject:'x',text:'x'}))
+ const mail=require('../src/ops/mail');let options,sent;const result=await mail.send({email:'user@example.com',subject:'优惠',text:'你好'},JSON.stringify(config),{createTransport:o=>{options=o;return {sendMail:async message=>{sent=message;return {accepted:['user@example.com'],rejected:[],messageId:'id'}}}}})
+ assert.equal(options.requireTLS,true);assert.equal(sent.to,'user@example.com');assert.equal(result.state,'success');assert(!JSON.stringify(result).includes('secret'))
+})
+test('email preview deduplicates recipients and executes using SMTP credentials',async()=>{
+ const saved=client.call,calls=[];client.call=async(op,payload,token)=>{calls.push({op,payload,token});return {state:'success'}}
+ try{const r=await prepare([{email:'USER@example.com',subject:'Offer',text:'Hello'},{email:'user@example.com',subject:'Offer',text:'Hello'}],'email_message');assert.equal(r.body.duplicates,1);const id=r.body.batch.id;assert.equal((await request('/batches/'+id+'/execute',{})).status,400);await request('/batches/'+id+'/execute',{confirm:true});const batch=await finished(id);assert.equal(batch.rows[0].state,'success');assert.equal(JSON.parse(calls[0].token).host,'smtp.example.com')}finally{client.call=saved}
+})

@@ -68,3 +68,13 @@ test('acknowledged or snoozed proposals cannot request a fresh investigation',()
  assert.equal(buildGrowthInbox({proposals:[base],now:NOW}).counts.total,0);
  assert.equal(buildGrowthInbox({proposals:[{...base,alert_status:'open',snooze_until:NOW+86400000}],now:NOW}).counts.total,0);
 });
+
+test('investigation approval inbox preserves source and fails closed on untraceable evidence',()=>{
+ const p={id:'p',alert_id:'a',status:'proposed',period_end:200,last_period_end:200,
+  alert_status:'open',metric:'new_users',source:'seo',goal:'activation'};
+ const item=buildGrowthInbox({proposals:[p],now:NOW}).tasks[0];
+ assert.equal(item.source,'seo');
+ assert.equal(item.goal,'activation');
+ assert.equal(item.evidenceStatus,'needs-evidence-review');
+ assert.equal(item.status,'awaiting-human-approval');
+});

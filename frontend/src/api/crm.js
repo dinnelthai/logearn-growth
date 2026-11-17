@@ -1,9 +1,9 @@
-import {getToken} from '../auth/authClient.js'
+import {getToken,notifyExpiredSession} from '../auth/authClient.js'
 const base=(import.meta.env.VITE_BACKEND_BASE_URL??'http://localhost:3001')+'/api/crm/kols'
 async function request(path='',method='GET',body) {
   const response=await fetch(base+path,{method,headers:{'Content-Type':'application/json',Authorization:'Bearer '+getToken()},...(body===undefined?{}:{body:JSON.stringify(body)})})
   const data=await response.json()
-  if(!response.ok)throw new Error(data.error||'CRM 请求失败')
+  if(!response.ok){notifyExpiredSession(response);throw new Error(data.error||'CRM 请求失败')}
   return data
 }
 export const listKols=params=>request('?'+new URLSearchParams(params))

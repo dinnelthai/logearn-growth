@@ -1,4 +1,5 @@
 import {loadingState} from './loadingState.js'
+import {viewState} from '../components/viewStates.js'
 
 // Cancel pending imports on navigation just like requests inside an active page.
 export function createLazyPage(ctx,load){
@@ -16,8 +17,12 @@ export function createLazyPage(ctx,load){
    return instance.draw(...args)
   }catch(error){
    if(token!==generation)return
-   host.innerHTML=`<section class="a-card si-panel"><p class="si-error">页面加载失败：${ctx.esc(error.message)}</p><button class="a-button" data-page-retry>重试</button></section>`
-   host.querySelector('[data-page-retry]').onclick=()=>draw(...args)
+   host.innerHTML=viewState({kind:'error',title:'页面加载失败',
+    description:error?.message||String(error),actionLabel:'重试',actionAttr:'data-page-retry'})
+   host.querySelector('[data-page-retry]')?.addEventListener?.('click',()=>draw(...args))
+   // Older test doubles and embedded hosts expose onclick without addEventListener.
+   const retry=host.querySelector('[data-page-retry]')
+   if(retry&&!retry.addEventListener)retry.onclick=()=>draw(...args)
   }
  }
  return {draw,dispose(){generation++;instance?.dispose()},hasPendingChanges:()=>instance?.hasPendingChanges?.()||false}

@@ -1,7 +1,7 @@
 /**
  * metrics.js — aggregated metrics client for backend scale mode.
  */
-import { getToken } from '../auth/authClient.js'
+import { getToken, notifyExpiredSession } from '../auth/authClient.js'
 
 const BACKEND_BASE = import.meta.env.VITE_BACKEND_BASE_URL ?? 'http://localhost:3001'
 
@@ -17,6 +17,7 @@ async function metricsFetch(path, options = {}, deadline = Date.now()+45000) {
   })
   const body = await res.json().catch(() => ({}))
   if (!res.ok) {
+    notifyExpiredSession(res)
     throw Object.assign(new Error(body.error ?? `HTTP ${res.status}`), { status: res.status, body })
   }
   if(res.status===202 && body.job_id){

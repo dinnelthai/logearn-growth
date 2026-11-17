@@ -21,7 +21,7 @@ test('X routes require login, isolate operators and persist rules, collection an
  assert.equal((await request('')).data.total,0)
  assert.equal((await request('/setup','POST',{})).status,200)
  assert.equal((await request('/setup','POST',{})).status,200)
- const dashboard=(await request('')).data;assert.equal(dashboard.rules.length,4);assert.equal(dashboard.configured,true)
+ const dashboard=(await request('')).data;assert.equal(dashboard.rules.length,require('../src/analytics/xAcquisition').SEEDS.length);assert.equal(dashboard.configured,true)
  assert.equal((await request('/collect','POST',{rule_id:dashboard.rules[0].id},'b')).status,404)
  const collected=await request('/collect','POST',{rule_id:dashboard.rules[0].id});assert.equal(collected.status,202);assert.ok(collected.data.run.id)
  const l=(await request('')).data.leads[0]

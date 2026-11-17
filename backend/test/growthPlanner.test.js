@@ -9,7 +9,8 @@ const report={business:{scope:{source:'all'}},period:{start:100,end:200},
 test('skill catalog is versioned and only references registered read-only tools',()=>{
  const skills=listSkills(),ids=skills.map(s=>s.id);
  assert.equal(new Set(ids).size,ids.length);
- const toolIds=new Set(require('../src/ai/business/tools/registry').listToolIds());
+ const toolIds=new Set([...require('../src/ai/business/tools/registry').listToolIds(),
+  ...require('../src/ai/business/tools/openseoConnector').getExtensions().map(x=>x.id)]);
  for(const skill of skills){
   assert.equal(skill.version,'1');assert.ok(skill.tools.length);
   for(const tool of skill.tools)assert.ok(toolIds.has(tool),tool);

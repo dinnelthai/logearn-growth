@@ -1,0 +1,49 @@
+#la-studio .wl-page{gap:16px}
+#la-studio .wl-search,#la-studio .wl-results{padding:24px}
+#la-studio .wl-search-head,#la-studio .wl-results-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+#la-studio .wl-search h2,#la-studio .wl-results h2{margin:0;font-size:18px}
+#la-studio .wl-search-head p,#la-studio .wl-results-head p{margin:8px 0 0;color:var(--a-muted);font-size:13px}
+#la-studio .wl-label{padding:5px 10px;border:1px solid var(--a-border);border-radius:20px;color:var(--a-muted);font-size:12px;white-space:nowrap}
+#la-studio .wl-search form{margin-top:24px}
+#la-studio .wl-search label{display:block;font-size:13px;font-weight:600;margin-bottom:8px}
+#la-studio .wl-search textarea{display:block;width:100%;box-sizing:border-box;min-height:112px;resize:vertical;padding:12px 14px;background:var(--a-bg);border:1px solid var(--a-border);border-radius:8px;color:var(--a-text);font:inherit;line-height:1.6}
+#la-studio .wl-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+#la-studio .wl-actions span{color:var(--a-muted);font-size:12px}
+#la-studio .wl-search [role=status]{margin:10px 0 0;color:var(--a-muted);font-size:13px}
+#la-studio .wl-scroll{overflow:auto;margin-top:14px;border:1px solid var(--a-border);border-radius:10px}
+#la-studio .wl-table{width:100%;border-collapse:collapse;min-width:1350px;font-size:12px;text-align:left;table-layout:fixed}
+#la-studio .wl-table th{padding:12px;color:var(--a-muted);font-weight:500;border-bottom:1px solid var(--a-border);white-space:nowrap;background:var(--a-bg)}
+#la-studio .wl-table td{padding:14px 12px;vertical-align:top;border-bottom:1px solid var(--a-border);min-width:0;max-width:0;overflow-wrap:anywhere}
+#la-studio .wl-table tr:last-child td{border-bottom:0}
+#la-studio .wl-table td:first-child{min-width:0;max-width:0}
+#la-studio .wl-table code{display:inline-block;max-width:100%;box-sizing:border-box;font-size:11px;white-space:normal;overflow-wrap:anywhere;word-break:break-all;line-height:1.55;vertical-align:top;color:var(--a-text)}
+#la-studio .wl-table small{display:block;margin-top:5px;color:var(--a-muted)}
+#la-studio .wl-table p{color:var(--a-muted);margin:8px 0}
+#la-studio .wl-badge{display:inline-block;padding:3px 8px;border-radius:20px;background:var(--a-tint);color:var(--a-muted);white-space:nowrap}
+#la-studio .wl-success{color:#38cba4;background:#38cba41a}
+#la-studio .wl-error{color:#f38d8d;background:#f38d8d1a}
+#la-studio .wl-id{display:block;margin-top:8px}
+#la-studio .wl-address{min-width:0}
+#la-studio .wl-address+.wl-address{border-top:1px solid var(--a-border);padding-top:10px;margin-top:10px}
+#la-studio .wl-chain{display:block;color:var(--a-muted);font-size:11px;margin-bottom:4px}
+#la-studio .wl-empty{color:var(--a-muted)}
+#la-studio .wl-placeholder{padding:38px 12px;text-align:center;color:var(--a-muted);font-size:13px;line-height:1.7}
+#la-studio .wl-filters{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px;padding-bottom:2px}
+#la-studio .wl-filters button{border:1px solid var(--a-border);border-radius:8px;padding:8px 12px;background:transparent;color:var(--a-muted);font:inherit;font-size:12px;cursor:pointer}
+#la-studio .wl-filters button[aria-pressed=true]{color:var(--a-text);border-color:var(--a-accent);background:color-mix(in srgb,var(--a-accent) 13%,transparent)}
+#la-studio .wl-filters button span{margin-left:4px;color:var(--a-muted)}
+#la-studio .wl-table th:first-child{width:15%}
+#la-studio .wl-table th:nth-child(2){width:10%}
+#la-studio .wl-table th:nth-child(3){width:18%}
+#la-studio .wl-table th:nth-child(4),#la-studio .wl-table th:nth-child(5),#la-studio .wl-table th:nth-child(6){width:19%}
+#la-studio .wl-result-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:640px){
+ #la-studio .wl-search,#la-studio .wl-results{padding:18px}
+ #la-studio .wl-results-head{flex-wrap:wrap}
+ #la-studio .wl-result-actions{justify-content:flex-start}
+ #la-studio .wl-actions{align-items:flex-start;flex-direction:column}
+ #la-studio .wl-actions button{width:100%}
+}
+
+#la-studio .wl-nft-badge{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:5px;background:#7567dc33;color:#c2baff;font-size:11px;font-weight:700}
+#la-studio .wl-nft-status{display:inline-block;margin-left:6px;color:var(--a-muted);font-size:11px}

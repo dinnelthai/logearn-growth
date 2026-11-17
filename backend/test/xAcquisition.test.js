@@ -2,7 +2,7 @@ const {test}=require('node:test')
 const assert=require('node:assert/strict')
 const {DatabaseSync}=require('node:sqlite')
 const {createService}=require('../src/services/xAcquisition')
-const {scorePost}=require('../src/analytics/xAcquisition')
+const {scorePost,SEEDS}=require('../src/analytics/xAcquisition')
 const provider=require('../src/services/twitterApi')
 const fixture=(id='100',author='200',text='How do I check token holders? Looking for an analysis tool.')=>({id,text,createdAt:new Date().toISOString(),lang:'en',likeCount:3,replyCount:1,author:{id:author,userName:'researcher',name:'Researcher',description:'Onchain research',followers:30}})
 function service(search){const db=new DatabaseSync(':memory:');return {db,s:createService(db,{search,configured:()=>true})}}
@@ -20,7 +20,7 @@ test('collect merges authors and evidence; manual follow-up survives later colle
  let number=0
  const {s,db}=service(async args=>{const id=args.beforeAttempt();args.settleAttempt(id,30);number++;return {tweets:[fixture('100'),fixture(number===1?'101':'102')],has_next_page:false,next_cursor:''}})
  try{
-  s.setup('a');s.setup('b');assert.equal(s.overview('a').rules.length,4);assert.equal(s.overview('a').settings.enabled,0)
+  s.setup('a');s.setup('b');assert.equal(s.overview('a').rules.length,SEEDS.length);assert.equal(s.overview('a').settings.enabled,0)
   const rule=s.overview('a').rules[0]
   const run=await s.collect('a',{rule_id:rule.id});assert.equal(run.state,'complete');assert.equal(run.new_leads,1);assert.equal(run.posts,2)
   const lead=s.list('a').leads[0];assert.equal(lead.post_count,2);assert.equal(s.list('b').total,0)
@@ -80,7 +80,7 @@ test('restart recovers interrupted run; automatic collection respects opt-in and
  try{
   const settings=s.setup('a');await s.tick();assert.equal(calls,0)
   s.saveSettings('a',{enabled:true,interval_minutes:30,expected_updated_at:settings.updated_at})
-  await s.tick();assert.equal(calls,4);await s.tick();assert.equal(calls,4)
+  await s.tick();assert.equal(calls,SEEDS.length);await s.tick();assert.equal(calls,SEEDS.length)
   db.prepare("INSERT INTO x_acq_runs(id,owner_id,state,started_at) VALUES('stuck','a','running',?)").run(Date.now())
   const stop=s.start();stop();assert.equal(s.overview('a').running,false);assert.equal(db.prepare("SELECT state FROM x_acq_runs WHERE id='stuck'").get().state,'interrupted')
  }finally{db.close()}

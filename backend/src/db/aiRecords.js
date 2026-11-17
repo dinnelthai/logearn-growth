@@ -109,8 +109,13 @@ async function updateAnalysisModel(id, modelProvider, modelName, promptVersion, 
  */
 async function listAnalysisRecords(ownerId, { limit = 20, offset = 0, status = null } = {}) {
   let sql = `
-    SELECT * FROM ai_analysis_summary
+    SELECT ai_analysis_summary.*,
+      (SELECT COUNT(*) FROM ai_suggestions s
+       WHERE s.analysis_id = ai_analysis_summary.id AND s.owner_id = $1
+         AND s.user_status IN ('adopted','executing','executed')) AS accepted_count
+    FROM ai_analysis_summary
     WHERE owner_id = $1
+      AND NOT EXISTS (SELECT 1 FROM ai_analysis_records a WHERE a.id = ai_analysis_summary.id AND a.owner_id = $1 AND a.filter_conditions->>'hiddenFromHistory' = 'true')
   `;
   const params = [ownerId];
   let paramIndex = 2;
@@ -127,6 +132,66 @@ async function listAnalysisRecords(ownerId, { limit = 20, offset = 0, status = n
   return result.rows;
 }
 
+// Remove a terminal analysis from the history list while preserving its audit trail.
+async function hideAnalysisRecord(id, ownerId) {
+  const result = await write(`UPDATE ai_analysis_records
+    SET filter_conditions = COALESCE(filter_conditions, '{}'::jsonb) || '{"hiddenFromHistory":true}'::jsonb
+    WHERE id=$1 AND owner_id=$2 AND status IN ('completed','failed','cancelled')
+    RETURNING id`, [id, ownerId]);
+  return result.rows[0] || null;
+}
+
+// Insert-only idempotency, so concurrent HTTP requests cannot both enqueue paid jobs.
+// We never reset, retry, or replace a task with a known request key.
+async function createWeeklyReportRecord({ownerId,requestKey,title,start,end,question,conditions}){
+ const now=Date.now(),id=uuidv4();
+ const inserted=await write(`INSERT INTO ai_analysis_records
+  (id,owner_id,title,analysis_type,date_range_start,date_range_end,business_scope,
+   user_question,data_snapshot,filter_conditions,status,created_at,request_key)
+  VALUES ($1,$2,$3,'optimization',$4,$5,$6,$7,'{}'::jsonb,$8,'pending',$9,$10)
+  ON CONFLICT (owner_id,request_key) DO NOTHING RETURNING *`,
+  [id,ownerId,title,start,end,JSON.stringify({source:'all'}),question,JSON.stringify(conditions),now,requestKey]);
+ if(inserted.rows.length)return {record:inserted.rows[0],created:true};
+ const existing=await read(`SELECT * FROM ai_analysis_records
+  WHERE owner_id=$1 AND request_key=$2`,[ownerId,requestKey]);
+ if(!existing.rows.length)throw Error('并发周报请求仍在提交，请刷新任务状态');
+ return {record:existing.rows[0],created:false};
+}
+// Owner-scoped completed-week reports live in the existing AI analysis records.
+// Read the same shared PostgreSQL store as the Worker; no parallel report database.
+async function listWeeklyReportRecords(ownerId,{limit=20}={}){
+ const safeLimit=Number.isSafeInteger(limit)?Math.max(1,Math.min(50,limit)):20;
+ const result=await read(`SELECT id,title,status,created_at,completed_at,error_message,
+   date_range_start,date_range_end,cost_usd,model_name,
+   filter_conditions->>'weeklyReissueOf' AS weekly_reissue_of
+   FROM ai_analysis_records
+   WHERE owner_id=$1 AND filter_conditions->>'weeklyReport'='v1'
+     AND COALESCE(filter_conditions->>'hiddenFromHistory','false')<>'true'
+   ORDER BY date_range_end DESC,created_at DESC LIMIT $2`,[ownerId,safeLimit]);
+ return result.rows;
+}
+// Find the latest hidden FAILED weekly run. It remains fully intact for
+// evidence and billing reconciliation; only the history view hides it.
+async function getArchivedFailedWeeklyReport(ownerId,{start,end}){
+ const result=await read(`SELECT id,request_key,created_at FROM ai_analysis_records
+  WHERE owner_id=$1 AND date_range_start=$2 AND date_range_end=$3
+    AND filter_conditions->>'weeklyReport'='v1'
+    AND filter_conditions->>'hiddenFromHistory'='true'
+    AND status='failed'
+  ORDER BY created_at DESC LIMIT 1`,[ownerId,start,end]);
+ return result.rows[0]||null;
+}
+// A hidden, owner-scoped weekly report must not reappear as a new task:
+ // its original idempotency key and paid-call journal remain durable.
+async function hasHiddenWeeklyReport(ownerId,{start,end}){
+ const result=await read(`SELECT EXISTS(
+  SELECT 1 FROM ai_analysis_records
+  WHERE owner_id=$1 AND date_range_start=$2 AND date_range_end=$3
+    AND filter_conditions->>'weeklyReport'='v1'
+    AND filter_conditions->>'hiddenFromHistory'='true'
+ ) AS has_hidden`,[ownerId,start,end]);
+ return result.rows[0]?.has_hidden===true;
+}
 /**
  * 获取单个分析记录详情
  */
@@ -696,6 +761,27 @@ async function claimDailySafeRetry(id,ownerId){
    RETURNING *`,[id,ownerId]);
  return result.rows[0]||null;
 }
+// Manual continuation of a failed WEEKLY report whose first paid response was
+// saved, but whose over-sized tool request was rejected before execution.
+// An atomic lease prevents duplicate Workers from continuing the same task.
+async function claimFailedWeeklyOverflow(id,ownerId,token,leaseMs=120000){
+ const now=Date.now();
+ if(typeof token!=='string'||!token||!Number.isSafeInteger(leaseMs)||leaseMs<10000)
+  throw Error('周报断点租约参数无效');
+ const result=await write(`UPDATE ai_analysis_records
+ SET status='processing',execution_token=$3,lease_expires_at=$4,error_message=NULL,
+   completed_at=NULL
+ WHERE id=$1 AND owner_id=$2 AND status='failed' AND cancel_requested=false
+   AND filter_conditions->>'weeklyReport'='v1'
+   AND error_message IN ('补充查询过多，请缩小问题范围或提高调查能力',
+     'AI Token硬预算不足，未发起下一轮模型请求；已付费证据保留在断点')
+   AND EXISTS(SELECT 1 FROM ai_analysis_call_guard
+     WHERE analysis_id=$1 AND owner_id=$2 AND status='received')
+   AND NOT EXISTS(SELECT 1 FROM ai_analysis_call_guard
+     WHERE analysis_id=$1 AND owner_id=$2 AND status<>'received')
+ RETURNING *`,[id,ownerId,token,now+leaseMs]);
+ return result.rows[0]||null;
+}
 async function claimAnalysisRetry(id, ownerId) {
   const result=await write(`UPDATE ai_analysis_records SET status='pending',error_message=NULL,started_at=NULL,completed_at=NULL
     WHERE id=$1 AND owner_id=$2 AND status='failed' AND cancel_requested=false RETURNING *`,[id,ownerId]);
@@ -710,11 +796,12 @@ async function updateAnalysisSnapshot(id, snapshot, ownerId, token) {
 async function getAnalysisMemory(ownerId, source = 'all') {
   const result = await read(`SELECT s.id, s.business_problem, s.action, s.user_status,
     s.actual_action, s.rejection_reason, s.updated_at,
-    s.validation_metrics, s.applicable_scope, s.executed_at, COALESCE(e.result_summary,ret.conclusion) AS result_summary, e.effectiveness, COALESCE(e.updated_at,ret.created_at) AS reviewed_at
+    s.validation_metrics, s.applicable_scope, s.action_scope, s.executed_at, COALESCE(e.result_summary,ret.conclusion) AS result_summary, e.effectiveness, COALESCE(e.updated_at,ret.created_at) AS reviewed_at,
+    ret.metric_changes,ret.confidence AS review_confidence,ret.has_improvement,ret.baseline_data->>'reviewContextVersion' AS review_context_version
     FROM ai_suggestions s LEFT JOIN ai_experience_index e ON e.suggestion_id=s.id
     JOIN ai_analysis_records a ON a.id=s.analysis_id
-    LEFT JOIN LATERAL (SELECT conclusion,created_at FROM ai_retrospectives WHERE suggestion_id=s.id AND owner_id=$1 ORDER BY created_at DESC LIMIT 1) ret ON true
-    WHERE s.owner_id=$1 AND ($2='all' OR COALESCE(a.business_scope->>'source','all')=$2 OR a.business_scope->>'source'='all')
+    LEFT JOIN LATERAL (SELECT conclusion,created_at,metric_changes,confidence,has_improvement,baseline_data FROM ai_retrospectives WHERE suggestion_id=s.id AND owner_id=$1 ORDER BY created_at DESC LIMIT 1) ret ON true
+    WHERE s.owner_id=$1 AND COALESCE(s.action_scope->>'source',s.applicable_scope->>'source',a.business_scope->>'source','all')=$2
     ORDER BY GREATEST(s.updated_at,COALESCE(e.updated_at,0)) DESC LIMIT 30`, [ownerId, source]);
   return result.rows;
 }
@@ -724,12 +811,17 @@ async function getRetrospective(id, ownerId) {
 }
 
 module.exports = {
-  completeAnalysis, claimAnalysisRetry, claimDailySafeRetry, claimAnalysisExecution, renewAnalysisLease, assertAnalysisLease, failClaimedAnalysis, hasAnalysisPaidCalls, beginAnalysisPaidCall, finishAnalysisPaidCall, listAnalysisPaidCalls, claimExpiredFinalization, requestAnalysisCancellation, listExpiredAnalysisLeases, updateAnalysisSnapshot, getAnalysisMemory, getRetrospective,
+  completeAnalysis, claimAnalysisRetry, claimFailedWeeklyOverflow, claimDailySafeRetry, claimAnalysisExecution, renewAnalysisLease, assertAnalysisLease, failClaimedAnalysis, hasAnalysisPaidCalls, beginAnalysisPaidCall, finishAnalysisPaidCall, listAnalysisPaidCalls, claimExpiredFinalization, requestAnalysisCancellation, listExpiredAnalysisLeases, updateAnalysisSnapshot, getAnalysisMemory, getRetrospective,
   // 分析记录
   createAnalysisRecord,
   updateAnalysisStatus,
   updateAnalysisModel,
   listAnalysisRecords,
+  listWeeklyReportRecords,
+  getArchivedFailedWeeklyReport,
+  hasHiddenWeeklyReport,
+  createWeeklyReportRecord,
+  hideAnalysisRecord,
   getAnalysisRecord,
 
   // 建议

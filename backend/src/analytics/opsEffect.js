@@ -13,4 +13,9 @@ function effectPeriods(batch,asOf,days=7){
  if(elapsed<=0)return null
  return {anchor,mature:elapsed===days*86400000,days,before:{start:anchor-elapsed,end:anchor},after:{start:anchor,end:anchor+elapsed}}
 }
-module.exports={effectTargets,effectPeriods}
+function advertisingTargets(rows){
+ const sent=rows.filter(r=>r.state==='success'),ids=new Set();let unmatched=0
+ for(const row of sent){const payload=typeof row.payload_json==='string'?JSON.parse(row.payload_json):row.payload;if(typeof payload?.accountId==='string'&&/^[1-9]\d{0,19}$/.test(payload.accountId))ids.add(payload.accountId);else unmatched++}
+ return {ids:[...ids],sent:sent.length,unmatched}
+}
+module.exports={effectTargets,effectPeriods,advertisingTargets}

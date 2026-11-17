@@ -35,7 +35,9 @@ function hasCredentials(env=process.env){
  return !!(env.GSC_ACCESS_TOKEN||
   env.GSC_SERVICE_ACCOUNT_JSON||env.GSC_SERVICE_ACCOUNT_FILE||env.GOOGLE_APPLICATION_CREDENTIALS);
 }
-function createGscClient({env=process.env,request=fetch,readFile=fs.readFileSync,clock=Date.now}={}){
+function createGscClient({env=process.env,request=fetch,readFile=fs.readFileSync,clock=Date.now,oauthClient=null}={}){
+ const userOAuth=oauthClient||(env===process.env?require('./gscOAuth').oauth:null);
+ const isUserConnected=async ownerId=>!!(userOAuth&&userOAuth.available()&&await userOAuth.connected(ownerId));
  let current=null,loading=null;
  const siteCache=new Map();
  async function oauthToken(){
@@ -73,10 +75,11 @@ function createGscClient({env=process.env,request=fetch,readFile=fs.readFileSync
   })();
   try{return await loading}finally{loading=null}
  }
- async function google(path,body,origin=API){
+ async function google(path,body,origin=API,ownerId=null){
   if(![API,INSPECTION_API].includes(origin))fail('未知 Google API 地址',400);
-  if(!hasCredentials(env))fail('服务器尚未配置 Search Console API 凭证',503);
-  const token=await oauthToken();
+  const own=await isUserConnected(ownerId);
+  if(!own&&!hasCredentials(env))fail('服务器尚未配置 Search Console API 凭证',503);
+  const token=own?await userOAuth.accessToken(ownerId):await oauthToken();
   let response;
   try{response=await request(origin+path,{
     method:body?'POST':'GET',
@@ -87,13 +90,19 @@ function createGscClient({env=process.env,request=fetch,readFile=fs.readFileSync
   let json;try{json=await response.json()}catch{fail('Google Search Console API 响应无效',503)}
   if(!response.ok){
    const code=response.status;
-   if(code===401||code===403)fail('Search Console 权限不足；请授予服务账号此资源的读取权限',403);
+   if(code===401||code===403)fail(own?'Google Search Console 账号无权读取此资源，请重新授权或检查网站权限':'Search Console 权限不足；请授予服务账号此资源的读取权限',403);
    if(code===429)fail('Search Console API 配额不足，请稍后重试',429);
    fail('Search Console API 返回错误 '+code,503);
   }
   return json;
  }
  async function sites(ownerId){
+  if(await isUserConnected(ownerId)){
+   const entries=(await google('/sites',null,API,ownerId)).siteEntry||[];
+   return entries.filter(x=>['siteOwner','siteFullUser','siteRestrictedUser'].includes(x.permissionLevel))
+    .map(x=>{try{return {siteUrl:propertyName(x.siteUrl),permissionLevel:x.permissionLevel}}catch{return null}})
+    .filter(Boolean).slice(0,100);
+  }
   const allow=authorizedProperties(ownerId,env);
   if(!allow.length) return [];
   const key=String(ownerId)+':'+allow.join('|'),cached=siteCache.get(key);
@@ -107,11 +116,12 @@ function createGscClient({env=process.env,request=fetch,readFile=fs.readFileSync
  }
  async function assertAllowedSite(ownerId,siteUrl){
   const site=propertyName(siteUrl);
-  if(!authorizedProperties(ownerId,env).includes(site))
+  const own=await isUserConnected(ownerId);
+  if(!own&&!authorizedProperties(ownerId,env).includes(site))
    fail('所选 Search Console 资源不在当前用户服务端允许名单中',403);
   const verified=await sites(ownerId);
   if(!verified.some(x=>x.siteUrl===site))
-   fail('当前服务账号无法读取此 Search Console 资源',403);
+   fail('当前 Google 账号无法读取此 Search Console 资源',403);
   return site;
  }
  async function searchAnalytics(ownerId,{siteUrl,startDate,endDate,dimensions,rowLimit=500}){
@@ -123,11 +133,11 @@ function createGscClient({env=process.env,request=fetch,readFile=fs.readFileSync
    startDate,endDate,dimensions,rowLimit,startRow:0,type:'web',dataState:'final',
    aggregationType:dimensions.includes('page')?'byPage':'byProperty'
   };
-  return google('/sites/'+encodeURIComponent(siteUrl)+'/searchAnalytics/query',params);
+  return google('/sites/'+encodeURIComponent(siteUrl)+'/searchAnalytics/query',params,API,ownerId);
  }
  async function sitemaps(ownerId,siteUrl){
   await assertAllowedSite(ownerId,siteUrl);
-  const r=await google('/sites/'+encodeURIComponent(siteUrl)+'/sitemaps');
+  const r=await google('/sites/'+encodeURIComponent(siteUrl)+'/sitemaps',null,API,ownerId);
   if(r.sitemap!=null&&!Array.isArray(r.sitemap))
     fail('Google Sitemap 返回格式无效',503);
   return (r.sitemap||[]).slice(0,50).map(s=>({
@@ -156,7 +166,7 @@ function createGscClient({env=process.env,request=fetch,readFile=fs.readFileSync
    fail('所检查 URL 不属于当前 Search Console URL 前缀资源',403);
   const r=await google('/urlInspection/index:inspect',{
    inspectionUrl:page.href,siteUrl,languageCode:'zh-CN'
-  },INSPECTION_API);
+  },INSPECTION_API,ownerId);
   const status=r.inspectionResult?.indexStatusResult;
   if(!status||typeof status!=='object')fail('Google 尚未返回此 URL 的索引状态',503);
   return {inspectionUrl:page.href,siteUrl,
@@ -172,11 +182,14 @@ function createGscClient({env=process.env,request=fetch,readFile=fs.readFileSync
     warning:'仅查询 Google 索引中的版本，不是实时页面可索引性测试，也没有请求收录'};
  }
  return {sites,assertAllowedSite,searchAnalytics,sitemaps,inspect,google,
-  status(ownerId){const allowed=authorizedProperties(ownerId,env);
-   return {configured:allowed.length>0&&hasCredentials(env),
-    authorizationConfigured:hasCredentials(env),
-    ownerAuthorized:allowed.length>0,
-    mode:env.GSC_ACCESS_TOKEN?'server-access-token':env.GSC_SERVICE_ACCOUNT_JSON||
+  async status(ownerId){
+   const connected=await isUserConnected(ownerId),allowed=authorizedProperties(ownerId,env);
+   return {configured:connected||(allowed.length>0&&hasCredentials(env)),
+    authorizationConfigured:connected||hasCredentials(env),
+    ownerAuthorized:connected||allowed.length>0,
+    oauthAvailable:!!(userOAuth&&userOAuth.available()),
+    oauthConnected:connected,
+    mode:connected?'google-oauth':env.GSC_ACCESS_TOKEN?'server-access-token':env.GSC_SERVICE_ACCOUNT_JSON||
      env.GSC_SERVICE_ACCOUNT_FILE||env.GOOGLE_APPLICATION_CREDENTIALS?'service-account':'not-configured'};
   }};
 }

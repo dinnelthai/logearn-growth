@@ -10,6 +10,14 @@ export function getToken() {
   return localStorage.getItem(TOKEN_KEY)
 }
 
+/** Informs the already-mounted desktop shell about an expired login. No retries. */
+export function notifyExpiredSession(response) {
+  if(response?.status!==401)return;
+  try{if(!getToken())return;}catch{return;}
+  if(typeof globalThis.CustomEvent!=='function')return;
+  globalThis.dispatchEvent?.(new globalThis.CustomEvent('logearn:session-expired'));
+}
+
 function setToken(token) {
   if (token) localStorage.setItem(TOKEN_KEY, token)
   else localStorage.removeItem(TOKEN_KEY)

@@ -1,0 +1,122 @@
+import {test,expect,vi,afterEach} from 'vitest'
+import {createDrawer} from '../../drawer.js'
+
+afterEach(()=>{
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+})
+
+function fixture(){
+  const selectors=[
+    '[data-desc]','[data-list]','[data-count]','[data-prev]',
+    '[data-next]','[data-remote-actions]','[data-remote-retry]','#as-timeline',
+    '[data-close]','[data-value-signal]','[data-contact-filter]','[data-credits-mode]','[data-credits-range]','[data-credits-min]','[data-credits-max]','[data-credits-error]','[data-credits-apply]','input'
+  ]
+  const nodes=Object.fromEntries(selectors.map(x=>[x,{innerHTML:'',textContent:'',disabled:false}]))
+  nodes['input'].focus=()=>{}
+  nodes['[data-remote-actions]'].insertAdjacentHTML=()=>{}
+  nodes['[data-remote-retry]'].addEventListener=(_event,handler)=>{nodes['[data-remote-retry]'].click=handler}
+  nodes['[data-remote-actions]'].querySelectorAll=()=>[]
+  const dialog={
+    open:false,innerHTML:'',
+    addEventListener:()=>{},
+    showModal(){this.open=true},
+    close(){this.open=false},
+    querySelector:s=>nodes[s]||null,
+    querySelectorAll:()=>[]
+  }
+  vi.stubGlobal('document',{activeElement:{isConnected:false}})
+  return {nodes,dialog,drawer:createDrawer(dialog)}
+}
+
+test('contact selection reloads the complete list from the first page',async()=>{
+  const t=fixture(),fetchPage=vi.fn(async ({contactFilter})=>contactFilter==='telegram'?{total:1,rows:[{id:'user:2',source:'TG'}]}:{total:2,rows:[{id:'user:1',source:'SEO'}]})
+  t.drawer.openRemote({title:'用户',description:'名单',fetchPage,contactFilter:true})
+  await vi.waitFor(()=>expect(t.nodes['[data-list]'].innerHTML).toContain('user:1'))
+  t.nodes['[data-contact-filter]'].onchange({target:{value:'telegram'}})
+  await vi.waitFor(()=>expect(t.nodes['[data-list]'].innerHTML).toContain('user:2'))
+  expect(fetchPage).toHaveBeenLastCalledWith(expect.objectContaining({offset:0,contactFilter:'telegram'}))
+  expect(t.nodes['[data-list]'].innerHTML).not.toContain('user:1')
+})
+
+test('closing a remote drill cancels its debounced search before another API request',()=>{
+  vi.useFakeTimers()
+  const t=fixture(),fetchPage=vi.fn().mockResolvedValue({rows:[],total:0})
+  t.drawer.openRemote({title:'用户列表',description:'真实用户',fetchPage})
+  expect(fetchPage).toHaveBeenCalledTimes(1)
+  t.nodes.input.oninput({target:{value:'user'}})
+  t.drawer.close()
+  vi.advanceTimersByTime(300)
+  expect(fetchPage).toHaveBeenCalledTimes(1)
+})
+
+
+test('typing a new query immediately hides old rows and blocks stale group actions',async()=>{
+  const t=fixture()
+  const fetchPage=vi.fn().mockResolvedValue({total:2,rows:[{id:'user:1',source:'SEO'}]})
+  // The initial server list has loaded; a new query must not retain those
+  // visible rows or allow users to act on them during the 200ms debounce.
+  t.drawer.openRemote({title:'用户列表',description:'真实用户',fetchPage})
+  await vi.waitFor(()=>expect(t.nodes['[data-list]'].innerHTML).toContain('user:1'))
+  t.nodes.input.oninput({target:{value:'different-user'}})
+  expect(t.nodes['[data-list]'].innerHTML).toContain('加载中')
+  expect(t.nodes['[data-list]'].innerHTML).not.toContain('user:1')
+  expect(t.nodes['[data-count]'].textContent).toContain('加载中')
+  // No network request is dispatched before the debounce timer completes.
+  expect(fetchPage).toHaveBeenCalledTimes(1)
+  t.drawer.close()
+})
+
+test('remote drill refetches the last real page after a list shrinks',async()=>{
+  const t=fixture()
+  let calls=0
+  const fetchPage=vi.fn(async()=>{
+    calls++
+    if(calls<3)return {total:25,rows:[{id:'user:'+calls,source:'SEO'}]}
+    if(calls===3)return {total:2,rows:[]}
+    return {total:2,rows:[{id:'user:1',source:'SEO'}]}
+  })
+  t.drawer.openRemote({title:'用户列表',description:'真实用户',fetchPage})
+  await vi.waitFor(()=>expect(t.nodes['[data-count]'].textContent).toContain('第 1 / 3 页'))
+  t.nodes['[data-next]'].onclick()
+  await vi.waitFor(()=>expect(t.nodes['[data-count]'].textContent).toContain('第 2 / 3 页'))
+  t.nodes['[data-next]'].onclick()
+  await vi.waitFor(()=>expect(t.nodes['[data-count]'].textContent).toContain('第 1 / 1 页'))
+  expect(fetchPage.mock.calls.map(([c])=>c.offset)).toEqual([0,12,24,0])
+  expect(t.nodes['[data-list]'].innerHTML).toContain('user:1')
+  expect(t.nodes['[data-list]'].innerHTML).toContain('role="region"')
+  expect(t.nodes['[data-list]'].innerHTML).toContain('tabindex="0"')
+  expect(t.nodes['[data-list]'].innerHTML).toContain('<th scope="col">用户</th>')
+  t.drawer.close()
+})
+
+test('server failure retains an explicit retry without silently reloading',async()=>{
+  const t=fixture(),fetchPage=vi.fn()
+    .mockRejectedValueOnce(Error('temporary network error'))
+    .mockResolvedValueOnce({total:1,rows:[{id:'user:1',source:'SEO'}]})
+  t.drawer.openRemote({title:'用户列表',description:'真实用户',fetchPage})
+  await vi.waitFor(()=>expect(t.nodes['[data-list]'].innerHTML).toContain('temporary network error'))
+  expect(t.nodes['[data-list]'].innerHTML).toContain('data-remote-retry')
+  expect(fetchPage).toHaveBeenCalledTimes(1)
+  t.nodes['[data-remote-retry]'].click()
+  await vi.waitFor(()=>expect(t.nodes['[data-list]'].innerHTML).toContain('user:1'))
+  expect(fetchPage).toHaveBeenCalledTimes(2)
+  t.drawer.close()
+})
+
+test('credits range reloads first page and unknown is a separate filter',async()=>{
+ const t=fixture(),fetchPage=vi.fn().mockResolvedValue({total:1,rows:[{id:'user:1'}]})
+ t.drawer.openRemote({title:'用户',description:'名单',fetchPage,creditsFilter:true})
+ t.nodes['[data-credits-mode]'].value='range';t.nodes['[data-credits-mode]'].onchange()
+ t.nodes['[data-credits-min]'].value='100';t.nodes['[data-credits-max]'].value='200';t.nodes['[data-credits-apply]'].onclick()
+ await vi.waitFor(()=>expect(fetchPage).toHaveBeenLastCalledWith(expect.objectContaining({offset:0,creditsFilter:{min:100,max:200}})))
+ t.nodes['[data-credits-mode]'].value='unknown';t.nodes['[data-credits-mode]'].onchange()
+ await vi.waitFor(()=>expect(fetchPage).toHaveBeenLastCalledWith(expect.objectContaining({creditsFilter:{unknown:true}})))
+})
+
+test('value signal reloads the full list from the first page',async()=>{
+ const t=fixture(),fetchPage=vi.fn().mockResolvedValue({total:1,rows:[{id:'user:1'}]})
+ t.drawer.openRemote({title:'用户',description:'名单',fetchPage,valueSignalFilter:true})
+ t.nodes['[data-value-signal]'].onchange({target:{value:'nft'}})
+ await vi.waitFor(()=>expect(fetchPage).toHaveBeenLastCalledWith(expect.objectContaining({offset:0,valueSignal:'nft'})))
+})

@@ -1,5 +1,5 @@
 'use strict';
-const {randomUUID}=require('node:crypto');
+const {key}=require('./contracts');
 const {DAY}=require('./period');
 const unknown=reason=>({status:'unknown',reason,observed:null,delta:null,met:null});
 async function refreshWeeklyCore({store,owner,goal,now=Date.now(),status,weekly}){
@@ -11,7 +11,7 @@ async function refreshWeeklyCore({store,owner,goal,now=Date.now(),status,weekly}
   if(!p?.available||p.source!=='all'||p.timezone!=='Asia/Bangkok'||!Number.isSafeInteger(p.start)||!Number.isSafeInteger(p.end)||p.end-p.start!==7*DAY||p.end>asOf+1||p.end>now||p.end-1<goal.period_start||p.end>goal.period_end||!Number.isSafeInteger(p.users)||p.users<0)return unknown('invalid-observation');
   const watermark=Date.parse(snapshot.events_complete_through||'');
   const complete=snapshot.history_complete===true&&Number.isFinite(watermark)&&watermark>=p.end;
-  const evidence=store.saveEvidence(owner,{id:randomUUID(),source:'weekly-core-service',metricId:'weekly_core',unit:'users',scope:{source:'all'},definitionVersion:'1',state:complete?'verified':'partial',value:p.users,period:{start:p.start,end:p.end,timezone:'Asia/Bangkok'},watermarks:{events:snapshot.as_of,eventsCompleteThrough:snapshot.events_complete_through||null},coverage:{historyComplete:snapshot.history_complete===true,status:complete?'verified':'partial'},warnings:complete?[]:['历史和连续采集覆盖未确认；观测值不代表完整总体'],observedAt:now,originalLocator:{page:'northStar',snapshotId:snapshot.snapshot_id,source:'all',start:p.start,end:p.end}});
+  const evidence=store.saveEvidence(owner,{id:key([owner,'weekly_core','1',p.start,p.end,p.users,complete,snapshot.snapshot_id,snapshot.as_of,snapshot.events_complete_through||null]),source:'weekly-core-service',metricId:'weekly_core',unit:'users',scope:{source:'all'},definitionVersion:'1',state:complete?'verified':'partial',value:p.users,period:{start:p.start,end:p.end,timezone:'Asia/Bangkok'},watermarks:{events:snapshot.as_of,eventsCompleteThrough:snapshot.events_complete_through||null},coverage:{historyComplete:snapshot.history_complete===true,status:complete?'verified':'partial'},warnings:complete?[]:['历史和连续采集覆盖未确认；观测值不代表完整总体'],observedAt:asOf,originalLocator:{page:'northStar',snapshotId:snapshot.snapshot_id,source:'all',start:p.start,end:p.end}});
   return store.progress(owner,goal.id,{at:now,evidenceId:evidence.id}).progress;
  }catch{return unknown('source-unavailable')}
 }

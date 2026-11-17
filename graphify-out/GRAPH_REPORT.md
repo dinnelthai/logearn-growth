@@ -1,0 +1,2136 @@
+# Graph Report - Logearn-growth  (2026-11-17)
+
+## Corpus Check
+- 1414 files · ~496,649 words
+- Verdict: corpus is large enough that graph structure adds value.
+- Unclassified: 57 file(s) not represented in the graph (top: .log 27, .css 14, (none) 5)
+
+## Summary
+- 9114 nodes · 19597 edges · 457 communities (406 shown, 51 thin omitted)
+- Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 1799 edges (avg confidence: 0.85)
+- Token cost: 0 input · 0 output
+
+## Graph Freshness
+- Built from commit: `842c16fd`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
+
+## Community Hubs (Navigation)
+- backend/src/ai/business/evidence.js
+- backend_副本/src/data/remoteUsers.js
+- walletOutflows.js
+- ref_node_path
+- createChartLifecycle
+- createKolCrm
+- backend_副本/test/multiAccountKol.test.js
+- backend_副本/test/remote-observed-smoke.cjs
+- frontend/src/analytics/comparison.js
+- pages/activityMonitor.js
+- backend/src/data/hologres.js
+- backend/test/activityEvidence.test.js
+- evaluatePromptCandidate.js
+- backend/src/db/migrations/001_ai_tables.sql
+- backend/src/ai/business/tools/registry.js
+- agentKilledWorker.test.js
+- dashboard.js
+- backend/src/db/generateBusinessData.js
+- browser.cjs
+- backend/src/data/remoteUsers.js
+- backend/src/queues/jobs/businessAnalysis.js
+- createKolDiscovery
+- backend/src/index.js
+- planner.js
+- backend_副本/test/referralInsights.test.js
+- backend_副本/src/routes/remoteAnalytics.js
+- growthWorkspaceHttp.test.js
+- backend_副本/test/productChain.test.js
+- reliability-bridge
+- workspaceStore
+- backend_副本/src/routes/collaborations.js
+- backend_副本/test/pathContextLoader.test.js
+- uptimeKumaStatus.js
+- backend_副本/test/sixImprovements.test.js
+- backend/test/opsResponse.test.js
+- pages/segmentInsights.js
+- backend/src/routes/cohorts.js
+- backend/src/db/aiRecords.js
+- pages/aiAnalysis.js
+- api/crm.js
+- backend/src/analytics/pathInsights.js
+- computeMyMonitor
+- api/aiAnalysis.js
+- agentRestartPersistence.test.js
+- authClient.js
+- backend_副本/src/index.js
+- weeklyCoverage.js
+- backend/src/db/schema.sql
+- backend_副本/src/utils/logger.js
+- pages/growthInsights.js
+- reportPeriod
+- capabilityCatalog.test.js
+- createOperationsComparison
+- ref_path
+- secondRound.test.js
+- aiWeeklyReportPanel.js
+- backend/src/websocket/server.js
+- backend_副本/src/ai/llm/client.js
+- backend_副本/test/retentionCurves.test.js
+- backend/src/db/rebuildRollups.js
+- comparison/panel.js
+- backend/src/ai/llm/test.js
+- backend/src/db/hologres_views.sql
+- backend_副本/src/db/schema.sql
+- backend_副本/test/inviteRegistration.test.js
+- backend/src/services/analysisJobs.js
+- backend_副本/src/websocket/server.js
+- backend/src/routes/remoteAnalytics.js
+- backend_副本/src/queues/jobs/businessAnalysis.js
+- fetchBackendMeta
+- seoPage.js
+- generate.mjs
+- backend_副本/src/db/generateBusinessData.js
+- backend/src/analytics/businessPriorities.js
+- createOpportunityStore
+- backend/src/routes/metrics.js
+- backend_副本/src/analytics/comparison.js
+- qdrant
+- frontend/package.json
+- backend/test/sixImprovements.test.js
+- backend/src/routes/collaborations.js
+- dev.cjs
+- backend/src/utils/logger.js
+- backend/src/services/userCrm.js
+- getClient
+- backend_副本/src/services/userCrm.js
+- createReferralInsightsPage
+- createRetentionAggPage
+- weeklyContextV4.js
+- backend_副本/src/services/analysisJobs.js
+- businessModuleCatalog.js
+- growthLiveObservation.test.js
+- backend/src/ai/llm/client.js
+- backend/src/queues/jobs/aiAnalysis.js
+- weeklyReport.js
+- xContentMonitor.js
+- trials.js
+- run
+- backend_副本/src/analytics/pageVisits.js
+- conversionScenes.js
+- growthAlertIntegration.test.js
+- frontend/src/analytics/funnel.js
+- backend/src/routes/activities.js
+- backend_副本/src/queues/jobs/aiAnalysis.js
+- backend_副本/src/routes/activities.js
+- backend_副本/test/pathIndex.test.js
+- aiWeeklyDecisionView.js
+- scripts
+- backend/src/ai/rag/cli.js
+- backend_副本/src/ai/rag/cli.js
+- normalize.js
+- backend/package.json
+- dependencies
+- growthDailySignalGate.test.js
+- backend/test/kolDiscovery.test.js
+- backend/src/db/importGrowthEvents.js
+- LLMClient
+- backend_副本/src/cache/multilevel.js
+- backend_副本/src/db/aiRecords.js
+- backend_副本/src/db/importGrowthEvents.js
+- backend/test/segmentFunnelComparison.test.js
+- backend/test/referralInsights.test.js
+- growth_events
+- audience.test.js
+- backend/test/pathIndex.test.js
+- retrySafetyHttp.test.js
+- backend_副本/test/kolDiscovery.test.js
+- frontend/src/analytics/segmentation.js
+- pages/businessAnalysis.js
+- steps
+- tracking/client.js
+- main.js
+- createService
+- createService
+- routes/contentGrowth.js
+- growthAgentAutonomy.test.js
+- gscService.js
+- gscOAuth.js
+- seoStore.js
+- LLMClient
+- getToken
+- audit-tracking.cjs
+- backend/test/activityPerformance.test.js
+- backend/src/routes/crm.js
+- scripts
+- backend_副本/test/observedInsights.test.js
+- backend_副本/test/activityPerformance.test.js
+- backend_副本/src/queues/queues.js
+- growthAgentControl.js
+- openseoConnector.js
+- cross-repo-check.cjs
+- scale-check.cjs
+- ref_node_crypto
+- createAgentStore
+- backend_副本/test/remote-points-smoke.cjs
+- kolOperations.js
+- growthCrossDay.test.js
+- backend_副本/src/services/platformAssets.js
+- backend/test/inviteRegistration.test.js
+- createStore
+- fetchDrillUsers
+- gscClient.js
+- backend/scripts/addNewKeywords.js
+- backend/test/diagnostics.test.js
+- backend/src/services/xAcquisition.js
+- backend/src/queues/queues.js
+- backend/test/test-websocket.js
+- backend_副本/src/ai/business/tools/registry.js
+- observedDrill.js
+- backend_副本/src/db/migrations/001_ai_tables.sql
+- diagnosis.js
+- benchmark.cjs
+- createTraceStore
+- backend/test/pathContextLoader.test.js
+- backend/test/aiBusiness.test.js
+- backend_副本/src/services/xAcquisition.js
+- backend/test/remote-referral-smoke.cjs
+- gscSchedule.js
+- backend/test/growthInsights.test.js
+- growthSchedulerHealthIntegration.test.js
+- createService
+- backend_副本/src/services/businessReport.js
+- createService
+- backend_副本/test/trackingAudit.test.js
+- createActivityMonitor
+- growthGraphPilot.test.js
+- backend/test/conversionScenes.test.js
+- backend_副本/test/conversionLoss.test.js
+- backend_副本/test/conversionScenes.test.js
+- backend_副本/test/diagnostics.test.js
+- backend_副本/test/aiBusiness.test.js
+- backend_副本/src/analytics/segmentInsights.js
+- performanceMonitor.js
+- createCache
+- backend/src/routes/operationTasks.js
+- backend/test/comparisonReports.test.js
+- backend/test/inviteAssociation.test.js
+- backend_副本/src/routes/operationTasks.js
+- growthBudgetIntegration.test.js
+- backend/test/conversionLoss.test.js
+- backend_副本/test/activityScheduling.test.js
+- backend_副本/test/comparisonReports.test.js
+- gscHttp.test.js
+- backend/src/cache/redis.js
+- agentAutonomy.js
+- channels/rules.js
+- growthWorkspaceMetric.test.js
+- backend/src/analytics/segmentInsights.js
+- backend/test/productChain.test.js
+- backend/src/db/aiPool.js
+- researchQuestions.test.js
+- operationTaskDetail.js
+- pages/activityEvidence.js
+- growthAgentForecast.test.js
+- backend_副本/test/activityEvidence.test.js
+- backend_副本/test/conversionLoss.test.js
+- opsRequest
+- backend/test/performance.bench.cjs
+- growthSpecialistHttp.test.js
+- backend_副本/test/performance.bench.cjs
+- backend/src/analytics/resultCache.js
+- real-data.cjs
+- backend/src/routes/analytics.js
+- workspace/store.js
+- growthSpecialtyAnalyzeHttp.test.js
+- backend_副本/src/data/hologres.js
+- viewState
+- backend/test/observedInsights.test.js
+- analysisResumeHttp.test.js
+- ref_node_path
+- externalSpend.js
+- backend/src/routes/ops.js
+- backend/src/pathIndex/store.js
+- checkpointHttp.test.js
+- backend/src/data/conversionFacts.js
+- xGrowthAgentContentPipeline.test.js
+- backend_副本/src/routes/analytics.js
+- enrich.mjs
+- promptfooconfig.yaml
+- ref_node_fs
+- monitorScheduler.js
+- backend/src/routes/aiAnalysis.js
+- growthAutonomyHttp.test.js
+- xContentMetrics.test.js
+- backend_副本/src/services/activityEvidence.js
+- backend/src/db/seedMock.js
+- growthInboxHttp.test.js
+- worker-check.cjs
+- backend_副本/src/db/seedMock.js
+- after.cjs
+- configureGrowthLlm.js
+- backend_副本/src/pathIndex/store.js
+- backend/test/channelInsights.test.js
+- golden.cjs
+- createStore
+- coverage.js
+- backend_副本/test/operationsComparison.test.js
+- backend/test/activityScheduling.test.js
+- growthAgentOutboxIntegration.test.js
+- analysisCancelHttp.test.js
+- backend/src/data/productChainTrades.js
+- backend_副本/test/ops.test.js
+- growthActionWorkflow.test.js
+- backend/test/retentionCurves.test.js
+- jsonDatasetCore.js
+- backend_副本/src/analytics/resultCache.js
+- backend/test/activityRoster.test.js
+- backend/src/db/readWritePool.js
+- activationEvaluation.test.js
+- QdrantVectorDB
+- backend_副本/src/routes/crm.js
+- backend/test/addressRoster.test.js
+- growthKolReader.test.js
+- backend/src/db/connection.js
+- backend_副本/src/db/readWritePool.js
+- growthProposalHttp.test.js
+- backend/test/test-ai-analysis.js
+- backend_副本/test/ops.test.js
+- QdrantVectorDB
+- backend/src/monitoring/prometheus.js
+- backend/src/data/kolMetrics.js
+- backend/src/services/activityEvidence.js
+- backend_副本/test/test-ai-analysis.js
+- growth-implementation-2026-10-24/qa-server.cjs
+- owner
+- dotenv
+- backend_副本/src/db/connection.js
+- monitorScheduler.js
+- growthAlertHttp.test.js
+- growthInvestigationTimelineHttp.test.js
+- backend_副本/test/inviteAssociation.test.js
+- backend_副本/test/weeklyCoreRoutes.test.js
+- backend/src/services/twitterAccounts.js
+- express
+- backend_副本/test/remote-channels-smoke.cjs
+- backend_副本/test/remote-referral-smoke.cjs
+- jobStatusHttp.test.js
+- daily.js
+- backend/src/ops/catalog.js
+- growth_activities
+- backend_副本/src/services/twitterAccounts.js
+- services/followerAudit.js
+- backend/test/pathContextLoader.test.js
+- getClient
+- steps
+- auditBusinessAnalysisE2E.test.js
+- backend/test/operationTasks.test.js
+- backend_副本/test/agentApi.test.js
+- backend/test/weeklyCoreRoutes.test.js
+- modelTransport.js
+- createDrawer
+- xContentMonitor.test.js
+- growth_activities
+- crm_kols
+- backend/test/conversionRoutes.test.js
+- backend/test/xAcquisitionRoutes.test.js
+- growthSharedDailyDispatch.test.js
+- backend/test/behaviorTags.test.js
+- audit.py
+- ai-frontend
+- backend/test/pointsInsights.test.js
+- growthWorkspaceLegacyBridge.test.js
+- KnowledgeIndexer
+- crm_collaborations
+- backend_副本/test/activityRoster.test.js
+- backend/src/routes/businessAnalysis.js
+- KnowledgeIndexer
+- backend/test/collaborations.test.js
+- backend/test/diagnostics.test.js
+- growthReviewHttp.test.js
+- backend/test/remote-segments-smoke.cjs
+- backend/test/growthRoutes.test.js
+- crm_kols
+- crm_collaborations
+- backend/test/kolRanking.test.js
+- VirtualList
+- ai-integration
+- postgres
+- backend/test/retentionRoutes.test.js
+- backend_env
+- agentContextBudget.test.js
+- AnthropicProvider
+- backend_副本/test/addressRoster.test.js
+- backend_副本/test/weeklyCore.test.js
+- events
+- channels/analytics.js
+- backend/test/ops.test.js
+- backend/test/remote-observed-smoke.cjs
+- backend/src/db/migrateToRWSplit.js
+- mail.js
+- sourceChanges.test.js
+- backend/test/inviteRegistration.bench.cjs
+- ref_node_assert
+- router
+- walletNft.test.js
+- AnthropicProvider
+- events
+- backend_副本/test/operationsComparisonRoutes.test.js
+- createSpecialistStore
+- growth-implementation-2026-10-24/verify-live.cjs
+- backend/test/operationsComparison.test.js
+- ai-contract
+- x-acquisition-2026-10-26/qa-server.cjs
+- workspace/store.js
+- backend/src/analytics/xAcquisitionExpanded.js
+- backend/src/analytics/xAcquisitionV2.js
+- http-check.cjs
+- cohort_members
+- sessions
+- backend_副本/test/remote-credits-smoke.cjs
+- backend_副本/src/ai/business/foundation.js
+- backend_副本/src/analytics/xAcquisitionExpanded.js
+- backend_副本/src/analytics/xAcquisitionV2.js
+- loginPage.test.js
+- cohort_members
+- sessions
+- ref_node_sqlite
+- backend_副本/src/services/assetValuation.js
+- on
+- backend_副本/src/routes/businessAnalysis.js
+- backend_副本/src/routes/audienceHistory.js
+- KnowledgeRetriever
+- backend/src/services/comparisonDrafts.js
+- backend/src/ops/store.js
+- backend_副本/src/services/comparisonDrafts.js
+- backend_副本/package.json
+- backend/scripts/kolExpansionQuickStart.sh
+- scripts
+- backend_副本/test/remote-tasks-smoke.cjs
+- backend_副本/scripts/kolExpansionQuickStart.sh
+- api.js
+- env
+- backend/src/db/migrations/002_agent_foundation.sqlite.sql
+- backend/src/db/migrations/004_agent_trace.sqlite.sql
+- operation_task_history
+- referral_invitees
+- user_facts
+- backend_副本/src/db/migrations/002_agent_foundation.sqlite.sql
+- backend_副本/src/db/migrations/004_agent_trace.sqlite.sql
+- operation_task_history
+- referral_invitees
+- user_facts
+- audit.cjs
+- browser-compare.cjs
+- backend/src/analytics/growthCohorts.js
+- backend/src/analytics/kolReviewedProfiles.js
+- backend/src/analytics/pageClickRates.js
+- backend/src/db/migrations/003_agent_evidence.sqlite.sql
+- crm_kol_accounts
+- logearn_users
+- trades
+- user_features
+- path-performance-2026-10-24/local-page.cjs
+- backend_副本/src/analytics/growthCohorts.js
+- backend_副本/src/analytics/kolReviewedProfiles.js
+- backend_副本/src/analytics/pageClickRates.js
+- backend_副本/src/db/migrations/003_agent_evidence.sqlite.sql
+- crm_kol_accounts
+- logearn_users
+- user_features
+- user_followups
+- test-ai-analysis.sh
+- backend/scripts/upgradeToPrecisionTargeting.sh
+- backend_副本/scripts/upgradeToPrecisionTargeting.sh
+- apply-advanced-optimizations.sh
+- benchmark-comparison.sh
+- deploy-all-optimizations.sh
+- deploy-no-db-write.sh
+- deploy-phase4.sh
+- chartRuntime.js
+- core-path-workflow-2026-10-24/verify.cjs
+- baseline.cjs
+- worker.cjs
+- backend/test/creditsInsights.test.js
+- backend/test/segmentInsights.test.js
+- run
+- backend_副本/src/db/migrateToRWSplit.js
+- backend/test/opsEffect.test.js
+- weekly-core-2026-10-24/verify-live.cjs
+
+## God Nodes (most connected - your core abstractions)
+1. `express` - 134 edges
+2. `vitest` - 107 edges
+3. `observedTime()` - 79 edges
+4. `db` - 77 edges
+5. `db` - 77 edges
+6. `viewState()` - 64 edges
+7. `aiFetch()` - 64 edges
+8. `getToken()` - 54 edges
+9. `workspaceStore()` - 52 edges
+10. `createChartLifecycle()` - 50 edges
+
+## Surprising Connections (you probably didn't know these)
+- `nav()` --indirect_call--> `feedback()`  [INFERRED]
+  frontend/src/pages/activityMonitor.js → backend/src/ai/growth/agentStore.js
+- `toolbar()` --indirect_call--> `feedback()`  [INFERRED]
+  frontend/src/pages/kolCrm.js → backend/src/ai/growth/agentStore.js
+- `worker()` --indirect_call--> `chain()`  [INFERRED]
+  backend_副本/src/services/platformAssets.js → output/business-completeness-2026-10-26/reproduce.cjs
+- `bootstrap()` --indirect_call--> `reviewed()`  [INFERRED]
+  backend_副本/src/services/kolDiscovery.js → backend/test/activationEvaluation.test.js
+- `list()` --indirect_call--> `reviewed()`  [INFERRED]
+  backend_副本/src/services/kolDiscovery.js → backend/test/activationEvaluation.test.js
+
+## Import Cycles
+- 2-file cycle: `backend_副本/src/websocket/handlers/alerts.js -> backend_副本/src/websocket/server.js -> backend_副本/src/websocket/handlers/alerts.js`
+- 2-file cycle: `backend_副本/src/websocket/handlers/jobProgress.js -> backend_副本/src/websocket/server.js -> backend_副本/src/websocket/handlers/jobProgress.js`
+- 2-file cycle: `backend_副本/src/websocket/handlers/llmStream.js -> backend_副本/src/websocket/server.js -> backend_副本/src/websocket/handlers/llmStream.js`
+- 2-file cycle: `backend/src/websocket/handlers/jobProgress.js -> backend/src/websocket/server.js -> backend/src/websocket/handlers/jobProgress.js`
+- 2-file cycle: `backend/src/websocket/handlers/alerts.js -> backend/src/websocket/server.js -> backend/src/websocket/handlers/alerts.js`
+- 2-file cycle: `backend/src/websocket/handlers/llmStream.js -> backend/src/websocket/server.js -> backend/src/websocket/handlers/llmStream.js`
+
+## Communities (457 total, 51 thin omitted)
+
+### Community 0 - "backend/src/ai/business/evidence.js"
+Cohesion: 0.04
+Nodes (63): validateEvidenceReferences(), authorize(), createEvidenceStore(), get(), save(), fail(), makeEvidence(), {randomUUID,createHash} (+55 more)
+
+### Community 1 - "backend_副本/src/data/remoteUsers.js"
+Cohesion: 0.09
+Nodes (33): ASSOCIATIONS, computeFunnel(), ID_FIELDS, medianMs(), validId(), compareFunnels(), fail(), options() (+25 more)
+
+### Community 2 - "walletOutflows.js"
+Cohesion: 0.06
+Nodes (55): router, express, router, buildMessage(), change(), money(), selectSnapshots(), start() (+47 more)
+
+### Community 3 - "ref_node_path"
+Cohesion: 0.02
+Nodes (66): weeklyModelTimeoutMs(), assert, crypto, first, fs, path, second, test (+58 more)
+
+### Community 4 - "createChartLifecycle"
+Cohesion: 0.08
+Nodes (43): growth, meta, setup(), weeklyCore, setup(), result, setup(), computeTradeMonitor() (+35 more)
+
+### Community 5 - "createKolCrm"
+Cohesion: 0.15
+Nodes (29): kolAccountIds(), kolProfileBody(), setup(), previewKolPerformance(), addFollowup(), fetchKolMetrics(), fetchKolRanking(), linkKolActivity() (+21 more)
+
+### Community 6 - "backend_副本/test/multiAccountKol.test.js"
+Cohesion: 0.08
+Nodes (38): activities(), attachAccounts(), invitedAccounts(), ownAccounts(), aggregateMembers(), validatePeriod(), createMemberFactSelector(), compareFacts() (+30 more)
+
+### Community 7 - "backend_副本/test/remote-observed-smoke.cjs"
+Cohesion: 0.43
+Nodes (6): assert, main(), operator, {randomBytes}, request(), token
+
+### Community 8 - "frontend/src/analytics/comparison.js"
+Cohesion: 0.27
+Nodes (11): comparisonPool(), computeComparison(), dimensionValue(), entryFor(), firstAnalysis(), flag(), groupLabel(), ts() (+3 more)
+
+### Community 9 - "pages/activityMonitor.js"
+Cohesion: 0.12
+Nodes (43): a, m, setup(), activityBatches(), activityMetrics(), activityRoster(), activityTimeline(), appendActivityBatch() (+35 more)
+
+### Community 10 - "backend/src/data/hologres.js"
+Cohesion: 0.06
+Nodes (42): extract(), fs, main(), path, {Pool}, workload(), weeklyCore(), weeklyCoreWindow() (+34 more)
+
+### Community 11 - "backend/test/activityEvidence.test.js"
+Cohesion: 0.13
+Nodes (9): app, assert, express, fs, now, path, router, server (+1 more)
+
+### Community 12 - "evaluatePromptCandidate.js"
+Cohesion: 0.05
+Nodes (54): buildConfig(), evaluate(), fs, os, path, run(), scenarios, {spawnSync} (+46 more)
+
+### Community 13 - "backend/src/db/migrations/001_ai_tables.sql"
+Cohesion: 0.05
+Nodes (69): ai_analysis_call_guard, ai_analysis_records, ai_analysis_request_key, ai_analysis_summary, ai_experience_index, ai_external_spend_policy, ai_external_spend_reservations, ai_growth_agent_briefs (+61 more)
+
+### Community 14 - "backend/src/ai/business/tools/registry.js"
+Cohesion: 0.12
+Nodes (25): allowedFields(), conversionSummary(), executeLegacyTool(), listLegacyCapabilities(), page(), definitions, fail(), fields (+17 more)
+
+### Community 15 - "agentKilledWorker.test.js"
+Cohesion: 0.04
+Nodes (45): assert, childScript, context, contextHash, {createHash}, {DatabaseSync}, fs, os (+37 more)
+
+### Community 16 - "dashboard.js"
+Cohesion: 0.06
+Nodes (58): createTask(), savedTaskRecord(), taskConfig(), TASKS, AUDIENCE_MODES, audiencePeriod(), audienceUsers(), renewedAudience() (+50 more)
+
+### Community 17 - "backend/src/db/generateBusinessData.js"
+Cohesion: 0.10
+Nodes (33): AI_RATE, AS_OF, buildReferrals(), buildUserJourney(), CHAINS, chance(), CHANNEL_PROFILES, clampTs() (+25 more)
+
+### Community 18 - "browser.cjs"
+Cohesion: 0.07
+Nodes (23): assert, {chromium}, fs, path, assert, {chromium}, fs, path (+15 more)
+
+### Community 19 - "backend/src/data/remoteUsers.js"
+Cohesion: 0.06
+Nodes (30): ACTIVE_EVENTS, businessDay(), CORE_EVENTS, returnD7FromDays(), eventCondition(), features(), loadUsers(), MAX_ROWS (+22 more)
+
+### Community 20 - "backend/src/queues/jobs/businessAnalysis.js"
+Cohesion: 0.05
+Nodes (27): validateReview(), businessAnalysis(), persistValidatedResult(), recoverValidatedAnalysis(), reportsService, resumeIncompleteAnalysis(), retrospectiveAnalysis(), CONCURRENCY (+19 more)
+
+### Community 21 - "createKolDiscovery"
+Cohesion: 0.09
+Nodes (53): xRequest(), cats, createFollowerAudit(), draw(), render(), action(), accountCard(), CONFIDENCE (+45 more)
+
+### Community 22 - "backend/src/index.js"
+Cohesion: 0.05
+Nodes (34): { randomBytes }, seedAdmin(), app, cors, express, fs, http, path (+26 more)
+
+### Community 23 - "planner.js"
+Cohesion: 0.06
+Nodes (33): availableDailySpecialties(), summarizeExperience(), formatPlanForPrompt(), goalMap, planGrowthInvestigation(), byId, getSkill(), listSkills() (+25 more)
+
+### Community 24 - "backend_副本/test/referralInsights.test.js"
+Cohesion: 0.23
+Nodes (6): computeReferralInsights(), order(), validateReferral(), assert, run(), {test}
+
+### Community 25 - "backend_副本/src/routes/remoteAnalytics.js"
+Cohesion: 0.16
+Nodes (9): MODULES, RAW_TO_TYPE, TYPE_TO_RAWS, ANALYSIS_SQL, fetchNorthStar(), express, router, assert (+1 more)
+
+### Community 26 - "growthWorkspaceHttp.test.js"
+Cohesion: 0.10
+Nodes (19): atBangkok(), bangkokParts(), currentMonth(), dayStart(), lastCompleted(), monthFor(), validTime(), assert (+11 more)
+
+### Community 27 - "backend_副本/test/productChain.test.js"
+Cohesion: 0.18
+Nodes (11): deviceInfo(), labels, productChain(), properties(), visitKey(), assert, event(), p (+3 more)
+
+### Community 28 - "reliability-bridge"
+Cohesion: 0.08
+Nodes (24): run, jobs, reliability-bridge, name, on, pull_request, push, permissions (+16 more)
+
+### Community 29 - "workspaceStore"
+Cohesion: 0.15
+Nodes (35): requiredString(), safeJSON(), workspaceStore(), action(), actions(), answer(), ask(), buildReport() (+27 more)
+
+### Community 30 - "backend_副本/src/routes/collaborations.js"
+Cohesion: 0.13
+Nodes (23): amountText(), costTotals(), CURRENCIES, fail(), parseAmount(), revenueTotals(), activities(), collaborationReview() (+15 more)
+
+### Community 31 - "backend_副本/test/pathContextLoader.test.js"
+Cohesion: 0.07
+Nodes (39): internalType(), PATH_TYPES, rawNamesForTypes(), candidateUserIds(), loadEventsForUsers(), loadFactsByUserIds(), loadNormalizedUsers(), MAX_CANDIDATES (+31 more)
+
+### Community 32 - "uptimeKumaStatus.js"
+Cohesion: 0.14
+Nodes (18): createUptimeKumaStatusClient(), getOverview(), requestJson(), normalizeBeat(), parseTime(), readConfig(), runtimeSnapshot(), safeText() (+10 more)
+
+### Community 33 - "backend_副本/test/sixImprovements.test.js"
+Cohesion: 0.11
+Nodes (15): attributeTouches(), promotionUrl(), safeTarget(), express, {randomUUID}, router, app, assert (+7 more)
+
+### Community 34 - "backend/test/opsResponse.test.js"
+Cohesion: 0.24
+Nodes (9): call(), redact(), classify(), integer(), userId(), assert, payload, success (+1 more)
+
+### Community 35 - "pages/segmentInsights.js"
+Cohesion: 0.12
+Nodes (27): dynamicRule(), colors, metric, setup(), mountOperationTaskForm(), behaviorOption(), cohortOption(), comparisonOption() (+19 more)
+
+### Community 36 - "backend/src/routes/cohorts.js"
+Cohesion: 0.19
+Nodes (11): publicCohort(), validateRule(), validateOptions(), userTags(), cleanUserIds(), validateCohortBody(), express, insertMembers() (+3 more)
+
+### Community 37 - "backend/src/db/aiRecords.js"
+Cohesion: 0.06
+Nodes (26): beginAnalysisPaidCall(), claimAnalysisExecution(), claimAnalysisRetry(), claimDailySafeRetry(), claimExpiredFinalization(), claimFailedWeeklyOverflow(), completeAnalysis(), createAnalysisRecord() (+18 more)
+
+### Community 38 - "pages/aiAnalysis.js"
+Cohesion: 0.11
+Nodes (36): setup(), setup(), esc(), show(), esc(), pending, render(), cancelAnalysis() (+28 more)
+
+### Community 39 - "api/crm.js"
+Cohesion: 0.19
+Nodes (27): createCollaboration(), getCollaboration(), getCollaborationReport(), linkCollaborationActivity(), listCollaborations(), request(), reviewCollaboration(), saveCollaborationCost() (+19 more)
+
+### Community 40 - "backend/src/analytics/pathInsights.js"
+Cohesion: 0.14
+Nodes (16): deviceInfo(), PATH_TYPES, pathCrossDay(), types, createEventResolver(), pathDiagnostics(), pathInsights(), computePaths() (+8 more)
+
+### Community 41 - "computeMyMonitor"
+Cohesion: 0.18
+Nodes (12): computeMyMonitor(), calculate(), date(), dayStart(), DEFINITIONS, monitorSql(), myMonitor(), myMonitorLocal() (+4 more)
+
+### Community 42 - "api/aiAnalysis.js"
+Cohesion: 0.14
+Nodes (36): aiFetch(), changeGrowthAlert(), decideGrowthInvestigation(), decideOpportunity(), getAutonomyBriefs(), getAutonomyLearning(), getAutonomyStatus(), getAvailableModels() (+28 more)
+
+### Community 43 - "agentRestartPersistence.test.js"
+Cohesion: 0.04
+Nodes (41): inspectCheckpoint(), decideRecovery(), {createHash}, reconstructTranscript(), claimSafeAnalysis(), {randomUUID}, assert, context (+33 more)
+
+### Community 44 - "authClient.js"
+Cohesion: 0.27
+Nodes (19): apiFetch(), changePassword(), deleteSavedConfig(), getMe(), listSavedConfigs(), logout(), saveConfig(), setToken() (+11 more)
+
+### Community 45 - "backend_副本/src/index.js"
+Cohesion: 0.07
+Nodes (29): { randomBytes }, seedAdmin(), app, cors, express, fs, http, path (+21 more)
+
+### Community 46 - "weeklyCoverage.js"
+Cohesion: 0.06
+Nodes (47): retentionSummary(), AGGREGATE_ARRAYS, AGGREGATE_OBJECTS, ALLOWED_NUMBERS, baselineEvidence(), cleanText(), collectWeeklyCoverage(), DEFINITIONS (+39 more)
+
+### Community 47 - "backend/src/db/schema.sql"
+Cohesion: 0.05
+Nodes (44): agent_active_prompts, agent_calls, agent_changes, agent_evidence, agent_goals, agent_prompt_candidates, agent_prompt_rollouts, agent_prompts (+36 more)
+
+### Community 48 - "backend_副本/src/utils/logger.js"
+Cohesion: 0.11
+Nodes (6): createEmbeddings(), OpenAI, OpenAIEmbeddings, RAGSystem, KnowledgeRetriever, createVectorDB()
+
+### Community 49 - "pages/growthInsights.js"
+Cohesion: 0.07
+Nodes (61): periodFields(), audit, ctx, panel(), period, ctx, metric, ctx (+53 more)
+
+### Community 50 - "reportPeriod"
+Cohesion: 0.09
+Nodes (55): bindPeriod(), customDefaults(), inheritedReportPeriod(), localReportTime(), rememberReportPeriod(), reportPeriod(), base, data (+47 more)
+
+### Community 51 - "capabilityCatalog.test.js"
+Cohesion: 0.10
+Nodes (27): createCapabilityCatalog(), access(), execute(), list(), taskAllowed(), fail(), matches(), plain() (+19 more)
+
+### Community 52 - "createOperationsComparison"
+Cohesion: 0.18
+Nodes (25): result, setup(), listKols(), compareOperations(), getComparisonReport(), listComparisonReports(), request(), rerunComparisonReport() (+17 more)
+
+### Community 53 - "ref_path"
+Cohesion: 0.06
+Nodes (28): fs, path, schema, fs, path, fs, path, schema (+20 more)
+
+### Community 54 - "secondRound.test.js"
+Cohesion: 0.16
+Nodes (17): computeReferral(), computeSharing(), SHARE_TYPES, BASE, config, context, opts, ApiError (+9 more)
+
+### Community 55 - "aiWeeklyReportPanel.js"
+Cohesion: 0.12
+Nodes (27): continueWeeklyOverflow(), deleteAnalysis(), getAnalysisDetail(), getEvidence(), getJobCheckpoint(), retryAnalysis(), readOnlyGscMarkup(), date() (+19 more)
+
+### Community 56 - "backend/src/websocket/server.js"
+Cohesion: 0.09
+Nodes (22): ALERT_ROOMS, emitAnomalyAlert(), emitBroadcastAlert(), emitSystemAlert(), emitTaskComplete(), emitUserAlert(), emitCompleted(), emitFailed() (+14 more)
+
+### Community 57 - "backend_副本/src/ai/llm/client.js"
+Cohesion: 0.14
+Nodes (15): defaultProbes(), { v4: uuidv4 }, getConfig(), getModelInfo(), LLM_MODELS, LLM_PROVIDERS, validateConfig(), getAvailableModels() (+7 more)
+
+### Community 58 - "backend_副本/test/retentionCurves.test.js"
+Cohesion: 0.09
+Nodes (28): channelInsights(), FIELDS, validateChannels(), buildCohorts(), computeRetentionMatrix(), firstEvent(), midnight(), retainedUsers() (+20 more)
+
+### Community 59 - "backend/src/db/rebuildRollups.js"
+Cohesion: 0.15
+Nodes (22): ensureSchema(), fs, loadUserFeatureBases(), path, readMeta(), rebuildAll(), rebuildDailyChannelStats(), rebuildDailyNorthStar() (+14 more)
+
+### Community 60 - "comparison/panel.js"
+Cohesion: 0.20
+Nodes (18): FUNNELS, groupFunnels(), groupTrends(), coverageLabel(), EVENT_LABELS, esc(), mountFunnelCharts(), choices (+10 more)
+
+### Community 61 - "backend/src/ai/llm/test.js"
+Cohesion: 0.27
+Nodes (7): aiSchemaReady(), checkHealth(), compareModels(), main(), testBasicChat(), assert, test
+
+### Community 62 - "backend/src/db/hologres_views.sql"
+Cohesion: 0.10
+Nodes (32): idx_mv_events_anon, idx_mv_events_name, idx_mv_events_server_ts, idx_mv_events_source, idx_mv_events_ts, idx_mv_events_user, idx_mv_identity, idx_mv_identity_user (+24 more)
+
+### Community 63 - "backend_副本/src/db/schema.sql"
+Cohesion: 0.06
+Nodes (36): agent_calls, agent_changes, agent_evidence, agent_goals, agent_prompts, agent_run_goals, audience_tag_history, business_analysis_actions (+28 more)
+
+### Community 64 - "backend_副本/test/inviteRegistration.test.js"
+Cohesion: 0.12
+Nodes (18): EFFECTIVE_FROM, inviteRegistration(), name(), args, assert, measurements, path, {performance} (+10 more)
+
+### Community 65 - "backend/src/services/analysisJobs.js"
+Cohesion: 0.06
+Nodes (24): economics(), metrics(), runAnalysis(), calculateChange(), detectAnomalies(), fetchGrowthInsights(), fetchWeeklyCore(), waitForJob() (+16 more)
+
+### Community 66 - "backend_副本/src/websocket/server.js"
+Cohesion: 0.09
+Nodes (22): ALERT_ROOMS, emitAnomalyAlert(), emitBroadcastAlert(), emitSystemAlert(), emitTaskComplete(), emitUserAlert(), emitCompleted(), emitFailed() (+14 more)
+
+### Community 67 - "backend/src/routes/remoteAnalytics.js"
+Cohesion: 0.17
+Nodes (13): TYPE_TO_RAWS, computeMyMonitor(), calculate(), date(), dayStart(), DEFINITIONS, monitorSql(), myMonitor() (+5 more)
+
+### Community 68 - "backend_副本/src/queues/jobs/businessAnalysis.js"
+Cohesion: 0.12
+Nodes (13): effectiveness(), routeTask(), {createHash,randomUUID}, parseJSON(), runTask(), validateAnalysis(), validateReview(), businessAnalysis() (+5 more)
+
+### Community 69 - "fetchBackendMeta"
+Cohesion: 0.11
+Nodes (43): createAudience(), audienceBase(), selectedTagAudience(), tagSelectionRequest(), apiFetch(), createCohort(), deleteCohort(), getCohort() (+35 more)
+
+### Community 70 - "seoPage.js"
+Cohesion: 0.12
+Nodes (32): consumeAnalysisLaunch(), queueAnalysisLaunch(), report, beginGscOAuth(), disconnectGscOAuth(), getGscConnection(), getGscPerformance(), getGscSitemaps() (+24 more)
+
+### Community 71 - "generate.mjs"
+Cohesion: 0.11
+Nodes (24): asOf, data, events, iso(), normalized, rawName, referrals, today (+16 more)
+
+### Community 72 - "backend_副本/src/db/generateBusinessData.js"
+Cohesion: 0.06
+Nodes (56): AI_RATE, AS_OF, buildReferrals(), buildUserJourney(), CHAINS, chance(), CHANNEL_PROFILES, clampTs() (+48 more)
+
+### Community 73 - "backend/src/analytics/businessPriorities.js"
+Cohesion: 0.15
+Nodes (21): known, createKolReader(), summarize(), definitions, metricChanges(), rankEvidence(), reviewPeriods(), validateRange() (+13 more)
+
+### Community 74 - "createOpportunityStore"
+Cohesion: 0.07
+Nodes (45): completedPeriod(), GAP, scanModuleOpportunities(), fail(), goalModules, INTERNAL, makePlan(), prefers (+37 more)
+
+### Community 75 - "backend/src/routes/metrics.js"
+Cohesion: 0.11
+Nodes (27): computeComparisonFunnels(), computeComparisonOverview(), DIMENSIONS, dimensionValue(), ENTRY_LABELS, eventUserSet(), flag(), FUNNELS (+19 more)
+
+### Community 76 - "backend_副本/src/analytics/comparison.js"
+Cohesion: 0.12
+Nodes (25): computeComparisonFunnels(), computeComparisonOverview(), DIMENSIONS, dimensionValue(), ENTRY_LABELS, eventUserSet(), flag(), FUNNELS (+17 more)
+
+### Community 77 - "qdrant"
+Cohesion: 0.07
+Nodes (32): interval, retries, test, timeout, driver, networks, logearn-network, container_name (+24 more)
+
+### Community 78 - "frontend/package.json"
+Cohesion: 0.13
+Nodes (18): devDependencies, terser@^5.51.2, vite@^6.0.0, vite-plugin-compression@^0.5.1, vite-plugin-imagemin@^0.6.1, vite-plugin-pwa@^2.0.0, vitest@^3.2.7, engines (+10 more)
+
+### Community 79 - "backend/test/sixImprovements.test.js"
+Cohesion: 0.11
+Nodes (15): attributeTouches(), promotionUrl(), safeTarget(), express, {randomUUID}, router, app, assert (+7 more)
+
+### Community 80 - "backend/src/routes/collaborations.js"
+Cohesion: 0.22
+Nodes (16): amountText(), costTotals(), CURRENCIES, fail(), parseAmount(), revenueTotals(), activities(), collaborationReview() (+8 more)
+
+### Community 81 - "dev.cjs"
+Cohesion: 0.10
+Nodes (29): {createHmac}, {isIP}, sendAgentWebhook(), webhookConfig(), assert, {createHmac}, test, canConnect() (+21 more)
+
+### Community 82 - "backend/src/utils/logger.js"
+Cohesion: 0.13
+Nodes (7): createEmbeddings(), OpenAI, OpenAIEmbeddings, RAGSystem, createVectorDB(), { QdrantClient }, logger
+
+### Community 83 - "backend/src/services/userCrm.js"
+Cohesion: 0.20
+Nodes (27): account(), express, prepare(), router, address(), audit(), cas(), createEntitlement() (+19 more)
+
+### Community 84 - "getClient"
+Cohesion: 0.13
+Nodes (25): buildKey(), get(), invalidate(), mget(), mset(), set(), buildKey(), calculateCost() (+17 more)
+
+### Community 85 - "backend_副本/src/services/userCrm.js"
+Cohesion: 0.20
+Nodes (27): account(), express, prepare(), router, address(), audit(), cas(), createEntitlement() (+19 more)
+
+### Community 86 - "createReferralInsightsPage"
+Cohesion: 0.21
+Nodes (17): c, result, setup(), fetchReferralInsights(), palette, referralQualityOption(), referralRankOption(), referralTrendOption() (+9 more)
+
+### Community 87 - "createRetentionAggPage"
+Cohesion: 0.19
+Nodes (23): date(), groupDailyRetention(), midnight(), monday(), retentionCurveOption(), retentionPoint(), c, MON (+15 more)
+
+### Community 88 - "weeklyContextV4.js"
+Cohesion: 0.60
+Nodes (5): buildWeeklyContextV4(), compactPeriod(), factsFromValue(), METRICS, valid()
+
+### Community 89 - "backend_副本/src/services/analysisJobs.js"
+Cohesion: 0.05
+Nodes (36): economics(), metrics(), runAnalysis(), calculateChange(), detectAnomalies(), fetchGrowthInsights(), fetchWeeklyCore(), waitForJob() (+28 more)
+
+### Community 90 - "businessModuleCatalog.js"
+Cohesion: 0.18
+Nodes (16): byModule, executeBusinessModule(), fail(), FUNNEL_STEPS, globalOnly, listBusinessModules(), MODULES, permittedFields() (+8 more)
+
+### Community 91 - "growthLiveObservation.test.js"
+Cohesion: 0.16
+Nodes (18): channelContributions(), counts(), {createHash}, day(), loadObservation(), METRICS, scanFreeGrowth(), signals() (+10 more)
+
+### Community 92 - "backend/src/ai/llm/client.js"
+Cohesion: 0.13
+Nodes (16): defaultProbes(), { v4: uuidv4 }, getConfig(), getModelInfo(), LLM_MODELS, LLM_PROVIDERS, validateConfig(), CostTracker (+8 more)
+
+### Community 93 - "backend/src/queues/jobs/aiAnalysis.js"
+Cohesion: 0.13
+Nodes (14): createClient(), anomalyDetection(), dailyReport(), dimensionAnalysis(), hypothesisValidation(), updateProgress(), express, router (+6 more)
+
+### Community 94 - "weeklyReport.js"
+Cohesion: 0.20
+Nodes (15): ensureWeeklyReport(), hydrateWeeklyReport(), reportPeriod(), trustedWeeklyMetrics(), validateWeeklyReport(), weeklyKey(), weeklyOperations(), weeklyPeriod() (+7 more)
+
+### Community 95 - "xContentMonitor.js"
+Cohesion: 0.32
+Nodes (11): assertAccount(), createXContentMonitor(), overview(), setAutoSync(), status(), sync(), syncDue(), fail() (+3 more)
+
+### Community 96 - "trials.js"
+Cohesion: 0.07
+Nodes (30): normalizeTrial(), sevenDaySummary(), trialSummary(), activityAi(), tokenUsage(), creditsFacts(), pointsFacts(), pointsIdentityCte() (+22 more)
+
+### Community 97 - "run"
+Cohesion: 0.16
+Nodes (13): budget(), diagnosticCoverage(), registrationFacts(), cohortTrades(), growthFacts(), growthQuality(), run(), assert (+5 more)
+
+### Community 98 - "backend_副本/src/analytics/pageVisits.js"
+Cohesion: 0.14
+Nodes (17): ACTIVE, homeBounce(), isHome(), CHECKPOINTS, observedSessions(), deviceBreakdown(), entryPage(), firstScreenStats() (+9 more)
+
+### Community 99 - "conversionScenes.js"
+Cohesion: 0.20
+Nodes (20): ctx, fetchConversionMetrics(), associationMarkup(), associationStates, conversionFunnelMarkup(), createConversionPage(), draw(), filterMarkup() (+12 more)
+
+### Community 100 - "growthAlertIntegration.test.js"
+Cohesion: 0.11
+Nodes (10): createAlertStore(), METRICS, {randomUUID}, VALID_GOALS, assert, end, fs, {Pool} (+2 more)
+
+### Community 101 - "frontend/src/analytics/funnel.js"
+Cohesion: 0.10
+Nodes (21): EVENTS, identifier(), loadConfig(), MODES, RANGES, saveConfig(), validConfig(), ASSOCIATIONS (+13 more)
+
+### Community 102 - "backend/src/routes/activities.js"
+Cohesion: 0.08
+Nodes (30): channelCounts(), activityMetrics(), parseIds(), METRICS, targetProgress(), validateTarget(), ANALYSIS_SQL, fetchNorthStar() (+22 more)
+
+### Community 103 - "backend_副本/src/queues/jobs/aiAnalysis.js"
+Cohesion: 0.13
+Nodes (17): createClient(), compareModels(), main(), testBasicChat(), anomalyDetection(), dailyReport(), dimensionAnalysis(), hypothesisValidation() (+9 more)
+
+### Community 104 - "backend_副本/src/routes/activities.js"
+Cohesion: 0.12
+Nodes (19): activityMetrics(), parseIds(), METRICS, targetProgress(), validateTarget(), express, metrics(), publicActivity() (+11 more)
+
+### Community 105 - "backend_副本/test/pathIndex.test.js"
+Cohesion: 0.11
+Nodes (20): {createHash}, graphNames, manifest(), names, projection(), refresh(), flush(), sqlSession() (+12 more)
+
+### Community 106 - "aiWeeklyDecisionView.js"
+Cohesion: 0.13
+Nodes (20): getManifest(), LABELS, MODULES, renderWeeklyCoverage(), weeklyCoverageRows(), weeklyCoverageSummary(), knownMetrics, numeric() (+12 more)
+
+### Community 107 - "scripts"
+Cohesion: 0.07
+Nodes (27): scripts, audit:tracking, dev, generate:data, generate:data:2m, import:events, import:events:full, migrate (+19 more)
+
+### Community 108 - "backend/src/ai/rag/cli.js"
+Cohesion: 0.13
+Nodes (20): indexAll(), indexAnnotations(), indexFindings(), init(), logger, main(), printUsage(), search() (+12 more)
+
+### Community 109 - "backend_副本/src/ai/rag/cli.js"
+Cohesion: 0.13
+Nodes (20): indexAll(), indexAnnotations(), indexFindings(), init(), logger, main(), printUsage(), search() (+12 more)
+
+### Community 110 - "normalize.js"
+Cohesion: 0.18
+Nodes (20): sourceCoverage(), MODULES, canonical(), eventTimestamp(), object(), resolveIdentities(), sort(), validateEvents() (+12 more)
+
+### Community 111 - "backend/package.json"
+Cohesion: 0.08
+Nodes (33): dependencies, @anthropic-ai/sdk@^0.32.1, bull@^4.16.5, bullmq@^6.4.2, cors@2.8.5, dotenv@^18.0.6, express@4.19.2, node-cache@^5.1.2 (+25 more)
+
+### Community 112 - "dependencies"
+Cohesion: 0.13
+Nodes (15): dependencies, @anthropic-ai/sdk@^0.32.1, bull@^4.16.5, cors@2.8.5, express@4.19.2, node-cache@^5.1.2, node-cron@^3.0.3, openai@^4.77.0 (+7 more)
+
+### Community 113 - "growthDailySignalGate.test.js"
+Cohesion: 0.14
+Nodes (12): planDailyPaidAnalysis(), VALID, ALLOWED_METRICS, {createHash}, detectGrowthSignals(), assert, end, now (+4 more)
+
+### Community 114 - "backend/test/kolDiscovery.test.js"
+Cohesion: 0.13
+Nodes (21): DIMENSIONS, median(), metrics(), OBJECTIVES, recommend(), STAGES, username(), validateReview() (+13 more)
+
+### Community 115 - "backend/src/db/importGrowthEvents.js"
+Cohesion: 0.13
+Nodes (24): backupLocalDb(), clearAnalyticsFacts(), { Client }, connectPg(), DEFAULT_DB_PATH, fs, importAll(), isSslUnsupportedError() (+16 more)
+
+### Community 116 - "LLMClient"
+Cohesion: 0.14
+Nodes (7): LLMClient, OpenAI, OpenAIProvider, normalizeUsage(), valid(), assert, test
+
+### Community 117 - "backend_副本/src/cache/multilevel.js"
+Cohesion: 0.11
+Nodes (20): cached(), del(), entries, get(), pending, read(), remove(), set() (+12 more)
+
+### Community 118 - "backend_副本/src/db/aiRecords.js"
+Cohesion: 0.10
+Nodes (15): {Pool}, claimAnalysisRetry(), completeAnalysis(), createAnalysisRecord(), createRetrospective(), createSuggestion(), createSuggestionsBatch(), logAIUsage() (+7 more)
+
+### Community 119 - "backend_副本/src/db/importGrowthEvents.js"
+Cohesion: 0.13
+Nodes (24): backupLocalDb(), clearAnalyticsFacts(), { Client }, connectPg(), DEFAULT_DB_PATH, fs, importAll(), isSslUnsupportedError() (+16 more)
+
+### Community 120 - "backend/test/segmentFunnelComparison.test.js"
+Cohesion: 0.11
+Nodes (18): ASSOCIATIONS, computeFunnel(), ID_FIELDS, medianMs(), validId(), compareFunnels(), fail(), options() (+10 more)
+
+### Community 121 - "backend/test/referralInsights.test.js"
+Cohesion: 0.22
+Nodes (7): computeReferralInsights(), order(), validateReferral(), businessSignals(), assert, run(), {test}
+
+### Community 122 - "growth_events"
+Cohesion: 0.15
+Nodes (22): idx_events_anon_id_server_ts, idx_events_anonymous_id, idx_events_event_id, idx_events_event_id_server_ts, idx_events_funnel_covering, idx_events_referrer_user_id, idx_events_server_ts, idx_events_user_id (+14 more)
+
+### Community 123 - "audience.test.js"
+Cohesion: 0.10
+Nodes (16): computePaths(), TYPES, audience, start, users, BASE, opts, html (+8 more)
+
+### Community 124 - "backend/test/pathIndex.test.js"
+Cohesion: 0.11
+Nodes (20): {createHash}, graphNames, manifest(), names, projection(), refresh(), flush(), sqlSession() (+12 more)
+
+### Community 125 - "retrySafetyHttp.test.js"
+Cohesion: 0.12
+Nodes (9): assert, connectionPath, express, fixture, queuePath, recordsPath, state, test (+1 more)
+
+### Community 126 - "backend_副本/test/kolDiscovery.test.js"
+Cohesion: 0.13
+Nodes (20): DIMENSIONS, median(), metrics(), OBJECTIVES, recommend(), STAGES, username(), fingerprint() (+12 more)
+
+### Community 127 - "frontend/src/analytics/segmentation.js"
+Cohesion: 0.36
+Nodes (8): bindingGroups(), languageLabel(), normalizeLanguage(), computeSegmentation(), buildSnapshot(), mountLifecycle(), createSegmentsPage(), drawSegments()
+
+### Community 128 - "pages/businessAnalysis.js"
+Cohesion: 0.21
+Nodes (22): esc(), report, setup(), createBusinessAction(), createBusinessReport(), getBusinessReport(), listBusinessReports(), request() (+14 more)
+
+### Community 129 - "steps"
+Cohesion: 0.08
+Nodes (24): run, defaults, runs-on, steps, timeout-minutes, jobs, frontend-ui, name (+16 more)
+
+### Community 130 - "tracking/client.js"
+Cohesion: 0.19
+Nodes (11): base, normalize(), fixture(), input, memory(), createTracker(), browserStorage(), cleanEntryUrl() (+3 more)
+
+### Community 132 - "createService"
+Cohesion: 0.22
+Nodes (24): createService(), budget(), checkVersion(), collect(), collectionRules(), detail(), enqueue(), expose() (+16 more)
+
+### Community 133 - "createService"
+Cohesion: 0.22
+Nodes (24): createService(), budget(), checkVersion(), collect(), collectionRules(), detail(), enqueue(), expose() (+16 more)
+
+### Community 134 - "routes/contentGrowth.js"
+Cohesion: 0.26
+Nodes (12): evaluateValue(), normalizeContent(), performanceTrend(), platforms, reviewTrend(), summarize(), trackingUrl(), express (+4 more)
+
+### Community 135 - "growthAgentAutonomy.test.js"
+Cohesion: 0.16
+Nodes (15): asText(), createDailyBrief(), GOALS, {createHash}, judgeHistory(), known, proposeStrategy(), refreshLearning() (+7 more)
+
+### Community 136 - "gscService.js"
+Cohesion: 0.10
+Nodes (30): buildGoogleSnapshot(), createGscService(), connection(), inspect(), latest(), latestOverlapping(), setting(), sitemaps() (+22 more)
+
+### Community 137 - "gscOAuth.js"
+Cohesion: 0.17
+Nodes (18): config(), createGscOAuth(), accessToken(), complete(), googleToken(), start(), decrypt(), encrypt() (+10 more)
+
+### Community 138 - "seoStore.js"
+Cohesion: 0.11
+Nodes (20): seoPerformance(), {createHash}, createSeoStore(), get(), importSnapshot(), latestCovering(), list(), fail() (+12 more)
+
+### Community 140 - "getToken"
+Cohesion: 0.22
+Nodes (16): getToken(), notifyExpiredSession(), createTrialManagement(), draw(), fields(), render(), localInput(), request() (+8 more)
+
+### Community 141 - "audit-tracking.cjs"
+Cohesion: 0.11
+Nodes (20): contractIssues(), fail(), normalizeAuditInput(), sampleDifferences(), trackingAudit(), projection(), trackingAuditFacts(), assert (+12 more)
+
+### Community 142 - "backend/test/activityPerformance.test.js"
+Cohesion: 0.10
+Nodes (17): upgradeActivities(), upgradeCohorts(), app, assert, {DatabaseSync}, express, fs, now (+9 more)
+
+### Community 143 - "backend/src/routes/crm.js"
+Cohesion: 0.22
+Nodes (11): checkAccountConflicts(), express, fail(), get(), profile(), {randomUUID}, router, save() (+3 more)
+
+### Community 144 - "scripts"
+Cohesion: 0.09
+Nodes (23): scripts, audit:tracking, dev, generate:data, generate:data:2m, import:events, import:events:full, migrate (+15 more)
+
+### Community 145 - "backend_副本/test/observedInsights.test.js"
+Cohesion: 0.22
+Nodes (8): clean(), computeTradeInsights(), {createHash}, key(), validateTrade(), assert, run(), test
+
+### Community 146 - "backend_副本/test/activityPerformance.test.js"
+Cohesion: 0.10
+Nodes (17): upgradeActivities(), upgradeCohorts(), app, assert, {DatabaseSync}, express, fs, now (+9 more)
+
+### Community 147 - "backend_副本/src/queues/queues.js"
+Cohesion: 0.11
+Nodes (19): addAIAnalysisJob(), Bull, cleanQueue(), DEFAULT_JOB_OPTIONS, getJobStatus(), getQueueStats(), pauseQueue(), QUEUE_OPTIONS (+11 more)
+
+### Community 148 - "growthAgentControl.js"
+Cohesion: 0.21
+Nodes (19): getAutonomyTargets(), refreshAutonomyBrief(), saveAutonomyTarget(), createGrowthAgentControl(), draw(), request(), READ_PATHS, readPathsForTab() (+11 more)
+
+### Community 149 - "openseoConnector.js"
+Cohesion: 0.16
+Nodes (19): bindingFor(), configuration(), fail(), getExtensions(), object(), outputSchema, parseRpc(), readRankings() (+11 more)
+
+### Community 150 - "cross-repo-check.cjs"
+Cohesion: 0.09
+Nodes (20): assert, Clock, {contractIssues}, {decodePathRows}, dir, events, fs, load() (+12 more)
+
+### Community 151 - "scale-check.cjs"
+Cohesion: 0.04
+Nodes (38): path, refresh(), start(), {Worker}, {parentPort}, assert, {EventEmitter}, FakeWorker (+30 more)
+
+### Community 152 - "ref_node_crypto"
+Cohesion: 0.03
+Nodes (46): validateAnalysis(), {createHash}, planInvestigationResume(), attributeModelInput(), buildSystemPrompt(), compactPreviousEvidence(), compactV3History(), {createHash,randomUUID} (+38 more)
+
+### Community 153 - "createAgentStore"
+Cohesion: 0.13
+Nodes (18): bad(), createAgentStore(), feedback(), getBrief(), getStrategy(), listBriefs(), saveStrategy(), setTarget() (+10 more)
+
+### Community 154 - "backend_副本/test/remote-points-smoke.cjs"
+Cohesion: 0.09
+Nodes (27): activityAi(), tokenUsage(), creditsFacts(), pointsFacts(), pointsIdentityCte(), normalizeAddress(), productChainTrades(), productChainTradeSql() (+19 more)
+
+### Community 155 - "kolOperations.js"
+Cohesion: 0.17
+Nodes (17): createKolOperations(), capture(), collaborations(), list(), scan(), fail(), json(), {randomUUID} (+9 more)
+
+### Community 156 - "growthCrossDay.test.js"
+Cohesion: 0.12
+Nodes (16): compareDailySnapshots(), {createHash}, METRICS_BY_GOAL, unpack(), scanDailyAlerts(), assert, cutoff, fs (+8 more)
+
+### Community 157 - "backend_副本/src/services/platformAssets.js"
+Cohesion: 0.22
+Nodes (14): router, CHAINS, collectChain(), worker(), decimal(), init(), recoverInterruptedRuns(), report() (+6 more)
+
+### Community 158 - "backend/test/inviteRegistration.test.js"
+Cohesion: 0.19
+Nodes (12): EFFECTIVE_FROM, inviteRegistration(), name(), accounts, assert, b, event(), events() (+4 more)
+
+### Community 159 - "createStore"
+Cohesion: 0.21
+Nodes (6): createStore(), getAction(), saveAction(), saveReview(), updateAction(), {randomUUID}
+
+### Community 160 - "fetchDrillUsers"
+Cohesion: 0.07
+Nodes (64): DIMENSIONS, ENTRY_LABELS, SEGMENTS, metrics, result, setup(), setup(), ctx (+56 more)
+
+### Community 161 - "gscClient.js"
+Cohesion: 0.22
+Nodes (18): authorizedProperties(), client, createGscClient(), assertAllowedSite(), google(), inspect(), oauthToken(), searchAnalytics() (+10 more)
+
+### Community 162 - "backend/scripts/addNewKeywords.js"
+Cohesion: 0.18
+Nodes (10): Database, main(), NEW_KEYWORDS, path, {randomUUID}, Database, main(), NEW_KEYWORDS (+2 more)
+
+### Community 163 - "backend/test/diagnostics.test.js"
+Cohesion: 0.26
+Nodes (11): loginConversion(), name(), uniq(), validateConversion(), FAMILIES, percentile(), requestDiagnostics(), summary() (+3 more)
+
+### Community 164 - "backend/src/services/xAcquisition.js"
+Cohesion: 0.14
+Nodes (14): draftReply(), scorePost(), SEEDS, STAGES, trackingUrl(), express, kol(), router (+6 more)
+
+### Community 165 - "backend/src/queues/queues.js"
+Cohesion: 0.17
+Nodes (17): addAIAnalysisJob(), Bull, cleanQueue(), DEFAULT_JOB_OPTIONS, getJobStatus(), getQueueStats(), pauseQueue(), QUEUE_OPTIONS (+9 more)
+
+### Community 166 - "backend/test/test-websocket.js"
+Cohesion: 0.17
+Nodes (16): io, printSummary(), runTests(), socket, testAlerts(), testJobProgress(), testLLMStream(), testPing() (+8 more)
+
+### Community 167 - "backend_副本/src/ai/business/tools/registry.js"
+Cohesion: 0.08
+Nodes (36): authorize(), canonical(), createEvidenceStore(), get(), save(), fail(), fingerprint(), makeEvidence() (+28 more)
+
+### Community 168 - "observedDrill.js"
+Cohesion: 0.06
+Nodes (53): EVENT_CONFIG, EVENT_LABELS, EVENT_META, RAW_EVENT_TYPES, ctx, paths, trades, ctx (+45 more)
+
+### Community 169 - "backend_副本/src/db/migrations/001_ai_tables.sql"
+Cohesion: 0.19
+Nodes (20): ai_analysis_records, ai_analysis_request_key, ai_analysis_summary, ai_experience_index, ai_retrospectives, ai_suggestions, ai_usage_logs, idx_ai_analysis_date_range (+12 more)
+
+### Community 170 - "diagnosis.js"
+Cohesion: 0.10
+Nodes (21): diagnoseProposal(), QUESTIONS, buildGrowthInbox(), createInvestigationTimeline(), get(), stageFor(), assert, end (+13 more)
+
+### Community 171 - "benchmark.cjs"
+Cohesion: 0.10
+Nodes (18): assert, base, baseline(), body, checks, dir, fs, large (+10 more)
+
+### Community 172 - "createTraceStore"
+Cohesion: 0.04
+Nodes (54): createContextStore(), getGoal(), getRunGoal(), pinRun(), saveGoal(), {randomUUID}, canonical(), fingerprint() (+46 more)
+
+### Community 173 - "backend/test/pathContextLoader.test.js"
+Cohesion: 0.16
+Nodes (14): ACTIVE, homeBounce(), isHome(), CHECKPOINTS, observedSessions(), deviceBreakdown(), entryPage(), firstScreenStats() (+6 more)
+
+### Community 174 - "backend/test/aiBusiness.test.js"
+Cohesion: 0.11
+Nodes (11): assert, fs, good, records, load(), path, Provider, runner() (+3 more)
+
+### Community 175 - "backend_副本/src/services/xAcquisition.js"
+Cohesion: 0.14
+Nodes (14): draftReply(), scorePost(), SEEDS, STAGES, trackingUrl(), express, kol(), router (+6 more)
+
+### Community 176 - "backend/test/remote-referral-smoke.cjs"
+Cohesion: 0.43
+Nodes (6): assert, main(), operator, {randomBytes}, request(), token
+
+### Community 177 - "gscSchedule.js"
+Cohesion: 0.20
+Nodes (16): createGscJobs(), claim(), finish(), list(), plan(), {createHash}, fail(), idFor() (+8 more)
+
+### Community 178 - "backend/test/growthInsights.test.js"
+Cohesion: 0.15
+Nodes (13): day(), growthInsights(), retention(), inRange(), interval(), assert, run(), start (+5 more)
+
+### Community 179 - "growthSchedulerHealthIntegration.test.js"
+Cohesion: 0.14
+Nodes (8): GOALS, createSchedulerHealth(), {randomUUID}, assert, fs, {Pool}, {randomUUID}, test
+
+### Community 180 - "createService"
+Cohesion: 0.29
+Nodes (19): createService(), add(), assessment(), bootstrap(), candidates(), detail(), enqueue(), expose() (+11 more)
+
+### Community 181 - "backend_副本/src/services/businessReport.js"
+Cohesion: 0.24
+Nodes (15): definitions, metricChanges(), rankEvidence(), reviewPeriods(), validateRange(), validateScope(), compact(), createService() (+7 more)
+
+### Community 182 - "createService"
+Cohesion: 0.29
+Nodes (19): validateReview(), createService(), add(), assessment(), bootstrap(), candidates(), detail(), enqueue() (+11 more)
+
+### Community 183 - "backend_副本/test/trackingAudit.test.js"
+Cohesion: 0.17
+Nodes (13): contractIssues(), fail(), normalizeAuditInput(), sampleDifferences(), trackingAudit(), projection(), trackingAuditFacts(), assert (+5 more)
+
+### Community 184 - "createActivityMonitor"
+Cohesion: 0.40
+Nodes (14): createActivityMonitor(), bindManagement(), bindNav(), bindRoster(), draw(), load(), management(), nav() (+6 more)
+
+### Community 185 - "growthGraphPilot.test.js"
+Cohesion: 0.16
+Nodes (8): buildPilot(), invoke(), {createHash}, threadId(), TOOL_SET, validateRequest(), assert, test
+
+### Community 186 - "backend/test/conversionScenes.test.js"
+Cohesion: 0.17
+Nodes (14): day(), groupRows(), inviteConversion(), name(), uniq(), verifiedRelations(), assert, b (+6 more)
+
+### Community 187 - "backend_副本/test/conversionLoss.test.js"
+Cohesion: 0.16
+Nodes (13): day(), growthInsights(), retention(), inRange(), interval(), assert, run(), start (+5 more)
+
+### Community 188 - "backend_副本/test/conversionScenes.test.js"
+Cohesion: 0.17
+Nodes (14): day(), groupRows(), inviteConversion(), name(), uniq(), verifiedRelations(), assert, b (+6 more)
+
+### Community 189 - "backend_副本/test/diagnostics.test.js"
+Cohesion: 0.15
+Nodes (18): loginConversion(), name(), uniq(), validateConversion(), FAMILIES, percentile(), requestDiagnostics(), summary() (+10 more)
+
+### Community 190 - "backend_副本/test/aiBusiness.test.js"
+Cohesion: 0.12
+Nodes (11): assert, fs, good, records, load(), path, Provider, runner() (+3 more)
+
+### Community 191 - "backend_副本/src/analytics/segmentInsights.js"
+Cohesion: 0.05
+Nodes (45): behaviorTags(), DEFINITIONS, hasValueSignal(), publicCohort(), validateRule(), dateTime(), pointsInsights(), preparePoints() (+37 more)
+
+### Community 192 - "performanceMonitor.js"
+Cohesion: 0.21
+Nodes (15): addLog(), fetchMetrics(), flushCache(), formatBytes(), formatDuration(), initPerformanceMonitor(), attachEventListeners(), load() (+7 more)
+
+### Community 193 - "createCache"
+Cohesion: 0.13
+Nodes (19): createCache(), cached(), del(), get(), read(), remove(), set(), storeLocal() (+11 more)
+
+### Community 194 - "backend/src/routes/operationTasks.js"
+Cohesion: 0.15
+Nodes (10): activities(), express, fail(), fields(), get(), history(), operationFields(), {randomUUID} (+2 more)
+
+### Community 195 - "backend/test/comparisonReports.test.js"
+Cohesion: 0.20
+Nodes (8): app, assert, express, fs, now, server, starts, {test,after}
+
+### Community 196 - "backend/test/inviteAssociation.test.js"
+Cohesion: 0.20
+Nodes (12): {createHash}, inviteAssociation(), name(), assert, b, entry(), event(), key (+4 more)
+
+### Community 197 - "backend_副本/src/routes/operationTasks.js"
+Cohesion: 0.21
+Nodes (8): express, fail(), fields(), get(), history(), {randomUUID}, router, summary()
+
+### Community 198 - "growthBudgetIntegration.test.js"
+Cohesion: 0.10
+Nodes (21): autonomyBudgetStatus(), beginAutonomyPaidCall(), dailyAutonomyLimit(), forbidden(), bangkokDay(), beginBudgetedPaidCall(), budgetLimit(), dailyBudgetStatus() (+13 more)
+
+### Community 199 - "backend/test/conversionLoss.test.js"
+Cohesion: 0.18
+Nodes (15): conversionLoss(), period(), factorContributions(), inRange(), isAnalysis(), permutations, REASONS, validateGrowth() (+7 more)
+
+### Community 200 - "backend_副本/test/activityScheduling.test.js"
+Cohesion: 0.12
+Nodes (19): ensureStarted(), flights, freeze(), get(), plannedIds(), {randomUUID}, record(), startScheduler() (+11 more)
+
+### Community 201 - "backend_副本/test/comparisonReports.test.js"
+Cohesion: 0.20
+Nodes (8): app, assert, express, fs, now, server, starts, {test,after}
+
+### Community 202 - "gscHttp.test.js"
+Cohesion: 0.15
+Nodes (11): assert, express, forbidden(), inspect(), original, queuePath, select(), servicePath (+3 more)
+
+### Community 203 - "backend/src/cache/redis.js"
+Cohesion: 0.12
+Nodes (16): optionalDependencies, ioredis@^5.11.1, createRateLimiter(), cacheConnectionConfig(), checkHealth(), createClient(), parseRedisInfo(), Redis (+8 more)
+
+### Community 204 - "agentAutonomy.js"
+Cohesion: 0.12
+Nodes (15): allowedGoals(), autonomyConfig(), {createHash}, DEFAULT_GOALS, tickAutonomousOwner(), config(), cron, main() (+7 more)
+
+### Community 205 - "channels/rules.js"
+Cohesion: 0.33
+Nodes (14): esc(), mountChannels(), editor(), load(), persist(), render(), request(), attributeVisit() (+6 more)
+
+### Community 206 - "growthWorkspaceMetric.test.js"
+Cohesion: 0.19
+Nodes (9): key(), refreshWeeklyCore(), unknown(), assert, {DatabaseSync}, end, goal, now (+1 more)
+
+### Community 207 - "backend/src/analytics/segmentInsights.js"
+Cohesion: 0.27
+Nodes (11): ageGroup(), binding(), computeInsights(), FILTERS, groupLabel(), GROUPS, identity(), matches() (+3 more)
+
+### Community 208 - "backend/test/productChain.test.js"
+Cohesion: 0.18
+Nodes (10): labels, productChain(), properties(), visitKey(), assert, event(), p, request() (+2 more)
+
+### Community 209 - "backend/src/db/aiPool.js"
+Cohesion: 0.17
+Nodes (12): getCostBreakdown(), num(), buildPool(), {Pool}, unavailable(), config(), cron, main() (+4 more)
+
+### Community 210 - "researchQuestions.test.js"
+Cohesion: 0.19
+Nodes (14): {createHash}, createResearchQuestions(), decide(), get(), list(), plan(), KINDS, questionFor() (+6 more)
+
+### Community 211 - "operationTaskDetail.js"
+Cohesion: 0.22
+Nodes (19): helpers, getOperationTask(), logOperationTouch(), operationTaskAudience(), request(), reviewOperationTask(), updateOperationTask(), measures (+11 more)
+
+### Community 212 - "pages/activityEvidence.js"
+Cohesion: 0.29
+Nodes (11): ctx, d, activityEvidence(), assignActivityEvidence(), recordActivityEvidence(), activityEvidenceMarkup(), groups, kinds (+3 more)
+
+### Community 213 - "growthAgentForecast.test.js"
+Cohesion: 0.28
+Nodes (6): calibrateForecast(), metrics, validateForecast(), assert, forecast, test
+
+### Community 214 - "backend_副本/test/activityEvidence.test.js"
+Cohesion: 0.13
+Nodes (9): app, assert, express, fs, now, path, router, server (+1 more)
+
+### Community 215 - "backend_副本/test/conversionLoss.test.js"
+Cohesion: 0.18
+Nodes (15): conversionLoss(), period(), factorContributions(), inRange(), isAnalysis(), permutations, REASONS, validateGrowth() (+7 more)
+
+### Community 216 - "opsRequest"
+Cohesion: 0.17
+Nodes (32): opsRequest(), createEmailMarketing(), action(), draw(), history(), loadEffect(), refresh(), render() (+24 more)
+
+### Community 217 - "backend/test/performance.bench.cjs"
+Cohesion: 0.18
+Nodes (9): assert, events, input, path, {performance}, period, snapshot, specs (+1 more)
+
+### Community 218 - "growthSpecialistHttp.test.js"
+Cohesion: 0.17
+Nodes (9): assert, end, express, kolPath, queuePath, row, seoPath, start (+1 more)
+
+### Community 219 - "backend_副本/test/performance.bench.cjs"
+Cohesion: 0.18
+Nodes (9): assert, events, input, path, {performance}, period, snapshot, specs (+1 more)
+
+### Community 220 - "backend/src/analytics/resultCache.js"
+Cohesion: 0.22
+Nodes (13): cacheGet(), cachePut(), { createHash, randomBytes }, MEMO_CACHE, MEMO_TTL_MS, memoGet(), memoKey(), memoPut() (+5 more)
+
+### Community 221 - "real-data.cjs"
+Cohesion: 0.20
+Nodes (10): assert, baseline(), dir, fs, Module, oldDiagnostics, oldPaths, path (+2 more)
+
+### Community 222 - "backend/src/routes/analytics.js"
+Cohesion: 0.23
+Nodes (14): eventFromRow(), express, getMeta(), listEvents(), listReferrals(), listTrades(), listUsers(), MAX_EVENTS_RAW (+6 more)
+
+### Community 223 - "workspace/store.js"
+Cohesion: 0.22
+Nodes (10): crypto, fingerprint(), goalProgress(), normalizeEvidence(), scopeKey(), STATES, TYPES, OK_STATUSES (+2 more)
+
+### Community 224 - "growthSpecialtyAnalyzeHttp.test.js"
+Cohesion: 0.17
+Nodes (7): assert, end, express, queuePath, recordsPath, start, test
+
+### Community 225 - "backend_副本/src/data/hologres.js"
+Cohesion: 0.06
+Nodes (27): cached(), config(), { createHash }, eventsCte(), getPool(), mode, { Pool }, query() (+19 more)
+
+### Community 226 - "viewState"
+Cohesion: 0.11
+Nodes (24): result, setup(), posts, report, fetchChannelInsights(), ACTIONS, escapeHtml(), KINDS (+16 more)
+
+### Community 227 - "backend/test/observedInsights.test.js"
+Cohesion: 0.22
+Nodes (8): clean(), computeTradeInsights(), {createHash}, key(), validateTrade(), assert, run(), test
+
+### Community 228 - "analysisResumeHttp.test.js"
+Cohesion: 0.15
+Nodes (8): assert, express, queuePath, recordsPath, router, routerPath, state, test
+
+### Community 229 - "ref_node_path"
+Cohesion: 0.21
+Nodes (9): fs, main(), path, compareCases(), key(), measured(), numeric(), assert (+1 more)
+
+### Community 230 - "externalSpend.js"
+Cohesion: 0.26
+Nodes (11): bangkokDay(), deny(), micro(), name(), {randomUUID}, reserveExternalSpend(), settleFromInvoice(), validate() (+3 more)
+
+### Community 231 - "backend/src/routes/ops.js"
+Cohesion: 0.17
+Nodes (6): active, express, get(), {randomUUID}, router, run()
+
+### Community 232 - "backend/src/pathIndex/store.js"
+Cohesion: 0.23
+Nodes (9): compatible(), {createHash}, {DatabaseSync}, fs, indexPath(), latest(), path, sourceKey() (+1 more)
+
+### Community 233 - "checkpointHttp.test.js"
+Cohesion: 0.17
+Nodes (8): assert, calls, connectionPath, express, queuePath, recordsPath, test, tracePath
+
+### Community 234 - "backend/src/data/conversionFacts.js"
+Cohesion: 0.20
+Nodes (13): referralKey(), referralKeyFromUrl(), conversionUsers(), EVENTS, FIELDS, invitationRelations(), LOGIN_EVENTS, registrationAccounts() (+5 more)
+
+### Community 235 - "xGrowthAgentContentPipeline.test.js"
+Cohesion: 0.13
+Nodes (8): createContentAdapters(), contentGrowth(), assert, {DatabaseSync}, test, assert, {DatabaseSync}, test
+
+### Community 236 - "backend_副本/src/routes/analytics.js"
+Cohesion: 0.25
+Nodes (13): eventFromRow(), express, getMeta(), listEvents(), listReferrals(), listTrades(), listUsers(), MAX_EVENTS_RAW (+5 more)
+
+### Community 237 - "enrich.mjs"
+Cohesion: 0.19
+Nodes (9): addUser(), asOf, emit(), iso(), sources, trades, visit(), placements (+1 more)
+
+### Community 238 - "promptfooconfig.yaml"
+Cohesion: 0.15
+Nodes (12): type, value, description, prompts, providers, sharing, tests, assert (+4 more)
+
+### Community 239 - "ref_node_fs"
+Cohesion: 0.04
+Nodes (32): app, assert, events, express, fs, now, server, {test,after} (+24 more)
+
+### Community 240 - "monitorScheduler.js"
+Cohesion: 0.19
+Nodes (9): createMonitorControl(), get(), set(), view(), assert, fs, {Pool}, {randomUUID} (+1 more)
+
+### Community 242 - "growthAutonomyHttp.test.js"
+Cohesion: 0.18
+Nodes (8): assert, autonomyPath, budgetPath, express, healthPath, queuePath, storePath, test
+
+### Community 243 - "xContentMetrics.test.js"
+Cohesion: 0.31
+Nodes (10): benchmark(), enrich(), milestone(), rates(), ratio(), safe(), assert, base (+2 more)
+
+### Community 244 - "backend_副本/src/services/activityEvidence.js"
+Cohesion: 0.29
+Nodes (10): assign(), fail(), GROUPS, KINDS, mutate(), {randomUUID}, read(), record() (+2 more)
+
+### Community 245 - "backend/src/db/seedMock.js"
+Cohesion: 0.35
+Nodes (12): API_DIR, fs, path, readJson(), resolveClientTs(), seedEvents(), seedMock(), seedReferrals() (+4 more)
+
+### Community 246 - "growthInboxHttp.test.js"
+Cohesion: 0.18
+Nodes (9): alertPath, assert, day, express, proposalPath, queuePath, recordsPath, remotePath (+1 more)
+
+### Community 247 - "worker-check.cjs"
+Cohesion: 0.22
+Nodes (9): assert, db, fs, path, root, run(), s, store (+1 more)
+
+### Community 248 - "backend_副本/src/db/seedMock.js"
+Cohesion: 0.35
+Nodes (12): API_DIR, fs, path, readJson(), resolveClientTs(), seedEvents(), seedMock(), seedReferrals() (+4 more)
+
+### Community 249 - "after.cjs"
+Cohesion: 0.12
+Nodes (15): assert, baseline(), fs, Module, path, {pathInsights}, {pathUsers}, r (+7 more)
+
+### Community 250 - "configureGrowthLlm.js"
+Cohesion: 0.26
+Nodes (10): costFromUsage(), fs, main(), path, PRICES_PER_MILLION, {randomBytes}, SETTINGS, updateEnv() (+2 more)
+
+### Community 251 - "backend_副本/src/pathIndex/store.js"
+Cohesion: 0.23
+Nodes (9): compatible(), {createHash}, {DatabaseSync}, fs, indexPath(), latest(), path, sourceKey() (+1 more)
+
+### Community 252 - "backend/test/channelInsights.test.js"
+Cohesion: 0.20
+Nodes (8): channelInsights(), FIELDS, validateChannels(), assert, rows, s, start, test
+
+### Community 253 - "golden.cjs"
+Cohesion: 0.15
+Nodes (11): assert, {execFileSync}, filename, fs, legacy, Module, path, {pathInsights} (+3 more)
+
+### Community 254 - "createStore"
+Cohesion: 0.21
+Nodes (6): createStore(), getAction(), saveAction(), saveReview(), updateAction(), {randomUUID}
+
+### Community 255 - "coverage.js"
+Cohesion: 0.16
+Nodes (28): buildCohorts(), firstEvent(), midnight(), periodComplete(), periodObserved(), retainedUsers(), behaviorCoverage(), cohortCoverage() (+20 more)
+
+### Community 256 - "backend_副本/test/operationsComparison.test.js"
+Cohesion: 0.29
+Nodes (4): assert, period, snapshot, {test}
+
+### Community 257 - "backend/test/activityScheduling.test.js"
+Cohesion: 0.18
+Nodes (10): app, assert, base, create(), express, firsts, fs, req() (+2 more)
+
+### Community 258 - "growthAgentOutboxIntegration.test.js"
+Cohesion: 0.18
+Nodes (7): createAgentOutbox(), {createHash}, assert, fs, {Pool}, {randomUUID}, test
+
+### Community 259 - "analysisCancelHttp.test.js"
+Cohesion: 0.18
+Nodes (8): active, assert, express, queueFile, recordsFile, router, routerFile, test
+
+### Community 260 - "backend/src/data/productChainTrades.js"
+Cohesion: 0.25
+Nodes (8): normalizeAddress(), productChainTrades(), productChainTradeSql(), TOKEN_CHAINS, assert, snapshot, start, test
+
+### Community 261 - "backend_副本/test/ops.test.js"
+Cohesion: 0.22
+Nodes (10): app, assert, express, finished(), fs, path, prepare(), request() (+2 more)
+
+### Community 262 - "growthActionWorkflow.test.js"
+Cohesion: 0.22
+Nodes (8): allowed, validateActionTransition(), buildReviewQueue(), classifyReview(), earliestReviewAt(), transitionSuggestionStatus(), assert, test
+
+### Community 263 - "backend/test/retentionCurves.test.js"
+Cohesion: 0.08
+Nodes (33): compactDetails(), expandDetails(), validatePaths(), buildCohorts(), computeRetentionMatrix(), firstEvent(), midnight(), retainedUsers() (+25 more)
+
+### Community 264 - "jsonDatasetCore.js"
+Cohesion: 0.31
+Nodes (6): observationCeiling(), datasetFromJson(), datasetFromBundle(), datasetFromJson(), loadJsonDataset(), manifest
+
+### Community 265 - "backend_副本/src/analytics/resultCache.js"
+Cohesion: 0.22
+Nodes (13): cacheGet(), cachePut(), { createHash, randomBytes }, MEMO_CACHE, MEMO_TTL_MS, memoGet(), memoKey(), memoPut() (+5 more)
+
+### Community 266 - "backend/test/activityRoster.test.js"
+Cohesion: 0.22
+Nodes (7): mergeActivityBatches(), app, assert, express, fs, server, {test,after}
+
+### Community 267 - "backend/src/db/readWritePool.js"
+Cohesion: 0.18
+Nodes (3): { Pool }, stats, writePool
+
+### Community 268 - "activationEvaluation.test.js"
+Cohesion: 0.24
+Nodes (7): fs, compareActivationReviews(), dimensions, assert, bad, good, test
+
+### Community 270 - "backend_副本/src/routes/crm.js"
+Cohesion: 0.22
+Nodes (11): checkAccountConflicts(), express, fail(), get(), profile(), {randomUUID}, router, save() (+3 more)
+
+### Community 271 - "backend/test/addressRoster.test.js"
+Cohesion: 0.35
+Nodes (8): addressRosterSql(), email(), key(), parseAddresses(), resolveAddresses(), assert, {DatabaseSync}, {test}
+
+### Community 272 - "growthKolReader.test.js"
+Cohesion: 0.25
+Nodes (6): assert, db, end, remote, start, test
+
+### Community 273 - "backend/src/db/connection.js"
+Cohesion: 0.03
+Nodes (69): resolveTags(), { DatabaseSync }, db, dir, fs, path, cohort(), express (+61 more)
+
+### Community 274 - "backend_副本/src/db/readWritePool.js"
+Cohesion: 0.18
+Nodes (3): { Pool }, stats, writePool
+
+### Community 275 - "growthProposalHttp.test.js"
+Cohesion: 0.14
+Nodes (8): assert, budgetPath, express, proposalStore, queuePath, recordsPath, storePath, test
+
+### Community 276 - "backend/test/test-ai-analysis.js"
+Cohesion: 0.45
+Nodes (10): createAnalysis(), createRetrospective(), getAnalysisDetails(), getCostStats(), listAnalyses(), login(), main(), markSuggestionAsExecuted() (+2 more)
+
+### Community 277 - "backend_副本/test/ops.test.js"
+Cohesion: 0.07
+Nodes (36): effectPeriods(), effectTargets(), address(), catalog, fail(), field(), id, normalize() (+28 more)
+
+### Community 279 - "backend/src/monitoring/prometheus.js"
+Cohesion: 0.36
+Nodes (9): formatMetric(), generateMetrics(), handler(), initMetricsStore(), recordMVRefresh(), recordQuery(), recordSlowQuery(), updateBatchConcurrency() (+1 more)
+
+### Community 280 - "backend/src/data/kolMetrics.js"
+Cohesion: 0.08
+Nodes (38): attachAccounts(), invitedAccounts(), ownAccounts(), aggregateMembers(), validatePeriod(), createMemberFactSelector(), compareFacts(), rates() (+30 more)
+
+### Community 281 - "backend/src/services/activityEvidence.js"
+Cohesion: 0.29
+Nodes (10): assign(), fail(), GROUPS, KINDS, mutate(), {randomUUID}, read(), record() (+2 more)
+
+### Community 282 - "backend_副本/test/test-ai-analysis.js"
+Cohesion: 0.45
+Nodes (10): createAnalysis(), createRetrospective(), getAnalysisDetails(), getCostStats(), listAnalyses(), login(), main(), markSuggestionAsExecuted() (+2 more)
+
+### Community 283 - "growth-implementation-2026-10-24/qa-server.cjs"
+Cohesion: 0.18
+Nodes (9): app, db, express, fs, now, path, root, router (+1 more)
+
+### Community 284 - "owner"
+Cohesion: 0.16
+Nodes (15): fail(), owner(), resolveScope(), sqliteLookups(), defaultRegistry(), {createHash}, createTraceStore(), begin() (+7 more)
+
+### Community 285 - "dotenv"
+Cohesion: 0.28
+Nodes (8): dotenv@^18.0.6, dependencies, dotenv@^18.0.6, pg@^8.23.1, dotenv, pg, scripts, dev
+
+### Community 286 - "backend_副本/src/db/connection.js"
+Cohesion: 0.04
+Nodes (47): resolveTags(), { DatabaseSync }, db, dir, fs, path, express, {randomUUID} (+39 more)
+
+### Community 287 - "monitorScheduler.js"
+Cohesion: 0.09
+Nodes (15): createInvestigationStore(), analysisRequest(), {randomUUID}, cron, GOALS, runOnce(), start(), createNotificationStore() (+7 more)
+
+### Community 288 - "growthAlertHttp.test.js"
+Cohesion: 0.20
+Nodes (8): alert, assert, express, fakeStore, monitor, path, queue, test
+
+### Community 289 - "growthInvestigationTimelineHttp.test.js"
+Cohesion: 0.20
+Nodes (7): assert, express, queuePath, recordsPath, snapshot, test, timelinePath
+
+### Community 290 - "backend_副本/test/inviteAssociation.test.js"
+Cohesion: 0.11
+Nodes (25): {createHash}, inviteAssociation(), name(), referralKey(), referralKeyFromUrl(), conversionUsers(), EVENTS, FIELDS (+17 more)
+
+### Community 291 - "backend_副本/test/weeklyCoreRoutes.test.js"
+Cohesion: 0.17
+Nodes (10): app, assert, end, express, fs, path, s, seen (+2 more)
+
+### Community 292 - "backend/src/services/twitterAccounts.js"
+Cohesion: 0.42
+Nodes (8): cleanPost(), cleanProfile(), fail(), profile(), read(), timeline(), configured(), search()
+
+### Community 293 - "express"
+Cohesion: 0.04
+Nodes (39): express, router, app, assert, express, fs, server, {test,after} (+31 more)
+
+### Community 294 - "backend_副本/test/remote-channels-smoke.cjs"
+Cohesion: 0.43
+Nodes (6): assert, main(), operator, {randomBytes}, request(), token
+
+### Community 295 - "backend_副本/test/remote-referral-smoke.cjs"
+Cohesion: 0.43
+Nodes (6): assert, main(), operator, {randomBytes}, request(), token
+
+### Community 296 - "jobStatusHttp.test.js"
+Cohesion: 0.22
+Nodes (8): assert, express, fixture(), queue, queuePath, records, recordsPath, test
+
+### Community 297 - "daily.js"
+Cohesion: 0.23
+Nodes (12): {createHash}, dailyRequest(), dispatchDaily(), previousBangkokDay(), closeQueues(), config(), cron, main() (+4 more)
+
+### Community 298 - "backend/src/ops/catalog.js"
+Cohesion: 0.27
+Nodes (10): address(), catalog, fail(), field(), id, normalize(), normalizeAddress(), provider (+2 more)
+
+### Community 299 - "growth_activities"
+Cohesion: 0.20
+Nodes (10): audit_activity_tag_add, audit_activity_tag_remove, crm_activity_links, growth_activities, growth_activity_members, growth_activity_planned_members, growth_activity_schedule_history, growth_activity_tags (+2 more)
+
+### Community 300 - "backend_副本/src/services/twitterAccounts.js"
+Cohesion: 0.42
+Nodes (8): cleanPost(), cleanProfile(), fail(), profile(), read(), timeline(), configured(), search()
+
+### Community 301 - "services/followerAudit.js"
+Cohesion: 0.20
+Nodes (16): classify(), verified(), valid(), acq, analyze(), analyzeBatch(), autoProfileLimit(), collect() (+8 more)
+
+### Community 302 - "backend/test/pathContextLoader.test.js"
+Cohesion: 0.08
+Nodes (37): internalType(), MODULES, RAW_TO_TYPE, rawNamesForTypes(), candidateUserIds(), loadEventsForUsers(), loadFactsByUserIds(), loadNormalizedUsers() (+29 more)
+
+### Community 303 - "getClient"
+Cohesion: 0.19
+Nodes (19): buildKey(), get(), invalidate(), mget(), mset(), set(), buildKey(), calculateCost() (+11 more)
+
+### Community 304 - "steps"
+Cohesion: 0.33
+Nodes (10): steps, steps, steps, name, run, uses, with, cache (+2 more)
+
+### Community 305 - "auditBusinessAnalysisE2E.test.js"
+Cohesion: 0.28
+Nodes (6): audit(), main(), values(), assert, pool, test
+
+### Community 306 - "backend/test/operationTasks.test.js"
+Cohesion: 0.20
+Nodes (8): app, asof, assert, express, fs, server, {test,after}, tradeRows
+
+### Community 307 - "backend_副本/test/agentApi.test.js"
+Cohesion: 0.28
+Nodes (7): createRouter(), defaultRouter(), express, assert, {DatabaseSync}, fs, test
+
+### Community 308 - "backend/test/weeklyCoreRoutes.test.js"
+Cohesion: 0.17
+Nodes (10): app, assert, end, express, fs, path, s, seen (+2 more)
+
+### Community 309 - "modelTransport.js"
+Cohesion: 0.06
+Nodes (50): forModel(), forModelV4(), categories, compactCapabilities(), compactWeeklyEvidence(), compactWeeklyValue(), externalModelEvidence(), fitWeeklyModelContext() (+42 more)
+
+### Community 310 - "createDrawer"
+Cohesion: 0.51
+Nodes (5): fixture(), lastRemotePage(), normalizeRemoteTotal(), remotePageCorrection(), createDrawer()
+
+### Community 311 - "xContentMonitor.test.js"
+Cohesion: 0.28
+Nodes (6): collectChannelObservations(), ACCOUNTS, assert, {DatabaseSync}, fixture(), test
+
+### Community 312 - "growth_activities"
+Cohesion: 0.22
+Nodes (9): audit_activity_tag_add, audit_activity_tag_remove, growth_activities, growth_activity_members, growth_activity_planned_members, growth_activity_schedule_history, growth_activity_tags, idx_activity_owner (+1 more)
+
+### Community 313 - "crm_kols"
+Cohesion: 0.22
+Nodes (9): audit_kol_tag_add, audit_kol_tag_remove, crm_activity_links, crm_followups, crm_kol_members, crm_kols, crm_profile_history, idx_crm_owner (+1 more)
+
+### Community 314 - "backend/test/conversionRoutes.test.js"
+Cohesion: 0.18
+Nodes (9): app, assert, dispatched, express, fs, path, server, snapshot (+1 more)
+
+### Community 315 - "backend/test/xAcquisitionRoutes.test.js"
+Cohesion: 0.09
+Nodes (19): analyzeBatches(), parseBatch(), summarizeContext(), assert, test, assert, main(), request() (+11 more)
+
+### Community 316 - "growthSharedDailyDispatch.test.js"
+Cohesion: 0.31
+Nodes (6): fromClaimedRecord(), validateDailyReport(), assert, now, request, test
+
+### Community 317 - "backend/test/behaviorTags.test.js"
+Cohesion: 0.31
+Nodes (7): behaviorTags(), DEFINITIONS, hasValueSignal(), assert, keys(), period, {test}
+
+### Community 319 - "ai-frontend"
+Cohesion: 0.22
+Nodes (8): defaults, runs-on, timeout-minutes, jobs, ai-frontend, name, permissions, contents
+
+### Community 320 - "backend/test/pointsInsights.test.js"
+Cohesion: 0.31
+Nodes (7): dateTime(), pointsInsights(), preparePoints(), assert, data, start, {test}
+
+### Community 321 - "growthWorkspaceLegacyBridge.test.js"
+Cohesion: 0.38
+Nodes (5): fromExistingEvidence(), importExistingEvidence(), assert, {DatabaseSync}, test
+
+### Community 323 - "crm_collaborations"
+Cohesion: 0.25
+Nodes (8): crm_collaboration_activities, crm_collaboration_costs, crm_collaboration_history, crm_collaboration_reports, crm_collaboration_revenue, crm_collaborations, idx_collaboration_costs, idx_collaboration_kol
+
+### Community 324 - "backend_副本/test/activityRoster.test.js"
+Cohesion: 0.22
+Nodes (7): mergeActivityBatches(), app, assert, express, fs, server, {test,after}
+
+### Community 325 - "backend/src/routes/businessAnalysis.js"
+Cohesion: 0.29
+Nodes (6): express, failure(), reportFor(), router, service, store
+
+### Community 327 - "backend/test/collaborations.test.js"
+Cohesion: 0.22
+Nodes (7): app, assert, express, fs, now, server, {test,after}
+
+### Community 328 - "backend/test/diagnostics.test.js"
+Cohesion: 0.31
+Nodes (7): assert, e(), end(), home(), O, start(), {test}
+
+### Community 329 - "growthReviewHttp.test.js"
+Cohesion: 0.22
+Nodes (7): assert, express, queuePath, recordsPath, remotePath, suggestion, test
+
+### Community 330 - "backend/test/remote-segments-smoke.cjs"
+Cohesion: 0.43
+Nodes (6): assert, main(), operator, {randomBytes}, request(), token
+
+### Community 331 - "backend/test/growthRoutes.test.js"
+Cohesion: 0.22
+Nodes (7): app, assert, express, fs, path, server, {test,after}
+
+### Community 332 - "crm_kols"
+Cohesion: 0.25
+Nodes (8): audit_kol_tag_add, audit_kol_tag_remove, crm_followups, crm_kol_members, crm_kols, crm_profile_history, idx_crm_owner, legacy_kol_account_insert
+
+### Community 333 - "crm_collaborations"
+Cohesion: 0.25
+Nodes (8): crm_collaboration_activities, crm_collaboration_costs, crm_collaboration_history, crm_collaboration_reports, crm_collaboration_revenue, crm_collaborations, idx_collaboration_costs, idx_collaboration_kol
+
+### Community 334 - "backend/test/kolRanking.test.js"
+Cohesion: 0.22
+Nodes (7): app, assert, end, express, fs, server, {test,after}
+
+### Community 336 - "ai-integration"
+Cohesion: 0.25
+Nodes (8): runs-on, services, timeout-minutes, ai-integration, image, options, ports, redis
+
+### Community 337 - "postgres"
+Cohesion: 0.25
+Nodes (8): POSTGRES_DB, POSTGRES_PASSWORD, POSTGRES_USER, env, image, options, ports, postgres
+
+### Community 338 - "backend/test/retentionRoutes.test.js"
+Cohesion: 0.22
+Nodes (7): app, assert, express, fs, server, start, {test,after}
+
+### Community 339 - "backend_env"
+Cohesion: 0.29
+Nodes (3): deploy-stage2.sh script, quick-deploy-stage2.sh script, verify-optimization.sh script
+
+### Community 340 - "agentContextBudget.test.js"
+Cohesion: 0.43
+Nodes (6): boundedJson(), compactChanges(), compactMemory(), text(), assert, test
+
+### Community 342 - "backend_副本/test/addressRoster.test.js"
+Cohesion: 0.35
+Nodes (8): addressRosterSql(), email(), key(), parseAddresses(), resolveAddresses(), assert, {DatabaseSync}, {test}
+
+### Community 343 - "backend_副本/test/weeklyCore.test.js"
+Cohesion: 0.33
+Nodes (7): weeklyCore(), weeklyCoreWindow(), weeklyCoreFacts(), assert, end, s, {test}
+
+### Community 344 - "events"
+Cohesion: 0.29
+Nodes (7): events, idx_events_client_ts, idx_events_name, idx_events_name_ts, idx_events_session, idx_events_user_id, idx_events_user_name_ts
+
+### Community 346 - "channels/analytics.js"
+Cohesion: 0.28
+Nodes (10): computeChannels(), day(), options, timestamp(), date(), esc(), money(), mountChannelAnalytics() (+2 more)
+
+### Community 347 - "backend/test/ops.test.js"
+Cohesion: 0.22
+Nodes (10): app, assert, express, finished(), fs, path, prepare(), request() (+2 more)
+
+### Community 348 - "backend/test/remote-observed-smoke.cjs"
+Cohesion: 0.43
+Nodes (6): assert, main(), operator, {randomBytes}, request(), token
+
+### Community 349 - "backend/src/db/migrateToRWSplit.js"
+Cohesion: 0.40
+Nodes (4): fs, path, scanDirectory(), scanFile()
+
+### Community 351 - "sourceChanges.test.js"
+Cohesion: 0.32
+Nodes (6): {createHash}, digest(), sourceChanges(), assert, {DatabaseSync}, test
+
+### Community 352 - "backend/test/inviteRegistration.bench.cjs"
+Cohesion: 0.25
+Nodes (6): args, assert, measurements, path, {performance}, users
+
+### Community 353 - "ref_node_assert"
+Cohesion: 0.03
+Nodes (62): statusFromRecord(), assessRetry(), assert, express, {test}, assert, {Client}, fs (+54 more)
+
+### Community 354 - "router"
+Cohesion: 0.25
+Nodes (7): router, assert, control, express, path, state, test
+
+### Community 355 - "walletNft.test.js"
+Cohesion: 0.32
+Nodes (5): chains, lookupNfts(), rpc(), assert, {test}
+
+### Community 357 - "events"
+Cohesion: 0.29
+Nodes (7): events, idx_events_client_ts, idx_events_name, idx_events_name_ts, idx_events_session, idx_events_user_id, idx_events_user_name_ts
+
+### Community 359 - "backend_副本/test/operationsComparisonRoutes.test.js"
+Cohesion: 0.25
+Nodes (6): app, assert, express, fs, server, {test,after}
+
+### Community 360 - "createSpecialistStore"
+Cohesion: 0.43
+Nodes (7): createSpecialistStore(), detail(), events(), list(), observe(), transition(), fail()
+
+### Community 361 - "growth-implementation-2026-10-24/verify-live.cjs"
+Cohesion: 0.25
+Nodes (6): assert, fs, path, remote, root, {Worker}
+
+### Community 362 - "backend/test/operationsComparison.test.js"
+Cohesion: 0.29
+Nodes (4): assert, period, snapshot, {test}
+
+### Community 363 - "ai-contract"
+Cohesion: 0.29
+Nodes (7): defaults, runs-on, timeout-minutes, defaults, run, ai-contract, working-directory
+
+### Community 364 - "x-acquisition-2026-10-26/qa-server.cjs"
+Cohesion: 0.17
+Nodes (11): app, {DatabaseSync}, db, express, path, provider, root, s (+3 more)
+
+### Community 365 - "workspace/store.js"
+Cohesion: 0.13
+Nodes (15): dailyWorkspaceTick(), dailyWorkspaceTickWithMetrics(), localSourceHealth(), discover(), questionDecision(), safeSourceHealth(), assert, {DatabaseSync} (+7 more)
+
+### Community 368 - "http-check.cjs"
+Cohesion: 0.25
+Nodes (8): app, assert, express, fs, job(), path, remote, root
+
+### Community 369 - "cohort_members"
+Cohesion: 0.33
+Nodes (6): cohort_members, cohort_versions, cohorts, idx_cohort_members_cohort, idx_cohort_members_user, idx_cohort_versions
+
+### Community 370 - "sessions"
+Cohesion: 0.33
+Nodes (6): idx_saved_configs_user, idx_sessions_expires, idx_sessions_user, saved_configs, sessions, users
+
+### Community 371 - "backend_副本/test/remote-credits-smoke.cjs"
+Cohesion: 0.43
+Nodes (6): assert, main(), operator, {randomBytes}, request(), token
+
+### Community 372 - "backend_副本/src/ai/business/foundation.js"
+Cohesion: 0.12
+Nodes (16): createContextStore(), getGoal(), getRunGoal(), pinRun(), saveGoal(), {randomUUID}, createFoundation(), defaultFoundation() (+8 more)
+
+### Community 375 - "loginPage.test.js"
+Cohesion: 0.36
+Nodes (4): login(), mountLoginPage(), fixture(), node()
+
+### Community 376 - "cohort_members"
+Cohesion: 0.33
+Nodes (6): cohort_members, cohort_versions, cohorts, idx_cohort_members_cohort, idx_cohort_members_user, idx_cohort_versions
+
+### Community 377 - "sessions"
+Cohesion: 0.33
+Nodes (6): idx_saved_configs_user, idx_sessions_expires, idx_sessions_user, saved_configs, sessions, users
+
+### Community 378 - "ref_node_sqlite"
+Cohesion: 0.12
+Nodes (12): assert, {DatabaseSync}, test, assert, {DatabaseSync}, test, assert, {DatabaseSync} (+4 more)
+
+### Community 379 - "backend_副本/src/services/assetValuation.js"
+Cohesion: 0.21
+Nodes (9): list(), cachedPrices(), IDS, init(), valuate(), valueReport(), assert, quotes (+1 more)
+
+### Community 380 - "on"
+Cohesion: 0.33
+Nodes (6): on, pull_request, push, paths, branches, paths
+
+### Community 381 - "backend_副本/src/routes/businessAnalysis.js"
+Cohesion: 0.29
+Nodes (6): express, failure(), reportFor(), router, service, store
+
+### Community 382 - "backend_副本/src/routes/audienceHistory.js"
+Cohesion: 0.33
+Nodes (5): cohort(), express, fail(), {randomUUID}, router
+
+### Community 384 - "backend/src/services/comparisonDrafts.js"
+Cohesion: 0.47
+Nodes (5): drafts, get(), put(), {randomUUID}, sweep()
+
+### Community 385 - "backend/src/ops/store.js"
+Cohesion: 0.33
+Nodes (7): crypto, fail(), fs, key(), path, saveToken(), token()
+
+### Community 386 - "backend_副本/src/services/comparisonDrafts.js"
+Cohesion: 0.47
+Nodes (5): drafts, get(), put(), {randomUUID}, sweep()
+
+### Community 387 - "backend_副本/package.json"
+Cohesion: 0.15
+Nodes (12): bullmq@^6.4.2, pg@^8.23.1, engines, node, bullmq, pg, name, optionalDependencies (+4 more)
+
+### Community 388 - "backend/scripts/kolExpansionQuickStart.sh"
+Cohesion: 0.70
+Nodes (4): kolExpansionQuickStart.sh script, step1_extract_kols(), step2_check_config(), step3_update_budget()
+
+### Community 389 - "scripts"
+Cohesion: 0.33
+Nodes (6): scripts, build, dev, preview, test, test:watch
+
+### Community 390 - "backend_副本/test/remote-tasks-smoke.cjs"
+Cohesion: 0.43
+Nodes (6): assert, main(), operator, {randomBytes}, request(), token
+
+### Community 391 - "backend_副本/scripts/kolExpansionQuickStart.sh"
+Cohesion: 0.70
+Nodes (4): kolExpansionQuickStart.sh script, step1_extract_kols(), step2_check_config(), step3_update_budget()
+
+### Community 392 - "api.js"
+Cohesion: 0.70
+Nodes (4): dispatchLifecycle(), fetchLifecycle(), request(), saveLifecycleRules()
+
+### Community 393 - "env"
+Cohesion: 0.40
+Nodes (5): AI_DATABASE_URL, AI_P0_INTEGRATION, NODE_ENV, REDIS_URL, env
+
+### Community 394 - "backend/src/db/migrations/002_agent_foundation.sqlite.sql"
+Cohesion: 0.67
+Nodes (3): agent_changes, agent_goals, agent_run_goals
+
+### Community 395 - "backend/src/db/migrations/004_agent_trace.sqlite.sql"
+Cohesion: 0.67
+Nodes (3): agent_calls, agent_prompts, idx_agent_calls_run
+
+### Community 396 - "operation_task_history"
+Cohesion: 0.33
+Nodes (6): idx_operation_task_executions, idx_operation_task_history, idx_operation_tasks_owner, operation_task_executions, operation_task_history, operation_tasks
+
+### Community 397 - "referral_invitees"
+Cohesion: 0.50
+Nodes (4): idx_referral_invitees_invitee, idx_referral_invitees_level, referral_invitees, referral_trees
+
+### Community 398 - "user_facts"
+Cohesion: 0.50
+Nodes (4): idx_user_facts_first_chip, idx_user_facts_source, idx_user_facts_user_id, user_facts
+
+### Community 399 - "backend_副本/src/db/migrations/002_agent_foundation.sqlite.sql"
+Cohesion: 0.67
+Nodes (3): agent_changes, agent_goals, agent_run_goals
+
+### Community 400 - "backend_副本/src/db/migrations/004_agent_trace.sqlite.sql"
+Cohesion: 0.67
+Nodes (3): agent_calls, agent_prompts, idx_agent_calls_run
+
+### Community 401 - "operation_task_history"
+Cohesion: 0.50
+Nodes (4): idx_operation_task_history, idx_operation_tasks_owner, operation_task_history, operation_tasks
+
+### Community 402 - "referral_invitees"
+Cohesion: 0.50
+Nodes (4): idx_referral_invitees_invitee, idx_referral_invitees_level, referral_invitees, referral_trees
+
+### Community 403 - "user_facts"
+Cohesion: 0.50
+Nodes (4): idx_user_facts_first_chip, idx_user_facts_source, idx_user_facts_user_id, user_facts
+
+### Community 404 - "audit.cjs"
+Cohesion: 0.33
+Nodes (5): fs, path, r, {rawNamesForTypes,PATH_TYPES}, root
+
+### Community 405 - "browser-compare.cjs"
+Cohesion: 0.33
+Nodes (5): {chromium}, {DatabaseSync}, fs, path, root
+
+### Community 410 - "crm_kol_accounts"
+Cohesion: 0.67
+Nodes (3): audit_kol_accounts_add, audit_kol_accounts_remove, crm_kol_accounts
+
+### Community 411 - "logearn_users"
+Cohesion: 0.67
+Nodes (3): idx_logearn_users_created, idx_logearn_users_source, logearn_users
+
+### Community 412 - "trades"
+Cohesion: 0.67
+Nodes (3): idx_trades_confirmed_at, idx_trades_user, trades
+
+### Community 413 - "user_features"
+Cohesion: 0.67
+Nodes (3): idx_user_features_segment, idx_user_features_source, user_features
+
+### Community 414 - "path-performance-2026-10-24/local-page.cjs"
+Cohesion: 0.33
+Nodes (5): {chromium}, {DatabaseSync}, fs, path, root
+
+### Community 419 - "crm_kol_accounts"
+Cohesion: 0.67
+Nodes (3): audit_kol_accounts_add, audit_kol_accounts_remove, crm_kol_accounts
+
+### Community 420 - "logearn_users"
+Cohesion: 0.67
+Nodes (3): idx_logearn_users_created, idx_logearn_users_source, logearn_users
+
+### Community 421 - "user_features"
+Cohesion: 0.67
+Nodes (3): idx_user_features_segment, idx_user_features_source, user_features
+
+### Community 422 - "user_followups"
+Cohesion: 0.67
+Nodes (3): idx_user_followup_owner, idx_user_followup_user, user_followups
+
+### Community 446 - "chartRuntime.js"
+Cohesion: 0.40
+Nodes (5): dependencies, echarts@6.1.0, @floating-ui/dom@1.7.4, echarts, @floating-ui/dom
+
+### Community 447 - "core-path-workflow-2026-10-24/verify.cjs"
+Cohesion: 0.33
+Nodes (5): {chromium}, {DatabaseSync}, fs, path, root
+
+### Community 448 - "baseline.cjs"
+Cohesion: 0.33
+Nodes (5): {ANALYSIS_SQL}, fs, path, remote, root
+
+### Community 449 - "worker.cjs"
+Cohesion: 0.33
+Nodes (5): fs, path, r, root, {Worker}
+
+### Community 450 - "backend/test/creditsInsights.test.js"
+Cohesion: 0.40
+Nodes (4): assert, options, rows, {test}
+
+### Community 452 - "backend/test/segmentInsights.test.js"
+Cohesion: 0.40
+Nodes (3): assert, options, {test}
+
+### Community 457 - "run"
+Cohesion: 0.21
+Nodes (13): budget(), diagnosticCoverage(), registrationFacts(), cohortTrades(), growthFacts(), growthQuality(), run(), assert (+5 more)
+
+### Community 458 - "backend_副本/src/db/migrateToRWSplit.js"
+Cohesion: 0.40
+Nodes (4): fs, path, scanDirectory(), scanFile()
+
+### Community 463 - "backend/test/opsEffect.test.js"
+Cohesion: 0.43
+Nodes (5): advertisingTargets(), effectPeriods(), effectTargets(), assert, {test}
+
+### Community 471 - "weekly-core-2026-10-24/verify-live.cjs"
+Cohesion: 0.29
+Nodes (6): assert, fs, path, remote, root, {weeklyCoreFacts}
+
+## Knowledge Gaps
+- **51 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+
+## Suggested Questions
+_Questions this graph is uniquely positioned to answer:_
+
+- **Why does `vitest` connect `audience.test.js` to `pages/businessAnalysis.js`, `tracking/client.js`, `createChartLifecycle`, `createKolCrm`, `frontend/src/analytics/comparison.js`, `pages/activityMonitor.js`, `jsonDatasetCore.js`, `getToken`, `dashboard.js`, `growthAgentControl.js`, `fetchDrillUsers`, `pages/segmentInsights.js`, `pages/aiAnalysis.js`, `api/crm.js`, `observedDrill.js`, `api/aiAnalysis.js`, `pages/growthInsights.js`, `reportPeriod`, `createOperationsComparison`, `createDrawer`, `secondRound.test.js`, `aiWeeklyReportPanel.js`, `comparison/panel.js`, `sessionExpiry.test.js`, `fetchBackendMeta`, `seoPage.js`, `generate.mjs`, `channels/rules.js`, `frontend/package.json`, `operationTaskDetail.js`, `pages/activityEvidence.js`, `createReferralInsightsPage`, `createRetentionAggPage`, `opsRequest`, `channels/analytics.js`, `viewState`, `conversionScenes.js`, `frontend/src/analytics/funnel.js`, `aiWeeklyDecisionView.js`, `normalize.js`, `ref_node_fs`, `loginPage.test.js`, `frontend/src/analytics/segmentation.js`, `coverage.js`?**
+  _High betweenness centrality (0.160) - this node is a cross-community bridge._
+- **Should `backend/src/ai/business/evidence.js` be split into smaller, more focused modules?**
+  _Cohesion score 0.03892405063291139 - nodes in this community are weakly interconnected._
+- **Why does `express` connect `express` to `walletOutflows.js`, `ref_node_path`, `backend_副本/test/multiAccountKol.test.js`, `backend/test/activityEvidence.test.js`, `agentKilledWorker.test.js`, `backend/src/data/remoteUsers.js`, `backend/src/index.js`, `backend_副本/src/routes/remoteAnalytics.js`, `backend_副本/src/routes/collaborations.js`, `uptimeKumaStatus.js`, `backend_副本/test/sixImprovements.test.js`, `backend/src/routes/cohorts.js`, `backend_副本/src/index.js`, `backend_副本/src/ai/llm/client.js`, `backend/src/db/rebuildRollups.js`, `backend/src/services/analysisJobs.js`, `backend_副本/src/db/generateBusinessData.js`, `backend/src/routes/metrics.js`, `backend_副本/src/analytics/comparison.js`, `backend/test/sixImprovements.test.js`, `backend/src/services/userCrm.js`, `backend_副本/src/services/userCrm.js`, `backend_副本/src/services/analysisJobs.js`, `backend/src/ai/llm/client.js`, `backend/src/queues/jobs/aiAnalysis.js`, `trials.js`, `backend/src/routes/activities.js`, `backend_副本/src/queues/jobs/aiAnalysis.js`, `backend_副本/src/routes/activities.js`, `backend/src/ai/rag/cli.js`, `backend_副本/src/ai/rag/cli.js`, `backend/package.json`, `backend_副本/src/cache/multilevel.js`, `retrySafetyHttp.test.js`, `routes/contentGrowth.js`, `gscOAuth.js`, `backend/test/activityPerformance.test.js`, `backend/src/routes/crm.js`, `backend_副本/test/activityPerformance.test.js`, `backend_副本/src/queues/queues.js`, `openseoConnector.js`, `backend/src/services/xAcquisition.js`, `backend/src/queues/queues.js`, `backend/test/aiBusiness.test.js`, `backend_副本/src/services/xAcquisition.js`, `backend_副本/test/aiBusiness.test.js`, `backend_副本/src/analytics/segmentInsights.js`, `backend/src/routes/operationTasks.js`, `backend/test/comparisonReports.test.js`, `backend_副本/src/routes/operationTasks.js`, `backend_副本/test/activityScheduling.test.js`, `backend_副本/test/comparisonReports.test.js`, `gscHttp.test.js`, `backend_副本/test/activityEvidence.test.js`, `growthSpecialistHttp.test.js`, `backend/src/routes/analytics.js`, `workspace/store.js`, `growthSpecialtyAnalyzeHttp.test.js`, `backend_副本/src/data/hologres.js`, `analysisResumeHttp.test.js`, `backend/src/routes/ops.js`, `checkpointHttp.test.js`, `backend_副本/src/routes/analytics.js`, `ref_node_fs`, `backend/src/routes/aiAnalysis.js`, `growthAutonomyHttp.test.js`, `growthInboxHttp.test.js`, `backend/test/activityScheduling.test.js`, `analysisCancelHttp.test.js`, `backend_副本/test/ops.test.js`, `backend/test/activityRoster.test.js`, `backend_副本/src/routes/crm.js`, `backend/src/db/connection.js`, `growthProposalHttp.test.js`, `backend_副本/test/ops.test.js`, `backend/src/data/kolMetrics.js`, `backend_副本/src/db/connection.js`, `growthAlertHttp.test.js`, `growthInvestigationTimelineHttp.test.js`, `backend_副本/test/weeklyCoreRoutes.test.js`, `jobStatusHttp.test.js`, `backend/test/operationTasks.test.js`, `backend_副本/test/agentApi.test.js`, `backend/test/weeklyCoreRoutes.test.js`, `backend/test/conversionRoutes.test.js`, `backend/test/xAcquisitionRoutes.test.js`, `backend_副本/test/activityRoster.test.js`, `backend/src/routes/businessAnalysis.js`, `backend/test/collaborations.test.js`, `growthReviewHttp.test.js`, `backend/test/growthRoutes.test.js`, `backend/test/kolRanking.test.js`, `backend/test/retentionRoutes.test.js`, `backend/test/ops.test.js`, `ref_node_assert`, `router`, `backend_副本/test/operationsComparisonRoutes.test.js`, `backend_副本/src/routes/businessAnalysis.js`, `backend_副本/src/routes/audienceHistory.js`?**
+  _High betweenness centrality (0.095) - this node is a cross-community bridge._
+- **Should `backend_副本/src/data/remoteUsers.js` be split into smaller, more focused modules?**
+  _Cohesion score 0.09059233449477352 - nodes in this community are weakly interconnected._
+- **Why does `db` connect `backend_副本/src/db/connection.js` to `backend_副本/test/ops.test.js`, `backend_副本/test/multiAccountKol.test.js`, `backend_副本/test/remote-observed-smoke.cjs`, `backend_副本/test/remote-tasks-smoke.cjs`, `backend_副本/src/routes/crm.js`, `backend_副本/test/activityPerformance.test.js`, `backend_副本/test/ops.test.js`, `backend_副本/test/remote-points-smoke.cjs`, `backend_副本/src/services/platformAssets.js`, `backend_副本/src/routes/collaborations.js`, `backend_副本/test/pathContextLoader.test.js`, `backend_副本/test/sixImprovements.test.js`, `backend_副本/test/weeklyCoreRoutes.test.js`, `express`, `backend_副本/test/remote-channels-smoke.cjs`, `backend_副本/src/ai/business/tools/registry.js`, `backend_副本/test/remote-referral-smoke.cjs`, `backend_副本/src/index.js`, `backend_副本/test/agentApi.test.js`, `ref_path`, `backend_副本/src/analytics/segmentInsights.js`, `backend_副本/test/activityRoster.test.js`, `backend_副本/src/routes/operationTasks.js`, `backend_副本/src/db/generateBusinessData.js`, `backend_副本/test/activityScheduling.test.js`, `backend_副本/test/comparisonReports.test.js`, `backend_副本/src/analytics/comparison.js`, `backend_副本/src/services/userCrm.js`, `backend_副本/test/activityEvidence.test.js`, `backend_副本/src/services/analysisJobs.js`, `backend_副本/src/data/hologres.js`, `backend_副本/test/operationsComparisonRoutes.test.js`, `backend_副本/src/routes/activities.js`, `backend_副本/src/routes/analytics.js`, `ref_node_fs`, `backend_副本/test/remote-credits-smoke.cjs`, `backend_副本/src/ai/business/foundation.js`, `backend_副本/src/db/importGrowthEvents.js`, `backend_副本/src/db/seedMock.js`, `backend_副本/src/services/assetValuation.js`, `backend_副本/src/routes/audienceHistory.js`?**
+  _High betweenness centrality (0.019) - this node is a cross-community bridge._
+- **Should `walletOutflows.js` be split into smaller, more focused modules?**
+  _Cohesion score 0.061507936507936505 - nodes in this community are weakly interconnected._
+- **Should `ref_node_path` be split into smaller, more focused modules?**
+  _Cohesion score 0.024514811031664963 - nodes in this community are weakly interconnected._

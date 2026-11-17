@@ -67,7 +67,7 @@ test('deny path, arbitrary property, missing configuration, and readonly credent
  assert.deepEqual(authorizedProperties('intruder',tokenEnv()),[]);
  const client=createGscClient({env:{GSC_OWNER_ID:'alice',
   GSC_ALLOWED_SITES:'https://logearn.com/'}});
- assert.equal(client.status('alice').configured,false);
+ assert.equal((await client.status('alice')).configured,false);
  await assert.rejects(client.sites('alice'),/凭证/);
 });
 test('service-account credential signs readonly JWT on server and never sends key to Search Console endpoint',async()=>{
@@ -93,4 +93,26 @@ test('service-account credential signs readonly JWT on server and never sends ke
  assert.equal(payload.aud,'https://oauth2.googleapis.com/token');
  assert.equal(requests[1].options.headers.Authorization,'Bearer short-lived-token');
  assert.ok(!JSON.stringify(requests[1]).includes('BEGIN PRIVATE KEY'));
+});
+
+test('operator OAuth can list only Google-granted properties without server allowlist',async()=>{
+ const calls=[],oauthClient={available:()=>true,
+  connected:async id=>id==='alice',accessToken:async()=> 'USER_ACCESS_TOKEN'};
+ const client=createGscClient({env:{},oauthClient,request:async(url,options)=>{
+  calls.push({url,options});
+  if(url.endsWith('/sites'))return {ok:true,status:200,json:async()=>({siteEntry:[
+   {siteUrl:'sc-domain:logearn.com',permissionLevel:'siteOwner'},
+   {siteUrl:'sc-domain:unverified.test',permissionLevel:'siteUnverifiedUser'}
+  ]})};
+  return {ok:true,status:200,json:async()=>({rows:[]})};
+ }});
+ const status=await client.status('alice');
+ assert.equal(status.oauthConnected,true);
+ assert.equal(status.mode,'google-oauth');
+ assert.deepEqual(await client.sites('alice'),[{siteUrl:'sc-domain:logearn.com',permissionLevel:'siteOwner'}]);
+ await client.searchAnalytics('alice',{siteUrl:'sc-domain:logearn.com',startDate:'2026-10-20',
+  endDate:'2026-10-21',dimensions:['query']});
+ assert.ok(calls.every(c=>c.options.headers.Authorization==='Bearer USER_ACCESS_TOKEN'));
+ await assert.rejects(client.assertAllowedSite('alice','sc-domain:other.test'),/无法读取/);
+ assert.deepEqual(await client.sites('bob'),[]);
 });

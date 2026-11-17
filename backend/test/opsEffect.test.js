@@ -11,3 +11,8 @@ test('effect periods compare equal elapsed time, cap at 7 days, and do not call 
  const early=effectPeriods(b,b.finished_at+1000);assert.equal(early.mature,false);assert.equal(early.before.end-early.before.start,early.after.end-early.after.start)
  const done=effectPeriods(b,b.finished_at+10*86400000);assert.equal(done.mature,true);assert.equal(done.after.end-done.after.start,7*86400000)
 })
+test('advertising targets use only successfully sent, uniquely mapped accounts',()=>{
+ const {advertisingTargets}=require('../src/analytics/opsEffect')
+ const rows=[{state:'success',payload_json:JSON.stringify({telegramId:'1',accountId:'42'})},{state:'failed',payload_json:JSON.stringify({telegramId:'2',accountId:'43'})},{state:'success',payload_json:JSON.stringify({telegramId:'3',accountId:null})},{state:'success',payload_json:JSON.stringify({telegramId:'4',accountId:'42'})}]
+ assert.deepEqual(advertisingTargets(rows),{ids:['42'],sent:3,unmatched:1})
+})

@@ -16,16 +16,23 @@ function normalizeGoogleRows(response,dimension,max){
   fail('Search Console 响应无效',503);
  const rows=response.rows||[];
  if(rows.length>max)fail('Google 行数超过服务端预算',503);
- return rows.map(r=>{
-  if(!Array.isArray(r.keys)||r.keys.length!==1||typeof r.keys[0]!=='string'||
-     r.keys[0].length>1500||!Number.isFinite(r.clicks)||r.clicks<0||
-     !Number.isFinite(r.impressions)||r.impressions<0||
-     !Number.isFinite(r.ctr)||r.ctr<0||r.ctr>1||
-     !Number.isFinite(r.position)||r.position<1||r.position>1000)
-    fail('Search Console 返回无效维度或指标，拒绝保存',503);
+ return rows.map((r,index)=>{
+  const invalid=!Array.isArray(r?.keys)||r.keys.length!==1||
+   typeof r.keys[0]!=='string'||r.keys[0].length>4096?'keys':
+   !Number.isFinite(r.clicks)||r.clicks<0?'clicks':
+   !Number.isFinite(r.impressions)||r.impressions<0?'impressions':
+   !Number.isFinite(r.ctr)||r.ctr<0||r.ctr>1?'ctr':
+   !Number.isFinite(r.position)||r.position<0||r.position>0&&r.position<1?'position':null;
+  if(invalid){
+   const value=r?.[invalid];
+   const detail=invalid==='position'?value===undefined?'（缺失）':
+    typeof value==='number'?`（数值：${String(value)}）`:
+    value===null?'（null）':`（类型：${typeof value}）`:'';
+   fail(`Search Console ${dimension} 第 ${index+1} 行 ${invalid} 无效${detail}，拒绝保存`,503);
+  }
   if(dimension==='date')dateMs(r.keys[0]);
   return {[dimension]:r.keys[0],clicks:r.clicks,
-   impressions:r.impressions,ctr:r.ctr,position:r.position};
+   impressions:r.impressions,ctr:r.ctr,position:r.position===0?null:r.position};
  });
 }
 function summarizeGsc(record){
@@ -43,9 +50,46 @@ function summarizeGsc(record){
   queries:queries.slice(0,100),pages:pages.slice(0,50),opportunities,coverage,
   warnings:['Search Console 的查询、页面维度受内部行数限制及匿名化影响；绝不能用行合计代替站点总量',
    'GSC 数据日期按太平洋时间（PT），与 LogEarn 曼谷业务日不同',
-   'GSC 点击与排名不证明注册、筹码分析、成交或 SEO 行动的因果效果']};
+   'GSC 点击与排名不证明注册、筹码分析、成交或 SEO 行动的因果效果',
+   ...(coverage?.positionUnavailableRows?['Google 返回的部分排名为 0，已标记为不可用；有曝光的缺失排名会使整体平均排名不可用']:[])]};
 }
-function buildGoogleSnapshot(siteUrl,window,responses){
+// Slice an owner-scoped, already-saved finalized GSC snapshot by its PT
+// daily rows. Query/page top-N dimensions belong to the ORIGINAL snapshot
+// and cannot be treated as dimensions for the sliced week.
+function summarizeGscWindow(record,{startDate,endDate}){
+ const first=dateMs(startDate),last=dateMs(endDate);
+ if(last<first||last-first>30*DAY)fail('GSC 统计窗口无效');
+ const full=summarizeGsc(record);
+ const daily=full.daily.filter(r=>r.date>=startDate&&r.date<=endDate);
+ const expectedDays=Math.floor((last-first)/DAY)+1;
+ const dates=new Set(daily.map(r=>r.date));
+ const unreportedDates=Array.from({length:expectedDays},(_,i)=>
+  new Date(first+i*DAY).toISOString().slice(0,10)).filter(d=>!dates.has(d));
+ const complete=full.startDate<=startDate&&full.endDate>=endDate&&
+  dates.size===expectedDays&&daily.length===expectedDays;
+ const clicks=daily.length?daily.reduce((n,r)=>n+r.clicks,0):null;
+ const impressions=daily.length?daily.reduce((n,r)=>n+r.impressions,0):null;
+ const hasUnranked=daily.some(r=>r.impressions>0&&r.position==null);
+ const position=impressions>0&&!hasUnranked?
+  daily.reduce((n,r)=>n+r.position*r.impressions,0)/impressions:null;
+ const exact=full.startDate===startDate&&full.endDate===endDate;
+ return {...full,available:daily.length>0,startDate,endDate,daily,
+  metrics:{clicks,impressions,ctr:impressions>0?clicks/impressions:null,position},
+  queries:exact?full.queries:[],pages:exact?full.pages:[],
+  opportunities:exact?full.opportunities:[],
+  coverage:{...full.coverage,status:complete?'reported-final-dates':
+   'partial-or-missing-gsc-dates',expectedDays,reportedDays:dates.size,
+   unreportedDates,periodMatched:complete,derivedFromStoredDaily:!exact,
+   sourceSnapshotStartDate:full.startDate,sourceSnapshotEndDate:full.endDate,
+   dimensionsMatchRequestedPeriod:exact,
+   dateTimezone:'America/Los_Angeles'},
+  warnings:[...full.warnings,
+   '本周统计仅由已保存的 PT 每日站点汇总重算，不能对应曼谷业务周小时窗口；不做注册或交易归因',
+   ...(!exact?['原快照的查询/页面 Top-N 汇总没有日期细分，已从周视图排除']:[]),
+   ...(!complete?['所选 GSC 日历日期未全部观测，统计仅为已报告日期的部分值，不可作完整周环比']:[])]
+ };
+}
+function buildGoogleSnapshot(siteUrl,window,responses,mode='service-account'){
  const daily=normalizeGoogleRows(responses.daily,'date',31)
   .filter(r=>r.date>=window.startDate&&r.date<=window.endDate)
   .sort((a,b)=>a.date.localeCompare(b.date));
@@ -60,7 +104,7 @@ function buildGoogleSnapshot(siteUrl,window,responses){
    clicks:daily.length?clicks:null,
    impressions:daily.length?impressions:null,
    ctr:daily.length&&impressions?clicks/impressions:null,
-   position:daily.length&&impressions?
+   position:daily.length&&impressions&&!daily.some(r=>r.impressions>0&&r.position===null)?
     daily.reduce((n,r)=>n+r.position*r.impressions,0)/impressions:null
   },
   coverage:{
@@ -69,8 +113,10 @@ function buildGoogleSnapshot(siteUrl,window,responses){
     (_,i)=>new Date(dateMs(window.startDate)+i*DAY).toISOString().slice(0,10))
     .filter(d=>!seen.has(d)),
    queryRowsReturned:queries.length,pageRowsReturned:pages.length,
+   positionUnavailableRows:[...daily,...queries,...pages].filter(r=>r.position===null).length,
    queryTruncatedPossible:queries.length===500,pageTruncatedPossible:pages.length===100,
-   googleApiVerifiedForServiceIdentity:true,
+   googleApiVerifiedForServiceIdentity:mode==='service-account',
+   googleAuthorizationMode:mode,
    searchQueryCoverage:'top-results-only',propertyTotalSource:'finalized daily property-level aggregates',
    dateTimezone:'America/Los_Angeles',
    sourceWarning:'Google API 日期无行可能意味着零流量或数据尚未覆盖，不能单凭缺行判断'
@@ -83,10 +129,13 @@ function createGscService({db=pool,client=defaultClient,clock=Date.now}={}){
   return r.rows[0]||null;
  }
  async function connection(ownerId){
-  const status=client.status(ownerId);
+  const status=await client.status(ownerId);
   if(!status.configured)return {...status,sites:[],selectedSite:null,
    reason:!status.ownerAuthorized?'服务器尚未为此用户配置 Search Console 资源授权':'服务器尚未配置可用 Google API 凭证'};
-  const sites=await client.sites(ownerId);
+  let sites;
+  try{sites=await client.sites(ownerId)}catch(error){
+   return {...status,sites:[],selectedSite:null,error:error.message};
+  }
   const selected=await setting(ownerId);
   return {...status,sites,selectedSite:sites.some(x=>x.siteUrl===selected?.site_url)?
     selected.site_url:null,selectionNeedsReview:!!selected&&!sites.some(x=>x.siteUrl===selected.site_url)};
@@ -119,6 +168,25 @@ function createGscService({db=pool,client=defaultClient,clock=Date.now}={}){
   const r=await db.query(sql+' ORDER BY fetched_at DESC,id DESC LIMIT 1',values);
   return r.rows[0]||null;
  }
+ // Reuse a broader saved GSC window instead of demanding identical
+ // start/end labels. The query is owner- and selected-property-scoped.
+ async function latestOverlapping(ownerId,{siteUrl=null,startDate,endDate}){
+  const selected=await setting(ownerId);
+  const property=siteUrl?propertyName(siteUrl):selected?.site_url;
+  if(!property||siteUrl&&property!==selected?.site_url)return null;
+  const start=dateMs(startDate),end=dateMs(endDate);
+  if(end<start||end-start>30*DAY)fail('GSC 统计窗口无效');
+  const r=await db.query(`SELECT id,owner_id,site_url,start_date::text,
+    end_date::text,source,data_state,property_totals,daily,queries,pages,
+    coverage,fetched_at FROM ai_growth_gsc_snapshots
+    WHERE owner_id=$1 AND site_url=$2
+      AND start_date<=$4::date AND end_date>=$3::date
+    ORDER BY
+      CASE WHEN start_date<=$3::date AND end_date>=$4::date THEN 0 ELSE 1 END,
+      fetched_at DESC,id DESC LIMIT 1`,
+   [String(ownerId),property,startDate,endDate]);
+  return r.rows[0]||null;
+ }
  async function sync(ownerId,{startDate,endDate}){
   dateWindow(startDate,endDate,clock());
   const selection=await setting(ownerId);
@@ -144,7 +212,8 @@ function createGscService({db=pool,client=defaultClient,clock=Date.now}={}){
     client.searchAnalytics(ownerId,{...req,dimensions:['query'],rowLimit:500}),
     client.searchAnalytics(ownerId,{...req,dimensions:['page'],rowLimit:100})
    ]);
-   const normalized=buildGoogleSnapshot(siteUrl,{startDate,endDate},{daily,queries,pages});
+   const authMode=(await client.status(ownerId)).mode;
+   const normalized=buildGoogleSnapshot(siteUrl,{startDate,endDate},{daily,queries,pages},authMode);
    const id=randomUUID(),now=clock();
    await conn.query(`INSERT INTO ai_growth_gsc_snapshots
      (id,owner_id,site_url,start_date,end_date,source,data_state,
@@ -174,6 +243,6 @@ function createGscService({db=pool,client=defaultClient,clock=Date.now}={}){
   if(!selected?.site_url)fail('先选择 Search Console 资源再检查 URL',409);
   return client.inspect(ownerId,selected.site_url,inspectionUrl);
  }
- return {connection,setting,select,latest,sync,sitemaps,inspect};
+ return {connection,setting,select,latest,latestOverlapping,sync,sitemaps,inspect};
 }
-module.exports={createGscService,buildGoogleSnapshot,summarizeGsc,dateWindow};
+module.exports={createGscService,buildGoogleSnapshot,summarizeGsc,summarizeGscWindow,dateWindow};

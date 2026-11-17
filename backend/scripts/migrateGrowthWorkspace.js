@@ -10,6 +10,7 @@ if(require.main===module){
   try{
    const db=require('../src/db/connection');
    require('../src/ai/growth/workspace/store').workspaceStore(db,{initialize:true});
+   require('../src/ai/growth/opportunityStore').createOpportunityStore(db,{initialize:true});
    console.log('Growth Workspace SQLite schema installed. No user data was imported or modified.');
   }catch(e){console.error(e.message);process.exitCode=1}
  }

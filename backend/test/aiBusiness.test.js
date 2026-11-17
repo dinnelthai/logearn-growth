@@ -27,7 +27,7 @@ test('single model repairs JSON with history and complete investigation evidence
   const result=await runTask({context:{memory:[{rejection_reason:'缺少资源'}]},prompt:'分析',ownerId:'alice',operationId:'a',operationType:'analysis',
     investigate:async()=>({active_users:12}),clientFactory:({model})=>({chat:async messages=>{seen.push({model,messages:JSON.stringify(messages)});return {content:typeof answers[i]==='string'?answers[i++]:JSON.stringify(answers[i++]),usage:{totalTokens:5},cost:0.01,provider:model==='local-model'?'domestic':'anthropic'}}})});
   assert.deepEqual(seen.map(c=>c.model),['claude-sonnet-4-6','claude-sonnet-4-6','claude-sonnet-4-6']);
-  assert.match(seen[2].messages,/缺少资源/);assert.match(seen[2].messages,/active_users/);assert.equal(result.calls.length,3);assert.equal(result.cost,0.03);
+  assert.doesNotMatch(seen[2].messages,/缺少资源/);assert.match(seen[2].messages,/additionalEvidence/);assert.match(seen[2].messages,/unavailable/);assert.equal(result.calls.length,3);assert.equal(result.cost,0.03);
 }));
 test('budgets never turn unfinished investigation into a successful empty report',()=>env(async()=>{
   process.env.AI_TASK_MAX_CALLS='1';const {runTask}=runner();
@@ -47,7 +47,7 @@ test('business analysis persists snapshot, history, priorities and structured su
     completeAnalysis:async(id,owner,s,result)=>{events.push(['suggestions',s]);events.push(['status',id,'completed',result])}, assertAnalysisLease:async()=>{}, renewAnalysisLease:async()=>true, failClaimedAnalysis:async(_id,_owner,_token,message)=>events.push(['failed',message])};
   const handler=load('queues/jobs/businessAnalysis.js',{
     '../../ai/business/runner':{validateAnalysis:x=>x,runTask:async opts=>{assert.equal(opts.context.memory[0].rejection_reason,'成本高');assert.equal(opts.context.weekly.users,5);assert.equal(opts.context.candidates.length,0);return {analysis:good,cost:0.01,model:'routine',provider:'domestic',calls:[],evidence:[],routing:{tier:'routine'}}}},
-    '../../ai/business/foundation':{defaultFoundation:()=>({prepare:report=>({context:{...report,evidence:[]},validate:()=>{},traceStore:undefined})})},
+    '../../ai/business/foundation':{defaultFoundation:()=>({prepare:report=>({context:{...report,evidence:[],capabilities:[]},validate:()=>{},traceStore:undefined})})},
     '../../ai/business/trace':{createTraceStore:()=>({})}, '../../ai/optimization/promptRegistry':{createPromptRegistry:()=>({resolve:(_owner,_role,prompt)=>prompt})}, '../../db/connection':{}, '../../ai/business/workerStart':{claimSafeAnalysis:async()=> records.getAnalysisRecord().then(r=>r.status==='completed'?{action:'completed',result:r.result}:{action:'claimed',record:r,token:'token'})}, '../../db/aiRecords':records,'../../data/hologres':{status:async()=>({snapshot_id:'s',as_of:'2026-10-20T00:00:00Z'})},
     './dataFetcher':{fetchNorthStar:async()=>base,fetchGrowthInsights:async()=>({change:{},channels:[],quality:{history_complete:false}}),fetchWeeklyCore:async()=>({available:true,users:5})}});
   const job={data:{analysisId:'a',ownerId:'alice',dateRangeStart:Date.parse('2026-10-01'),dateRangeEnd:Date.parse('2026-10-08'),businessScope:{source:'twitter'}},progress:async()=>{}};
@@ -79,7 +79,7 @@ test('LLM client logs real token usage once with owner and operation; cache rema
   class Tracker{async checkDailyLimit(...args){limits.push(args)}async track(value){tracked.push(value)}}
   class Provider{constructor(){this.client={baseURL:'https://domestic.invalid/v1'}}async chat(){return {content:'{}',usage:{inputTokens:100,outputTokens:20,totalTokens:120}}}}
   const Client=load('ai/llm/client.js',{
-    './config':{getConfig:()=>({defaultModel:'routine',openai:{baseURL:'https://derouter.invalid/v1',apiKey:'test'},maxDailyCost:5,enableMetrics:false}),getModelInfo:()=>({provider:'openai',costPer1kInput:0.01,costPer1kOutput:0.02}),LLM_PROVIDERS:{DOMESTIC:'domestic',OPENAI:'openai',ANTHROPIC:'anthropic'}},
+    './config':{getConfig:()=>({defaultModel:'routine',openai:{baseURL:'https://derouter.invalid/v1',apiKey:'test'},maxDailyCost:5,enableMetrics:false}),getModelInfo:()=>({provider:'openai',costPer1kInput:0.01,costPer1kOutput:0.02,pricingKnown:true}),LLM_PROVIDERS:{DOMESTIC:'domestic',OPENAI:'openai',ANTHROPIC:'anthropic'}},
     './providers/openai':Provider,'./providers/anthropic':Provider,'./costTracker':Tracker,
     '../../cache':{rateLimit:{checkLimit:async()=>({allowed:true})},llmCache:{get:async(_p,_m,opts)=>{options.push(opts);return null},set:async()=>{}}},
     '../../utils/logger':{info:()=>{},error:()=>{}},'../../websocket':{}
@@ -108,12 +108,13 @@ test('create-analysis API validates scopes and passes authenticated ownership wi
     assert.equal(invalid.status,400);assert.equal(queued.length,1);
   }finally{await new Promise(r=>server.close(r))}
 });
-test('prompt version hashes the actual system message and usage above budget cannot complete',()=>env(async()=>{
+test('prompt version hashes the actual system message and usage above budget can complete',()=>env(async()=>{
  const {runTask}=runner();let actual,persisted;
  await runTask({context:{},prompt:'base prompt',ownerId:'alice',operationId:'r',traceStore:{savePrompt:(_role,content)=>{persisted=content},begin:()=>{},finish:()=>{}},clientFactory:()=>({chat:async messages=>{actual=messages[0].content;return {content:JSON.stringify(good),usage:{totalTokens:5}}}})});
  assert.equal(persisted,actual);
  process.env.AI_TASK_MAX_TOKENS='10000';
- await assert.rejects(()=>runTask({context:{},prompt:'x',clientFactory:()=>({chat:async()=>({content:JSON.stringify(good),usage:{totalTokens:10001}})})}),/预算/);
+ const result=await runTask({context:{},prompt:'x',clientFactory:()=>({chat:async()=>({content:JSON.stringify(good),usage:{totalTokens:10001}})})});
+ assert.equal(result.analysis.summary,good.summary);
 }));
 test('reading AI routes does not initialize the paid job queue',()=>{
  const mocks={};Object.defineProperty(mocks,'../queues/queues',{enumerable:true,get(){throw Error('queue must stay lazy')}});

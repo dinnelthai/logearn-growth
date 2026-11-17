@@ -3,6 +3,7 @@
  * 用于对比不同模型的效果和成本
  */
 
+require('dotenv').config({path:require('node:path').join(__dirname,'../../../.env'),quiet:true});
 const { createClient, getAvailableModels } = require('./index');
 
 async function testBasicChat(client, modelName) {
@@ -27,7 +28,7 @@ async function testBasicChat(client, modelName) {
   const startTime = Date.now();
 
   try {
-    const response = await client.chat(messages);
+    const response = await client.chat(messages, {maxTokens:256,skipCache:true});
     const duration = Date.now() - startTime;
 
     console.log('Response:', response.content);
@@ -142,6 +143,12 @@ async function compareModels(models) {
 }
 
 async function main() {
+  // A provider call can be billable even if saving its usage subsequently fails.
+  // Verify the ledger schema BEFORE starting the paid smoke-test request.
+  const {aiSchemaReady}=require('../business/health');
+  if(!await aiSchemaReady()){
+    throw Error('AI 计费表尚未升级（trace_id / round / cost_known / 唯一索引），拒绝发起付费测试。请在确认数据库身份后执行已授权的 npm run migrate:ai。');
+  }
   console.log('Available models:');
   const models = getAvailableModels();
   console.table(models);
@@ -158,7 +165,11 @@ async function main() {
 }
 
 if (require.main === module) {
-  main().catch(console.error);
+  main().catch(error=>{console.error('LLM smoke test failed:',error.message);process.exitCode=1;})
+    .finally(async()=>{
+      await require('../../db/aiPool').end();
+      await require('../../cache').redis.disconnect();
+    }).catch(error=>{console.error('LLM smoke test cleanup failed:',error.message);process.exitCode=1;});
 }
 
 module.exports = {

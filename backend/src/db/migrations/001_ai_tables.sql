@@ -152,6 +152,12 @@ CREATE TABLE IF NOT EXISTS ai_usage_logs (
 CREATE INDEX IF NOT EXISTS idx_usage_logs_owner ON ai_usage_logs(owner_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_operation ON ai_usage_logs(operation_type, operation_id);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_created ON ai_usage_logs(created_at DESC);
+-- Per-model-request accounting is optional for legacy rows, but new Agent
+-- rounds record an owner-scoped trace and can never double-count that trace.
+ALTER TABLE ai_usage_logs ADD COLUMN IF NOT EXISTS trace_id TEXT;
+ALTER TABLE ai_usage_logs ADD COLUMN IF NOT EXISTS round INTEGER;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_usage_owner_trace
+ ON ai_usage_logs(owner_id,trace_id) WHERE trace_id IS NOT NULL;
 
 -- AI 历史经验索引 (用于下次分析时检索相关历史)
 CREATE TABLE IF NOT EXISTS ai_experience_index (
@@ -369,6 +375,22 @@ CREATE TABLE IF NOT EXISTS ai_growth_gsc_snapshots (
 CREATE INDEX IF NOT EXISTS idx_ai_gsc_snapshots_owner_site_period
   ON ai_growth_gsc_snapshots(owner_id,site_url,start_date,end_date,fetched_at DESC);
 
+-- Each logged-in operator authorizes their own Google account. Only encrypted refresh
+-- tokens are persisted; access tokens remain transient in the server process.
+CREATE TABLE IF NOT EXISTS ai_growth_gsc_oauth_connections (
+ owner_id TEXT PRIMARY KEY,
+ refresh_token_enc TEXT NOT NULL,
+ updated_at BIGINT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS ai_growth_gsc_oauth_states (
+ state_hash TEXT PRIMARY KEY,
+ owner_id TEXT NOT NULL,
+ code_verifier TEXT NOT NULL,
+ expires_at BIGINT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ai_gsc_oauth_states_expiry
+ ON ai_growth_gsc_oauth_states(expires_at);
+
 -- P1 specialist operating automation (all processors are opt-in).
 CREATE TABLE IF NOT EXISTS ai_growth_gsc_sync_jobs (
  id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, site_url TEXT NOT NULL,
@@ -533,3 +555,56 @@ CREATE INDEX IF NOT EXISTS idx_growth_autonomy_paid_owner_day
 
 -- Bounded, no-paid-call retry for autonomous daily jobs; existing records remain at zero.
 ALTER TABLE ai_analysis_records ADD COLUMN IF NOT EXISTS autonomy_safe_retries INTEGER NOT NULL DEFAULT 0;
+
+-- Owner-scoped read-only monitor opt-in; no new queue or daemon.
+-- Worker presence is recorded independently from the user's enabled setting.
+CREATE TABLE IF NOT EXISTS ai_growth_monitor_settings (
+ owner_id TEXT PRIMARY KEY,
+ enabled BOOLEAN NOT NULL DEFAULT FALSE,
+ version INTEGER NOT NULL DEFAULT 1,
+ updated_at BIGINT NOT NULL,
+ worker_seen_at BIGINT,
+ last_scan_at BIGINT,
+ last_scan_status TEXT,
+ last_scan_summary JSONB
+);
+
+
+-- External provider billing is NOT the model token budget. All amounts are
+-- integral micro-USD. Disable by default until provider terms and settlement
+-- have been reviewed for the pinned deployment.
+CREATE TABLE IF NOT EXISTS ai_external_spend_policy (
+ owner_id TEXT NOT NULL,
+ workspace_id TEXT NOT NULL,
+ connection_id TEXT NOT NULL,
+ capability_id TEXT NOT NULL,
+ enabled BOOLEAN NOT NULL DEFAULT FALSE,
+ currency TEXT NOT NULL DEFAULT 'USD' CHECK(currency='USD'),
+ day_timezone TEXT NOT NULL DEFAULT 'Asia/Bangkok'
+   CHECK(day_timezone='Asia/Bangkok'),
+ daily_limit_microusd BIGINT NOT NULL DEFAULT 0 CHECK(daily_limit_microusd>=0),
+ per_call_reserve_microusd BIGINT NOT NULL DEFAULT 0 CHECK(per_call_reserve_microusd>=0),
+ updated_at BIGINT NOT NULL,
+ PRIMARY KEY(owner_id,workspace_id,connection_id,capability_id)
+);
+CREATE TABLE IF NOT EXISTS ai_external_spend_reservations (
+ id TEXT PRIMARY KEY,
+ owner_id TEXT NOT NULL,
+ workspace_id TEXT NOT NULL,
+ connection_id TEXT NOT NULL,
+ capability_id TEXT NOT NULL,
+ task_id TEXT NOT NULL,
+ call_key TEXT NOT NULL,
+ bangkok_day TEXT NOT NULL,
+ currency TEXT NOT NULL DEFAULT 'USD' CHECK(currency='USD'),
+ state TEXT NOT NULL CHECK(state IN ('unknown','settled')),
+ reserved_microusd BIGINT NOT NULL CHECK(reserved_microusd>0),
+ actual_microusd BIGINT CHECK(actual_microusd>=0),
+ provider_receipt TEXT,
+ created_at BIGINT NOT NULL,
+ settled_at BIGINT,
+ UNIQUE(owner_id,workspace_id,connection_id,capability_id,task_id,call_key)
+);
+CREATE INDEX IF NOT EXISTS idx_external_spend_ledger_day
+ ON ai_external_spend_reservations(
+ owner_id,workspace_id,connection_id,capability_id,bangkok_day);

@@ -31,7 +31,7 @@ test('daily AI brief refuses an invented overall grade for incomplete goals',()=
 });
 test('strategy policy only refocuses investigation and does not claim causal accuracy',()=>{
  const rows=[1,2,3].map(i=>({
-  suggestion_id:'s'+i,retrospective_id:'r'+i,analysis_id:'a'+i,
+  suggestion_id:'s'+i,retrospective_id:'r'+i,analysis_id:'a'+i,review_context_version:'1',
   user_status:'executed',executed_at:END-10*DAY,reviewed_at:END-5*DAY,
   validation_metrics:{primary:'active_users'},metric_changes:{
    active_users:{available:true,baseline:100,effect:80}},
@@ -41,4 +41,21 @@ test('strategy policy only refocuses investigation and does not claim causal acc
  const j=judgeHistory(rows,{now:END});
  assert.equal(j.length,3);
  assert.deepEqual(proposeStrategy(j,{goal:'activation',source:'all'}).policy.focusMetrics,['active_users']);
+});
+
+test('unversioned retrospective cannot influence the learned strategy',()=>{
+ const row={suggestion_id:'s',retrospective_id:'r',analysis_id:'a',user_status:'executed',
+  executed_at:END-10*DAY,reviewed_at:END-5*DAY,validation_metrics:{primary:'active_users'},
+  metric_changes:{active_users:{available:true,baseline:100,effect:80}},
+  confidence:'high',has_improvement:false,filter_conditions:{focusGoal:'activation'},business_scope:{source:'all'}};
+ assert.deepEqual(judgeHistory([row],{now:END}),[]);
+});
+
+test('strategy feedback uses actual execution scope',()=>{
+ const row={review_context_version:'1',suggestion_id:'s',retrospective_id:'r',analysis_id:'a',user_status:'executed',
+  executed_at:END-10*DAY,reviewed_at:END-5*DAY,validation_metrics:{primary:'active_users'},
+  metric_changes:{active_users:{available:true,baseline:100,effect:80}},
+  confidence:'high',has_improvement:false,action_scope:{source:'twitter'},
+  filter_conditions:{focusGoal:'activation'},business_scope:{source:'all'}};
+ assert.equal(judgeHistory([row],{now:END})[0].source,'twitter');
 });

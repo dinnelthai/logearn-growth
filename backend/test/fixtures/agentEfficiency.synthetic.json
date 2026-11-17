@@ -1,0 +1,13 @@
+{
+ "description":"SYNTHETIC contract fixture; NOT production token savings",
+ "cases":[
+  {"id":"synthetic-activation-1","goal":"activation",
+   "expectedSignals":[{"metric":"active_users","source":"all","priority":"P1"}],
+   "before":{"calls":4,"inputTokens":5000,"outputTokens":1000,"totalTokens":6000,"costKnown":true,"costUsd":0.1,
+    "signals":[{"metric":"active_users","source":"all","priority":"P1"}]},
+   "after":{"calls":2,"inputTokens":3000,"outputTokens":600,"totalTokens":3600,"costKnown":true,"costUsd":0.06,
+    "signals":[{"metric":"active_users","source":"all","priority":"P1"}],
+    "quality":{"complete":true,"sourceContextVerified":true,"causalProof":false}}
+  }
+ ]
+}

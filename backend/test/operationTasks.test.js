@@ -1,9 +1,9 @@
 process.env.DB_PATH=':memory:';process.env.ANALYTICS_STORAGE='hologres'
 const {test,after}=require('node:test'),assert=require('node:assert/strict'),express=require('express'),db=require('../src/db/connection'),fs=require('node:fs'),remote=require('../src/data/hologres'),jobs=require('../src/services/analysisJobs')
 db.exec(fs.readFileSync(require('node:path').join(__dirname,'../src/db/schema.sql'),'utf8'))
-let asof=Date.now(),calls=0,broken=false
+let asof=Date.now(),calls=0,broken=false,tradeRows=[]
 remote.snapshot=async()=>({snapshot_id:'snap',snapshot_cutoff:new Date(asof).toISOString(),as_of:new Date(asof).toISOString()});remote.status=()=>remote.snapshot()
-remote.query=async sql=>{calls++;if(broken)throw Error('source failed');if(sql.includes('SELECT account_id::text'))return [{account_id:'1'},{account_id:'2'}];if(sql.includes('SELECT event_id,SUBSTRING'))return [{event_id:'a',user_id:'1',t:asof-100}];return []}
+remote.query=async (sql,params)=>{calls++;if(broken)throw Error('source failed');if(sql.includes('SELECT account_id::text'))return [{account_id:'1'},{account_id:'2'}];if(sql.includes('SELECT event_id,SUBSTRING'))return [{event_id:'a',user_id:'1',t:asof-100}];return tradeRows.filter(t=>Date.parse(t.transaction_time)>=params[1]&&Date.parse(t.transaction_time)<params[2])}
 const originalTime=Date.now()-1000
 jobs.result=(id,owner)=>{if(owner!=='a')throw Object.assign(Error('private result'),{status:409});return {j:{snapshot:'snap',context:{mode:id==='wrong'?'funnel':'segments',start:originalTime-86400000,end:originalTime+1,source:'all',selection:{pool:'registered',filters:{task:'analysis_no_trade'},tags:[]}}},value:{lists:{all:id==='empty'?[]:id==='huge'?Array.from({length:5001},(_,i)=>'user:'+(i+1)):['user:1','user:2','user:1']},payload:{summary:{users:2}}}}}
 const app=express();app.use(express.json());app.use((req,_res,next)=>{req.user={user_id:req.get('x-owner')||'a'};next()});app.use('/t',require('../src/routes/operationTasks'));app.use(require('../src/routes/userOperations'));app.use((e,_req,res,_next)=>res.status(e.status||500).json({error:e.message}));const server=app.listen(0);after(()=>{server.close();db.close()})
@@ -18,13 +18,15 @@ test('task creation uses only owner-scoped segment results and refuses empty, ov
  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM operation_tasks').get().n,0)
 })
 test('fixed roster and baseline survive task edits, completion, reopening and data refresh',async()=>{
- const r=await request('/t',{title:'fixed lead',cache_id:'job',assignee:'ops',next_step:'check blockers',due_at:0});assert.equal(r.status,201);const t=r.body.task,id=t.id
- assert.equal(t.member_count,2);assert.equal(t.baseline.total.users,2);assert.equal(t.source.conditions.filters.task,'analysis_no_trade')
+ const r=await request('/t',{title:'fixed lead',cache_id:'job',assignee:'ops',next_step:'check blockers',due_at:0,operation:{goal:'trade',channel:'telegram',window_days:7}});assert.equal(r.status,201);const t=r.body.task,id=t.id
+ assert.equal((await request('/t?limit=10')).body.total,1);assert.equal((await request('/t?limit=10',undefined,'GET','b')).body.total,0)
+ assert.equal(t.member_count,2);assert.deepEqual(t.source.operation,{goal:'trade',channel:'telegram',window_days:7});assert.equal(t.baseline.total.users,2);assert.equal(t.source.conditions.filters.task,'analysis_no_trade')
  assert.equal(t.members_json,undefined);const baseline=JSON.stringify(t.baseline),source=JSON.stringify(t.source)
  const duplicate=await request('/t',{title:'changed client request',cache_id:'job'});assert.equal(duplicate.body.existing,true);assert.equal(duplicate.body.task.id,id)
  jobs.result=()=>{throw Object.assign(Error('original analysis expired'),{status:409})}
  assert.equal((await request('/t/'+id,undefined,'GET','b')).status,404)
- const update=await request('/t/'+id,{status:'in_progress',expected_updated_at:t.updated_at,result_note:'checked account'},'PATCH');assert.equal(update.status,200)
+ const update=await request('/t/'+id,{status:'in_progress',expected_updated_at:t.updated_at,result_note:'[手工登记] fake'},'PATCH');assert.equal(update.status,200)
+ assert.equal((await request('/t/'+id+'/review')).body.awaiting_execution,true)
  const work=(await request('/api/workbench')).body;assert.equal(work.summary.group_due,1);assert.equal(work.summary.groups_open,1)
  assert.equal((await request('/t/'+id,{status:'done',expected_updated_at:t.updated_at,result_note:'stale'},'PATCH')).status,409)
  const newer=update.body.task
@@ -34,8 +36,18 @@ test('fixed roster and baseline survive task edits, completion, reopening and da
  const reopened=await request('/t/'+id,{status:'open',expected_updated_at:done.body.task.updated_at},'PATCH');assert.equal(reopened.status,200);assert.equal(reopened.body.task.completed_at,null)
  assert.equal(JSON.stringify(reopened.body.task.baseline),baseline);assert.equal(JSON.stringify(reopened.body.task.source),source)
  assert.equal((await request('/t/'+id)).body.history.length,4)
+ assert.equal((await request('/t/'+id+'/review')).body.awaiting_execution,true)
+ assert.equal((await request('/t/'+id+'/log',{channel:'telegram',count:3,note:'too many'})).status,400)
+ const logged=await request('/t/'+id+'/log',{channel:'telegram',count:1,note:'sent tutorial'});assert.equal(logged.status,201)
+ assert.match((await request('/t/'+id)).body.history[0].note,/手工登记/)
  const a=(await request('/t/'+id+'/audience')).body;assert.deepEqual(a.ids,['user:1','user:2']);assert.equal(a.start,t.source.start)
  asof=t.created_at-1;assert.equal((await request('/t/'+id+'/review')).body.pending,true)
- asof=Date.now()+1000;const reviewed=await request('/t/'+id+'/review');assert.equal(reviewed.status,200);assert.equal(reviewed.body.performance.total.users,2);assert.equal(reviewed.body.start,t.created_at)
+ asof=Date.now()+1000;tradeRows=[{account_id:'1',transaction_time:new Date(logged.body.created_at+1).toISOString(),valid:false,transaction_hash:'bad',chain:'sol'}];const reviewed=await request('/t/'+id+'/review');assert.equal(reviewed.status,200);assert.equal(reviewed.body.performance.total.users,2);assert.equal(reviewed.body.start,logged.body.created_at);assert.equal(reviewed.body.comparison.before.total.users,2);assert.equal(reviewed.body.comparison.after.total.users,2);assert.ok(Array.isArray(reviewed.body.movement.analysis_ids));assert.deepEqual(reviewed.body.movement.trade_ids,[]);assert.equal(reviewed.body.return_d7.after_users,0);assert.deepEqual(reviewed.body.movement.return_d7_ids,[])
  assert.equal((await request('/t/'+id+'/review',undefined,'GET','b')).status,404)
+})
+test('legacy tasks retain continuous observation after seven days',async()=>{
+ const original=Date.now, now=original(), start=now-10*86400000
+ db.prepare('UPDATE operation_tasks SET source_json=?,created_at=? WHERE origin_job=?').run(JSON.stringify({start:start-86400000,end:start,source:'all'}),start,'job')
+ asof=now;const review=await request('/t/'+db.prepare('SELECT id FROM operation_tasks WHERE origin_job=?').get('job').id+'/review')
+ assert.equal(review.body.start,start);assert.ok(review.body.end-start>7*86400000);assert.equal(review.body.legacy,true)
 })

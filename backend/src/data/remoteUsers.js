@@ -1,6 +1,8 @@
 const remote = require('./hologres')
 const {userFactsCte}=require('./userFacts')
 const {internalType, rawNamesForTypes} = require('../analytics/eventMap')
+const {ACTIVE_EVENTS,CORE_EVENTS,returnD7FromDays}=require('../analytics/returnD7')
+const quoted=events=>events.map(x=>"'"+x+"'").join(',')
 const MAX_ROWS = Number(process.env.REMOTE_MAX_EVENT_ROWS || 150000)
 async function loadUsers(s, {types, start, end, source = 'all', audience = null}) {
   const raws = rawNamesForTypes(types), login = types.includes('logged_in_visit')
@@ -45,6 +47,8 @@ async function features(s,source='all',audience=null,period=null){
       MAX(e.client_ts) FILTER(WHERE event_name IN('chip_analysis_viewed','chip_analysis_drilldown')) AS last_chip_at,
       COUNT(DISTINCT FLOOR((e.client_ts+25200000)/86400000.0)) FILTER(WHERE event_name IN('chip_analysis_viewed','chip_analysis_drilldown') AND e.client_ts >= $2-2419200000) AS chip_days_28,
       ARRAY_AGG(e.client_ts ORDER BY e.client_ts) FILTER(WHERE event_name IN('chip_analysis_viewed','chip_analysis_drilldown')) AS chip_times,
+      ARRAY_AGG(DISTINCT FLOOR((e.client_ts+25200000)/86400000.0)::BIGINT) FILTER(WHERE event_name IN (${quoted(ACTIVE_EVENTS)})) AS active_days,
+      ARRAY_AGG(e.client_ts ORDER BY e.client_ts) FILTER(WHERE event_name IN (${quoted(CORE_EVENTS)})) AS core_times,
       COUNT(DISTINCT properties->>'strategy_type') FILTER(WHERE event_name='strategy_started') AS ai_strategies_all,
       COUNT(DISTINCT properties->>'strategy_type') FILTER(WHERE event_name='strategy_started' AND e.client_ts >= $2-2419200000) AS ai_strategies_28,
       BOOL_OR(event_name='strategy_started') AS used_strategy,
@@ -54,16 +58,17 @@ async function features(s,source='all',audience=null,period=null){
       BOOL_OR(e.client_ts >= $5 AND e.client_ts < $6 AND event_name='strategy_started') AS strategy_period
     FROM e WHERE user_key LIKE 'user:%' AND e.client_ts <= $2
     AND ($4::text[] IS NULL OR e.user_key=ANY($4)) GROUP BY e.user_key)
-    SELECT p.*,g.first_observed_at,g.last_observed_at,g.first_chip_at,g.last_chip_at,g.chip_days_28,g.chip_times,
+    SELECT p.*,g.first_observed_at,g.last_observed_at,g.first_chip_at,g.last_chip_at,g.chip_days_28,g.chip_times,g.active_days,g.core_times,
       g.ai_strategies_all,g.ai_strategies_28,g.used_strategy,g.last_strategy_at,g.analysis_days_period,g.login_period,g.strategy_period
     FROM product_users p LEFT JOIN grouped g ON p.user_key=g.user_key
     WHERE ($3::text='all' OR p.source=$3) AND ($4::text[] IS NULL OR p.user_key=ANY($4)) LIMIT 80001`,
     [s.snapshot_cutoff,Date.parse(s.as_of),source,audience,start,end])
   if(rows.length>80000||Buffer.byteLength(JSON.stringify(rows))>48*1024*1024)throw Object.assign(new Error('用户特征超过预算，请缩小人群'),{status:422})
-  return rows.map(({chip_times,...r})=>{
+  return rows.map(({chip_times,active_days,core_times,...r})=>{
     const times=(chip_times||[]).map(Number),recent=Date.parse(s.as_of)-2419200000
     const returned_28=times.some((t,i)=>i>0&&t>=recent&&t-times[i-1]>=2419200000)
-    return {...r,first_observed_at:r.first_observed_at==null?null:Number(r.first_observed_at),last_observed_at:r.last_observed_at==null?null:Number(r.last_observed_at),analysis_returned_d1:times.length>0&&times.some(t=>Math.floor((t+25200000)/86400000)===Math.floor((times[0]+25200000)/86400000)+1),returned_28,referred_analysis_period:r.invitation_at!=null&&times.some(t=>t>=Math.max(start,Date.parse(r.invitation_at))&&t<end),created_at:r.created_at==null?null:Date.parse(r.created_at),
+    const d7=returnD7FromDays(active_days,core_times,{start,end})
+    return {...r,first_observed_at:r.first_observed_at==null?null:Number(r.first_observed_at),last_observed_at:r.last_observed_at==null?null:Number(r.last_observed_at),analysis_returned_d1:times.length>0&&times.some(t=>Math.floor((t+25200000)/86400000)===Math.floor((times[0]+25200000)/86400000)+1),returned_28,returned_d7_period:d7.returned,returned_d7_at:d7.first_return_at,referred_analysis_period:r.invitation_at!=null&&times.some(t=>t>=Math.max(start,Date.parse(r.invitation_at))&&t<end),created_at:r.created_at==null?null:Date.parse(r.created_at),
       last_login_at:r.last_login_at==null?null:Date.parse(r.last_login_at),invitation_at:r.invitation_at==null?null:Date.parse(r.invitation_at),
       balance_updated_at:r.balance_updated_at==null?null:Date.parse(r.balance_updated_at),
       nft_count:r.nft_count==null?null:Number(r.nft_count),available_points:r.available_points==null?null:Number(r.available_points),

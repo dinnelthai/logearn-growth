@@ -43,6 +43,12 @@ router.get('/growth-agent/status',handle(async(req,res)=>{
     latestBrief:briefs[0]||null,targetCount:targets.filter(t=>t.active).length,
     modelCallsOnThisRequest:0});
 }));
+router.get('/growth-agent/cost-audit',handle(async(req,res)=>{
+ const days=Number(req.query.days||7);
+ res.json(await require('../ai/growth/costAudit').getCostBreakdown({
+  ownerId:req.user.user_id,days
+ }));
+}));
 router.get('/growth-agent/targets',handle(async(req,res)=>{
   const items=await require('../ai/growth/agentStore').createAgentStore()
     .targets(req.user.user_id,{source:req.query.source||'all'});
@@ -88,6 +94,16 @@ router.post('/growth-agent/refresh',handle(async(req,res)=>{
     ownerId,source,goals,allowPaidDispatch:false
   });
   res.json({...result,paidModelCallsStarted:0,externalActions:0});
+}));
+// Authenticated bootstrap for the user's own Search Console OAuth grant.
+// Google callback is public, but owner identity is bound to one-time server state.
+router.post('/growth-seo/gsc/oauth/start',handle(async(req,res)=>{
+ const result=await require('../ai/growth/gscOAuth').oauth.start(req.user.user_id);
+ res.set('Cache-Control','no-store').json(result);
+}));
+router.post('/growth-seo/gsc/oauth/disconnect',handle(async(req,res)=>{
+ const result=await require('../ai/growth/gscOAuth').oauth.disconnect(req.user.user_id);
+ res.json({...result,paidCalls:0});
 }));
 // Connected Search Console settings: server-side API credentials only, no
 // credentials are accepted from or returned to the browser.
@@ -254,6 +270,39 @@ router.post('/:id/cancel',handle(async(req,res)=>{
   res.json({analysisId:updated.id,status:updated.status,cancelRequested:updated.cancel_requested,
     notice:'取消请求已记录；正在进行的模型请求可能仍会产生费用'});
 }));
+// Explicit operator action only. Reuse the original paid model response and
+// immutable context for a weekly overflow failure. Never call the provider
+// from this route; the Worker rechecks every fence before further paid rounds.
+router.post('/:id/resume-weekly-overflow',handle(async(req,res)=>{
+  const ownerId=req.user.user_id;
+  const record=await records.getAnalysisRecord(req.params.id,ownerId);
+  if(!record)return res.status(404).json({error:'分析不存在或无权限'});
+  if(record.status!=='failed'||record.cancel_requested||
+    record.filter_conditions?.weeklyReport!=='v1'||
+    !['补充查询过多，请缩小问题范围或提高调查能力',
+      'AI Token硬预算不足，未发起下一轮模型请求；已付费证据保留在断点'].includes(record.error_message))
+    return res.status(409).json({error:'仅允许人工继续已确认模型响应的超额补查或Token预算周报'});
+  const guards=await records.listAnalysisPaidCalls(record.id,ownerId);
+  if(!guards.length||guards.some(item=>item.status!=='received'))
+    return res.status(409).json({error:'存在无法确认的模型费用或调用状态，禁止续跑'});
+  const traceStore=require('../ai/business/trace').createTraceStore(require('../db/connection'));
+  const rows=traceStore.list(ownerId,record.id);
+  const originalPrompt=traceStore.promptForRun(ownerId,record.id,'analysis');
+  const compact=record.context_payload?JSON.parse(record.context_payload):record.data_snapshot;
+  if(!originalPrompt||!compact?.business?.scope?.source||!Array.isArray(compact.evidence))
+    return res.status(409).json({error:'原始提示词或业务快照不完整，禁止续跑'});
+  const verdict=require('../ai/business/resumePlan').planInvestigationResume({
+    rows,guards,context:compact,systemPrompt:originalPrompt
+  });
+  if(!verdict.allowed)return res.status(409).json({
+    error:'已付费模型响应无法安全复用：'+verdict.reason,reason:verdict.reason});
+  const job=await addAIAnalysisJob('resume-investigation',
+    {analysisId:record.id,ownerId,manualFailedWeekly:true},
+    {jobId:'weekly-manual-resume-'+record.id+'-'+randomUUID(),attempts:1});
+  res.status(202).json({analysisId:record.id,jobId:job.id,status:'queued',
+    replayedCalls:verdict.replayedModelCalls,remainingTools:verdict.remainingTools,
+    notice:'原始模型响应将从已保存检查点复用；后续模型轮次可能产生新费用。'});
+}));
 router.post('/:id/retry',handle(async(req,res)=>{
   const ownerId=req.user.user_id;
   const existing=await records.getAnalysisRecord(req.params.id,ownerId);
@@ -281,6 +330,13 @@ router.get('/list',handle(async(req,res)=>{
   const opts=paging(req),rows=await records.listAnalysisRecords(req.user.user_id,opts);
   res.json({records:rows,count:rows.length,...opts});
 }));
+router.delete('/:id',handle(async(req,res)=>{
+  const record=await records.getAnalysisRecord(req.params.id,req.user.user_id);
+  if(!record)return res.status(404).json({error:'分析不存在'});
+  const removed=await records.hideAnalysisRecord(req.params.id,req.user.user_id);
+  if(!removed)return res.status(409).json({error:'运行中的分析不能删除，请先停止分析'});
+  res.json({analysisId:removed.id,removed:true});
+}));
 router.get('/cost-stats',handle(async(req,res)=>{
   const {startTime,endTime}=req.query;
   for(const value of [startTime,endTime])if(value!=null&&(!Number.isSafeInteger(Number(value))||Number(value)<0))return res.status(400).json({error:'成本统计时间无效'});
@@ -293,7 +349,9 @@ router.get('/growth-budget',handle(async(req,res)=>{
 router.get('/growth-investigations',handle(async(req,res)=>{
   const proposals=await require('../ai/growth/investigationStore')
     .createInvestigationStore().list(req.user.user_id,{limit:100});
-  res.json({version:'growth-investigation-proposals-v1',proposals,
+  const {diagnoseProposal}=require('../ai/growth/diagnosis');
+  res.json({version:'growth-investigation-proposals-v1',
+    proposals:proposals.map(p=>({...p,diagnosis:diagnoseProposal(p)})),
     requiresHumanApproval:true,automaticPaidCalls:false});
 }));
 router.get('/growth-investigations/:id/timeline',handle(async(req,res)=>{
@@ -362,6 +420,23 @@ router.post('/growth-notifications/:id/read',handle(async(req,res)=>{
     .createNotificationStore().markRead(req.user.user_id,req.params.id);
   if(!notice)return res.status(404).json({error:'通知不存在或无权限'});
   res.json({notification:notice});
+}));
+// The existing backend schedules scans; every authenticated account controls
+// only its own opt-in. No separate worker, account allowlist or model calls.
+function monitorResponse(state){
+ const online=require('../ai/growth/monitorScheduler').isStarted();
+ return {...state,allowed:true,workerOnline:online,
+  status:!state.enabled?'disabled':online?'scheduled':'waiting-for-backend',
+  note:'只扫描已保存的完整业务日报；不会自动付费分析或执行运营动作'};
+}
+router.get('/growth-alerts/monitor-control',handle(async(req,res)=>{
+ const control=require('../ai/growth/monitorControl').createMonitorControl();
+ res.json(monitorResponse(await control.get(String(req.user.user_id))));
+}));
+router.put('/growth-alerts/monitor-control',handle(async(req,res)=>{
+ const control=require('../ai/growth/monitorControl').createMonitorControl();
+ const {enabled,expectedVersion}=req.body||{};
+ res.json(monitorResponse(await control.set(String(req.user.user_id),{enabled,expectedVersion})));
 }));
 router.get('/growth-alerts',handle(async(req,res)=>{
   const store=require('../ai/growth/alertStore').createAlertStore();
@@ -493,11 +568,24 @@ router.get('/jobs/:jobId/checkpoint',handle(async(req,res)=>{
   // model responses or tool results on this diagnostics endpoint.
   const calls=require('../ai/business/trace').createTraceStore(require('../db/connection')).list(req.user.user_id,record.id);
   const summary=require('../ai/business/checkpointState').inspectCheckpoint(calls);
+  // This is a server-side view of the shared, durable PostgreSQL paid-call
+  // fence. Local SQLite alone cannot prove no provider call was dispatched.
+  const ledger=await records.listAnalysisPaidCalls(record.id,req.user.user_id);
+  const paidCallState=ledger.length===0?(calls.length?'mismatch':'not-started'):
+    ledger.some(item=>['started','unknown'].includes(item.status))?'uncertain':
+    ledger.some(item=>item.status!=='received')||ledger.length!==calls.length
+      ?'mismatch':'received';
+  const safeToRetry=record.status==='failed'&&!record.cancel_requested&&
+    paidCallState==='not-started'&&summary.state==='not-started'&&summary.modelCalls===0;
   const leaseExpired=record.status==='processing' && (!record.lease_expires_at || Number(record.lease_expires_at)<=Date.now());
+  const active=record.status==='processing'&&!leaseExpired&&!record.cancel_requested;
+  const inProgress=active&&((summary.reason==='unresolved-paid-call'&&calls.at(-1)?.status==='started')||summary.state==='partial-tools');
   res.json({analysisId:record.id,recordStatus:record.status,
     leaseExpired,leaseExpiresAt:record.lease_expires_at||null,
-    requiresHumanReview:leaseExpired||summary.state==='blocked'||summary.state==='partial-tools',
-    ...summary});
+    ...summary,paidCallState,paidCallCount:ledger.length,safeToRetry,
+    ...(inProgress?{state:'in-progress',reason:'work-in-progress'}:{}),
+    requiresHumanReview:leaseExpired||['uncertain','mismatch'].includes(paidCallState)||
+      (!inProgress&&(summary.state==='blocked'||summary.state==='partial-tools'))});
 }));
 router.get('/jobs/:jobId/status',handle(async(req,res)=>{
   const status=await getJobStatus('aiAnalysis',req.params.jobId);

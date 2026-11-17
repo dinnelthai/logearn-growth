@@ -104,15 +104,16 @@ function createAgentStore(db=pool){
   if(!ownerId||!Number.isSafeInteger(limit)||limit<1||limit>300)
    bad('学习反馈查询参数无效');
   const r=await db.query(`SELECT s.id AS suggestion_id,s.analysis_id,s.user_status,
-    s.validation_metrics,s.forecast,s.priority,s.created_at,s.executed_at,
+    s.validation_metrics,s.forecast,s.priority,s.created_at,s.executed_at,s.action_scope,s.applicable_scope,
     a.business_scope,a.filter_conditions,
     r.id AS retrospective_id,r.created_at AS reviewed_at,
-    r.metric_changes,r.effect_period,r.has_improvement,r.has_causality,r.confidence
+    r.metric_changes,r.effect_period,r.has_improvement,r.has_causality,r.confidence,
+    r.baseline_data->>'reviewContextVersion' AS review_context_version
    FROM ai_suggestions s
    JOIN ai_analysis_records a ON a.id=s.analysis_id AND a.owner_id=s.owner_id
    JOIN ai_retrospectives r ON r.suggestion_id=s.id AND r.owner_id=s.owner_id
    WHERE s.owner_id=$1 AND s.user_status='executed'
-     AND ($2='all' OR a.business_scope->>'source'=$2)
+     AND COALESCE(s.action_scope->>'source',s.applicable_scope->>'source',a.business_scope->>'source','all')=$2
    ORDER BY r.created_at DESC LIMIT $3`,[ownerId,source,limit]);
   return r.rows;
  }
@@ -137,6 +138,7 @@ function createAgentStore(db=pool){
   if(!GOALS.has(goal)||!ownerId)bad('策略查询参数无效');
   const r=await db.query(`SELECT version,policy,evidence,created_at,feedback_digest
    FROM ai_growth_agent_strategy WHERE owner_id=$1 AND goal=$2 AND source=$3
+    AND policy->>'version'='evidence-first-strategy-v3'
    ORDER BY version DESC LIMIT 1`,[ownerId,goal,source]);
   return r.rows[0]||null;
  }

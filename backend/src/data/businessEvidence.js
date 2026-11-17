@@ -131,9 +131,7 @@ async function fetchWeeklyCore(params = {}) {
   const s = snapshot || await remote.status();
 
   const weeklyCore = require('./weeklyCore');
-  const result = await weeklyCore.weeklyCoreFacts(s, { end, source });
-
-  return result.payload;
+  return weeklyCore.weeklyCorePayload(s,{end,source});
 }
 
 /**

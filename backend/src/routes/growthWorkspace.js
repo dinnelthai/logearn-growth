@@ -1,12 +1,11 @@
 'use strict';
 // Mount only behind the application's existing `requireAuth` middleware.
-// This API is fully read-only with respect to external services and models.
+// Existing workspace routes are read-only for external services. Weekly AI runs require an explicit POST and use the existing paid-call guards.
 const express=require('express');
 const {workspaceStore}=require('../ai/growth/workspace/store');
 const {currentMonth}=require('../ai/growth/workspace/period');
 const {requiredString}=require('../ai/growth/workspace/contracts');
-const {refreshWeeklyCore}=require('../ai/growth/workspace/weeklyCoreProgress');
-function createRouter({db=require('../db/connection'),metricProviders=null}={}){
+function createRouter({db=require('../db/connection')}={}){
  const router=express.Router();const store=workspaceStore(db);
  const h=fn=>async(req,res)=>{try{
   if(!req.user?.user_id)return res.status(401).json({error:'未登录'});
@@ -15,15 +14,10 @@ function createRouter({db=require('../db/connection'),metricProviders=null}={}){
  const num=(v,defaultValue)=>v===undefined?defaultValue:Number(v);
  router.get('/dashboard',h(async(req,res,owner)=>{
   const month=currentMonth();
-  const goals=[];
-  for(const goal of store.listGoals(owner,{start:month.start,end:month.end})){
-   let progress=store.progress(owner,goal.id).progress;
-   if(goal.metric_id==='weekly_core'){
-    const providers=metricProviders||{status:()=>require('../data/hologres').status(),weekly:(...args)=>require('../data/weeklyCore').weeklyCoreFacts(...args)};
-    progress=await refreshWeeklyCore({store,owner,goal,...providers});
-   }
-   goals.push({goal,progress});
-  }
+  // API reads use previously persisted owner-scoped evidence only.
+  // Refreshes run in the leased daily scheduler, never on a page GET.
+  const goals=store.listGoals(owner,{start:month.start,end:month.end})
+   .map(goal=>({goal,progress:store.progress(owner,goal.id).progress}));
   res.json({version:'growth-workspace-v1',month,goals,problems:store.problems(owner),actions:store.actions(owner),reports:store.reportList(owner),quality:store.qualitySummary(owner),externalActions:0,modelCalls:0});
  }));
  router.post('/goals',h(async(req,res,owner)=>res.status(201).json(store.saveGoal(owner,req.body||{}))));
@@ -47,6 +41,168 @@ function createRouter({db=require('../db/connection'),metricProviders=null}={}){
  router.post('/actions/:id/status',h(async(req,res,owner)=>res.json(store.updateAction(owner,req.params.id,req.body?.status,req.body||{}))));
  router.post('/actions/:id/review',h(async(req,res,owner)=>res.json(store.reviewAction(owner,req.params.id,req.body||{}))));
  router.get('/evidence/:id',h(async(req,res,owner)=>{const evidence=store.getEvidence(owner,req.params.id);res.status(evidence?200:404).json(evidence||{error:'证据不存在'})}));
+ // Last *completed* Monday-Sunday period, computed server-side in Bangkok time.
+ // All report queries use the shared, owner-scoped AI record store.
+ router.get('/ai-weekly-reports',h(async(req,res,owner)=>{
+  const records=require('../db/aiRecords');
+  const {weeklyPeriod,reportPeriod}=require('../ai/growth/weeklyReport');
+  const period=req.query?.start!=null||req.query?.end!=null?
+   reportPeriod(req.query):weeklyPeriod();
+  const [reports,archivedCurrentWeek,archivedFailed]=await Promise.all([
+   records.listWeeklyReportRecords(owner,{limit:50}),
+   records.hasHiddenWeeklyReport(owner,period),
+   records.getArchivedFailedWeeklyReport(owner,period)
+  ]);
+  const hasCurrent=reports.some(row=>Number(row.date_range_start)===period.start&&
+   Number(row.date_range_end)===period.end);
+  res.json({period,reports,archivedCurrentWeek,
+   canRegenerateArchivedFailed:!hasCurrent&&!!archivedFailed,paidGeneration:false});
+ }));
+ router.post('/ai-weekly-reports',h(async(req,res,owner)=>{
+  const {reportPeriod,weeklyKey,weeklyOperations}=require('../ai/growth/weeklyReport');
+  const records=require('../db/aiRecords');
+  const period=reportPeriod(req.body||{});
+  const prior=await records.listWeeklyReportRecords(owner,{limit:50});
+  const existing=prior.find(row=>Number(row.date_range_start)===period.start&&Number(row.date_range_end)===period.end);
+  if(existing)return res.json({analysisId:existing.id,status:existing.status,reused:true,notice:'该时间范围已有报告任务，不会重复触发模型'});
+  const archivedFailed=await records.getArchivedFailedWeeklyReport(owner,period);
+  if(archivedFailed&&req.body?.regenerateArchivedFailed!==true)
+   return res.status(409).json({error:'该时间范围的失败报告已删除，请明确发起一次新的付费报告任务'});
+  if(!archivedFailed&&req.body?.regenerateArchivedFailed===true)
+   return res.status(409).json({error:'未发现该时间范围已删除的失败报告，无法重新生成'});
+  // Deterministic key per archived failure: repeated clicks enqueue only once.
+  // Every attempt preserves the original task, evidence and paid-call ledger.
+  const requestKey=archivedFailed?
+   weeklyKey(period)+':regenerate-archived:'+archivedFailed.id:weeklyKey(period);
+  const operations=weeklyOperations(store,owner,period);
+  const userQuestion='请对所选时间范围内的 LogEarn 业务增长与运营工作输出可核对的 AI 运营报告：本期变化、核心漏斗、重要异常、渠道证据、人工运营工作量、下一周期优先事项和数据缺口。与紧邻其前、时长相同的上一周期比较。严禁无数据归因或编造业务指标。';
+  const focusGoal='activation',scope={source:'all'},modelMode='auto',title='AI 运营报告 · '+new Date(period.start+25200000).toISOString().slice(0,10)+' — '+new Date(period.end-1+25200000).toISOString().slice(0,10);
+  const {record,created}=await records.createWeeklyReportRecord({
+   ownerId:owner,requestKey,title,start:period.start,end:period.end,question:userQuestion,
+   conditions:{businessScope:scope,focusGoal,modelMode,evidenceReportId:null,
+    goalRef:null,skillId:null,weeklyReport:'v1',weeklyOperations:operations,
+    ...(archivedFailed?{weeklyReissueOf:archivedFailed.id}: {})}
+  });
+  if(record.filter_conditions?.weeklyReport!=='v1'||
+     Number(record.date_range_start)!==period.start||Number(record.date_range_end)!==period.end)
+   return res.status(409).json({error:'报告请求标识与已保存任务不一致，禁止重复付费'});
+  if(record.filter_conditions?.hiddenFromHistory===true)
+   return res.status(409).json({error:'该报告已从列表移除，原任务和付费记录保留；不会自动重发同一时间范围的模型调用'});
+  if(!created)return res.json({analysisId:record.id,status:record.status,reused:true,
+   notice:'该时间范围已有 AI 报告任务，未重复提交模型调用'});
+  try{
+   const job=await require('../queues/queues').addAIAnalysisJob('business-analysis',{
+    analysisId:record.id,ownerId:owner,dateRangeStart:period.start,dateRangeEnd:period.end,
+    businessScope:scope,userQuestion,focusGoal,modelMode,skillId:null
+   },{jobId:record.id,attempts:1});
+   res.status(202).json({analysisId:record.id,jobId:job.id,status:record.status,queued:true,
+    notice:archivedFailed?
+     '已创建新的 AI 周报，旧失败任务与调用费用保留；本次模型调用可能再次收费。':
+     'AI 周报已提交到现有分析队列，模型调用可能产生费用。'});
+  }catch(error){
+   // The task is durable. Do not fabricate a successful queue dispatch.
+   await records.updateAnalysisStatus(record.id,'failed',null,'队列提交失败：'+error.message);
+   throw error;
+  }
+ }));
+ // Explicit, owner-scoped regeneration of an EXISTING current weekly report.
+ // Unlike retry/resume, this creates a separate paid task and leaves original
+ // models, citations, charges and status untouched. Source-ID-derived key is
+ // stable: double clicks and concurrent callers can enqueue at most one job.
+ router.post('/ai-weekly-reports/:id/regenerate',h(async(req,res,owner)=>{
+  if(req.body?.acceptPotentialDuplicateCharge!==true)
+   return res.status(400).json({error:'请确认重新生成会产生新的模型费用，既有账单和报告将保留'});
+  const {reportPeriod,weeklyKey,weeklyOperations}=require('../ai/growth/weeklyReport');
+  const records=require('../db/aiRecords');
+  const previous=await records.getAnalysisRecord(req.params.id,owner);
+  if(!previous||previous.filter_conditions?.weeklyReport!=='v1')
+   return res.status(404).json({error:'原报告不存在或无访问权限'});
+  const period=reportPeriod({start:previous.date_range_start,end:previous.date_range_end});
+  if(!['completed','failed','cancelled'].includes(previous.status)||
+     previous.filter_conditions?.hiddenFromHistory===true)
+   return res.status(409).json({error:'只能重新生成已结束且未隐藏的报告'});
+  const reports=await records.listWeeklyReportRecords(owner,{limit:50});
+  const latest=reports.find(row=>Number(row.date_range_start)===period.start&&
+   Number(row.date_range_end)===period.end);
+  if(latest&&latest.id!==previous.id){
+   if(latest.weekly_reissue_of===previous.id)
+    return res.json({analysisId:latest.id,status:latest.status,reused:true,
+     notice:'已创建基于该周报的新任务，没有再次提交付费模型调用'});
+   return res.status(409).json({error:'该时间范围已有更新的报告任务，请刷新后从最新记录重新生成'});
+  }
+  const requestKey=weeklyKey(period)+':explicit-regenerate:'+previous.id;
+  const userQuestion=previous.user_question||
+   '请使用真实业务证据生成覆盖增长、SEO、渠道、激活、留存、交易与运营行动的完整 AI 周报';
+  const scope={source:'all'},focusGoal='activation',modelMode='auto';
+  const {record,created}=await records.createWeeklyReportRecord({
+   ownerId:owner,requestKey,
+   title:'AI 运营报告 · 重新生成 · '+new Date(period.start+25200000).toISOString().slice(0,10)+' — '+new Date(period.end-1+25200000).toISOString().slice(0,10),
+   start:period.start,end:period.end,question:userQuestion,
+   conditions:{businessScope:scope,focusGoal,modelMode,evidenceReportId:null,
+    goalRef:null,skillId:null,weeklyReport:'v1',
+    weeklyOperations:weeklyOperations(store,owner,period),
+    weeklyReissueOf:previous.id,weeklyRegeneration:'explicit-v1'}
+  });
+  if(record.filter_conditions?.weeklyReport!=='v1'||
+     record.filter_conditions?.weeklyReissueOf!==previous.id||
+     Number(record.date_range_start)!==period.start||
+     Number(record.date_range_end)!==period.end)
+   return res.status(409).json({error:'重新生成的报告时间范围不匹配，拒绝重复计费'});
+  if(!created)return res.json({analysisId:record.id,status:record.status,reused:true,
+   notice:'已有该周报的重新生成任务，没有再次提交模型调用'});
+  try{
+   const job=await require('../queues/queues').addAIAnalysisJob('business-analysis',{
+    analysisId:record.id,ownerId:owner,dateRangeStart:period.start,dateRangeEnd:period.end,
+    businessScope:scope,userQuestion,focusGoal,modelMode,skillId:null
+   },{jobId:record.id,attempts:1});
+   res.status(202).json({analysisId:record.id,jobId:job.id,status:record.status,
+    queued:true,notice:'已创建独立的 AI 运营报告任务；旧报告和费用保留，本次模型调用可能另外收费'});
+  }catch(error){
+   await records.updateAnalysisStatus(record.id,'failed',null,'队列提交失败：'+error.message);
+   throw error;
+  }
+ }));
+ // Only a human can deliberately authorize another paid task when the last
+ // model call timed out with UNKNOWN cost. Preserve the failed record and ledger.
+ // Never reset its original request key or replay the old unknown provider call.
+ router.post('/ai-weekly-reports/:id/new-attempt',h(async(req,res,owner)=>{
+  if(req.body?.acceptPotentialDuplicateCharge!==true)
+   return res.status(400).json({error:'需要明确确认此前模型请求可能已计费，本次将新建付费任务'});
+  const records=require('../db/aiRecords');
+  const {reportPeriod,weeklyKey}=require('../ai/growth/weeklyReport');
+  const previous=await records.getAnalysisRecord(req.params.id,owner);
+  if(!previous||previous.filter_conditions?.weeklyReport!=='v1')
+   return res.status(404).json({error:'原报告不存在或无访问权限'});
+  const period=reportPeriod({start:previous.date_range_start,end:previous.date_range_end});
+  if(previous.status!=='failed'||previous.cancel_requested||
+     previous.filter_conditions?.weeklyReissueOf||
+     !/(?:timed out|timeout|请求超时|模型请求超时)/i.test(previous.error_message||''))
+   return res.status(409).json({error:'只有首次请求超时且费用未知的报告可人工新建一次'});
+  const ledger=await records.listAnalysisPaidCalls(previous.id,owner);
+  if(!ledger.some(call=>['unknown','started'].includes(call.status)))
+   return res.status(409).json({error:'前一次调用账本不是未确认状态，禁止绕过原任务'});
+  const requestKey=weeklyKey(period)+':manual-timeout:'+previous.id;
+  const conditions={...previous.filter_conditions,weeklyReissueOf:previous.id};
+  const {record,created}=await records.createWeeklyReportRecord({
+   ownerId:owner,requestKey,
+   title:'AI 运营报告 · 人工新尝试 · '+new Date(period.start+25200000).toISOString().slice(0,10)+' — '+new Date(period.end-1+25200000).toISOString().slice(0,10),
+   start:period.start,end:period.end,question:previous.user_question,conditions
+  });
+  if(!created)return res.json({analysisId:record.id,status:record.status,reused:true,
+   notice:'已有人工新尝试，未再次提交付费调用'});
+  try{
+   const job=await require('../queues/queues').addAIAnalysisJob('business-analysis',{
+    analysisId:record.id,ownerId:owner,dateRangeStart:period.start,dateRangeEnd:period.end,
+    businessScope:{source:'all'},userQuestion:previous.user_question,
+    focusGoal:conditions.focusGoal||'activation',modelMode:conditions.modelMode||'auto'
+   },{jobId:record.id,attempts:1});
+   res.status(202).json({analysisId:record.id,jobId:job.id,status:record.status,queued:true,
+    notice:'人工发起新的付费报告任务；原超时任务及未确认费用保持不变'});
+  }catch(error){
+   await records.updateAnalysisStatus(record.id,'failed',null,'队列提交失败：'+error.message);
+   throw error;
+  }
+ }));
  router.get('/reports',h(async(req,res,owner)=>res.json({reports:store.reportList(owner,{kind:req.query.kind||null})})));
  router.post('/reports/:kind',h(async(req,res,owner)=>{const report=store.buildReport(owner,req.params.kind,{publish:req.body?.publish===true,forceRevision:req.body?.forceRevision===true});res.json(report)}));
  router.get('/quality',h(async(req,res,owner)=>res.json(store.qualitySummary(owner))));

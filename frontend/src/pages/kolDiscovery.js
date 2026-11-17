@@ -1,5 +1,6 @@
 import {xRequest} from '../api/xAcquisition.js'
 import {loadingState} from './loadingState.js'
+import {viewState} from '../components/viewStates.js'
 import './kolDiscovery.css'
 
 const CONFIDENCE={pending:'待画像',limited:'样本有限',moderate:'中等证据',supported:'证据较充分',needs_review:'画像待复核',stale:'资料待刷新'}
@@ -28,7 +29,7 @@ export function createKolDiscovery(ctx){
       if(view==='candidates'){const c=await xRequest('/kol/candidates');if(stamp!==generation)return;candidateData=c}
       render()
       if(data.running)timer=setTimeout(()=>{if(!dirty&&!busy)draw()},4000)
-    }catch(error){if(stamp!==generation)return;host().innerHTML=`<section class="a-card si-panel"><h2>KOL画像暂不可用</h2><p class="si-error">${esc(error.message)}</p><button class="a-button" data-kd-retry>重试</button></section>`;host().querySelector('[data-kd-retry]').onclick=draw}
+    }catch(error){if(stamp!==generation)return;host().innerHTML=viewState({kind:'error',title:'KOL 画像暂不可用',description:error.message,actionLabel:'重新读取',actionAttr:'data-view-retry'});host().querySelector('[data-view-retry]').onclick=draw}
   }
   async function action(fn){
     if(busy)return;busy=true;stop();const stamp=generation

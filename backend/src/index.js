@@ -23,6 +23,7 @@ require('./db/mergeActivityBatches').mergeActivityBatches(db)
 require('./db/upgradeKolAccounts').upgradeKolAccounts(db)
 require('./services/activitySchedule').startScheduler()
 require('./services/platformAssets').start()
+require('./services/assetDailyReport').start()
 require('./services/xAcquisition').service().start()
 
 require('./pathIndex/service').start()
@@ -51,10 +52,14 @@ app.get('/health', (req, res) => res.json({ ok: true, ts: Date.now() }))
 // Prometheus metrics endpoint (public, for monitoring tools)
 app.get('/metrics', require('./monitoring/prometheus').handler)
 
+// Google authorization code arrives without the LogEarn bearer header.
+// Ownership is resolved only after consuming one-time server-side state.
+app.use('/api/gsc', require('./routes/gscOAuthCallback'))
 // Auth routes (login is public, rest require auth internally)
 app.use('/api/auth', authRouter)
 
 app.use('/api/user-crm',requireAuth,require('./routes/userCrm'))
+app.use('/api/wallet-lookup',requireAuth,require('./routes/walletLookup'))
 
 app.use(['/api/users','/api/user-followups','/api/workbench'],requireAuth)
 app.use(require('./routes/userOperations'))
@@ -68,12 +73,16 @@ if (process.env.ANALYTICS_STORAGE === 'hologres') {
 // System metrics (缓存统计、内存占用等)
 app.use('/api/system/metrics', requireAuth, require('./routes/systemMetrics'))
 
+// Uptime Kuma status-page bridge (read-only, authenticated dashboard access).
+app.use('/api/system-reliability', requireAuth, require('./routes/systemReliability'))
+
 
 // Protected routes
 app.use('/api/promotions',requireAuth,require('./routes/promotions'))
 app.use('/api/operation-tasks', requireAuth, require('./routes/operationTasks'))
 app.use('/api/operations', requireAuth, require('./routes/operationsComparison'))
 app.use('/api/activities', requireAuth, require('./routes/activities'))
+app.use('/api/trials', requireAuth, require('./routes/trials'))
 app.use('/api/ops',requireAuth,require('./routes/ops'))
 app.use('/api/growth-reports',requireAuth,require('./routes/growthReports'))
 app.use('/api/crm/kols', requireAuth, require('./routes/crm'))
@@ -164,4 +173,15 @@ try {
   console.warn('WebSocket initialization skipped:', error.message);
 }
 
-server.listen(PORT, require('./middleware/localDevLogin').enabled()?'127.0.0.1':undefined, () => console.log(`Backend (HTTP + WebSocket) running on http://localhost:${PORT}`));
+server.listen(PORT, require('./middleware/localDevLogin').enabled()?'127.0.0.1':undefined, () => {
+ console.log(`Backend (HTTP + WebSocket) running on http://localhost:${PORT}`);
+ // No extra Worker/PM2 service: one lightweight cron in each HTTP process.
+ // PostgreSQL's existing scheduler lease prevents concurrent replicas scanning.
+ // Opt-in daily X read-only monitor, max one run per owner/day.
+  const runXMonitor=()=>require('./services/xContentMonitor').monitor.syncDue()
+    .catch(error=>console.warn('[x-content] scheduler:',error.message));
+  setTimeout(runXMonitor,30000).unref();
+  setInterval(runXMonitor,60*60*1000).unref();
+  try{require('./ai/growth/monitorScheduler').start()}
+ catch(error){console.error('[growth-monitor] scheduler startup failed',error.message)}
+});

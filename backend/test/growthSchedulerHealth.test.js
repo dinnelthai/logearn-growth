@@ -49,3 +49,28 @@ test('unattended scheduler refuses duplicate replicas and records aggregate heal
   }
  }
 });
+
+test('scheduler stops starting work when capacity budget expires',async()=>{
+ const prior={owner:process.env.AI_AUTONOMY_OWNER_IDS,goals:process.env.AI_AUTONOMY_GOALS,
+  paid:process.env.AI_AUTONOMY_PAID_DAILY_ENABLED,budget:process.env.AI_AUTONOMY_TICK_MAX_MS};
+ process.env.AI_AUTONOMY_OWNER_IDS='alice';
+ process.env.AI_AUTONOMY_GOALS='activation';
+ process.env.AI_AUTONOMY_PAID_DAILY_ENABLED='0';
+ process.env.AI_AUTONOMY_TICK_MAX_MS='1000';
+ const completed=[],health={begin:async()=>({name:'growth-autonomy',token:'cap'}),
+  heartbeat:async()=>true,finish:async(_lease,s)=>completed.push(s)};
+ let n=0,ran=0;
+ try{
+  const result=await tick({health,clock:()=>{const x=n;n+=600;return x},
+   runOwner:async()=>{ran++;return {ownerId:'alice',status:'blocked',enqueued:[]}}});
+  assert.equal(ran,1);
+  assert.equal(result.at(-1).status,'deferred-budget');
+  assert.equal(completed[0].outcome,'partial');
+  assert.equal(completed[0].summary.deferred,1);
+  assert.equal(completed[0].summary.queued,0);
+ }finally{
+  const old={AI_AUTONOMY_OWNER_IDS:prior.owner,AI_AUTONOMY_GOALS:prior.goals,
+   AI_AUTONOMY_PAID_DAILY_ENABLED:prior.paid,AI_AUTONOMY_TICK_MAX_MS:prior.budget};
+  for(const [k,v]of Object.entries(old))if(v==null)delete process.env[k];else process.env[k]=v;
+ }
+});

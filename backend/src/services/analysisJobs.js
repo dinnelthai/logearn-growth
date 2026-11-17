@@ -1,6 +1,7 @@
 const {Worker}=require('node:worker_threads')
 const {randomBytes,createHash}=require('node:crypto')
 const path=require('node:path')
+const {analysisWorkerEnv}=require('./analysisWorkerEnv')
 const remote=require('../data/hologres')
 const jobs=new Map(),keys=new Map(),queue=[]
 let active=0
@@ -25,7 +26,7 @@ function pump(){
   while(active<2&&queue.length){
     const {j,data}=queue.shift();active++;j.state='running'
     const worker=new Worker(path.join(__dirname,'../workers/remoteAnalysis.js'),{workerData:data,
-      env:{...process.env,PG_POOL_MAX:'1'},resourceLimits:{maxOldGenerationSizeMb:256}})
+      env:analysisWorkerEnv(process.env),resourceLimits:{maxOldGenerationSizeMb:256}})
     let settled=false
     const timer=setTimeout(()=>finish(new Error('分析超时，请缩小范围')),30000)
     async function finish(err,result){

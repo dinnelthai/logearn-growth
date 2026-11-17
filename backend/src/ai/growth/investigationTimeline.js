@@ -5,6 +5,7 @@
 const records=require('../../db/aiRecords');
 const {createInvestigationStore}=require('./investigationStore');
 const {createAlertStore}=require('./alertStore');
+const {diagnoseProposal}=require('./diagnosis');
 
 function stageFor(proposal,analysis,suggestions,retrospectives){
  if(proposal.status==='dismissed')return 'dismissed';
@@ -87,6 +88,7 @@ function createInvestigationTimeline({
     evidence:original.evidence||{},
     causality:'unproven'
    },
+   diagnosis:diagnoseProposal(proposal),
    stage:stageFor(proposal,analysis,suggestions,retrospectives),
    analysis:analysis?{
     id:analysis.id,status:analysis.status,title:analysis.title,

@@ -6,7 +6,7 @@ function judgeHistory(rows,{now=Date.now()}={}){
  if(!Array.isArray(rows)||!Number.isSafeInteger(now))throw Error('自评证据输入无效');
  const evaluated=[];
  for(const row of rows){
-  if(row.user_status!=='executed'||!row.retrospective_id||
+  if(row.user_status!=='executed'||row.review_context_version!=='1'||!row.retrospective_id||
    !Number.isFinite(Number(row.executed_at))||
    Number(row.executed_at)>Number(row.reviewed_at)||
    Number(row.reviewed_at)>now)continue;
@@ -27,7 +27,7 @@ function judgeHistory(rows,{now=Date.now()}={}){
    suggestionId:row.suggestion_id,retrospectiveId:row.retrospective_id,
    analysisId:row.analysis_id,metric:known.has(metric)?metric:null,
    goal:row.filter_conditions?.focusGoal||'activation',
-   source:row.business_scope?.source||'all',
+   source:row.action_scope?.source||row.applicable_scope?.source||row.business_scope?.source||'all',
    assessment,forecastCalibration,evidence:{
     reason,primaryMetric:metric,change:metricChange||null,
     hasImprovement:row.has_improvement,hasCausality:row.has_causality,
@@ -57,7 +57,7 @@ function summarizeJudgements(judgements){
 function proposeStrategy(judgements,{goal,source='all'}={}){
  const selected=judgements.filter(x=>x.goal===goal&&x.source===source);
  const ordered=[...selected].sort((a,b)=>a.retrospectiveId.localeCompare(b.retrospectiveId));
- const digest=createHash('sha256').update(JSON.stringify(ordered.map(x=>[
+ const digest=createHash('sha256').update('review-context-v1-action-scope:').update(JSON.stringify(ordered.map(x=>[
   x.suggestionId,x.retrospectiveId,x.metric,x.assessment,x.forecastCalibration?.status
  ]))).digest('hex');
  const stats=new Map();
@@ -77,7 +77,7 @@ function proposeStrategy(judgements,{goal,source='all'}={}){
   .sort((a,b)=>b.observedContradicted-a.observedContradicted)
   .slice(0,3).map(x=>x.metric);
  return {digest,policy:{
-  version:'evidence-first-strategy-v1',goal,source,
+  version:'evidence-first-strategy-v3',goal,source,
   focusMetrics,requireFreshEvidence:true,requireHumanApproval:true,
   autoExternalActions:false,
   instructions:focusMetrics.length?

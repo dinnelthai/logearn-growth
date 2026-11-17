@@ -24,6 +24,9 @@ function explainCandidate(candidate){
 }
 function compact(value){return JSON.parse(JSON.stringify(value,(key,v)=>['list_key','members','lists'].includes(key)?undefined:v));}
 function createService(deps={remote,evidence}){
+  const DAY=86400000,OFFSET=7*3600000;
+  const isFullSevenDayWindow=(start,end)=>end-start===7*DAY&&
+   (start+OFFSET)%DAY===0&&(end+OFFSET)%DAY===0;
   async function snapshotFor(end){
     const s=await deps.remote.status();
     if(!Number.isFinite(Date.parse(s.as_of))||end>Date.parse(s.as_of)+1)throw Object.assign(Error('所选截止时间超出数据水位，请选择更早的日期'),{status:400});
@@ -36,7 +39,9 @@ function createService(deps={remote,evidence}){
     const [current,previous,growth,weekly]=await Promise.all([
       deps.evidence.fetchNorthStar(start,end,source,snapshot),deps.evidence.fetchNorthStar(start-duration,start,source,snapshot),
       deps.evidence.fetchGrowthInsights({start,end,source,snapshot}),
-      deps.evidence.fetchWeeklyCore({end,source,snapshot}).catch(error=>({available:false,error:error.message}))
+      isFullSevenDayWindow(start,end)?
+       deps.evidence.fetchWeeklyCore({end,source,snapshot}).catch(error=>({available:false,error:error.message})):
+       Promise.resolve({available:false,reason:'所选周期不是完整的7个UTC+7自然日，已跳过固定周核心指标'})
     ]);
     const candidates=rankEvidence(current.totals,previous.totals,growth,weekly,focusGoal).map(explainCandidate);
     return compact({version:'business-evidence-v1',business:{product:'LogEarn',scope,focusGoal,question},focusGoal,
@@ -44,6 +49,40 @@ function createService(deps={remote,evidence}){
       snapshot:{id:snapshot.snapshot_id,asOf:snapshot.as_of,cutoff:snapshot.snapshot_cutoff,historyComplete:snapshot.history_complete===true,eventsCompleteThrough:snapshot.events_complete_through||null},
       current,previous,growth,weekly,candidates,warnings:warnings(snapshot,growth,weekly),
       summary:{goal:goalLabels[focusGoal],candidateCount:candidates.length,definition:'规则排序只提供核查顺序；不证明因果、收益或行动效果，最终优先级由运营人员确认。'}});
+  }
+  // Fetch the same immutable, read-only facts once for the selected day.
+  // Each goal retains its own unchanged rankEvidence and reporting contract.
+  async function buildMany({start,end,businessScope={},goals=['activation'],question=''}={}){
+    validateRange(start,end);
+    const scope=validateScope(businessScope);
+    if(!Array.isArray(goals)||!goals.length||goals.length>4||
+      goals.some(g=>!Object.hasOwn(goalLabels,g))||new Set(goals).size!==goals.length)
+      throw Object.assign(Error('增长目标列表无效'),{status:400});
+    const snapshot=await snapshotFor(end),source=scope.source,duration=end-start;
+    const [current,previous,growth,weekly]=await Promise.all([
+      deps.evidence.fetchNorthStar(start,end,source,snapshot),
+      deps.evidence.fetchNorthStar(start-duration,start,source,snapshot),
+      deps.evidence.fetchGrowthInsights({start,end,source,snapshot}),
+      isFullSevenDayWindow(start,end)?
+       deps.evidence.fetchWeeklyCore({end,source,snapshot})
+        .catch(error=>({available:false,error:error.message})):
+       Promise.resolve({available:false,reason:'所选周期不是完整的7个UTC+7自然日，已跳过固定周核心指标'})
+    ]);
+    return Object.fromEntries(goals.map(focusGoal=>{
+      const candidates=rankEvidence(current.totals,previous.totals,growth,weekly,focusGoal).map(explainCandidate);
+      return [focusGoal,compact({
+        version:'business-evidence-v1',business:{product:'LogEarn',scope,focusGoal,question},focusGoal,
+        period:{start,end,previousStart:start-duration,previousEnd:start,timezone:'Asia/Bangkok'},
+        definitions,
+        snapshot:{id:snapshot.snapshot_id,asOf:snapshot.as_of,cutoff:snapshot.snapshot_cutoff,
+          historyComplete:snapshot.history_complete===true,
+          eventsCompleteThrough:snapshot.events_complete_through||null},
+        current,previous,growth,weekly,candidates,
+        warnings:warnings(snapshot,growth,weekly),
+        summary:{goal:goalLabels[focusGoal],candidateCount:candidates.length,
+          definition:'规则排序只提供核查顺序；不证明因果、收益或行动效果，最终优先级由运营人员确认。'}
+      })];
+    }));
   }
   async function review(report,action){
     const snapshot=await deps.remote.status(),periods=reviewPeriods(Number(action.executed_at),Math.min(Date.now(),Date.parse(snapshot.as_of)+1));
@@ -71,6 +110,6 @@ function createService(deps={remote,evidence}){
       snapshot:{id:snapshot.snapshot_id,asOf:snapshot.as_of},warnings:warnings(snapshot,eg,{available:true}),
       conclusion:'这是等长完整业务日的观测对比，没有对照实验，不自动判定有效或无效；请结合样本和同期变化作人工判断。'});
   }
-  return {build,review};
+  return {build,buildMany,review};
 }
 module.exports={createService,goalLabels,metricLabels};

@@ -1,5 +1,6 @@
 'use strict';
 // Pure, read-only daily operating inbox. Existing DB remains the source of truth.
+const {diagnoseProposal}=require('./diagnosis');
 function buildGrowthInbox({analyses=[],suggestions=[],reviewEntries=[],alerts=[],proposals=[],now=Date.now()}={}){
  if(![analyses,suggestions,reviewEntries,alerts,proposals].every(Array.isArray)||!Number.isSafeInteger(now))
    throw Error('增长待办输入无效');
@@ -16,12 +17,16 @@ function buildGrowthInbox({analyses=[],suggestions=[],reviewEntries=[],alerts=[]
    id:'proposal:'+p.id,kind:'investigation-approval',priority:'P0',
    title:'审批重大异常调查：'+String(p.metric||'').slice(0,50),
    proposalId:p.id,alertId:p.alert_id,status:'awaiting-human-approval',
+   source:p.source||'all',goal:p.goal||null,
+   evidenceStatus:diagnoseProposal(p).dataQuality.status,
    guidance:'审阅原始异常证据；只有人工批准才可能创建付费模型调用'
   });
   if(p.status==='approved'&&!p.analysis_id)tasks.push({
    id:'proposal:'+p.id,kind:'investigation-dispatch',priority:'P0',
    title:'核查已批准但尚未关联分析的异常提案',
    proposalId:p.id,alertId:p.alert_id,status:'needs-dispatch-review',
+   source:p.source||'all',goal:p.goal||null,
+   evidenceStatus:diagnoseProposal(p).dataQuality.status,
    guidance:'检查队列及固定请求标识，勿为相同提案创建新的付费任务'
   });
  }
@@ -30,7 +35,7 @@ function buildGrowthInbox({analyses=[],suggestions=[],reviewEntries=[],alerts=[]
      Number(a.snooze_until)>now||latestProposals.has(a.id))continue;
   tasks.push({id:'alert:'+a.id,kind:'growth-alert',
    priority:a.priority==='P0'?'P0':'P1',title:'复查跨日异常：'+String(a.metric||'').slice(0,50),
-   alertId:a.id,status:'needs-triage',
+   alertId:a.id,status:'needs-triage',source:a.source||'all',goal:a.goal||null,
    guidance:'连续完整业务日的观测变化不代表因果；需先确认采集覆盖再决定是否调查'});
  }
  for(const a of analyses.slice(0,100)){

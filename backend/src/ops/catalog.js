@@ -2,6 +2,8 @@ const fail=message=>{throw Object.assign(Error(message),{status:400})}
 const field=(key,label,type='text',required=false,extra={})=>({key,label,type,required,...extra})
 const id=field('userId','用户 ID','id',true),provider=field('provider','登录类型','provider',true),subject=field('subject','登录身份','subject',true),address=(key,label,required=true)=>field(key,label,'address',required)
 const specs=[
+ ['email_message','邮件营销广告','POST','',[field('email','收件邮箱','email',true,{max:254}),field('subject','邮件主题','text',true,{max:200}),field('text','邮件内容','text',true,{max:10000})]],
+ ['telegram_message','Telegram Bot 发送消息','POST','',[field('telegramId','Telegram ID','id',true),field('text','消息内容','text',true,{max:4096})]],
  ['grant_quota','下发 SKILL 次数','POST','admin/api_skill/grant_quota',[id,field('quotaAmount','发放次数','positive',true),field('remark','备注','text',false,{max:128})]],
  ['vip','赠送 VIP','POST','vip/admin/distribute',[provider,subject,field('expectedUserId','预期用户 ID（用于返回核对）','id'),field('effectiveDays','VIP 天数','positive',true)]],
  ['coupon','下发优惠券','POST','user/coupon/admin/distribute',[provider,subject,field('templateId','优惠券模板 ID','positive',true)]],
@@ -25,7 +27,8 @@ function normalize(operation,input){
   else{if(f.type==='id'&&typeof v==='number'&&!Number.isSafeInteger(v))fail('用户 ID 须保持整数精度');if(typeof v!=='string'&&f.type!=='id')fail(f.label+'格式无效');v=String(v).trim();if(!v&&f.required)fail('请填写'+f.label);if(v.length>(f.max||1000))fail(f.label+'过长');if(f.type==='id'&&!/^[1-9]\d{0,19}$/.test(v))fail('用户 ID 格式无效');if(f.type==='provider'&&!['email','telegram','metamask','phantom'].includes(v))fail('登录类型无效');if(f.type==='address')v=normalizeAddress(v)}
   out[f.key]=v
  }
- if(out.subject){if(out.provider==='metamask'){out.subject=normalizeAddress(out.subject);if(!out.subject.startsWith('0x'))fail('metamask 需要 EVM 地址')}else if(out.provider==='phantom'){out.subject=normalizeAddress(out.subject);if(out.subject.startsWith('0x'))fail('phantom 需要 Solana 地址')}else if(out.provider==='email'){if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(out.subject))fail('邮箱格式无效')}else if(!/^\d+$/.test(out.subject))fail('Telegram 身份须为数字 ID')}
+ if(operation==='email_message'){if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(out.email)||/[\r\n]/.test(out.subject))fail('邮箱或邮件主题格式无效');out.email=out.email.toLowerCase()}
+ if(out.subject&&out.provider){if(out.provider==='metamask'){out.subject=normalizeAddress(out.subject);if(!out.subject.startsWith('0x'))fail('metamask 需要 EVM 地址')}else if(out.provider==='phantom'){out.subject=normalizeAddress(out.subject);if(out.subject.startsWith('0x'))fail('phantom 需要 Solana 地址')}else if(out.provider==='email'){if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(out.subject))fail('邮箱格式无效')}else if(!/^\d+$/.test(out.subject))fail('Telegram 身份须为数字 ID')}
  if(operation==='trading')for(const prefix of ['feeRebateRatioLevel','vipRebateRatioLevel']){const keys=[1,2,3].map(n=>prefix+n),present=keys.filter(k=>k in out);if(present.length&&present.length!==3)fail('配置返佣时必须同时填写三级比例');if(keys.reduce((n,k)=>n+(out[k]||0),0)>.900000000001)fail('三级返佣比例合计不能超过90%')}
  if(operation==='relation'&&(out.inviteeLoginAddress===out.newInviterLoginAddress||out.inviteeLoginAddress===out.oldInviterLoginAddress||out.oldInviterLoginAddress===out.newInviterLoginAddress))fail('邀请双方或新旧邀请人不能相同')
  // Keep integer precision explicit for APIs documented with numeric IDs.

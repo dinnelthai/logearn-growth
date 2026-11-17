@@ -1,14 +1,16 @@
-import {getToken} from '../auth/authClient.js';
+import {getToken,notifyExpiredSession} from '../auth/authClient.js';
 const BASE=import.meta.env.VITE_BACKEND_BASE_URL??'http://localhost:3001';
 async function aiFetch(path,options={}){
   const token=getToken();
   const response=await fetch(BASE+path,{...options,headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})}});
   const body=await response.json().catch(()=>({}));
-  if(!response.ok)throw new Error(body.error||`HTTP ${response.status}`);
+  notifyExpiredSession(response);
+  if(!response.ok)throw Object.assign(new Error(body.error||`HTTP ${response.status}`),{status:response.status});
   return body;
 }
 export const createBusinessAnalysis=params=>aiFetch('/api/ai-analysis/analyze',{method:'POST',body:JSON.stringify(params)});
 export const getAnalysisList=(options={})=>aiFetch('/api/ai-analysis/list?'+new URLSearchParams({limit:'20',...options}));
+export const deleteAnalysis=id=>aiFetch('/api/ai-analysis/'+encodeURIComponent(id),{method:'DELETE'});
 export const getAnalysisDetail=id=>aiFetch('/api/ai-analysis/'+encodeURIComponent(id));
 export const getJobStatus=id=>aiFetch('/api/ai-analysis/jobs/'+encodeURIComponent(id)+'/status');
 export const updateSuggestionStatus=(id,updates)=>aiFetch('/api/ai-analysis/suggestions/'+encodeURIComponent(id)+'/status',{method:'PUT',body:JSON.stringify(updates)});
@@ -18,6 +20,7 @@ export const getCostStats=()=>aiFetch('/api/ai-analysis/cost-stats');
 export const getAvailableModels=()=>aiFetch('/api/ai/models');
 
 export const retryAnalysis=id=>aiFetch('/api/ai-analysis/'+encodeURIComponent(id)+'/retry',{method:'POST',body:'{}'});
+export const continueWeeklyOverflow=id=>aiFetch('/api/ai-analysis/'+encodeURIComponent(id)+'/resume-weekly-overflow',{method:'POST',body:'{}'});
 
 export const getAgentHealth=()=>aiFetch('/api/growth-agent/health');
 export const getEvidence=id=>aiFetch('/api/growth-agent/evidence/'+encodeURIComponent(id));
@@ -38,6 +41,11 @@ export const getGrowthReviewQueue=()=>aiFetch('/api/ai-analysis/growth-review-qu
 
 export const getGrowthInbox=()=>aiFetch('/api/ai-analysis/growth-inbox');
 
+export const getGrowthMonitorControl=()=>aiFetch('/api/ai-analysis/growth-alerts/monitor-control');
+export const setGrowthMonitorControl=(enabled,expectedVersion)=>aiFetch(
+ '/api/ai-analysis/growth-alerts/monitor-control',{
+ method:'PUT',body:JSON.stringify({enabled,expectedVersion})
+});
 export const getGrowthAlerts=(includeResolved=false)=>aiFetch('/api/ai-analysis/growth-alerts'+(includeResolved?'?resolved=1':''));
 export const scanGrowthAlerts=(goal='activation',source='all')=>aiFetch('/api/ai-analysis/growth-alerts/scan',{
   method:'POST',body:JSON.stringify({goal,source})
@@ -77,6 +85,8 @@ export const previewKolPerformance=(start,end)=>aiFetch('/api/ai-analysis/growth
 });
 
 export const getGscConnection=()=>aiFetch('/api/ai-analysis/growth-seo/gsc/connection');
+export const beginGscOAuth=()=>aiFetch('/api/ai-analysis/growth-seo/gsc/oauth/start',{method:'POST',body:'{}'});
+export const disconnectGscOAuth=()=>aiFetch('/api/ai-analysis/growth-seo/gsc/oauth/disconnect',{method:'POST',body:'{}'});
 export const saveGscSite=siteUrl=>aiFetch('/api/ai-analysis/growth-seo/gsc/settings',{
  method:'PUT',body:JSON.stringify({siteUrl})
 });
@@ -107,3 +117,22 @@ export const refreshAutonomyBrief=(goals=['activation','retention','conversion',
  '/api/ai-analysis/growth-agent/refresh',{
  method:'POST',body:JSON.stringify({goals,source})
 });
+
+
+// Versioned Growth modules and Agent-owned opportunities; no paid model calls.
+export const getBusinessModules=()=>aiFetch('/api/growth-agent/business-modules');
+export const previewBusinessModulePlan=body=>aiFetch('/api/growth-agent/business-modules/plan',
+ {method:'POST',body:JSON.stringify(body)});
+export const runBusinessModuleInvestigation=body=>aiFetch('/api/growth-agent/business-modules/investigate',
+ {method:'POST',body:JSON.stringify(body)});
+export const getOpportunities=()=>aiFetch('/api/growth-agent/opportunities');
+export const getOpportunityHistory=id=>aiFetch('/api/growth-agent/opportunities/'+encodeURIComponent(id)+'/history');
+export const saveOpportunity=body=>aiFetch('/api/growth-agent/opportunities',
+ {method:'POST',body:JSON.stringify(body)});
+export const decideOpportunity=(id,body)=>aiFetch('/api/growth-agent/opportunities/'+encodeURIComponent(id)+'/status',
+ {method:'POST',body:JSON.stringify(body)});
+
+export const promoteOpportunity=(id,body)=>aiFetch('/api/growth-agent/opportunities/'+encodeURIComponent(id)+'/promote',
+ {method:'POST',body:JSON.stringify(body)});
+
+export const importAnalysisOpportunities=id=>aiFetch('/api/growth-agent/opportunities/import-analysis/'+encodeURIComponent(id),{method:'POST',body:'{}'});

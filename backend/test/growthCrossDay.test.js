@@ -61,3 +61,25 @@ test('scanner uses existing reports and produces no paid calls or duplicate jobs
   ...store,completedDays:async()=>[c]
  }})).status,'insufficient-history');
 });
+
+test('activation and retention reports do not mint duplicate alerts for the same count',()=>{
+ const base={active_users:120,new_users:60,returning_users:60};
+ const observed={active_users:60,new_users:30,returning_users:30};
+ const withGoal=(id,start,end,goal,totals)=>{
+  const row=report(id,start,end,totals.active_users);
+  row.filter_conditions.focusGoal=goal;
+  row.data_snapshot.focusGoal=goal;
+  row.data_snapshot.current.totals=totals;
+  return row;
+ };
+ const activation=compareDailySnapshots(
+  withGoal('a1',end1-DAY,end1,'activation',base),
+  withGoal('a2',end1,end2,'activation',observed));
+ const retention=compareDailySnapshots(
+  withGoal('r1',end1-DAY,end1,'retention',base),
+  withGoal('r2',end1,end2,'retention',observed));
+ assert.deepEqual(activation.signals.map(s=>s.metric).sort(),['active_users','new_users']);
+ assert.deepEqual(retention.signals.map(s=>s.metric),['returning_users']);
+ assert.equal(new Set([...activation.signals,...retention.signals].map(s=>s.metric)).size,3);
+ assert.ok([...activation.signals,...retention.signals].every(s=>s.causality==='unproven'));
+});

@@ -6,16 +6,21 @@
   filter: none; flex: none; object-fit: contain; padding: 4px 7px;
   border-radius: 8px; background: light-dark(transparent, #fff);
 }
-#la-login-overlay .la-login-brand { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+/* The login wordmark selects its official light/dark SVG via <picture>.
+   Never force a white tile behind it or modify the original brand paths. */
+#la-login-overlay .la-login-brand {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+}
+#la-login-overlay .la-login-logo { display: block; line-height: 0; max-width: 100%; }
 #la-login-overlay .la-login-brand .a-brandmark {
-  display: block; width: 209px; height: auto; max-width: 100%; object-fit: contain;
-  padding: 5px 8px; border-radius: 8px; background: light-dark(transparent, #fff);
+  display: block; width: 190px; height: auto; max-width: 100%;
+  object-fit: contain; padding: 0; border-radius: 0; background: transparent;
 }
 #la-login-overlay .la-login-subtitle {
-  font-size: 12px; font-weight: 500; color: light-dark(#69768a,#9aabc2);
-  letter-spacing: .01em; white-space: nowrap;
+  color: light-dark(#667790,#8ea3c4);
+  font-size: 10px; font-weight: 700; letter-spacing: .18em; line-height: 1.5;
+  white-space: nowrap;
 }
 @media (max-width: 540px) {
   #la-studio .a-brand .a-brandmark { width: 145px; padding: 3px 5px; }
-  #la-login-overlay .la-login-brand .a-brandmark { width: 188px; }
 }

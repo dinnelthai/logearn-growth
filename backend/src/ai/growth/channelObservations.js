@@ -27,6 +27,46 @@ function collectChannelObservations(ownerId,day,{db=require('../../db/connection
    scans:progress,source:'third-party-partial-scan',snapshot:'latest-ever; not day-scoped'};
   report.available||=rows.length>0;
  }
+ if(tables.has('x_official_account_sync')&&tables.has('x_official_posts')){
+  const {ACCOUNTS}=require('../../analytics/officialXAccounts');
+  const accounts=ACCOUNTS.map(a=>{
+   const info=db.prepare('SELECT last_synced FROM x_official_account_sync WHERE owner_id=? AND account=?').get(ownerId,a.id);
+   const posts=db.prepare('SELECT COUNT(*) AS count,SUM(impressions) AS views,SUM(CASE WHEN impressions IS NULL THEN 1 ELSE 0 END) AS missing FROM x_official_posts WHERE owner_id=? AND account=? AND published_at>=? AND published_at<?')
+    .get(ownerId,a.id,day+'T00:00:00Z',new Date(Date.parse(day+'T00:00:00Z')+86400000).toISOString());
+   const snapshot=tables.has('x_official_follower_daily')?
+    db.prepare('SELECT followers FROM x_official_follower_daily WHERE owner_id=? AND account=? AND day=?').get(ownerId,a.id,day):null;
+   const dayStart=Date.parse(day+'T00:00:00Z')-7*3600000;
+   const observed=tables.has('x_official_post_snapshots')?
+    db.prepare('SELECT COUNT(*) observations,COUNT(DISTINCT post_id) distinctPosts FROM x_official_post_snapshots WHERE owner_id=? AND account=? AND observed_at>=? AND observed_at<?')
+     .get(ownerId,a.id,dayStart,dayStart+86400000):null;
+   return {account:a.id,lastSynced:info?.last_synced??null,publishedSample:posts.count,
+    sampledCumulativeViews:posts.count>0&&posts.missing===0?posts.views:null,
+    followersObservedToday:snapshot?.followers??null,
+    capturedObservationsToday:observed?.observations??null,capturedPostsToday:observed?.distinctPosts??null};
+  });
+  report.x_official={available:accounts.some(a=>a.publishedSample>0||a.followersObservedToday!=null),
+   source:'twitterapi.io',accounts,scope:'third-party-cumulative-observations-not-daily-engagement-or-verified-conversions'};
+  report.available||=report.x_official.available;
+ }
+ // Use the exact same as-of 30-day evidence reader as the model tool.
+ // This is source observation in the saved brief, NOT AI analysis or KPI score.
+ if(tables.has('content_growth_items')&&tables.has('x_official_account_sync')&&tables.has('x_official_posts')){
+  const end=Date.parse(day+'T00:00:00+07:00')+86400000;
+  const view=require('../business/tools/contentAdapters').createContentAdapters(db)
+   .contentGrowth({start:end-86400000,end},{ownerId});
+  report.x_content_30d={source:'twitterapi.io',lookbackDays:30,
+   asOfExclusive:end,available:view.xOfficial.available,
+   accounts:view.xOfficial.accounts.map(a=>({
+    account:a.account,sampledPosts:a.sampledPosts,measuredPosts:a.measuredPosts,
+    measuredImpressions:a.measuredImpressions,measuredEngagementRate:a.measuredEngagementRate,
+    followerChange:a.followerChange,observedAt:a.lastSynced,
+    age24hSamples:a.publishAge24hBenchmark.sampleSize,
+    age48hSamples:a.publishAge48hBenchmark.sampleSize
+   })),
+   coverage:'up-to-20-saved-posts-per-account;as-of-observation;not-exhaustive',
+   interpretation:'只读数据证据，不是AI生成的判断、X推荐分或注册交易归因'};
+  report.available||=view.xOfficial.available;
+ }
  return report;
 }
 module.exports={collectChannelObservations};

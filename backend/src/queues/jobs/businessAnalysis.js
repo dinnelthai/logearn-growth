@@ -1,17 +1,13 @@
 const {runTask,validateAnalysis} = require('../../ai/business/runner');
+const weeklyReport=require('../../ai/growth/weeklyReport');
+const weeklyCoverage=require('../../ai/growth/weeklyCoverage');
 const {definitions,rankEvidence,validateRange,validateScope} = require('../../ai/business/policy');
 const {fetchNorthStar,fetchGrowthInsights,fetchWeeklyCore} = require('./dataFetcher');
 const records = require('../../db/aiRecords');
 const remote = require('../../data/hologres');
 const reportsService = require('../../services/businessReport').createService({remote,evidence:{fetchNorthStar,fetchGrowthInsights,fetchWeeklyCore}});
 
-const prompt=`你是LogEarn业务增长分析师。依据业务目标和真实观测证据排序任务，考虑目标差距、影响人数、证据强度、实施成本。
-筹码查看/下钻是行为代理，不代表成功、理解或付费；未观测不等于流失。历史及采集覆盖未知时降低结论强度。
-检查所有相关证据，必要时请求补查并由当前单模型深入调查；不能为节省费用省略必要任务。不得以相关性证明因果。
-参考历史行动、拒绝原因和复盘；重复建议必须解释新证据。业务范围以请求为准。
-最终输出必须包含claims数组，每项为{id,kind:"fact|hypothesis|recommendation",text,evidenceIds,values:[{evidenceId,value}],uncertainties}。事实和建议必须引用提供的证据ID；引用数值写在values中。建议evidence对象必须包含evidenceIds数组。补查可返回investigations:[{tool:"能力目录中的ID",input:{}}]。
-输出JSON：{"summary":"摘要","keyFindings":["发现"],"suggestions":[{"problem":"问题","evidence":{"metrics":["可核对数值"],"dataPoints":["证据"]},"hypothesis":"假设","uncertainties":["未知"],"action":"具体行动","priority":"P0或P1或P2","priorityReason":"数据影响、实施成本及排序依据","scope":{"source":"请求来源"},"expectedImpact":"有依据的预期或未知","impactBasis":"依据","validationMetrics":{"primary":"active_users/new_users/returning_users 或明确业务指标ID","secondary":[]},"reviewConditions":["验证条件与观察期"]}]}。
-每条建议可以增加可选 forecast 字段，包含 metric（必须等于 validationMetrics.primary）、direction（increase/decrease）、horizonDays（3–14整数）、minRelativeChangePct（0–100）、confidence（low/medium/high）以及 evidenceIds（已引用的证据ID）。预测不是必要字段；没有足够证据就不要提供数字预测，绝不宣称行动的因果收益。可不提出建议，但必须解释原因；指标不存在时不能自行造数。不得自行承诺收益。`;
+const {analysisPrompt:prompt}=require('../../ai/business/analysisContract');
 async function persistValidatedResult({job,analysisId,ownerId,token,compact,result}) {
   const source=compact.business.scope.source;
   const {analysis}=result;
@@ -23,7 +19,11 @@ async function persistValidatedResult({job,analysisId,ownerId,token,compact,resu
       claims:analysis.claims,
       growthSignals:compact.growthPlan?.triage?.signals||[],
       growthSkills:compact.growthPlan?.steps?.map(step=>({id:step.skillId,version:step.skillVersion}))||[],
-      evidenceIds:compact.evidence.map(e=>e.id),goalVersion:compact.goal?.version||null,candidates:compact.candidates,routing:result.routing,calls:result.calls,additionalEvidence:result.evidence,cost:result.cost,analysisId};
+      ...(compact.weeklySources?{weeklySources:compact.weeklySources}:{}),
+      ...(compact.weeklyCoverage?{weeklyCoverage:weeklyCoverage.finalizeWeeklyCoverage(
+       compact.weeklyCoverage,analysis,{additionalEvidence:result.evidence})}:{}),
+      evidenceIds:compact.evidence.map(e=>e.id),goalVersion:compact.goal?.version||null,candidates:compact.candidates,routing:result.routing,calls:result.calls,additionalEvidence:result.evidence,cost:result.cost,analysisId,
+      ...(compact.weeklyOperations&&analysis.weeklyReport?{weeklyReport:analysis.weeklyReport,weeklyOperations:compact.weeklyOperations,reportPeriod:compact.period}:{})};
     await records.assertAnalysisLease(analysisId,ownerId,token);
     await records.completeAnalysis(analysisId,ownerId,suggestions,saved,result,token);await job.progress(100);
     return saved;
@@ -41,6 +41,17 @@ async function businessAnalysis(job) {
   });
   if(executionClaim.action==='completed')return executionClaim.result;
   const token=executionClaim.token;
+  const isWeeklyReport=executionClaim.record.filter_conditions?.weeklyReport==='v1';
+  // Only NEW business analyses opt into v2. Archived checkpoints select their
+  // version from the saved system prompt, so deployment cannot rewrite replay.
+  // New tasks use v3 to reduce repeated tool plans/evidence. Either
+  // rollout switch can turn it off without mutating archived v1/v2 jobs.
+  const useContextV3=process.env.AI_MODEL_CONTEXT_V3_ENABLED!=='0'&&
+    process.env.AI_MODEL_CONTEXT_V2_ENABLED!=='0';
+  // v4 applies only to newly created weekly reports. Archived rounds are
+  // pinned to their saved prompt/version and must never be silently rewritten.
+  const useWeeklyV4=isWeeklyReport&&useContextV3&&
+    process.env.AI_WEEKLY_CONTEXT_V4_ENABLED!=='0';
   let leaseError=null,renewing=false;
   const heartbeat=setInterval(async()=>{
     if(renewing)return;
@@ -68,7 +79,10 @@ async function businessAnalysis(job) {
       if(report.period.start!==start||report.period.end!==end||report.business.scope.source!==source||report.focusGoal!==focusGoal)throw Error('AI分析范围与业务报告不一致');
       compact={...report,manualActions:store.actions(report.id,ownerId).map(({review,...action})=>({...action,review:review?{periods:review.periods,metricChanges:review.metricChanges,conclusion:review.conclusion,warnings:review.warnings}:null})),manualHistory:store.history(ownerId,source)};
     }else{
-      compact=await reportsService.build({start,end,businessScope:scope,focusGoal,question:userQuestion});
+      const seeded=require('../../ai/growth/sharedDailyReport').fromClaimedRecord(
+       executionClaim.record,{start,end,source,goal:focusGoal});
+      compact=seeded||await reportsService.build({start,end,businessScope:scope,
+       focusGoal,question:userQuestion});
     }
     // Ranked business candidates stay untouched; plan adds explainable
     // anomaly triage and permitted investigations for the existing runner.
@@ -82,26 +96,70 @@ async function businessAnalysis(job) {
         .getStrategy(ownerId,focusGoal,source):null;
     const isDailyConversion=executionClaim.record.filter_conditions?.dailySchedule==='v1'&&
       focusGoal==='conversion'&&source==='all';
-    const availableSpecialties=isDailyConversion
+    const focusSkillId=executionClaim.record.filter_conditions?.skillId||null;
+    const discovered=(isDailyConversion||isWeeklyReport)
       ?require('../../ai/growth/dailySpecialties').availableDailySpecialties(require('../../db/connection'),ownerId):[];
+    // Explicit content investigations also preload the same owner-scoped tool.
+    // No API fetch or paid call is triggered by this data read.
+    const availableSpecialties=[...new Set([...discovered,
+      ...(focusSkillId==='content-growth'||focusSkillId==='follower-quality'?[focusSkillId]:[])])];
+    // Only a specialized SEO task needs external tool discovery. The provider
+    // catalog evaluates the LIVE owner binding; nothing is sourced from model input.
+    let availableCapabilityIds=null;
+    if(focusSkillId==='seo-organic'){
+      const toolRegistry=require('../../ai/business/tools/registry').defaultRegistry();
+      availableCapabilityIds=toolRegistry.listCapabilities({
+        ownerId,runId:analysisId,scope,period:compact.period
+      }).map(item=>item.id);
+    }
     const growthPlan=require('../../ai/growth/planner').planGrowthInvestigation({
-      goal:focusGoal,report:compact,history:memory,
-      focusSkillId:executionClaim.record.filter_conditions?.skillId||null,
-      maxSkills:Math.min(6,3+availableSpecialties.length),availableSpecialties,
-      strategy:learnedStrategy
+      goal:focusGoal,report:compact,history:memory,focusSkillId,
+      maxSkills:isWeeklyReport?12:Math.min(6,3+availableSpecialties.length),availableSpecialties,
+      strategy:learnedStrategy,availableCapabilityIds,
+      // Weekly reports cover channels beyond the primary activation goal.
+      includeWeeklySpecialties:isWeeklyReport
     });
+    const memoryView=require('../../ai/business/contextBudget').compactMemory(memory);
     compact={...compact,business:{...compact.business,question:userQuestion||compact.business.question},
-      memory,growthPlan};
+      memory:memoryView.items,memoryMeta:memoryView.meta,growthPlan,
+      ...(!isWeeklyReport&&focusGoal==='activation'?{reviewLessonsVersion:2}:{}),
+      ...(isWeeklyReport?{weeklyOperations:executionClaim.record.filter_conditions.weeklyOperations}:{}),
+      };
     const session=require('../../ai/business/foundation').defaultFoundation().prepare(compact,{ownerId,runId:analysisId,goalRef:job.data.goalRef});
     compact=session.context;
-    // Existing read-only tool registry creates archived, owner-scoped evidence.
-    // This guarantees observed content/follower data are available to the daily
-    // conversion prompt when the corresponding owner data exists.
-    for(const skillId of availableSpecialties){
-      const tool=skillId==='content-growth'?'get_content_growth':'get_follower_quality';
-      const observed=await session.investigate({tool,input:{start,end,scope:{source:'all'}}});
-      if(observed.status==='ok'&&Array.isArray(observed.evidence))compact.evidence.push(...observed.evidence);
-      else compact.warnings=[...(compact.warnings||[]),tool+': source unavailable'];
+    // A single bounded, owner-scoped read-only manifest backs EVERY weekly
+    // section. Only a subset is queried; all other modules remain explicitly
+    // uninvestigated. This does not create model calls or loosen tool budgets.
+    if(isWeeklyReport){
+      const coverage=await weeklyCoverage.collectWeeklyCoverage({
+       context:compact,investigate:session.investigate,
+       allowedTools:compact.capabilities.map(x=>x.id),
+       availableSpecialties,maxQueries:10,shouldContinue:beforeStep
+      });
+      compact.weeklyCoverage=coverage;
+      const seo=coverage.modules.find(x=>x.id==='seo-organic');
+      const seoEvidence=compact.evidence.find(e=>e.id===seo?.evidenceIds?.[0]);
+      const v=seoEvidence?.value||{};
+      const matched=seoEvidence?.coverage?.periodMatched===true;
+      compact.weeklySources={seo:{
+       status:seo?.status==='not-connected'?'unavailable':
+        seo?.status==='collected'&&matched?'period-matched':
+        seoEvidence?.value?.available===false?'not-synced':
+        seoEvidence?'reference-only':'unavailable',
+       periodMatched:matched,
+       range:v.startDate&&v.endDate?{startDate:v.startDate,endDate:v.endDate}:null,
+       evidenceIds:seo?.evidenceIds||[]
+      },note:'GSC 日期按 PT，业务周按 Asia/Bangkok；不匹配时仅为参考趋势，不能计算业务周 SEO 环比或归因'};
+    }else{
+      // Keep existing optional prefetch behavior for non-weekly daily jobs.
+      const permittedTools=new Set(compact.capabilities.map(cap=>cap.id));
+      for(const skillId of availableSpecialties){
+       const tool=skillId==='content-growth'?'get_content_growth':'get_follower_quality';
+       if(!permittedTools.has(tool))continue;
+       const observed=await session.investigate({tool,input:{start,end,scope:{source:'all'}}});
+       if(observed.status==='ok'&&Array.isArray(observed.evidence))
+        compact.evidence.unshift(...observed.evidence);
+      }
     }
     const snapshot={snapshot_id:compact.snapshot.id,snapshot_cutoff:compact.snapshot.cutoff,as_of:compact.snapshot.asOf,
       history_complete:compact.snapshot.historyComplete,events_complete_through:compact.snapshot.eventsCompleteThrough};
@@ -115,7 +173,9 @@ async function businessAnalysis(job) {
     const currentPrompt=require('../../ai/optimization/promptRegistry')
       .createPromptRegistry(require('../../db/connection'))
       .resolve(ownerId,'analysis',prompt,{runId:analysisId});
-    const result=await runTask({context:compact,prompt:currentPrompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
+    const result=await runTask({context:compact,prompt:isWeeklyReport?currentPrompt+'\n'+(useContextV3?weeklyReport.weeklyPromptV2:weeklyReport.weeklyPrompt):currentPrompt,ownerId,operationId:analysisId,operationType:'analysis',mode:modelMode,investigate,traceStore:session.traceStore,beforeStep,
+      contextVersion:useWeeklyV4?'v4':useContextV3?'v3':'v1',
+      ...(isWeeklyReport?{modelTimeoutMs:weeklyReport.weeklyModelTimeoutMs()}:{}),
       paidCalls:{
         begin:round=>executionClaim.record.filter_conditions?.proposalId
           ?require('../../ai/growth/budget').beginBudgetedPaidCall({
@@ -126,7 +186,7 @@ async function businessAnalysis(job) {
             :records.beginAnalysisPaidCall(analysisId,ownerId,token,round),
         finish:(round,status)=>records.finishAnalysisPaidCall(analysisId,ownerId,token,round,status)
       },
-      validate:value=>{validateAnalysis(value);session.validate(value);}});
+      validate:value=>{validateAnalysis(value);session.validate(value);if(isWeeklyReport)weeklyReport.ensureWeeklyReport(value,{context:compact});}});
     await beforeStep();
     return await persistValidatedResult({job,analysisId,ownerId,token,compact,result});
   }catch(error){await records.failClaimedAnalysis(analysisId,ownerId,token,error.message);throw error;}
@@ -187,9 +247,17 @@ async function resumeIncompleteAnalysis(job){
   const record=await records.getAnalysisRecord(analysisId,ownerId);
   if(!record)throw Error('分析记录不存在或无权限');
   if(record.status==='completed')return record.result;
-  if(record.status!=='processing'||record.cancel_requested||
-     !record.lease_expires_at||Number(record.lease_expires_at)>=Date.now())
-    throw Error('只能恢复未取消且已过期的调查');
+  const manualFailedWeekly=job.data.manualFailedWeekly===true;
+  const failedForTokenBudget=record.error_message===
+    'AI Token硬预算不足，未发起下一轮模型请求；已付费证据保留在断点';
+  const matchingFailedWeekly=manualFailedWeekly&&record.status==='failed'&&
+    !record.cancel_requested&&record.filter_conditions?.weeklyReport==='v1'&&
+    (record.error_message==='补充查询过多，请缩小问题范围或提高调查能力'||
+     failedForTokenBudget);
+  if(!matchingFailedWeekly&&
+    (manualFailedWeekly||record.status!=='processing'||record.cancel_requested||
+     !record.lease_expires_at||Number(record.lease_expires_at)>=Date.now()))
+    throw Error('只能恢复未取消且已过期的调查或人工确认的失败周报');
   // JSONB can reorder object keys; fingerprint against the exact model input.
   const compact=record.context_payload ? JSON.parse(record.context_payload) : record.data_snapshot;
   if(!compact?.business?.scope?.source||!Array.isArray(compact.evidence))throw Error('缺少固定的原始业务快照');
@@ -206,8 +274,10 @@ async function resumeIncompleteAnalysis(job){
   const foundation=require('../../ai/business/foundation').defaultFoundation();
   const session=foundation.resume(compact,{ownerId,runId:analysisId});
   const token=require('node:crypto').randomUUID();
-  const claimed=await records.claimExpiredFinalization(analysisId,ownerId,token);
-  if(!claimed)throw Error('调查恢复租约已被其他 Worker 领取');
+  const claimed=matchingFailedWeekly
+    ?await records.claimFailedWeeklyOverflow(analysisId,ownerId,token)
+    :await records.claimExpiredFinalization(analysisId,ownerId,token);
+  if(!claimed)throw Error('调查恢复租约已被其他 Worker 领取，或付费状态不符合续跑要求');
   let leaseError=null,renewing=false;
   const heartbeat=setInterval(async()=>{
     if(renewing)return;renewing=true;
@@ -232,7 +302,9 @@ async function resumeIncompleteAnalysis(job){
     const result=await runTask({context:compact,prompt,ownerId,operationId:analysisId,
       operationType:'analysis',mode:record.filter_conditions?.modelMode||'auto',
       resumeRows:rows,systemPromptOverride:originalPrompt,
+      relaxV2BudgetOnManualResume:matchingFailedWeekly&&failedForTokenBudget,
       investigate,traceStore:session.traceStore,beforeStep,
+      ...(record.filter_conditions?.weeklyReport==='v1'?{modelTimeoutMs:weeklyReport.weeklyModelTimeoutMs()}:{}),
       paidCalls:{
         begin:round=>record.filter_conditions?.proposalId
           ?require('../../ai/growth/budget').beginBudgetedPaidCall({
@@ -242,7 +314,10 @@ async function resumeIncompleteAnalysis(job){
             ?require('../../ai/growth/autonomyBudget').beginAutonomyPaidCall({analysisId,ownerId,token,round})
             :records.beginAnalysisPaidCall(analysisId,ownerId,token,round),
         finish:(round,status)=>records.finishAnalysisPaidCall(analysisId,ownerId,token,round,status)
-      },validate:value=>{validateAnalysis(value);session.validate(value);}});
+      },validate:value=>{
+        validateAnalysis(value);session.validate(value);
+        if(record.filter_conditions?.weeklyReport==='v1')weeklyReport.ensureWeeklyReport(value,{context:compact});
+      }});
     await beforeStep();
     return await persistValidatedResult({job,analysisId,ownerId,token,compact,result});
   }catch(error){

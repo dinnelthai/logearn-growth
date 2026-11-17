@@ -1,5 +1,6 @@
 const express=require('express'),{randomUUID}=require('node:crypto'),db=require('../db/connection'),remote=require('../data/hologres'),jobs=require('../services/analysisJobs')
 const {cachedAudience}=require('../analytics/taskAudience'),{memberFacts,memberMetrics}=require('../data/memberMetrics')
+const {memberReturnD7}=require('../data/returnD7')
 const router=express.Router(),wrap=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next)
 const fail=(message,status=400)=>{throw Object.assign(new Error(message),{status})}
 function get(id,owner){const t=db.prepare('SELECT * FROM operation_tasks WHERE id=? AND owner_id=?').get(String(id),String(owner));if(!t)fail('人群任务不存在或无权访问',404);return t}
@@ -14,9 +15,24 @@ function fields(input,old={}){
  if(due!==null&&(!Number.isSafeInteger(due)||due<0||due>4102444800000))fail('下次检查时间无效')
  out.due_at=due;return out
 }
+function operationFields(raw){
+ if(raw==null)return null
+ if(typeof raw!=='object'||Array.isArray(raw))fail('运营配置格式无效')
+ const goal=raw.goal||'analysis',channel=raw.channel||'other',windowDays=Number(raw.window_days??7)
+ if(!['analysis','trade'].includes(goal)||!['telegram','email','x','in_product','other'].includes(channel)||![1,3,7,14].includes(windowDays))fail('运营目标、渠道或观察周期无效')
+ return {goal,channel,window_days:windowDays}
+}
 function tx(fn){db.exec('BEGIN');try{const value=fn();db.exec('COMMIT');return value}catch(e){db.exec('ROLLBACK');throw e}}
 const summary=t=>({title:t.title,assignee:t.assignee,priority:t.priority,status:t.status,next_step:t.next_step,due_at:t.due_at})
 function history(t,before,note,at){db.prepare('INSERT INTO operation_task_history(id,task_id,note,before_json,after_json,created_at) VALUES(?,?,?,?,?,?)').run('oth_'+randomUUID(),t.id,note,before?JSON.stringify(summary(before)):null,JSON.stringify(summary(t)),at)}
+router.get('/',(req,res,next)=>{try{
+ const offset=Number(req.query.offset??0),limit=Number(req.query.limit??10),owner=String(req.user.user_id)
+ if(!Number.isSafeInteger(offset)||offset<0||!Number.isSafeInteger(limit)||limit<1||limit>50)fail('分页参数无效')
+ const total=db.prepare('SELECT COUNT(*) AS count FROM operation_tasks WHERE owner_id=?').get(owner).count
+ const tasks=db.prepare('SELECT * FROM operation_tasks WHERE owner_id=? ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?').all(owner,limit,offset).map(expose)
+ res.json({tasks,total,offset,limit})
+ }catch(e){next(e)}
+})
 router.post('/',wrap(async(req,res)=>{
  if(process.env.ANALYTICS_STORAGE!=='hologres')fail('人群任务需要真实远程数据源',501)
  const scopeLabel=req.body.scope_label??'';if(typeof scopeLabel!=='string'||scopeLabel.length>200)fail('来源范围说明无效')
@@ -33,7 +49,7 @@ router.post('/',wrap(async(req,res)=>{
  const facts=await memberFacts(s,ids,period),baseline=memberMetrics(facts,ids.map(id=>({id})),period,s)
  if(!baseline||Object.values(facts.errors).some(Boolean))fail('基线使用或交易数据未完整取得，请重试',503)
  if(j.context.mode==='growth-insights'&&baseline.unmatched_users)fail('未回访名单中存在未匹配注册账号，请先核对账号身份',422)
- const at=Date.now(),id='ot_'+randomUUID(),source={...period,scope_label:scopeLabel,source:j.context.source,snapshot_id:j.snapshot,as_of:s.as_of,conditions:j.context.selection||{pool:value.payload.pool,filters:value.payload.filters},summary:value.payload.summary}
+ const at=Date.now(),id='ot_'+randomUUID(),source={...period,scope_label:scopeLabel,source:j.context.source,snapshot_id:j.snapshot,as_of:s.as_of,conditions:j.context.selection||{pool:value.payload.pool,filters:value.payload.filters},summary:value.payload.summary,operation:operationFields(req.body.operation)}
  const saved=tx(()=>{const current=db.prepare('SELECT * FROM operation_tasks WHERE owner_id=? AND origin_job=?').get(owner,cache);if(current)return {task:current,existing:true}
   db.prepare('INSERT INTO operation_tasks(id,owner_id,origin_job,title,assignee,priority,status,next_step,due_at,source_json,members_json,baseline_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(id,owner,cache,input.title,input.assignee,input.priority,'open',input.next_step,input.due_at,JSON.stringify(source),JSON.stringify(ids),JSON.stringify({total:baseline.total,requested_users:baseline.requested_users,unmatched_users:baseline.unmatched_users}),at,at)
   const task=get(id,owner);history(task,null,'创建任务并固定名单和指标',at);return {task,existing:false}
@@ -50,15 +66,49 @@ router.patch('/:id',(req,res,next)=>{try{
  const saved=tx(()=>{const r=db.prepare('UPDATE operation_tasks SET title=?,assignee=?,priority=?,status=?,next_step=?,due_at=?,completed_at=?,updated_at=? WHERE id=? AND owner_id=? AND updated_at=?').run(input.title,input.assignee,input.priority,input.status,input.next_step,input.due_at,input.status==='done'?(t.completed_at??at):null,at,t.id,t.owner_id,t.updated_at);if(!r.changes)fail('任务已被更新，请刷新后重试',409);const current=get(t.id,t.owner_id);history(current,t,note.trim(),at);return current})
  res.json({task:expose(saved)})
  }catch(e){next(e)}})
+router.post('/:id/log',wrap(async(req,res)=>{
+ const t=get(req.params.id,req.user.user_id),channel=req.body.channel,count=req.body.count,note=req.body.note??''
+ if(!['telegram','email','x','in_product','other'].includes(channel))fail('请选择有效运营渠道')
+ if(!Number.isSafeInteger(count)||count<0||count>JSON.parse(t.members_json).length)fail('登记人数不能超过固定人群规模')
+ if(typeof note!=='string'||note.length>500)fail('执行备注不能超过500字')
+ if(!note.trim()&&count===0)fail('请填写执行记录或触达人次')
+ const labels={telegram:'Telegram',email:'邮件',x:'X',in_product:'站内',other:'其他'}
+ const at=Math.max(Date.now(),t.updated_at+1)
+ tx(()=>{history(t,t,'[手工登记] '+labels[channel]+' · '+count+' 人次'+(note.trim()?' · '+note.trim():''),at);db.prepare('INSERT INTO operation_task_executions(id,task_id,created_at) VALUES(?,?,?)').run('ote_'+randomUUID(),t.id,at)})
+ res.status(201).json({recorded:true,created_at:at})
+}))
 router.get('/:id/audience',wrap(async(req,res)=>{
  const t=get(req.params.id,req.user.user_id),source=JSON.parse(t.source_json),s=await remote.status(),ids=JSON.parse(t.members_json).map(id=>'user:'+id)
  res.json({ids,count:ids.length,title:t.title,description:'运营任务固定名单 · 原始统计期，使用当前数据快照',start:source.start,end:source.end,source:source.source,snapshot_id:s.snapshot_id,as_of:s.as_of,fixed_at:new Date(t.created_at).toISOString(),origin:'operation-task'})
 }))
 router.get('/:id/review',wrap(async(req,res)=>{
- const t=get(req.params.id,req.user.user_id),s=await remote.status(),period={start:t.created_at,end:Math.min(Date.now()+1,Date.parse(s.as_of)+1)},ids=JSON.parse(t.members_json)
- if(period.end<=period.start)return res.json({pending:true,...period,as_of:s.as_of,performance:null,errors:{}})
- if(period.end-period.start>366*86400000)period.start=period.end-366*86400000
- const facts=await memberFacts(s,ids,period),performance=memberMetrics(facts,ids.map(id=>({id})),period,s)
- res.json({pending:false,...period,as_of:s.as_of,snapshot_id:s.snapshot_id,performance:performance?{total:performance.total,requested_users:performance.requested_users,unmatched_users:performance.unmatched_users}:null,errors:facts.errors})
+ const t=get(req.params.id,req.user.user_id),s=await remote.status(),ids=JSON.parse(t.members_json),operation=JSON.parse(t.source_json).operation||null
+ const firstExecution=operation?db.prepare('SELECT MIN(created_at) AS at FROM operation_task_executions WHERE task_id=?').get(t.id)?.at:null
+ const anchor=operation?firstExecution:t.created_at
+ if(!anchor)return res.json({pending:true,awaiting_execution:true,operation,as_of:s.as_of,performance:null,errors:{}})
+ const cutoff=Math.min(Date.now()+1,Date.parse(s.as_of)+1,Date.parse(s.snapshot_cutoff)+1)
+ if(!operation){const period={start:Math.max(anchor,cutoff-366*86400000),end:cutoff};if(!Number.isFinite(cutoff)||period.end<=period.start)return res.json({pending:true,legacy:true,...period,as_of:s.as_of,performance:null,errors:{}});const facts=await memberFacts(s,ids,period),performance=memberMetrics(facts,ids.map(id=>({id})),period,s);return res.json({pending:false,legacy:true,...period,as_of:s.as_of,snapshot_id:s.snapshot_id,performance:performance?{total:performance.total,requested_users:performance.requested_users,unmatched_users:performance.unmatched_users}:null,errors:facts.errors})}
+ const windowDays=operation.window_days||7,duration=windowDays*86400000
+ const end=Math.min(cutoff,anchor+duration),period={start:anchor,end}
+ if(!Number.isFinite(end)||end<=period.start)return res.json({pending:true,...period,as_of:s.as_of,performance:null,errors:{},operation})
+ const elapsed=end-anchor,beforePeriod={start:anchor-elapsed,end:anchor}
+ const [beforeFacts,afterFacts]=await Promise.all([memberFacts(s,ids,beforePeriod),memberFacts(s,ids,period)])
+ const members=ids.map(id=>({id})),before=memberMetrics(beforeFacts,members,beforePeriod,s),after=memberMetrics(afterFacts,members,period,s)
+ let returnD7=null,returnD7Error=null
+ try{returnD7=await memberReturnD7(s,ids,{start:beforePeriod.start,split:period.start,end:period.end})}
+ catch(e){returnD7Error=e.message||'回流 D7 查询失败'}
+ const errors=Object.fromEntries(['analysis','trade','account'].map(key=>[key,[beforeFacts.errors[key]&&'前期：'+beforeFacts.errors[key],afterFacts.errors[key]&&'后期：'+afterFacts.errors[key]].filter(Boolean).join('；')||null]))
+ if(returnD7Error)errors.return_d7=returnD7Error
+ const changed=type=>{
+  if(errors.account||errors[type])return null
+  const field=type==='analysis'?'analysis_events':'transactions',first=new Set(before.rows.filter(row=>row[field]>0).map(row=>row.user_id)),last=new Set(after.rows.filter(row=>row[field]>0).map(row=>row.user_id))
+  return ids.filter(id=>last.has(String(id))&&!first.has(String(id))).map(id=>'user:'+id)
+ }
+ res.json({pending:false,...period,before_period:beforePeriod,as_of:s.as_of,snapshot_id:s.snapshot_id,window_days:windowDays,complete:cutoff>=anchor+duration,operation,
+  performance:after?{total:after.total,requested_users:after.requested_users,unmatched_users:after.unmatched_users}:null,
+  comparison:{before:before?{total:before.total,requested_users:before.requested_users,unmatched_users:before.unmatched_users}:null,after:after?{total:after.total,requested_users:after.requested_users,unmatched_users:after.unmatched_users}:null},
+  movement:{analysis_ids:changed('analysis'),trade_ids:changed('trade'),return_d7_ids:returnD7?.after_ids??null},
+  return_d7:returnD7?{before_users:returnD7.before_ids.length,after_users:returnD7.after_ids.length}:null,errors})
 }))
+
 module.exports=router

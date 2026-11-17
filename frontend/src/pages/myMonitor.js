@@ -1,4 +1,5 @@
 import {loadingState} from './loadingState.js'
+import {viewState} from '../components/viewStates.js'
 import {loginBreakdownMarkup} from './loginBreakdown.js'
 import {fetchMyMonitorMetrics} from '../api/metrics.js'
 import {fetchBackendMeta} from '../api/backendAnalytics.js'
@@ -26,7 +27,7 @@ export function createMyMonitor(ctx) {
    host.querySelectorAll('[data-monitor-go]').forEach(b=>b.onclick=()=>ctx.navigate(b.dataset.monitorGo))
    const el=host.querySelector('#my-monitor-trend')
    if(globalThis.echarts){const chart=globalThis.echarts.init(el,null,{renderer:'svg'}),owner=createChartLifecycle(ctx.themeMedia);const paint=()=>{const style=getComputedStyle(ctx.root),text=style.getPropertyValue('--a-muted').trim();chart.setOption({animation:false,tooltip:{trigger:'axis',confine:true,valueFormatter:v=>v==null?'—':v.toFixed(1)+'%'},legend:{type:'scroll',top:0,textStyle:{color:text}},grid:{top:55,left:50,right:20,bottom:35},xAxis:{type:'category',data:data.days.map(d=>d.date.slice(5)),axisLabel:{color:text}},yAxis:{type:'value',min:0,max:100,axisLabel:{color:text,formatter:'{value}%'}},series:ms.filter(m=>m.available).map(m=>({name:({activation:'新访客首次分析',visit_login:'访问→登录',login_analysis:'登录→首次分析',login_success:'登录发起→成功',trial:'试用开启',d1:'D1回访',d7:'D7回访'}[m.key]),type:'line',connectNulls:false,data:data.days.map(d=>d.metrics[m.key].rate==null?null:d.metrics[m.key].rate*100)}))},true)};paint();owner.attach(chart,el,paint);charts.push(owner)}
-  }catch(e){if(id===request){host.innerHTML=`<section class="a-card"><h2>我的监控加载失败</h2><p>${esc(e.message)}</p><button class="a-button" data-monitor-retry>重新加载</button></section>`;host.querySelector('[data-monitor-retry]').onclick=draw}}
+  }catch(e){if(id===request){host.innerHTML=viewState({kind:'error',title:'我的监控加载失败',description:e.message,actionLabel:'重新加载',actionAttr:'data-view-retry'});host.querySelector('[data-view-retry]').onclick=draw}}
  }
  return {draw,dispose(){request++;charts.forEach(c=>c.dispose());charts=[]}}
 }

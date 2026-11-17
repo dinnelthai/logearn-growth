@@ -1,0 +1,55 @@
+/*
+ * LogEarn Growth desktop design tokens (dark theme).
+ *
+ * Authoritative workspace palette and reusable control geometry.
+ * Legacy styles.css/polish.css remain for page-specific rules while the
+ * remaining pages are migrated. Avoid introducing new literal colors there.
+ */
+#la-studio {
+  color-scheme: dark;
+
+  /* Existing semantic tokens consumed by analytics and chart components. */
+  --a-bg: #0b0f17;
+  --a-panel: #151d29;
+  --a-text: #f1f5f9;
+  --a-muted: #94a3b8;
+  --a-border: #263244;
+  --a-accent: #91a6ff;
+  --a-tint: #263555;
+  --a-shadow: transparent;
+  --a-green: #81d6b0;
+  --a-warn: #f1bd76;
+
+  /* Desktop shell dimensions. */
+  --sidebar-compact-width: 64px;
+  --workspace-sidebar: #0f1520;
+  --ui-sidebar-width: 248px;
+  --ui-toolbar-height: 64px;
+
+  /* Surface and interaction tokens. */
+  --ui-input-bg: #101824;
+  --ui-surface-raised: #1c2635;
+  --ui-surface-hover: #202d42;
+  --ui-surface-selected: #263555;
+  --ui-border-interactive: #344257;
+  --ui-border-focus: #91a6ff;
+  --ui-on-accent: #0b0f17;
+  --ui-accent-strong: #6d8cff;
+  --ui-danger: #ffbeb3;
+  --ui-danger-border: #8c4641;
+  --ui-warning: #ffd390;
+  --ui-warning-border: #8d6734;
+
+  /* Spacing and radii scale (desktop). */
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-space-5: 20px;
+  --ui-space-6: 24px;
+  --ui-space-8: 32px;
+  --ui-radius-sm: 7px;
+  --ui-radius-md: 10px;
+  --ui-radius-lg: 14px;
+  --ui-control-height: 36px;
+}

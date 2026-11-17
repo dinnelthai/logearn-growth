@@ -2,6 +2,8 @@ import { fetchFunnelMetrics } from '../api/metrics.js'
 import { fetchDrillUsers, fetchUserTimeline } from '../api/drill.js'
 import { ASSOCIATIONS } from '../analytics/funnel.js'
 import { createChartLifecycle } from './chartLifecycle.js'
+import {viewState} from '../components/viewStates.js'
+import {beginPageLoad} from './pageLoading.js'
 
 export function createFunnelAggPage(ctx) {
   const { root, $, $$, names, day, date, esc, fmt, pct, table, stat, themeMedia, drawer } = ctx
@@ -41,7 +43,7 @@ export function createFunnelAggPage(ctx) {
     clearNative()
     const reqId = ++inflight
     $('#as-title').textContent = c.association === 'user' ? '用户激活漏斗' : `${ASSOCIATIONS[c.association] || c.association}漏斗`
-    $('#as-output').innerHTML = '<div class="a-card"><p class="a-muted si-loading" role="status">正在从 /api/metrics/funnel 加载…</p></div>'
+    const finishLoading=beginPageLoad($('#as-output'),{placeholder:'<div class="a-card"><p class="a-muted si-loading" role="status">正在从 /api/metrics/funnel 加载…</p></div>',selector:'[data-view="conversion"]',message:'正在计算漏斗，新结果返回前暂时保留当前分析…'});
 
     const configKey = JSON.stringify(c)
     let metrics
@@ -64,10 +66,11 @@ export function createFunnelAggPage(ctx) {
         metrics=previousMetrics
         $('#as-data-status').textContent='数据更新失败 · 保留上次结果：'+(err.message||err)
       }else{
-      $('#as-output').innerHTML = `<div class="a-card"><h2>漏斗加载失败</h2><p>${esc(err.message || err)}</p></div>`
+      $('#as-output').innerHTML = viewState({kind:'error',title:'漏斗加载失败',description:err.message||String(err),actionLabel:'重新运行',actionAttr:'data-funnel-retry'});
+       $('#as-output').querySelector('[data-funnel-retry]')?.addEventListener('click',()=>draw(c))
       return
       }
-    }
+    }finally{finishLoading()}
     if (reqId !== inflight) return
 
     previousMetrics=metrics;previousConfig=configKey
