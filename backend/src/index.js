@@ -23,6 +23,7 @@ require('./db/mergeActivityBatches').mergeActivityBatches(db)
 require('./db/upgradeKolAccounts').upgradeKolAccounts(db)
 require('./services/activitySchedule').startScheduler()
 require('./services/platformAssets').start()
+require('./services/assetDailyReport').start()
 require('./services/xAcquisition').service().start()
 
 require('./pathIndex/service').start()

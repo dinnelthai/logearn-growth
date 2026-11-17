@@ -1111,8 +1111,8 @@
     "semantic_hash": "39e28bb002ba0e2fd5ee6fb7b59417e9"
   },
   "backend/src/analytics/taskAudience.js": {
-    "mtime": 1794830412.9879162,
-    "seen": 1794830441.118046,
+    "mtime": 1794895687.7219398,
+    "seen": 1794920404.327103,
     "ast_hash": "4db2c4b23b9b557dd2bb7d724a451647",
     "semantic_hash": ""
   },
@@ -1513,8 +1513,8 @@
     "semantic_hash": "2821c5eae053cdb16801184e51e66631"
   },
   "backend/src/db/schema.sql": {
-    "mtime": 1794824789.9389634,
-    "seen": 1794824825.669645,
+    "mtime": 1794895687.7232568,
+    "seen": 1794920404.327199,
     "ast_hash": "6d7adbea61e249f7ddde1b101ce0a8fb",
     "semantic_hash": ""
   },
@@ -1543,9 +1543,9 @@
     "semantic_hash": "9006c9a602a242ef8564327efaf357dd"
   },
   "backend/src/index.js": {
-    "mtime": 1794892622.8226128,
-    "seen": 1794892677.8267572,
-    "ast_hash": "37ef48dd33040be33a3c3954f9cd5858",
+    "mtime": 1794920383.5921981,
+    "seen": 1794920404.327206,
+    "ast_hash": "c3e74e02d80ce7dad631fdee4a573856",
     "semantic_hash": ""
   },
   "backend/src/middleware/crypto.js": {
@@ -1873,8 +1873,8 @@
     "semantic_hash": "40f575fd6e6c086c192bb6f3b6a62e6c"
   },
   "backend/src/routes/operationTasks.js": {
-    "mtime": 1794824798.2981615,
-    "seen": 1794824825.669733,
+    "mtime": 1794895687.7246845,
+    "seen": 1794920404.327283,
     "ast_hash": "5830691a97e69e59080f01a903cfc0ba",
     "semantic_hash": ""
   },
@@ -1915,8 +1915,8 @@
     "semantic_hash": "1b5ffb2565225c9f9bcbfd5cf119155d"
   },
   "backend/src/routes/remoteAnalytics.js": {
-    "mtime": 1794830412.9882977,
-    "seen": 1794830441.1182342,
+    "mtime": 1794895687.725318,
+    "seen": 1794920404.327292,
     "ast_hash": "173f00d04af0d352f6b9c15da12de59a",
     "semantic_hash": ""
   },
@@ -1975,10 +1975,10 @@
     "semantic_hash": "e5292bfc991b0d2c7bce480f1265f6b7"
   },
   "backend/src/services/analysisJobs.js": {
-    "mtime": 1792850670.0988123,
-    "seen": 1793956238.011329,
-    "ast_hash": "55644a2efd8383334e15748bf014f9a2",
-    "semantic_hash": "55644a2efd8383334e15748bf014f9a2"
+    "mtime": 1794895687.6213045,
+    "seen": 1794920404.3273091,
+    "ast_hash": "23ceda482bae39932554c8eef571b49d",
+    "semantic_hash": ""
   },
   "backend/src/services/assetAddresses.js": {
     "mtime": 1792488808.3722477,
@@ -3279,8 +3279,8 @@
     "semantic_hash": "27bd71c63f851937a422695b3329c78f"
   },
   "backend/test/operationTasks.test.js": {
-    "mtime": 1794824798.3357687,
-    "seen": 1794824825.670065,
+    "mtime": 1794895687.726205,
+    "seen": 1794920404.327631,
     "ast_hash": "d7d62addd874c067eeda9f6555578968",
     "semantic_hash": ""
   },
@@ -6289,8 +6289,8 @@
     "semantic_hash": "328021f6c2aef6285e6254d4969c37cc"
   },
   "frontend/src/analytics/__tests__/remoteDrawer.test.js": {
-    "mtime": 1794830422.8336246,
-    "seen": 1794830441.119366,
+    "mtime": 1794895687.728316,
+    "seen": 1794920404.328465,
     "ast_hash": "ea1b71d2666a2fad888cc742757e4702",
     "semantic_hash": ""
   },
@@ -6910,14 +6910,14 @@
     "semantic_hash": "90ebac3553f3e3ea26a1bc0c19577e8c"
   },
   "frontend/src/dashboard.js": {
-    "mtime": 1794894852.2691245,
-    "seen": 1794894889.064903,
+    "mtime": 1794895687.729039,
+    "seen": 1794920404.3286111,
     "ast_hash": "8c35f6792a5ce14cd5bc387cd21d3b46",
     "semantic_hash": ""
   },
   "frontend/src/drawer.js": {
-    "mtime": 1794830412.9890172,
-    "seen": 1794830441.1195111,
+    "mtime": 1794895687.7297354,
+    "seen": 1794920404.328612,
     "ast_hash": "11e8ea3585c2536be0c909a12c4eeafa",
     "semantic_hash": ""
   },
@@ -7493,8 +7493,8 @@
     "semantic_hash": "821c965827a8de1390e697e3cca3e985"
   },
   "frontend/src/pages/segmentInsights.js": {
-    "mtime": 1794830412.988695,
-    "seen": 1794830441.119652,
+    "mtime": 1794895687.7310185,
+    "seen": 1794920404.328754,
     "ast_hash": "8d0d5220253fbf5b035637fe3cd47e96",
     "semantic_hash": ""
   },
@@ -9507,8 +9507,8 @@
     "semantic_hash": ""
   },
   "frontend/index.html": {
-    "mtime": 1794892622.8232934,
-    "seen": 1794892677.829657,
+    "mtime": 1794895687.7274868,
+    "seen": 1794920404.329227,
     "ast_hash": "8f17b66e9d4d5adfc57fe5743cbe4048",
     "semantic_hash": ""
   },
@@ -10323,14 +10323,14 @@
     "semantic_hash": ""
   },
   "backend/src/data/segmentContacts.js": {
-    "mtime": 1794830412.9876616,
-    "seen": 1794830441.1181052,
+    "mtime": 1794895687.7226207,
+    "seen": 1794920404.327163,
     "ast_hash": "3cd1fecf0b7d5fb226d317bebfba0ebd",
     "semantic_hash": ""
   },
   "backend/test/segmentContacts.test.js": {
-    "mtime": 1794830416.5306702,
-    "seen": 1794830441.11861,
+    "mtime": 1794895687.72676,
+    "seen": 1794920404.3276951,
     "ast_hash": "24d5f3499a02875be7480eb68a0058c2",
     "semantic_hash": ""
   },
@@ -10425,14 +10425,14 @@
     "semantic_hash": ""
   },
   "frontend/src/analytics/__tests__/operationEffect.test.js": {
-    "mtime": 1794824789.94037,
-    "seen": 1794824825.67092,
+    "mtime": 1794895687.7278705,
+    "seen": 1794920404.328452,
     "ast_hash": "656cc543e7bb75f1fb19d293dd0b15d5",
     "semantic_hash": ""
   },
   "frontend/src/pages/operationEffect.js": {
-    "mtime": 1794824789.9408154,
-    "seen": 1794824825.671191,
+    "mtime": 1794895687.730368,
+    "seen": 1794920404.328717,
     "ast_hash": "dd86a91c47bef409b535f2ff26bd7f13",
     "semantic_hash": ""
   },
@@ -10455,21 +10455,69 @@
     "semantic_hash": ""
   },
   "backend/src/routes/walletLookup.js": {
-    "mtime": 1794894852.2681618,
-    "seen": 1794894889.062233,
-    "ast_hash": "dcbea4f2742537e2ffb99b92aaead261",
+    "mtime": 1794921187.0683165,
+    "seen": 1794921225.1186109,
+    "ast_hash": "7ce3a4ab3983f7aaee9585b3c7a61e09",
     "semantic_hash": ""
   },
   "frontend/src/pages/walletLookup.js": {
-    "mtime": 1794895009.8598382,
-    "seen": 1794895023.6701922,
-    "ast_hash": "9db833149f690b37a3081cf868345352",
+    "mtime": 1794921202.7827854,
+    "seen": 1794921225.120105,
+    "ast_hash": "7a155d341c4bfb57913b0c2fe5187aaf",
     "semantic_hash": ""
   },
   "frontend/src/analytics/__tests__/walletLookup.test.js": {
-    "mtime": 1794894732.1914442,
-    "seen": 1794894764.9537332,
-    "ast_hash": "5737fb87938d808bf89fe21385e53191",
+    "mtime": 1794920968.5658543,
+    "seen": 1794920990.349453,
+    "ast_hash": "66fd2d3870eabb2f85580814de85eb5f",
+    "semantic_hash": ""
+  },
+  "backend/src/services/analysisWorkerEnv.js": {
+    "mtime": 1794895687.6215363,
+    "seen": 1794920404.3273118,
+    "ast_hash": "ea82285ddc3c9132e2bbcaac9d449019",
+    "semantic_hash": ""
+  },
+  "backend/src/services/assetDailyReport.js": {
+    "mtime": 1794920529.7818587,
+    "seen": 1794920539.174638,
+    "ast_hash": "68942d2dddabd77e30e9031d6098a0a4",
+    "semantic_hash": ""
+  },
+  "backend/src/services/walletTransfers.js": {
+    "mtime": 1794906869.416835,
+    "seen": 1794920404.32733,
+    "ast_hash": "e5edf7dbb8b6c9ba3c783a3d4801b5b0",
+    "semantic_hash": ""
+  },
+  "backend/test/analysisWorkerEnv.test.js": {
+    "mtime": 1794895687.6217895,
+    "seen": 1794920404.327425,
+    "ast_hash": "b5982e614c86a5e4afef4d3b745ecbcb",
+    "semantic_hash": ""
+  },
+  "backend/test/assetDailyReport.test.js": {
+    "mtime": 1794920526.326552,
+    "seen": 1794920539.174764,
+    "ast_hash": "c247425109ed6914e86f88338266bb0a",
+    "semantic_hash": ""
+  },
+  "backend/test/walletTransfers.test.js": {
+    "mtime": 1794906584.7740886,
+    "seen": 1794920404.327733,
+    "ast_hash": "8e28326b344779a22ac4156e4c9a837f",
+    "semantic_hash": ""
+  },
+  "backend/src/services/walletNft.js": {
+    "mtime": 1794921187.017354,
+    "seen": 1794921225.118639,
+    "ast_hash": "16473511b97ff2d4420f67b30dfd20bb",
+    "semantic_hash": ""
+  },
+  "backend/test/walletNft.test.js": {
+    "mtime": 1794921174.717744,
+    "seen": 1794921225.11904,
+    "ast_hash": "51f11da89fef96fe5d37e204d1249347",
     "semantic_hash": ""
   },
   "backend/package-lock.json": {
