@@ -1,6 +1,13 @@
 const express=require('express')
 const remote=require('../data/hologres')
+const transfers=require('../services/walletTransfers')
 const router=express.Router()
+router.post('/transfers',async(req,res,next)=>{
+ try{
+  const data=await transfers.queryTransfers({chainId:req.body?.chain_id,addresses:req.body?.addresses,startDate:req.body?.start_date,endDate:req.body?.end_date})
+  res.set('Cache-Control','no-store').json(data)
+ }catch(e){next(e)}
+})
 router.post('/',async(req,res,next)=>{
  try{
   const value=typeof req.body?.value==='string'?req.body.value.trim():''
