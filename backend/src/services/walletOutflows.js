@@ -148,3 +148,297 @@ async function evmBlockRange(url, start, end, fetchImpl) {
 function evmTransferItem(chain, transfer) {
   const category = String(transfer.category || '')
   const contract = category === 'erc20' ? String(transfer.rawContract?.address || '').toLowerCase() : null
+  const decimals = category === 'erc20' ? Number(transfer.rawContract?.decimal ?? 18) : chain.nativeDecimals
+  const symbol = category === 'erc20' ? (transfer.asset || `TOKEN ${contract ? contract.slice(0, 8) : ''}`.trim()) : chain.native
+  const raw = rawValue(transfer.rawContract?.value ?? transfer.value, decimals)
+  const timestamp = Date.parse(transfer.metadata?.blockTimestamp || '')
+  return {
+    timestamp: Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null,
+    tx_hash: transfer.hash || null,
+    source_address: transfer.from || null,
+    target_address: transfer.to || null,
+    symbol,
+    contract_address: contract,
+    decimals,
+    raw_amount: raw.toString(),
+    amount: formatUnits(raw, decimals),
+    category,
+  }
+}
+
+async function scanEvmOutgoing(chain, url, sourceAddress, targetAddress, range, fetchImpl, resolvedBlockRange) {
+  const blockRange = resolvedBlockRange === undefined ? await evmBlockRange(url, range.start, range.end, fetchImpl) : resolvedBlockRange
+  if (!blockRange) return []
+  const transfers = []
+  let pageKey, pages = 0
+  do {
+    const params = {
+      fromBlock: blockRange.fromBlock,
+      toBlock: blockRange.toBlock,
+      fromAddress: sourceAddress,
+      toAddress: targetAddress,
+      category: ['external', 'internal', 'erc20'],
+      withMetadata: true,
+      excludeZeroValue: true,
+      maxCount: '0x3e8',
+      order: 'asc',
+    }
+    if (pageKey) params.pageKey = pageKey
+    const result = await rpc(url, 'alchemy_getAssetTransfers', [params], fetchImpl)
+    pages++
+    for (const item of (Array.isArray(result.transfers) ? result.transfers : [])) {
+      const time = Date.parse(item.metadata?.blockTimestamp || '')
+      if (Number.isFinite(time) && (time < range.start || time >= range.end)) continue
+      transfers.push(evmTransferItem(chain, item))
+    }
+    pageKey = result.pageKey
+    if (pages >= MAX_PAGES && pageKey) throw Error('历史转账记录超过查询上限，请缩小日期范围')
+  } while (pageKey)
+  return transfers
+}
+
+async function evmBalances(chain, url, address, transfers, fetchImpl) {
+  const warnings = []
+  const [nativeRaw, defaultTokens] = await Promise.all([
+    rpc(url, 'eth_getBalance', [address, 'latest'], fetchImpl),
+    rpc(url, 'alchemy_getTokenBalances', [address, 'DEFAULT_TOKENS'], fetchImpl).catch(error => { warnings.push(`默认Token余额列表不可用：${error.message}`); return null }),
+  ])
+  const native = { symbol: chain.native, contract_address: null, decimals: chain.nativeDecimals, amount: formatUnits(BigInt(nativeRaw || '0x0'), chain.nativeDecimals) }
+  const contracts = new Map()
+  for (const token of (chain.knownTokens || [])) contracts.set(token.address.toLowerCase(), { ...token, contract_address: token.address.toLowerCase() })
+  for (const transfer of transfers) if (transfer.contract_address) {
+    const key = transfer.contract_address.toLowerCase()
+    const previous = contracts.get(key) || { contract_address: key, symbol: transfer.symbol, decimals: transfer.decimals }
+    if (!previous.symbol || previous.symbol.startsWith('TOKEN ')) previous.symbol = transfer.symbol
+    if (!Number.isInteger(previous.decimals)) previous.decimals = transfer.decimals
+    contracts.set(key, previous)
+  }
+  const defaults = Array.isArray(defaultTokens?.tokenBalances) ? defaultTokens.tokenBalances : []
+  if (defaultTokens) warnings.push('EVM当前Token余额包含默认Token列表及本次统计涉及的Token；其他未被RPC索引的合约可能不在列表中。')
+  for (const token of defaults) {
+    const key = String(token.contractAddress || '').toLowerCase()
+    if (EVM_ADDRESS.test(key) && !contracts.has(key)) contracts.set(key, { contract_address: key, symbol: null, decimals: null })
+  }
+  const entries = [...contracts.values()].slice(0, 100)
+  if (contracts.size > entries.length) warnings.push('Token余额列表超过100种，仅展示前100种')
+  let queried = null
+  if (entries.length) {
+    queried = await rpc(url, 'alchemy_getTokenBalances', [address, entries.map(item => item.contract_address)], fetchImpl).catch(error => {
+      warnings.push(`Token余额批量读取失败：${error.message}`)
+      return null
+    })
+  }
+  const returned = new Map((queried?.tokenBalances || []).map(item => [String(item.contractAddress || '').toLowerCase(), item]))
+  const defaultMap = new Map(defaults.map(item => [String(item.contractAddress || '').toLowerCase(), item]))
+  const balances = [native]
+  for (const token of entries) {
+    const row = returned.get(token.contract_address) || defaultMap.get(token.contract_address)
+    let raw = row?.tokenBalance
+    let decimals = Number.isInteger(token.decimals) ? token.decimals : Number(row?.decimals)
+    let symbol = token.symbol || null
+    if (raw == null || !Number.isInteger(decimals)) {
+      const [balanceResult, metadata] = await Promise.all([
+        rpc(url, 'eth_call', [{ to: token.contract_address, data: `0x70a08231${address.toLowerCase().slice(2).padStart(64, '0')}` }, 'latest'], fetchImpl).catch(() => null),
+        rpc(url, 'alchemy_getTokenMetadata', [token.contract_address], fetchImpl).catch(() => null),
+      ])
+      if (raw == null && balanceResult != null) raw = balanceResult
+      if (!Number.isInteger(decimals) && Number.isInteger(metadata?.decimals)) decimals = metadata.decimals
+      if (!symbol) symbol = metadata?.symbol || null
+    } else if (!symbol) {
+      const metadata = await rpc(url, 'alchemy_getTokenMetadata', [token.contract_address], fetchImpl).catch(() => null)
+      symbol = metadata?.symbol || null
+      if (!Number.isInteger(decimals) && Number.isInteger(metadata?.decimals)) decimals = metadata.decimals
+    }
+    if (!Number.isInteger(decimals) || decimals < 0 || decimals > 36) decimals = 18
+    if (!symbol) symbol = `TOKEN ${token.contract_address.slice(0, 8)}`
+    if (raw == null) {
+      warnings.push(`${symbol}余额无法读取`)
+      continue
+    }
+    const normalizedRaw = typeof raw === 'string' && /^0x$/i.test(raw) ? '0x0' : (raw || '0x0')
+    balances.push({ symbol, contract_address: token.contract_address, decimals, amount: formatUnits(BigInt(normalizedRaw), decimals) })
+  }
+  return { balances, warnings }
+}
+
+function solanaAccountKeys(transaction) {
+  return (transaction.transaction?.message?.accountKeys || []).map(key => typeof key === 'string' ? key : key.pubkey)
+}
+function solanaOutgoingTransfers(transaction, sourceAddress, targetAddress, chain) {
+  const keys = solanaAccountKeys(transaction)
+  const owners = new Map()
+  for (const balance of [...(transaction.meta?.preTokenBalances || []), ...(transaction.meta?.postTokenBalances || [])]) {
+    if (balance.owner) owners.set(balance.accountIndex, { owner: balance.owner, mint: balance.mint, decimals: balance.uiTokenAmount?.decimals })
+  }
+  const instructions = [
+    ...(transaction.transaction?.message?.instructions || []),
+    ...(transaction.meta?.innerInstructions || []).flatMap(group => group.instructions || []),
+  ]
+  const timestamp = transaction.blockTime ? new Date(Number(transaction.blockTime) * 1000).toISOString() : null
+  const signature = transaction.transaction?.signatures?.[0] || null
+  const result = []
+  for (const instruction of instructions) {
+    const parsed = instruction.parsed
+    const info = parsed?.info
+    if (!parsed || !info) continue
+    if (instruction.program === 'system' && ['transfer', 'transferWithSeed'].includes(parsed.type)) {
+      const from = info.source || info.from || info.sourceBase
+      if (from === sourceAddress && info.destination === targetAddress && /^\d+$/.test(String(info.lamports))) {
+        const raw = BigInt(info.lamports)
+        result.push({ timestamp, tx_hash: signature, source_address: sourceAddress, target_address: targetAddress, symbol: chain.native, contract_address: null, decimals: chain.nativeDecimals, raw_amount: raw.toString(), amount: formatUnits(raw, chain.nativeDecimals), category: 'native' })
+      }
+      continue
+    }
+    if (!['spl-token', 'spl-token-2022'].includes(instruction.program) || !['transfer', 'transferChecked', 'transferCheckedWithFee'].includes(parsed.type)) continue
+    const sourceTokenAccount = String(info.source || '')
+    const destinationTokenAccount = String(info.destination || '')
+    const sourceMeta = owners.get(keys.indexOf(sourceTokenAccount))
+    const destinationMeta = owners.get(keys.indexOf(destinationTokenAccount))
+    const sourceOwner = sourceMeta?.owner || info.authority
+    const destinationOwner = destinationMeta?.owner || (destinationTokenAccount === targetAddress ? targetAddress : null)
+    if (sourceOwner !== sourceAddress || destinationOwner !== targetAddress) continue
+    const mint = info.mint || sourceMeta?.mint || destinationMeta?.mint
+    const tokenAmount = info.tokenAmount?.amount ?? info.amount
+    if (!mint || !/^\d+$/.test(String(tokenAmount))) continue
+    const decimals = Number(info.tokenAmount?.decimals ?? sourceMeta?.decimals ?? destinationMeta?.decimals ?? 0)
+    const raw = BigInt(tokenAmount)
+    const symbol = mint === SOLANA_USDC ? 'USDC' : mint === SOLANA_USDT ? 'USDT' : `SPL ${mint.slice(0, 6)}`
+    result.push({ timestamp, tx_hash: signature, source_address: sourceAddress, target_address: targetAddress, symbol, contract_address: mint, decimals, raw_amount: raw.toString(), amount: formatUnits(raw, decimals), category: 'spl-token' })
+  }
+  return result
+}
+
+async function solanaSignatures(url, address, range, fetchImpl) {
+  const signatures = []
+  let before
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const options = { limit: 1000, commitment: 'finalized' }
+    if (before) options.before = before
+    const rows = await rpc(url, 'getSignaturesForAddress', [address, options], fetchImpl)
+    if (!Array.isArray(rows) || !rows.length) break
+    let olderThanRange = false
+    for (const row of rows) {
+      const timestamp = Number(row.blockTime) * 1000
+      if (Number.isFinite(timestamp) && timestamp < range.start) { olderThanRange = true; break }
+      if (!row.err && Number.isFinite(timestamp) && timestamp < range.end) signatures.push({ signature: row.signature, timestamp })
+    }
+    if (olderThanRange || rows.length < 1000) return signatures
+    before = rows.at(-1).signature
+  }
+  throw Error('Solana历史交易超过查询上限，请缩小日期范围')
+}
+
+async function scanSolanaOutgoing(chain, url, sourceAddress, targetAddress, range, fetchImpl) {
+  const signatures = await solanaSignatures(url, sourceAddress, range, fetchImpl)
+  const transfers = []
+  for (let index = 0; index < signatures.length; index += 4) {
+    const batch = await Promise.all(signatures.slice(index, index + 4).map(async item => {
+      const tx = await rpc(url, 'getTransaction', [item.signature, { encoding: 'jsonParsed', commitment: 'finalized', maxSupportedTransactionVersion: 0 }], fetchImpl)
+      return tx ? solanaOutgoingTransfers(tx, sourceAddress, targetAddress, chain) : []
+    }))
+    for (const rows of batch) transfers.push(...rows)
+  }
+  return transfers
+}
+
+async function solanaBalances(chain, url, address, fetchImpl) {
+  const [nativeResult, ...tokenResults] = await Promise.all([
+    rpc(url, 'getBalance', [address, { commitment: 'finalized' }], fetchImpl),
+    ...TOKEN_PROGRAMS.map(programId => rpc(url, 'getTokenAccountsByOwner', [address, { programId }, { encoding: 'jsonParsed', commitment: 'finalized' }], fetchImpl).catch(error => ({ error }))),
+  ])
+  const balances = [{ symbol: chain.native, contract_address: null, decimals: chain.nativeDecimals, amount: formatUnits(BigInt(nativeResult?.value || 0), chain.nativeDecimals) }]
+  const tokens = new Map()
+  const warnings = []
+  for (const result of tokenResults) {
+    if (result.error) { warnings.push(`SPL Token余额读取失败：${result.error.message}`); continue }
+    for (const row of (result.value || [])) {
+      const info = row.account?.data?.parsed?.info
+      const token = info?.tokenAmount
+      const mint = info?.mint
+      if (!mint || !token || !/^\d+$/.test(String(token.amount))) continue
+      const decimals = Number(token.decimals || 0)
+      const current = tokens.get(mint) || { symbol: mint === SOLANA_USDC ? 'USDC' : mint === SOLANA_USDT ? 'USDT' : `SPL ${mint.slice(0, 6)}`, contract_address: mint, decimals, raw: 0n }
+      current.raw += BigInt(token.amount)
+      tokens.set(mint, current)
+    }
+  }
+  for (const token of tokens.values()) balances.push({ symbol: token.symbol, contract_address: token.contract_address, decimals: token.decimals, amount: formatUnits(token.raw, token.decimals) })
+  return { balances, warnings }
+}
+
+async function mapLimit(items, limit, worker) {
+  const results = new Array(items.length)
+  let cursor = 0
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const index = cursor++
+      results[index] = await worker(items[index], index)
+    }
+  }))
+  return results
+}
+
+async function queryOutgoingTransfers({ sourceWallets, targets, startDate, endDate, fetchImpl = globalThis.fetch } = {}) {
+  if (!Array.isArray(sourceWallets) || !sourceWallets.length) fail('请先完成第一步旧钱包查询，获取来源钱包地址')
+  if (sourceWallets.length > 5000) fail('来源钱包数量超过5000个，请缩小第一步查询范围')
+  if (!targets || typeof targets !== 'object') fail('请填写各链的转出目标地址')
+  const range = parseDateRange(startDate, endDate)
+  const chains = await Promise.all(CHAINS.map(async chain => {
+    const targetInput = String(targets[chain.key] || '').trim()
+    if (!targetInput) return { chain: { id: chain.id, name: chain.name }, status: 'skipped', message: '未填写目标地址', sources: [] }
+    const targetAddress = chain.family === 'evm' ? (EVM_ADDRESS.test(targetInput) ? targetInput.toLowerCase() : null) : (SOLANA_ADDRESS.test(targetInput) ? targetInput : null)
+    if (!targetAddress) return { chain: { id: chain.id, name: chain.name }, target_address: targetInput, status: 'invalid_target', message: `${chain.name}目标地址格式无效`, sources: [] }
+    let sources
+    try { sources = normalizeSourceWallets(sourceWallets, chain) } catch (error) {
+      return { chain: { id: chain.id, name: chain.name }, target_address: targetAddress, status: 'error', message: error.message, sources: [] }
+    }
+    if (!sources.length) return { chain: { id: chain.id, name: chain.name }, target_address: targetAddress, status: 'no_sources', message: '第一步没有找到该链可用的旧钱包地址', sources: [] }
+    const url = process.env[chain.env]
+    if (!url) return { chain: { id: chain.id, name: chain.name }, target_address: targetAddress, status: 'error', message: `${chain.name} RPC尚未配置`, sources: [] }
+    let resolvedBlockRange
+    let blockRangeError
+    if (chain.family === 'evm') {
+      try { resolvedBlockRange = await evmBlockRange(url, range.start, range.end, fetchImpl) }
+      catch (error) { blockRangeError = error }
+    }
+    const results = await mapLimit(sources, 2, async source => {
+      const item = { account_ids: source.account_ids, source_address: source.address, status: 'ok', transfers: [], totals: [], balances: [], transfer_count: 0, transaction_count: 0, warnings: [] }
+      try {
+        if (blockRangeError) throw blockRangeError
+        item.transfers = chain.family === 'evm'
+          ? await scanEvmOutgoing(chain, url, source.address, targetAddress, range, fetchImpl, resolvedBlockRange)
+          : await scanSolanaOutgoing(chain, url, source.address, targetAddress, range, fetchImpl)
+        item.totals = aggregateTransfers(item.transfers)
+        item.transfer_count = item.transfers.length
+        item.transaction_count = new Set(item.transfers.map(transfer => transfer.tx_hash).filter(Boolean)).size
+      } catch (error) {
+        item.status = 'history_error'
+        item.error = error.message
+      }
+      try {
+        const balanceResult = chain.family === 'evm'
+          ? await evmBalances(chain, url, source.address, item.transfers, fetchImpl)
+          : await solanaBalances(chain, url, source.address, fetchImpl)
+        item.balances = balanceResult.balances
+        item.warnings.push(...balanceResult.warnings)
+      } catch (error) {
+        item.warnings.push(`当前余额读取失败：${error.message}`)
+      }
+      return item
+    })
+    return { chain: { id: chain.id, name: chain.name }, target_address: targetAddress, status: 'ok', source_count: results.length, sources: results }
+  }))
+  return { start_date: startDate, end_date: endDate, timezone: 'UTC+7', chains }
+}
+
+module.exports = {
+  CHAINS,
+  parseDateRange,
+  formatUnits,
+  normalizeSourceWallets,
+  aggregateTransfers,
+  solanaOutgoingTransfers,
+  scanEvmOutgoing,
+  evmTransferItem,
+  queryOutgoingTransfers,
+}
