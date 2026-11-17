@@ -9,7 +9,8 @@ const measures=[
 ]
 const number=v=>typeof v==='number'&&Number.isFinite(v)
 export function renderOperationEffect(result,{esc,fmt,table,observedTime}){
- if(result.pending)return result.awaiting_execution?'<p class="a-muted">尚未登记运营执行。本次观察会以首次手工登记的执行时间为起点，创建任务本身不视为触达。</p>':'<p class="a-muted">数据截至尚未超过首次执行时间，尚无有效观察窗口；请稍后重新检查。</p>'
+ if(result.pending)return result.awaiting_execution?'<p class="a-muted">尚未确认运营执行。本次观察会以首次手工登记的时间为起点。旧版记录无法可靠识别时，请重新登记；观察从重新登记时开始。</p>':'<p class="a-muted">数据截至尚未超过首次执行时间，尚无有效观察窗口；请稍后重新检查。</p>'
+ if(result.legacy){const total=result.performance?.total,errors=Object.values(result.errors||{}).filter(Boolean);return '<p class="a-muted">持续观察 '+observedTime(result.start)+' — '+observedTime(result.end)+' · UTC+7；最长最近 366 天，不表示因果增量。</p>'+(total?table(['指标','观察结果'],measures.map(([key,label])=>[label,number(total[key])?fmt(total[key]):'—'])):'<p class="si-error">当前无法获取完整账户数据。</p>')+errors.map(e=>'<p class="si-error">'+esc(e)+'</p>').join('')}
  const before=result.comparison?.before?.total,after=result.comparison?.after?.total
  const errors=Object.values(result.errors||{}).filter(Boolean)
  const period='<p class="a-muted">前期 '+observedTime(result.before_period?.start)+' — '+observedTime(result.before_period?.end)+'；后期 '+observedTime(result.start)+' — '+observedTime(result.end)+' · UTC+7</p>'

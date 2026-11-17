@@ -1,6 +1,8 @@
-function cachedAudience(value,key,q='',contactFilter){
+function cachedAudience(value,key,q='',contactFilter,creditsFilter,valueSignal){
  let ids=require('./retentionCurves').resolveCachedList(value,key);if(!Array.isArray(ids))throw Object.assign(new Error('未知用户名单'),{status:400})
  if(contactFilter)ids=require('../data/segmentContacts').filterContactIds(value,ids,contactFilter)
+ if(creditsFilter)ids=require('../data/segmentContacts').filterCreditsIds(value,ids,creditsFilter)
+ if(valueSignal)ids=require('../data/segmentContacts').filterValueSignalIds(value,ids,valueSignal)
  if(ids.some(id=>typeof id!=='string'||!(/^(user:|anonymous:).+$/).test(id)))throw Object.assign(new Error('该名单是记录或关系，请先选择用户指标'),{status:400})
  const search=String(q).slice(0,128).toLowerCase(),{expandDetails}=require('./compactDetails')
  const retentionSources=value.retention_store?new Map(value.retention_store.users.map(r=>[r[0],r[3]||'未知'])):null

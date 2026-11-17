@@ -83,9 +83,11 @@ router.post('/api/analytics/audience',wrap(async(req,res)=>{
   const ids=require('../analytics/taskAudience').cachedAudience(value,params.group||'core',req.body.q)
   return res.json({ids,start:value.payload.start,end:value.payload.end,source:value.payload.source,origin:'weekly_core',snapshot_id:s.snapshot_id,as_of:s.as_of,count:ids.length})
  }
- const {cache_id,list_key,q,contact_filter}=req.body,{j,value}=jobs.result(cache_id,req.user.user_id)
+ const {cache_id,list_key,q,contact_filter,credits_filter,value_signal}=req.body,{j,value}=jobs.result(cache_id,req.user.user_id)
  if(contact_filter && (j.context.mode!=='segments'||list_key!=='behavior:unactivated'))throw Object.assign(new Error('该名单不支持联系方式筛选'),{status:400})
- const s=await remote.snapshot(j.snapshot),ids=require('../analytics/taskAudience').cachedAudience(value,list_key,q,contact_filter)
+ if(credits_filter && j.context.mode!=='segments')throw Object.assign(new Error('该名单不支持 Credits 筛选'),{status:400})
+ if(value_signal && (j.context.mode!=='segments'||list_key!=='behavior:unactivated'))throw Object.assign(new Error('该名单不支持价值线索筛选'),{status:400})
+ const s=await remote.snapshot(j.snapshot),ids=require('../analytics/taskAudience').cachedAudience(value,list_key,q,contact_filter,credits_filter,value_signal)
  const period=value.payload.list_periods?.[list_key]
  res.json({ids,start:period?.start??value.payload.start??j.context.start,end:period?.end??value.payload.end??j.context.end,source:j.context.source,origin:j.context.mode,snapshot_id:j.snapshot,as_of:s.as_of,count:ids.length})
 }))
@@ -181,6 +183,8 @@ router.post('/api/drill/users', wrap(async (req, res) => {
     let ids=require('../analytics/retentionCurves').resolveCachedList(value,params.list_key)
     if(!Array.isArray(ids))return res.status(400).json({error:'未知下钻名单'})
     if(params.contact_filter){if(j.context.mode!=='segments'||params.list_key!=='behavior:unactivated')return res.status(400).json({error:'该名单不支持联系方式筛选'});ids=require('../data/segmentContacts').filterContactIds(value,ids,params.contact_filter)}
+    if(params.credits_filter){if(j.context.mode!=='segments')return res.status(400).json({error:'该名单不支持 Credits 筛选'});ids=require('../data/segmentContacts').filterCreditsIds(value,ids,params.credits_filter)}
+    if(params.value_signal){if(j.context.mode!=='segments'||params.list_key!=='behavior:unactivated')return res.status(400).json({error:'该名单不支持价值线索筛选'});ids=require('../data/segmentContacts').filterValueSignalIds(value,ids,params.value_signal)}
     const s=await remote.snapshot(j.snapshot),limit=Math.min(200,Math.max(1,Number(req.body.limit)||50)),offset=Math.max(0,Number(req.body.offset)||0)
     if(value.members){
       const search=String(q).slice(0,128).toLowerCase(),rows=ids.map(id=>value.members[id]).filter(Boolean).filter(r=>!search||(value.search_fields||['id','source','inviter_id','invitee_id','reason']).map(k=>r[k]).some(x=>String(x??'').toLowerCase().includes(search))).sort((a,b)=>a.id.localeCompare(b.id))

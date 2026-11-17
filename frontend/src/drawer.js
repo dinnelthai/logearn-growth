@@ -49,13 +49,15 @@ export function createDrawer(dialog, {onAnalyze,onAnalyzeRemote,getContext,onUse
      * fetchPage({offset,limit,q}) → {total,rows:[{id,source,...}]}
      * fetchTimeline(userId, hostEl) optional.
      */
-    openRemote({title,description,note='',columns=['用户','来源','首次事件'],fetchPage,fetchTimeline,renderRow,onRowAction,pageSize=12,entity='用户',selection,profileContext,contactFilter=false}) {
+    openRemote({title,description,note='',columns=['用户','来源','首次事件'],fetchPage,fetchTimeline,renderRow,onRowAction,pageSize=12,entity='用户',selection,profileContext,contactFilter=false,creditsFilter=false,valueSignalFilter=false}) {
       cancelPendingSearch();
       const session=++epoch;origin=document.activeElement
-      let page=0,query='',filter='all',total=0,rows=[],loading=false,error=null,request=0
+      let page=0,query='',filter='all',credits=null,valueSignal='',total=0,rows=[],loading=false,error=null,request=0
       dialog.innerHTML=`<div class="a-drawerhead"><div><h2 id="${titleId}">${escapeHtml(title)}</h2><p class="a-muted" data-desc>${escapeHtml(description)}</p></div><button class="a-button" data-close>关闭</button></div><label class="a-drawer-search">${entity==='用户'?'搜索用户或来源':entity==='关系'?'搜索关系ID或原因':'搜索用户、尝试ID或订单ID'}<input type="search" placeholder="${entity==='用户'?'输入用户ID或来源':entity==='关系'?'输入关系ID或原因':'输入用户ID、尝试ID或订单ID'}" aria-label="搜索下钻用户"></label><div data-remote-actions></div><div data-list></div><div class="a-drawer-pagination"><span data-count role="status"></span><div><button class="a-button" data-prev>上一页</button><button class="a-button" data-next>下一页</button></div></div><p class="a-muted">${escapeHtml(note||'名单由服务端分页返回，与汇总指标同口径。')}</p><div id="as-timeline" aria-live="polite"></div>`
       const select=s=>dialog.querySelector(s)
       if(contactFilter)select('[data-remote-actions]').insertAdjacentHTML('beforebegin','<label class="a-drawer-search">联系方式筛选<select data-contact-filter><option value="all">全部用户</option><option value="either">已验证 Telegram 或邮箱</option><option value="telegram">已验证 Telegram</option><option value="email">已验证邮箱</option><option value="both">两者均已验证</option><option value="neither">两者均未验证</option></select></label>')
+      if(valueSignalFilter)select('[data-remote-actions]').insertAdjacentHTML('beforebegin','<label class="a-drawer-search">价值线索筛选<select data-value-signal><option value="">全部价值线索</option><option value="trade">有交易记录</option><option value="nft">有 NFT 记录</option><option value="balance">近期正余额</option><option value="vip">有效 VIP</option><option value="credits">可用 Credits 大于 0</option></select></label>')
+      if(creditsFilter)select('[data-remote-actions]').insertAdjacentHTML('beforebegin',`<div class="a-drawer-search"><label>Credits 可用余额<select data-credits-mode><option value="all">全部余额</option><option value="range">指定范围（含边界）</option><option value="unknown">余额未知</option></select></label><div data-credits-range hidden><label>最低余额<input type="number" min="0" step="any" data-credits-min></label><label>最高余额<input type="number" min="0" step="any" data-credits-max></label><button type="button" class="a-button" data-credits-apply>应用余额筛选</button><p data-credits-error role="alert"></p></div></div>` )
       const renderRows=()=>{
         const pages=lastRemotePage(total,pageSize)+1
         select('[data-desc]').textContent=loading?`${description} · 加载中…`:`${description} · ${total} ${entity==='用户'?'位用户':'条'+entity}`
@@ -72,7 +74,7 @@ export function createDrawer(dialog, {onAnalyze,onAnalyzeRemote,getContext,onUse
         select('[data-remote-retry]')?.addEventListener?.('click',()=>load())
         const actions=select('[data-remote-actions]')
         actions.innerHTML=selection&&entity==='用户'&&onAnalyzeRemote?`<p class="a-muted">使用当前筛选匹配的全部 ${total} 位用户，包含所有分页</p><div class="a-audience-actions">${[['segments','用户分群'],['paths','行为路径'],['funnel','漏斗'],['trade-monitor','交易问题'],['retention','留存'],['referral','推荐贡献']].map(([m,l])=>`<button class="a-button" data-remote-go="${m}" ${loading||error||!total?'disabled':''}>${l}</button>`).join('')}<button class="a-button" data-remote-go="save" ${loading||error||!total?'disabled':''}>保存为用户群组</button></div><p data-remote-status role="status"></p>`:''
-        actions.querySelectorAll('[data-remote-go]').forEach(b=>b.onclick=async()=>{const status=actions.querySelector('[data-remote-status]');actions.querySelectorAll('button').forEach(x=>x.disabled=true);try{await onAnalyzeRemote({selection:contactFilter?{...selection,contact_filter:filter}:selection,title,description,query,mode:b.dataset.remoteGo});if(b.dataset.remoteGo==='save'){status.textContent='已保存用户群组，可在用户分群侧栏使用';actions.querySelectorAll('button').forEach(x=>x.disabled=false)}else close()}catch(e){status.textContent=e.message;actions.querySelectorAll('button').forEach(x=>x.disabled=false)}})
+        actions.querySelectorAll('[data-remote-go]').forEach(b=>b.onclick=async()=>{const status=actions.querySelector('[data-remote-status]');actions.querySelectorAll('button').forEach(x=>x.disabled=true);try{await onAnalyzeRemote({selection:{...selection,...(contactFilter?{contact_filter:filter}:{}),...(credits?{credits_filter:credits}:{}),...(valueSignal?{value_signal:valueSignal}:{})},title,description,query,mode:b.dataset.remoteGo});if(b.dataset.remoteGo==='save'){status.textContent='已保存用户群组，可在用户分群侧栏使用';actions.querySelectorAll('button').forEach(x=>x.disabled=false)}else close()}catch(e){status.textContent=e.message;actions.querySelectorAll('button').forEach(x=>x.disabled=false)}})
         select('#as-timeline').innerHTML=''
         dialog.querySelectorAll('[data-row-action]').forEach(button=>button.onclick=()=>onRowAction?.(button.dataset.rowAction))
         dialog.querySelectorAll('[data-user]').forEach(button=>button.onclick=()=>{
@@ -85,7 +87,7 @@ export function createDrawer(dialog, {onAnalyze,onAnalyzeRemote,getContext,onUse
         if(session!==epoch)return
         const currentRequest=++request;loading=true;error=null;renderRows()
         try{
-          const result=await fetchPage({offset:page*pageSize,limit:pageSize,q:query,contactFilter:filter})
+          const result=await fetchPage({offset:page*pageSize,limit:pageSize,q:query,contactFilter:filter,...(creditsFilter?{creditsFilter:credits}:{}),...(valueSignalFilter?{valueSignal}:{})})
           if(currentRequest!==request||session!==epoch)return
           total=normalizeRemoteTotal(result.total)
           const correction=remotePageCorrection({page,total,pageSize})
@@ -106,6 +108,8 @@ export function createDrawer(dialog, {onAnalyze,onAnalyzeRemote,getContext,onUse
       }
       select('[data-close]').onclick=close
       if(contactFilter)select('[data-contact-filter]').onchange=event=>{filter=event.target.value;page=0;cancelPendingSearch();load()}
+      if(valueSignalFilter)select('[data-value-signal]').onchange=event=>{valueSignal=event.target.value;page=0;cancelPendingSearch();load()}
+      if(creditsFilter){const mode=select('[data-credits-mode]'),range=select('[data-credits-range]');mode.onchange=()=>{range.hidden=mode.value!=='range';if(mode.value!=='range'){credits=mode.value==='unknown'?{unknown:true}:null;page=0;cancelPendingSearch();load()}};select('[data-credits-apply]').onclick=()=>{const min=select('[data-credits-min]').value,max=select('[data-credits-max]').value,msg=select('[data-credits-error]');if((min!==''&&(!Number.isFinite(Number(min))||Number(min)<0))||(max!==''&&(!Number.isFinite(Number(max))||Number(max)<0))||(min!==''&&max!==''&&Number(min)>Number(max))){msg.textContent='请输入有效的余额范围，最低值不能大于最高值。';return}msg.textContent='';credits=min===''&&max===''?null:{...(min!==''?{min:Number(min)}:{}),...(max!==''?{max:Number(max)}:{})};page=0;cancelPendingSearch();load()}}
       let searchTimer=null
       cancelPendingSearch=()=>{clearTimeout(searchTimer);searchTimer=null}
       select('input').oninput=event=>{

@@ -58,6 +58,7 @@ app.use('/api/gsc', require('./routes/gscOAuthCallback'))
 app.use('/api/auth', authRouter)
 
 app.use('/api/user-crm',requireAuth,require('./routes/userCrm'))
+app.use('/api/wallet-lookup',requireAuth,require('./routes/walletLookup'))
 
 app.use(['/api/users','/api/user-followups','/api/workbench'],requireAuth)
 app.use(require('./routes/userOperations'))

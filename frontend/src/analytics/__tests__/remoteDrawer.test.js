@@ -10,7 +10,7 @@ function fixture(){
   const selectors=[
     '[data-desc]','[data-list]','[data-count]','[data-prev]',
     '[data-next]','[data-remote-actions]','[data-remote-retry]','#as-timeline',
-    '[data-close]','[data-contact-filter]','input'
+    '[data-close]','[data-value-signal]','[data-contact-filter]','[data-credits-mode]','[data-credits-range]','[data-credits-min]','[data-credits-max]','[data-credits-error]','[data-credits-apply]','input'
   ]
   const nodes=Object.fromEntries(selectors.map(x=>[x,{innerHTML:'',textContent:'',disabled:false}]))
   nodes['input'].focus=()=>{}
@@ -102,4 +102,21 @@ test('server failure retains an explicit retry without silently reloading',async
   await vi.waitFor(()=>expect(t.nodes['[data-list]'].innerHTML).toContain('user:1'))
   expect(fetchPage).toHaveBeenCalledTimes(2)
   t.drawer.close()
+})
+
+test('credits range reloads first page and unknown is a separate filter',async()=>{
+ const t=fixture(),fetchPage=vi.fn().mockResolvedValue({total:1,rows:[{id:'user:1'}]})
+ t.drawer.openRemote({title:'用户',description:'名单',fetchPage,creditsFilter:true})
+ t.nodes['[data-credits-mode]'].value='range';t.nodes['[data-credits-mode]'].onchange()
+ t.nodes['[data-credits-min]'].value='100';t.nodes['[data-credits-max]'].value='200';t.nodes['[data-credits-apply]'].onclick()
+ await vi.waitFor(()=>expect(fetchPage).toHaveBeenLastCalledWith(expect.objectContaining({offset:0,creditsFilter:{min:100,max:200}})))
+ t.nodes['[data-credits-mode]'].value='unknown';t.nodes['[data-credits-mode]'].onchange()
+ await vi.waitFor(()=>expect(fetchPage).toHaveBeenLastCalledWith(expect.objectContaining({creditsFilter:{unknown:true}})))
+})
+
+test('value signal reloads the full list from the first page',async()=>{
+ const t=fixture(),fetchPage=vi.fn().mockResolvedValue({total:1,rows:[{id:'user:1'}]})
+ t.drawer.openRemote({title:'用户',description:'名单',fetchPage,valueSignalFilter:true})
+ t.nodes['[data-value-signal]'].onchange({target:{value:'nft'}})
+ await vi.waitFor(()=>expect(fetchPage).toHaveBeenLastCalledWith(expect.objectContaining({offset:0,valueSignal:'nft'})))
 })

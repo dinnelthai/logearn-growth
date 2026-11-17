@@ -20,3 +20,22 @@ test('contact filters apply to the complete cached list',()=>{
  assert.deepEqual(filterContactIds(value,ids,'neither'),['user:4'])
  assert.throws(()=>filterContactIds(value,ids,'invalid'))
 })
+test('credits balance filters apply to all cached users and distinguish unknown from zero',()=>{
+ const {filterCreditsIds}=require('../src/data/segmentContacts')
+ const value={details:{a:{credits_available:0},b:{credits_available:100},c:{credits_available:200},d:{credits_available:null}}},ids=Object.keys(value.details)
+ assert.deepEqual(filterCreditsIds(value,ids,{min:100,max:200}),['b','c'])
+ assert.deepEqual(filterCreditsIds(value,ids,{min:0,max:0}),['a'])
+ assert.deepEqual(filterCreditsIds(value,ids,{unknown:true}),['d'])
+ assert.throws(()=>filterCreditsIds(value,ids,{min:200,max:100}))
+})
+test('value signal filter uses the same evidence as the value tag',()=>{
+ const {filterValueSignalIds}=require('../src/data/segmentContacts')
+ const value={details:{a:{trade_count:1},b:{nft_count:1},c:{has_balance:true},d:{vip_active:true},e:{credits_available:1},f:{trade_count:0}}},ids=Object.keys(value.details)
+ for(const [signal,id] of [['trade','a'],['nft','b'],['balance','c'],['vip','d'],['credits','e']]) assert.deepEqual(filterValueSignalIds(value,ids,signal),[id])
+ assert.throws(()=>filterValueSignalIds(value,ids,'invalid'))
+})
+test('value and credits filters are combined when materializing an audience',()=>{
+ const {cachedAudience}=require('../src/analytics/taskAudience')
+ const value={lists:{'behavior:unactivated':['user:1','user:2','user:3']},details:{'user:1':{trade_count:1,credits_available:200},'user:2':{trade_count:1,credits_available:50},'user:3':{trade_count:0,credits_available:200}}}
+ assert.deepEqual(cachedAudience(value,'behavior:unactivated','',null,{min:100},'trade'),['user:1'])
+})

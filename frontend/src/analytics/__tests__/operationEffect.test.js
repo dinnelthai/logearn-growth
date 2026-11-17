@@ -3,8 +3,14 @@ import {renderOperationEffect} from '../../pages/operationEffect.js'
 const helpers={esc:String,fmt:String,table:(headers,rows)=>JSON.stringify({headers,rows}),observedTime:String}
 test('waits for execution instead of claiming a zero result',()=>{
  const html=renderOperationEffect({pending:true,awaiting_execution:true},helpers)
- expect(html).toContain('尚未登记运营执行')
+ expect(html).toContain('尚未确认运营执行')
  expect(html).not.toContain('0%')
+})
+test('renders legacy continuous observations without a comparison',()=>{
+ const html=renderOperationEffect({legacy:true,start:1,end:2,performance:{total:{analysis_users:3,analysis_events:4,trade_users:1,transactions:2,volume_usd:5}},errors:{}},helpers)
+ expect(html).toContain('持续观察')
+ expect(html).toContain('最长最近 366 天')
+ expect(html).not.toContain('前期未观测')
 })
 test('compares fixed roster in matched windows and qualifies trade records',()=>{
  const html=renderOperationEffect({

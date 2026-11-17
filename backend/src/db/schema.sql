@@ -328,6 +328,10 @@ CREATE TABLE IF NOT EXISTS operation_task_history (
  note TEXT NOT NULL DEFAULT '',before_json TEXT,after_json TEXT NOT NULL,created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_operation_task_history ON operation_task_history(task_id,created_at);
+CREATE TABLE IF NOT EXISTS operation_task_executions (
+ id TEXT PRIMARY KEY, task_id TEXT NOT NULL REFERENCES operation_tasks(id), created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_operation_task_executions ON operation_task_executions(task_id,created_at);
 
 CREATE TABLE IF NOT EXISTS crm_collaborations (
  id TEXT PRIMARY KEY,kol_id TEXT NOT NULL REFERENCES crm_kols(id),owner_id TEXT NOT NULL,

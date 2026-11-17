@@ -74,7 +74,7 @@ router.post('/:id/log',wrap(async(req,res)=>{
  if(!note.trim()&&count===0)fail('请填写执行记录或触达人次')
  const labels={telegram:'Telegram',email:'邮件',x:'X',in_product:'站内',other:'其他'}
  const at=Math.max(Date.now(),t.updated_at+1)
- history(t,t,'[手工登记] '+labels[channel]+' · '+count+' 人次'+(note.trim()?' · '+note.trim():''),at)
+ tx(()=>{history(t,t,'[手工登记] '+labels[channel]+' · '+count+' 人次'+(note.trim()?' · '+note.trim():''),at);db.prepare('INSERT INTO operation_task_executions(id,task_id,created_at) VALUES(?,?,?)').run('ote_'+randomUUID(),t.id,at)})
  res.status(201).json({recorded:true,created_at:at})
 }))
 router.get('/:id/audience',wrap(async(req,res)=>{
@@ -83,10 +83,12 @@ router.get('/:id/audience',wrap(async(req,res)=>{
 }))
 router.get('/:id/review',wrap(async(req,res)=>{
  const t=get(req.params.id,req.user.user_id),s=await remote.status(),ids=JSON.parse(t.members_json),operation=JSON.parse(t.source_json).operation||null
- const firstExecution=operation?db.prepare("SELECT MIN(created_at) AS at FROM operation_task_history WHERE task_id=? AND note LIKE '[手工登记]%'").get(t.id)?.at:null
+ const firstExecution=operation?db.prepare('SELECT MIN(created_at) AS at FROM operation_task_executions WHERE task_id=?').get(t.id)?.at:null
  const anchor=operation?firstExecution:t.created_at
  if(!anchor)return res.json({pending:true,awaiting_execution:true,operation,as_of:s.as_of,performance:null,errors:{}})
- const windowDays=operation?.window_days||7,duration=windowDays*86400000,cutoff=Math.min(Date.now()+1,Date.parse(s.as_of)+1,Date.parse(s.snapshot_cutoff)+1)
+ const cutoff=Math.min(Date.now()+1,Date.parse(s.as_of)+1,Date.parse(s.snapshot_cutoff)+1)
+ if(!operation){const period={start:Math.max(anchor,cutoff-366*86400000),end:cutoff};if(!Number.isFinite(cutoff)||period.end<=period.start)return res.json({pending:true,legacy:true,...period,as_of:s.as_of,performance:null,errors:{}});const facts=await memberFacts(s,ids,period),performance=memberMetrics(facts,ids.map(id=>({id})),period,s);return res.json({pending:false,legacy:true,...period,as_of:s.as_of,snapshot_id:s.snapshot_id,performance:performance?{total:performance.total,requested_users:performance.requested_users,unmatched_users:performance.unmatched_users}:null,errors:facts.errors})}
+ const windowDays=operation.window_days||7,duration=windowDays*86400000
  const end=Math.min(cutoff,anchor+duration),period={start:anchor,end}
  if(!Number.isFinite(end)||end<=period.start)return res.json({pending:true,...period,as_of:s.as_of,performance:null,errors:{},operation})
  const elapsed=end-anchor,beforePeriod={start:anchor-elapsed,end:anchor}
@@ -96,11 +98,10 @@ router.get('/:id/review',wrap(async(req,res)=>{
  try{returnD7=await memberReturnD7(s,ids,{start:beforePeriod.start,split:period.start,end:period.end})}
  catch(e){returnD7Error=e.message||'回流 D7 查询失败'}
  const errors=Object.fromEntries(['analysis','trade','account'].map(key=>[key,[beforeFacts.errors[key]&&'前期：'+beforeFacts.errors[key],afterFacts.errors[key]&&'后期：'+afterFacts.errors[key]].filter(Boolean).join('；')||null]))
- const membersOf=(facts,type)=>new Set((type==='analysis'?facts.events:facts.trades).map(row=>String(type==='analysis'?row.user_id:row.account_id)).filter(Boolean))
  if(returnD7Error)errors.return_d7=returnD7Error
  const changed=type=>{
   if(errors.account||errors[type])return null
-  const first=membersOf(beforeFacts,type),last=membersOf(afterFacts,type)
+  const field=type==='analysis'?'analysis_events':'transactions',first=new Set(before.rows.filter(row=>row[field]>0).map(row=>row.user_id)),last=new Set(after.rows.filter(row=>row[field]>0).map(row=>row.user_id))
   return ids.filter(id=>last.has(String(id))&&!first.has(String(id))).map(id=>'user:'+id)
  }
  res.json({pending:false,...period,before_period:beforePeriod,as_of:s.as_of,snapshot_id:s.snapshot_id,window_days:windowDays,complete:cutoff>=anchor+duration,operation,
