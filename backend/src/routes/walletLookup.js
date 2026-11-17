@@ -9,7 +9,7 @@ router.post('/',async(req,res,next)=>{
   const accounts=await remote.query(`SELECT DISTINCT account_id FROM (
    SELECT account_id::text AS account_id FROM public.account_v2 WHERE account_id::text=$1
    UNION ALL
-   SELECT account_id::text AS account_id FROM public.wallet_2_old_v2
+   SELECT account_id::text AS account_id FROM public.wallet_v2_old_v2
     WHERE (CASE WHEN $2 THEN LOWER(BTRIM(address)) ELSE BTRIM(address) END)=$3
    UNION ALL
    SELECT account_id::text AS account_id FROM public.wallet_v2
@@ -23,7 +23,7 @@ router.post('/',async(req,res,next)=>{
   const ids=accounts.map(x=>x.account_id)
   if(!ids.length)return res.set('Cache-Control','no-store').json({accounts:[]})
   const [old,identities,wallets]=await Promise.all([
-   remote.query('SELECT account_id::text,chain_family,chain_id,address,status FROM public.wallet_2_old_v2 WHERE account_id::text=ANY($1::text[]) ORDER BY account_id,chain_family,chain_id,address',[ids]),
+   remote.query('SELECT account_id::text,chain_family,chain_id,address,status FROM public.wallet_v2_old_v2 WHERE account_id::text=ANY($1::text[]) ORDER BY account_id,chain_family,chain_id,address',[ids]),
    remote.query("SELECT account_id::text,provider,subject,verified FROM public.account_identity_v2 WHERE account_id::text=ANY($1::text[]) ORDER BY account_id,provider,subject",[ids]),
    remote.query('SELECT account_id::text,chain_family,chain_id,address,status FROM public.wallet_v2 WHERE account_id::text=ANY($1::text[]) ORDER BY account_id,chain_family,chain_id,address',[ids])
   ])
