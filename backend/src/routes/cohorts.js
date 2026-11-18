@@ -127,4 +127,34 @@ router.delete('/:id', (req, res) => {
   res.json({ deleted: true })
 })
 
+
+// Operations are descriptive annotations for a fixed cohort, not analytics events.
+// All routes scope records to the authenticated operator and exclude deleted groups.
+router.get('/:id/actions', (req, res) => {
+  const cohort = getCohort(req.params.id, req.user.user_id)
+  if (!cohort) return res.status(404).json({ error: '群组不存在' })
+  if (cohort.kind === 'dynamic') return res.status(409).json({ error: '请先将动态人群保存为固定名单再追踪' })
+  const actions = db.prepare('SELECT id, title, note, executed_at, created_at FROM cohort_actions WHERE cohort_id = ? AND owner_id = ? ORDER BY executed_at DESC, created_at DESC LIMIT 100')
+    .all(cohort.id, String(req.user.user_id))
+  res.json({ actions })
+})
+
+router.post('/:id/actions', (req, res) => {
+  const cohort = getCohort(req.params.id, req.user.user_id)
+  if (!cohort) return res.status(404).json({ error: '群组不存在' })
+  if (cohort.kind === 'dynamic') return res.status(409).json({ error: '动态人群不能记录固定名单运营动作' })
+  const title = typeof req.body?.title === 'string' ? req.body.title.trim() : ''
+  const note = typeof req.body?.note === 'string' ? req.body.note.trim() : ''
+  const executedAt = Number(req.body?.executed_at)
+  if (!title || title.length > 100 || note.length > 1000 || !Number.isSafeInteger(executedAt)
+    || executedAt < Date.UTC(2020, 0, 1) || executedAt > Date.now() + 3600000) {
+    return res.status(400).json({ error: '请输入有效的动作名称（最多100字）、备注（最多1000字）和执行时间' })
+  }
+  const id = 'action_' + randomUUID().replace(/-/g, '').slice(0, 20)
+  const now = Date.now()
+  db.prepare('INSERT INTO cohort_actions (id, cohort_id, owner_id, title, note, executed_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .run(id, cohort.id, String(req.user.user_id), title, note, executedAt, now)
+  res.status(201).json({ action: { id, title, note, executed_at: executedAt, created_at: now } })
+})
+
 module.exports = router

@@ -1,0 +1,38 @@
+name: Fixed cohort tracking regression
+
+on:
+  pull_request:
+    paths:
+      - 'backend/src/routes/cohorts.js'
+      - 'backend/src/db/schema.sql'
+      - 'backend/test/cohortTracking.test.js'
+      - 'frontend/src/pages/cohortTracking.js'
+      - 'frontend/src/analytics/cohortTrackingModel.js'
+      - '.github/workflows/cohort-tracking.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  cohort-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Syntax checks
+        run: |
+          node --check src/routes/cohorts.js
+          node --check test/cohortTracking.test.js
+          node --check ../frontend/src/pages/cohortTracking.js
+          node --check ../frontend/src/pages/segmentUserList.js
+      - name: Cohort API ownership and tracking tests
+        run: node --test test/cohortOwnership.test.js test/cohortTracking.test.js

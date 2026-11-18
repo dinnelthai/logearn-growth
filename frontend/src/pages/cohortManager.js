@@ -1,4 +1,5 @@
 import {tagHistory} from '../api/growthOperations.js'
+import {openCohortTracking} from './cohortTracking.js'
 import {observedTime} from './observedDrill.js'
 import {resolveSavedCohort} from '../analytics/savedCohort.js'
 /**
@@ -71,7 +72,7 @@ export function mountCohortManager(host, { allUsers, asof, day, onApply, esc, re
         <input name="color" type="hidden" value="#6366f1">
       </label>
       <label>用户 ID 列表
-        <textarea name="user_ids" rows="5" placeholder="每行或逗号分隔一个 user_id&#10;LE10012&#10;LE10045&#10;LE10102" style="width:100%;resize:vertical"></textarea>
+        <textarea name="user_ids" rows="5" placeholder="支持 user:115、132 等 ID；换行、逗号、空格分隔" style="width:100%;resize:vertical"></textarea>
       </label>
       <div style="display:flex;gap:8px;margin-top:10px">
         <button type="submit" class="a-button a-primary" ${busy ? 'disabled' : ''}>创建</button>
@@ -100,7 +101,7 @@ export function mountCohortManager(host, { allUsers, asof, day, onApply, esc, re
     const countEl = form.querySelector('[data-count]')
     ta.addEventListener('input', () => {
       const ids = parseIds(ta.value)
-      countEl.textContent = ids.length ? `已识别 ${ids.length} 个 user_id` : ''
+      countEl.textContent = ids.length ? `已去重 ${ids.length} 个 user_id · 固定名单` : ''
     })
 
     // File upload
@@ -127,11 +128,14 @@ export function mountCohortManager(host, { allUsers, asof, day, onApply, esc, re
       const user_ids = parseIds(String(data.get('user_ids') ?? ''))
 
       if (!name) { error = '请填写群组名称'; render(); return }
+      if (!user_ids.length) { error = '请至少输入一个用户 ID'; render(); return }
       busy = true; error = ''; render()
       try {
-        await createCohort({ name, description, color, user_ids })
+        const result = await createCohort({ name, description, color, user_ids })
         showCreate = false
         await load()
+        if (result.source === 'api') openCohortTracking(result.cohort)
+        else { error = '离线群组已保存在浏览器；持续追踪需要连接后端'; render() }
       } catch (err) {
         error = err.errors ? err.errors.join('；') : (err.message ?? '创建失败')
         busy = false; render()
@@ -149,6 +153,7 @@ export function mountCohortManager(host, { allUsers, asof, day, onApply, esc, re
         </div>
         <div class="a-cohort-actions">
           <button class="a-button" data-apply="${esc(c.id)}">用于分析</button>
+          ${c.kind==='dynamic'?'':`<button class="a-button" data-track="${esc(c.id)}">追踪使用</button>`}
           <button class="a-button" data-cohort-history="${esc(c.id)}">版本历史</button>
           <button class="a-iconbtn" data-delete="${esc(c.id)}" aria-label="删除">×</button>
         </div>
@@ -156,6 +161,10 @@ export function mountCohortManager(host, { allUsers, asof, day, onApply, esc, re
   }
 
   function bindCohortList() {
+    host.querySelectorAll('[data-track]').forEach(btn => btn.onclick = () => {
+      const cohort = cohorts.find(c => c.id === btn.dataset.track)
+      if (cohort) openCohortTracking(cohort)
+    })
     host.querySelectorAll('[data-apply]').forEach(btn => {
       btn.addEventListener('click', async () => {
         const id = btn.dataset.apply
@@ -204,8 +213,8 @@ export function mountCohortManager(host, { allUsers, asof, day, onApply, esc, re
 
   function parseIds(raw) {
     return [...new Set(
-      raw.split(/[\n,;\t]+/)
-        .map(s => s.trim())
+      raw.split(/[\s,;，；]+/)
+        .map(s => s.trim().replace(/^user:/, ''))
         .filter(Boolean)
     )]
   }

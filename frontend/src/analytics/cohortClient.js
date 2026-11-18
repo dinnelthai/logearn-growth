@@ -110,3 +110,11 @@ export async function updateCohort(id, { name, description, color }) {
 export const saveCohortVersion=(id,cache_id)=>apiFetch('/'+encodeURIComponent(id)+'/versions',{method:'POST',body:JSON.stringify({cache_id})})
 export const listCohortVersions=(id,offset=0)=>apiFetch('/'+encodeURIComponent(id)+'/versions?offset='+offset)
 export const getCohortVersion=(id,version)=>apiFetch('/'+encodeURIComponent(id)+'/versions/'+encodeURIComponent(version))
+
+
+// Operator actions belong to a persisted fixed cohort; no silent local fallback.
+export const listCohortActions = id => apiFetch('/' + encodeURIComponent(id) + '/actions')
+export const createCohortAction = (id, {title, note='', executed_at}) =>
+  apiFetch('/' + encodeURIComponent(id) + '/actions', {
+    method: 'POST', body: JSON.stringify({title, note, executed_at})
+  })

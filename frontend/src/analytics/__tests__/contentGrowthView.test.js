@@ -1,4 +1,4 @@
-import {describe,it,expect} from 'vitest';
+import {describe,it,expect,vi} from 'vitest';
 import {renderXPanel} from '../../pages/contentGrowth.js';
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const posts=[
@@ -18,6 +18,10 @@ describe('content growth reading experience',()=>{
   expect(renderXPanel(undefined,esc,'logearn_cn','recent')).toContain('监测数据暂不可用');
  });
  it('shows existing X metrics with a useful conclusion and source caveat',()=>{
+  // The fixture posts are in October 2026; freeze the 30-day window.
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date('2026-10-20T12:00:00Z'));
+  try {
   const html=renderXPanel(report,esc,'logearn_cn','recent');
   expect(html).toContain('9,721');
   expect(html).toContain('近期内容对比线索（非 AI 结论）');
@@ -28,6 +32,7 @@ describe('content growth reading experience',()=>{
   expect(html).toContain('同步冷却中');
   expect(html).toContain('前往 AI Growth Agent');
   expect(html).not.toContain('内容 0');
+  } finally {vi.useRealTimers();}
  });
  it('supports both existing official accounts without an account-creation flow',()=>{
   const html=renderXPanel(report,esc,'logearn_global','recent');
